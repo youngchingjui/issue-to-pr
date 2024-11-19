@@ -23,7 +23,7 @@ export default function IssueProcessor() {
       <CardContent>
         <form action={processIssue}>
           <Textarea
-            name="issueContent"
+            name="content"
             placeholder="Paste GitHub issue content here..."
             className="min-h-[200px] mb-4"
           />
