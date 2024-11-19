@@ -2,7 +2,7 @@
 
 const processIssue = async (formData: FormData) => {
   try {
-    const response = await fetch("/api/issue", {
+    const response = await fetch(`${process.env.BASE_URL}/api/issue`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
