@@ -16,8 +16,8 @@ export default function IssueProcessor() {
       <CardHeader>
         <CardTitle>GitHub Issue Processor</CardTitle>
         <CardDescription>
-          Paste your GitHub issue content below and click "Process" to analyze
-          it.
+          Paste your GitHub issue content below and click &quot;Process&quot; to
+          analyze it.
         </CardDescription>
       </CardHeader>
       <CardContent>
