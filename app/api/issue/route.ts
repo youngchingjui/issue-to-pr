@@ -44,15 +44,27 @@ export default async function PortfolioPage() {
 }`
 
   try {
-    // Create and checkout new branch
-    await git.checkoutLocalBranch("testing")
+    // Check if branch exists
+    const branches = await git.branchLocal()
+    if (!branches.all.includes("testing")) {
+      // Create new branch if it doesn't exist
+      await git.branch(["testing"])
+    }
+
+    // Checkout the branch (now we know it exists)
+    await git.checkout("testing")
 
     // Write the file
     await fs.writeFile(targetPath, newContent, "utf8")
 
+    // Stage and commit the changes
+    await git.add(targetPath)
+    await git.commit("Update page.tsx with new portfolio content")
+
     return NextResponse.json({
       success: true,
-      message: "Branch created and file updated successfully",
+      message:
+        "Branch created, file updated, and changes committed successfully",
     })
   } catch (error) {
     console.error("Error:", error)
