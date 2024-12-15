@@ -1,31 +1,60 @@
 import { NextResponse } from "next/server"
+import { promises as fs } from "fs"
+import path from "path"
 
-export async function POST(request: Request) {
-  const { content } = await request.json()
+export async function POST() {
+  // Define the path to the target file
+  const targetPath = path.join(
+    process.env.HOME,
+    "Projects",
+    "young-and-ai",
+    "app",
+    "page.tsx"
+  )
 
-  // Simple processing: Extract title, body, and add some mock code
-  const lines = content.split("\n")
-  const title = lines[0]
-  const body = lines.slice(1).join("\n")
+  // The new content to write
+  const newContent = `import { sectionData, SectionData } from "@/data/mockData"
+import Section from "@/components/Section"
 
-  // Generate some mock code based on the issue content
-  const mockCode = `
-// Issue Title: ${title}
-// Issue Body Length: ${body.length} characters
-
-function processIssue(title, body) {
-  console.log('Processing issue:', title);
-  // Add your issue processing logic here
-  return {
-    title,
-    bodyLength: body.length,
-    status: 'processed'
-  };
+const fetchData = async (): Promise<SectionData[]> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(sectionData)
+    }, 1000)
+  })
 }
 
-const result = processIssue("${title.replace(/"/g, '\\"')}", "...");
-console.log(result);
-`
+export default async function PortfolioPage() {
+  const data = await fetchData()
 
-  return NextResponse.json({ code: mockCode })
+  console.log("saving some new code")
+
+  return (
+    <div className="min-h-screen text-primary-foreground bg-gradient-to-br from-teal-800 via-teal-500 to-blue-300">
+      <header className="container mx-auto pt-52 pb-6 px-4 bg-opacity-80 backdrop-blur-sm">
+        <h1 className="text-5xl font-bold font-rokkitt">Young & AI</h1>
+      </header>
+      <main className="container mx-auto px-4 py-8">
+        {data.map((section, index) => (
+          <Section key={index} data={section} />
+        ))}
+      </main>
+    </div>
+  )
+}`
+
+  try {
+    // Write the file
+    await fs.writeFile(targetPath, newContent, "utf8")
+    return NextResponse.json({
+      success: true,
+      message: "File updated successfully",
+    })
+  } catch (error) {
+    console.error("Error writing file:", error)
+    return NextResponse.json(
+      { success: false, message: "Failed to write file", error: String(error) },
+      { status: 500 }
+    )
+  }
 }
