@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { promises as fs } from "fs"
 import path from "path"
 import simpleGit from "simple-git"
+import { Octokit } from "@octokit/rest"
 
 export async function POST() {
   const projectPath = path.join(process.env.HOME, "Projects", "young-and-ai")
@@ -11,6 +12,11 @@ export async function POST() {
 
   // Initialize git
   const git = simpleGit(projectPath)
+
+  // Initialize GitHub client
+  const octokit = new Octokit({
+    auth: process.env.GITHUB_TOKEN,
+  })
 
   // The new content to write
   const newContent = `import { sectionData, SectionData } from "@/data/mockData"
@@ -61,10 +67,23 @@ export default async function PortfolioPage() {
     await git.add(targetPath)
     await git.commit("Update page.tsx with new portfolio content")
 
+    // Push the branch to GitHub
+    await git.push("origin", "testing", ["--set-upstream"])
+
+    // Create pull request
+    const pr = await octokit.pulls.create({
+      owner: "youngchingjui",
+      repo: "young-and-ai",
+      title: "Update portfolio page",
+      head: "testing",
+      base: "main",
+      body: "Automated pull request to update the portfolio page.",
+    })
+
     return NextResponse.json({
       success: true,
-      message:
-        "Branch created, file updated, and changes committed successfully",
+      message: "Branch created, changes committed, and PR created successfully",
+      prUrl: pr.data.html_url,
     })
   } catch (error) {
     console.error("Error:", error)
