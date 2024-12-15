@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server"
 import { promises as fs } from "fs"
 import path from "path"
+import simpleGit from "simple-git"
 
 export async function POST() {
+  const projectPath = path.join(process.env.HOME, "Projects", "young-and-ai")
+
   // Define the path to the target file
-  const targetPath = path.join(
-    process.env.HOME,
-    "Projects",
-    "young-and-ai",
-    "app",
-    "page.tsx"
-  )
+  const targetPath = path.join(projectPath, "app", "page.tsx")
+
+  // Initialize git
+  const git = simpleGit(projectPath)
 
   // The new content to write
   const newContent = `import { sectionData, SectionData } from "@/data/mockData"
@@ -44,16 +44,20 @@ export default async function PortfolioPage() {
 }`
 
   try {
+    // Create and checkout new branch
+    await git.checkoutLocalBranch("testing")
+
     // Write the file
     await fs.writeFile(targetPath, newContent, "utf8")
+
     return NextResponse.json({
       success: true,
-      message: "File updated successfully",
+      message: "Branch created and file updated successfully",
     })
   } catch (error) {
-    console.error("Error writing file:", error)
+    console.error("Error:", error)
     return NextResponse.json(
-      { success: false, message: "Failed to write file", error: String(error) },
+      { success: false, message: "Operation failed", error: String(error) },
       { status: 500 }
     )
   }
