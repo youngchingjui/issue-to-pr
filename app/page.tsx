@@ -8,7 +8,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { processIssue } from "@/lib/actions"
+import {
+  processIssue,
+  generateCode,
+  commitChanges,
+  pushToGithub,
+  createPR,
+} from "@/lib/actions"
 
 export default function IssueProcessor() {
   return (
@@ -27,7 +33,21 @@ export default function IssueProcessor() {
             placeholder="Paste GitHub issue content here..."
             className="min-h-[200px] mb-4"
           />
-          <Button type="submit">Process Issue</Button>
+          <div className="flex gap-2 flex-wrap">
+            <Button type="submit">Process Issue</Button>
+            <Button formAction={generateCode} variant="secondary">
+              Generate Code
+            </Button>
+            <Button formAction={commitChanges} variant="outline">
+              Commit Changes
+            </Button>
+            <Button formAction={pushToGithub} variant="outline">
+              Push to GitHub
+            </Button>
+            <Button formAction={createPR} variant="secondary">
+              Create PR
+            </Button>
+          </div>
         </form>
       </CardContent>
       <CardFooter>
