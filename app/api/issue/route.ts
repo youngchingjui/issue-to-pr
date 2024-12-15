@@ -3,23 +3,10 @@ import { promises as fs } from "fs"
 import path from "path"
 import simpleGit from "simple-git"
 import { Octokit } from "@octokit/rest"
+import { generateNewContent } from "@/lib/utils"
 
-export async function POST() {
-  const projectPath = path.join(process.env.HOME, "Projects", "young-and-ai")
-
-  // Define the path to the target file
-  const targetPath = path.join(projectPath, "app", "page.tsx")
-
-  // Initialize git
-  const git = simpleGit(projectPath)
-
-  // Initialize GitHub client
-  const octokit = new Octokit({
-    auth: process.env.GITHUB_TOKEN,
-  })
-
-  // The new content to write
-  const newContent = `import { sectionData, SectionData } from "@/data/mockData"
+const EXISTING_CONTENT = `
+import { sectionData, SectionData } from "@/data/mockData"
 import Section from "@/components/Section"
 
 const fetchData = async (): Promise<SectionData[]> => {
@@ -49,6 +36,31 @@ export default async function PortfolioPage() {
   )
 }`
 
+const INSTRUCTIONS = `
+  You are a software engineer. You are given a file that contains existing code. 
+  
+  Please add any error checking that's needed.
+  `
+
+export async function POST() {
+  const projectPath = path.join(process.env.HOME, "Projects", "young-and-ai")
+
+  // Define the path to the target file
+  const targetPath = path.join(projectPath, "app", "page.tsx")
+
+  // Initialize git
+  const git = simpleGit(projectPath)
+
+  // Initialize GitHub client
+  const octokit = new Octokit({
+    auth: process.env.GITHUB_TOKEN,
+  })
+
+  // The new content to write
+  const newContent = await generateNewContent(EXISTING_CONTENT, INSTRUCTIONS)
+
+  console.log(newContent)
+
   try {
     // Check if branch exists
     const branches = await git.branchLocal()
@@ -61,7 +73,7 @@ export default async function PortfolioPage() {
     await git.checkout("testing")
 
     // Write the file
-    await fs.writeFile(targetPath, newContent, "utf8")
+    await fs.writeFile(targetPath, newContent.code, "utf8")
 
     // Stage and commit the changes
     await git.add(targetPath)
