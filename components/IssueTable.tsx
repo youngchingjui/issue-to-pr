@@ -1,5 +1,6 @@
 import { getRepositoryIssues } from "../lib/github"
 import { CreatePullRequestButton } from "./CreatePullRequestButton"
+import { IssueActionsDropdown } from "./IssueActionsDropdown"
 
 export default async function IssueTable() {
   try {
@@ -18,6 +19,7 @@ export default async function IssueTable() {
             <th className="py-2 px-4 border-b">Associated Branch</th>
             <th className="py-2 px-4 border-b">Pull Request</th>
             <th className="py-2 px-4 border-b">Actions</th>
+            <th className="py-2 px-4 border-b">More</th>
           </tr>
         </thead>
         <tbody>
@@ -42,6 +44,9 @@ export default async function IssueTable() {
                 {!issue.pullRequest && (
                   <CreatePullRequestButton issueId={issue.id} />
                 )}
+              </td>
+              <td className="py-2 px-4">
+                <IssueActionsDropdown issueId={issue.id} />
               </td>
             </tr>
           ))}
