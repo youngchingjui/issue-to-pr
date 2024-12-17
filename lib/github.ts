@@ -5,9 +5,6 @@ const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN })
 const owner = process.env.GITHUB_OWNER
 const repo = process.env.GITHUB_REPO
 
-console.log("owner", owner)
-console.log("repo", repo)
-
 if (!owner || !repo) {
   throw new Error(
     "GITHUB_OWNER and GITHUB_REPO environment variables must be set"
