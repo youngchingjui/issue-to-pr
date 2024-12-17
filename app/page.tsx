@@ -12,12 +12,3 @@ export default function Home() {
     </main>
   )
 }
-
-export function ErrorBoundary({ error }: { error: Error }) {
-  return (
-    <div className="text-center py-4 text-red-500">
-      <h2 className="text-lg font-bold mb-2">An error occurred:</h2>
-      <p>{error.message}</p>
-    </div>
-  )
-}
