@@ -51,6 +51,29 @@ async function getAssociatedBranch(issueNumber: number) {
   return null
 }
 
+export async function getIssue(issueNumber: number) {
+  const issue = await octokit.issues.get({
+    owner,
+    repo,
+    issue_number: issueNumber,
+  })
+  return issue.data
+}
+
+export async function getFileContent(filePath: string) {
+  const file = await octokit.repos.getContent({ owner, repo, path: filePath })
+  return file.data
+}
+
+export async function createGitHubBranch(branchName: string, mainRef: string) {
+  await octokit.git.createRef({
+    owner,
+    repo,
+    ref: `refs/heads/${branchName}`,
+    sha: mainRef,
+  })
+}
+
 async function getAssociatedPullRequest(issueNumber: number) {
   try {
     const response = await octokit.pulls.list({
