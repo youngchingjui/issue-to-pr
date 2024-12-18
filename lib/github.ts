@@ -1,4 +1,5 @@
 import { Octokit } from "@octokit/rest"
+import { generateNewContent } from "./utils"
 
 const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN })
 
@@ -71,31 +72,121 @@ async function getAssociatedPullRequest(issueNumber: number) {
   }
 }
 
-export async function createPullRequest(issueId: number) {
-  // This is a placeholder. You'll need to implement the logic to create a pull request.
-  // This might involve:
-  // 1. Creating a new branch
-  // 2. Making changes to fix the issue
-  // 3. Committing the changes
-  // 4. Creating a pull request
+export async function createBranch(issueId: number) {
+  // This should just create a branch off of the branch in the parameters
+  // It'll use the same branch naming convention as Github, ie "250-allow-user-to-change-openai-model-for-each-run"
+
+  console.log(`Creating branch for issue ${issueId}`)
+
+  // Get the issue title
+  const issue = await octokit.issues.get({ owner, repo, issue_number: issueId })
+  const issueTitle = issue.data.title
+
+  // Create the branch
+  const branch = await octokit.git.createRef({
+    owner,
+    repo,
+    ref: `refs/heads/${issueTitle}`,
+    sha: "main",
+  })
+
+  return branch.data.ref
+}
+
+export async function createPullRequest(issueId: number, branch: string) {
+  // This should just create a pull request off of the branch in the parameters
   console.log(`Creating pull request for issue ${issueId}`)
-  // Implement the actual logic here
+
+  // Create the pull request
+  const pullRequest = await octokit.pulls.create({
+    owner,
+    repo,
+    title: `Fix issue ${issueId}`,
+    head: branch,
+    base: "main",
+  })
+
+  return pullRequest.data.html_url
 }
 
 export async function generateCode(issueId: number) {
-  // Implement your code generation logic here
-  console.log(`Generating code for issue ${issueId}`)
-  // Example: Clone repository, create files, etc.
+  // Generate the code based off the contents of the Github issue as well as the code in the repository
+
+  // Get the issue title and contents
+  const issue = await octokit.issues.get({ owner, repo, issue_number: issueId })
+  const issueTitle = issue.data.title
+  const issueBody = issue.data.body
+
+  const instructions = `
+    You are a software engineer. You are given a file that contains existing code. 
+    
+    Here is the problem that needs to be fixed:
+    Title: ${issueTitle}
+    Description: ${issueBody}
+  `
+
+  const existingCode = await octokit.repos.getContent({
+    owner,
+    repo,
+    path: "app/page.tsx",
+  })
+
+  // Use the title and contents to inform the LLM how to fix the issue
+  const newCode = await generateNewContent(
+    existingCode.data.toString(),
+    instructions
+  )
+
+  return newCode
 }
 
-export async function commitCode(issueId: number) {
-  // Implement your commit logic here
+export async function commitCode(
+  issueId: number,
+  newCode: string,
+  branch: string
+) {
+  // Commit the code to the branch
   console.log(`Committing code for issue ${issueId}`)
-  // Example: Commit changes to a branch
+
+  // Create a new commit
+  const commit = await octokit.git.createCommit({
+    owner,
+    repo,
+    message: `Fix issue ${issueId}`,
+    tree: newCode,
+    parents: [branch],
+  })
+
+  return commit.data.sha
 }
 
 export async function gitPush(issueId: number) {
-  // Implement your git push logic here
+  // Push the code to the remote repository
   console.log(`Pushing code for issue ${issueId}`)
   // Example: Push commits to remote repository
+}
+
+export async function resolveIssue(issueId: number) {
+  // Completely resolve the issue with AI
+  // 1. Create a new branch
+  // 2. Make changes to fix the issue
+  // 3. Commit the changes
+  // 4. Create a pull request
+
+  // 1. Create a new branch
+  const branch = await createBranch(issueId)
+
+  // 2. Make changes to fix the issue
+  const newCode = await generateCode(issueId)
+
+  // 3. Commit the changes
+  await commitCode(issueId, newCode.code, branch)
+
+  // 4. Create a pull request
+  const pullRequestUrl = await createPullRequest(issueId, branch)
+
+  console.log(`Resolving issue ${issueId}`)
+  // Example: Mark issue as resolved
+
+  return pullRequestUrl
 }
