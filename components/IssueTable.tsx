@@ -42,7 +42,7 @@ export default async function IssueTable() {
               </td>
               <td className="py-2 px-4">
                 {!issue.pullRequest && (
-                  <CreatePullRequestButton issueId={issue.id} />
+                  <CreatePullRequestButton issueNumber={issue.number} />
                 )}
               </td>
               <td className="py-2 px-4">

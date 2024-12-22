@@ -3,18 +3,22 @@
 import { useState } from "react"
 import { Button } from "./ui/button"
 
-export function CreatePullRequestButton({ issueId }: { issueId: number }) {
+export function CreatePullRequestButton({
+  issueNumber,
+}: {
+  issueNumber: number
+}) {
   const [isLoading, setIsLoading] = useState(false)
 
   const handleCreatePR = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch("/api/create-pull-request", {
+      const response = await fetch("/api/resolve", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ issueId }),
+        body: JSON.stringify({ issueNumber }),
       })
 
       const data = await response.json()

@@ -4,25 +4,26 @@ import { getIssue, getFileContent, createGitHubBranch } from "@/lib/github"
 
 export async function POST(request: NextRequest) {
   try {
-    const { issueId } = await request.json()
+    const { issueNumber } = await request.json()
 
-    if (typeof issueId !== "number") {
+    if (typeof issueNumber !== "number") {
       return NextResponse.json(
-        { error: "Invalid issueId provided." },
+        { error: "Invalid issueNumber provided." },
         { status: 400 }
       )
     }
 
-    const issue = await getIssue(issueId)
+    const issue = await getIssue(issueNumber)
 
     // Create branch name from issue
-    const branchName = `${issueId}-${issue.title
+    const branchName = `${issueNumber}-${issue.title
       .toLowerCase()
       .replace(/\s+/g, "-")}`
 
     // Generate code based on issue
-    const fileContent = await getFileContent("app/page.tsx")
+    const fileContent = await getFileContent("app/api/resolve/route.ts")
     const instructions = `
+    Please generate a new file called "app/api/resolve/route.ts" that will resolve this issue:
       Title: ${issue.title}
       Description: ${issue.body}
     `
@@ -36,10 +37,10 @@ export async function POST(request: NextRequest) {
     await createGitHubBranch(branchName, mainRef.sha)
 
     const pr = await github.createGitHubPR({
-      title: `Fix #${issueId}: ${issue.title}`,
+      title: `Fix #${issueNumber}: ${issue.title}`,
       branchName,
       baseBranch: "main",
-      body: `Fixes #${issueId}`,
+      body: `Fixes #${issueNumber}`,
     })
 
     return pr.data.html_url
