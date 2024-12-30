@@ -31,7 +31,7 @@ export function CreatePullRequestButton({
       window.location.reload()
     } catch (error) {
       console.error("Failed to create pull request:", error)
-      alert("Failed to create pull request. Please try again.")
+      alert(error.error || error.message)
     } finally {
       setIsLoading(false)
     }
