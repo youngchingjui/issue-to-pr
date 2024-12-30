@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    await createPullRequest(issueId)
+    await createPullRequest(issueId, "playground-fix")
 
     return NextResponse.json(
       { message: "Pull request created successfully." },
