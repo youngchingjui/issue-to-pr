@@ -61,7 +61,7 @@ export function IssueActionsDropdown({ issueId }: { issueId: number }) {
           Git Push
         </DropdownMenuItem>
         <DropdownMenuItem>
-          <CreatePullRequestButton issueId={issueId} />
+          <CreatePullRequestButton issueNumber={issueId} />
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
