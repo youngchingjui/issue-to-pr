@@ -35,6 +35,24 @@ export async function POST(request: NextRequest) {
       .replace(/\s+/g, "-")}`
     console.debug(`[DEBUG] Generated branch name: ${branchName}`)
 
+    console.debug("[DEBUG] Initializing git operations")
+    const git = simpleGit(DIRECTORY_PATH)
+
+    try {
+      console.debug(`[DEBUG] Checking out branch: ${NEW_BRANCH_NAME}`)
+      await git.checkout(NEW_BRANCH_NAME, { "-b": null })
+    } catch (error) {
+      console.debug("[DEBUG] Error during branch checkout:", error)
+      if (error instanceof GitError) {
+        return NextResponse.json(
+          {
+            error: error.message,
+          },
+          { status: 400 }
+        )
+      }
+    }
+
     // Generate code based on issue
     // TODO: Find fileContent type
     console.debug(
@@ -69,24 +87,6 @@ export async function POST(request: NextRequest) {
 
     console.debug("[DEBUG] Writing new code to file")
     await fs.writeFile(FILE_TO_EDIT, newCode.code)
-
-    console.debug("[DEBUG] Initializing git operations")
-    const git = simpleGit(DIRECTORY_PATH)
-
-    try {
-      console.debug(`[DEBUG] Checking out branch: ${NEW_BRANCH_NAME}`)
-      await git.checkout(NEW_BRANCH_NAME)
-    } catch (error) {
-      console.debug("[DEBUG] Error during branch checkout:", error)
-      if (error instanceof GitError) {
-        return NextResponse.json(
-          {
-            error: error.message,
-          },
-          { status: 400 }
-        )
-      }
-    }
 
     console.debug(`[DEBUG] Staging file: ${FILE_TO_EDIT}`)
     await git.add(FILE_TO_EDIT)
