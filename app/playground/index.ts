@@ -1,65 +1,67 @@
 import express from 'express';
-import { Octokit } from '@octokit/rest';
-import simpleGit from 'simple-git';
-import generateCode from './codeGenerator'; // hypothetical code generator function
+import { generateCodeForIssue, createBranch, commitAndPushChanges, createPullRequest } from './git-utils';
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const REPO_OWNER = 'your-repo-owner';  // replace with actual repo owner
-const REPO_NAME = 'your-repo-name';    // replace with actual repo name
-
-const octokit = new Octokit({ auth: GITHUB_TOKEN });
-const git = simpleGit();
-
 app.use(express.json());
 
+// Endpoint to handle the resolution of an issue
 app.post('/resolve', async (req, res) => {
-    try {
-        const { issueNumber, issueTitle } = req.body;
-        if (!issueNumber || !issueTitle) {
-            return res.status(400).send('Issue number and title are required.');
-        }
-        
-        // Step 1: Generate the code
-        const generatedCode = generateCode(issueTitle); // hypothetical function that returns code as a string
-
-        // Step 2: Create a new branch
-        const branchName = `issue-${issueNumber}-${issueTitle.toLowerCase().replace(/\s+/g, '-')}`;
-        await git.checkoutLocalBranch(branchName);
-
-        // Step 3: Save generated code to a file or make modifications as needed
-        // (Assuming the code should be written to a file called 'solution.ts')
-        await git.add('.');
-        await git.commit('Generated solution for issue #' + issueNumber);
-
-        // Step 4: Push branch to GitHub
-        await git.push('origin', branchName);
-
-        // Step 5: Create a pull request on GitHub
-        const pullRequest = await octokit.pulls.create({
-            owner: REPO_OWNER,
-            repo: REPO_NAME,
-            title: `Fix for issue #${issueNumber}: ${issueTitle}`,
-            head: branchName,
-            base: 'main', // assuming main is the default branch
-            body: 'This pull request contains the generated code to resolve the issue.',
-        });
-
-        res.json({
-            message: 'Pull request created successfully.',
-            pullRequestUrl: pullRequest.data.html_url,
-        });
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).send('An error occurred while processing the request.');
+  try {
+    const { issueNumber, issueTitle } = req.body;
+    if (!issueNumber || !issueTitle) {
+      return res.status(400).send({ error: 'Issue number and title are required' });
     }
+
+    // Generate the code fix for the issue
+    const code = await generateCodeForIssue(issueNumber);
+    if (!code) {
+      return res.status(500).send({ error: 'Failed to generate code' });
+    }
+
+    // Create a new branch based on issue number and title
+    const branchName = `issue-${issueNumber}-${issueTitle.replace(/\s+/g, '-').toLowerCase()}`;
+    await createBranch(branchName);
+
+    // Commit the generated code to the new branch
+    const commitMessage = `fix: resolve issue #${issueNumber} - ${issueTitle}`;
+    await commitAndPushChanges(branchName, code, commitMessage);
+
+    // Create a pull request with the changes
+    const pullRequestUrl = await createPullRequest(branchName, `Resolve issue #${issueNumber}`, commitMessage);
+    if (!pullRequestUrl) {
+      return res.status(500).send({ error: 'Failed to create pull request' });
+    }
+
+    // Send back the pull request URL
+    res.status(200).send({ pullRequestUrl });
+  } catch (error) {
+    console.error('Error resolving issue:', error);
+    res.status(500).send({ error: 'Internal server error' });
+  }
 });
 
 app.listen(port, () => {
-    console.log(`Server started at http://localhost:${port}`);
+  console.log(`Server running on http://localhost:${port}`);
 });
 
-export default app;
+// git-utils.ts (helper utility functions)
+// The following functions are placeholder functions and must be implemented
+export async function generateCodeForIssue(issueNumber: number): Promise<string> {
+  // Implement code generation logic
+  return `// Code generated for issue #${issueNumber}`;
+}
+
+export async function createBranch(branchName: string): Promise<void> {
+  // Implement Git branch creation logic
+}
+
+export async function commitAndPushChanges(branchName: string, code: string, commitMessage: string): Promise<void> {
+  // Implement commit and push logic on the Git repository
+}
+
+export async function createPullRequest(branchName: string, title: string, body: string): Promise<string | null> {
+  // Implement GitHub pull request creation logic
+  return `https://github.com/user/repo/pull/${Math.floor(Math.random() * 1000)}`; // Mock pull request URL
+}
