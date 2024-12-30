@@ -1,78 +1,56 @@
 import express from 'express';
-import { exec } from 'child_process';
-import * as fs from 'fs';
-import { Octokit } from "@octokit/rest";
+import simpleGit from 'simple-git';
+import GitHub from '@octokit/rest';
 
-const app = express();
-const port = process.env.PORT || 3000;
+const router = express.Router();
 
-// Initialize Octokit with a personal access token
-const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+// Initialize Git and GitHub client
+const git = simpleGit();
+const github = new GitHub({
+  auth: process.env.GITHUB_TOKEN
+});
 
-app.use(express.json());
+// Endpoint to resolve issues
+router.post('/resolve', async (req, res) => {
+  const { issueNumber, issueTitle, codeGenerationFunction } = req.body;
+  const branchName = `${issueNumber}-${issueTitle.replace(/\s+/g, '-').toLowerCase()}`;
 
-// Route to handle resolution of an issue
-app.post('/resolve', async (req, res) => {
   try {
-    const { issueNumber, issueTitle, owner, repo } = req.body;
+    // Generate the code
+    const generatedCode = codeGenerationFunction();
 
-    if (!issueNumber || !issueTitle || !owner || !repo) {
-      return res.status(400).send({ message: 'Missing required fields'});
-    }
+    // Create a new branch
+    await git.checkoutLocalBranch(branchName);
 
-    // Step 1: Generate the code (This can be a complex operation; for simplicity, we'll assume code is generated)
-    const generatedCode = "// Example generated code\nconsole.log('Hello, World!');";
-    const filePath = `./generated/fix-${issueNumber}.js`;
-    fs.writeFileSync(filePath, generatedCode);
+    // Write the generated code to a file (assuming a specific file for simplicity)
+    const filePath = 'path/to/generated/code.ts';
+    require('fs').writeFileSync(filePath, generatedCode);
 
-    // Step 2: Create a new branch
-    const branchName = `issue-${issueNumber}-${issueTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
-    await execShellCommand(`git checkout -b ${branchName}`);
+    // Add changes
+    await git.add(filePath);
 
-    // Step 3: Commit the generated code to the new branch
-    fs.writeFileSync(filePath, generatedCode);
-    await execShellCommand(`git add ${filePath}`);
-    await execShellCommand(`git commit -m "Resolve issue #${issueNumber}: ${issueTitle}"`);
+    // Commit changes
+    await git.commit(`Resolve issue #${issueNumber}: ${issueTitle}`);
 
-    // Step 4: Push the changes to GitHub
-    await execShellCommand(`git push origin ${branchName}`);
+    // Push changes
+    await git.push('origin', branchName);
 
-    // Step 5: Create a pull request
-    const pullRequest = await octokit.pulls.create({
-      owner,
-      repo,
-      title: `Fix for issue #${issueNumber}: ${issueTitle}`,
+    // Create a pull request
+    const { data: pr } = await github.pulls.create({
+      owner: process.env.GITHUB_OWNER,
+      repo: process.env.GITHUB_REPO,
+      title: `Resolve Issue #${issueNumber}: ${issueTitle}`,
       head: branchName,
-      base: 'main', // Assuming 'main' is the default branch
-      body: `This PR addresses: #${issueNumber}`
+      base: 'main',
+      body: `This resolves issue #${issueNumber}.`  // Adjust base branch as needed
     });
 
-    // Return success response
-    res.status(200).send({
-      message: 'Pull request created successfully',
-      pullRequestUrl: pullRequest.data.html_url
-    });
-
+    // Respond with pull request URL
+    res.status(200).json({ prUrl: pr.html_url });
   } catch (error) {
     console.error('Error resolving issue:', error);
-    res.status(500).send({ message: 'Failed to resolve issue', error: error.message });
+    res.status(500).json({ error: 'Failed to resolve the issue' });
   }
 });
 
-// Helper function to execute shell commands
-function execShellCommand(cmd: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    exec(cmd, (error, stdout, stderr) => {
-      if (error) {
-        console.warn(error);
-        reject(stderr);
-      }
-      resolve(stdout);
-    });
-  });
-}
-
-// Start server
-app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
-});
+export default router;
