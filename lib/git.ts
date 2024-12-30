@@ -3,15 +3,18 @@
 
 import { exec } from "child_process"
 
-export async function checkoutBranch(branchName: string) {
-  const command = `git checkout -b ${branchName}`
-  exec(command, (error, stdout, stderr) => {
-    if (error) {
-      return Promise.reject(new Error(error.message))
-    }
-    if (stderr) {
-      return Promise.reject(new Error(stderr))
-    }
-    return Promise.resolve(stdout)
+export async function checkoutBranch(branchName: string): Promise<string> {
+  // Checkouts the branch and creates it if it doesn't exist
+  const command = `git checkout -B ${branchName}`
+  return new Promise((resolve, reject) => {
+    exec(command, (error, stdout, stderr) => {
+      if (error) {
+        return reject(new Error(error.message))
+      }
+      if (stderr) {
+        return reject(new Error(stderr))
+      }
+      return resolve(stdout)
+    })
   })
 }

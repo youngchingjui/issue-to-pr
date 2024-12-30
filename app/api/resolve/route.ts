@@ -44,14 +44,12 @@ export async function POST(request: NextRequest) {
       await checkoutBranch(NEW_BRANCH_NAME)
     } catch (error) {
       console.debug("[DEBUG] Error during branch checkout:", error)
-      if (error instanceof GitError) {
-        return NextResponse.json(
-          {
-            error: error.message,
-          },
-          { status: 400 }
-        )
-      }
+      return NextResponse.json(
+        {
+          error,
+        },
+        { status: 400 }
+      )
     }
 
     // Generate code based on issue
