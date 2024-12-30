@@ -39,6 +39,9 @@ export async function POST(request: NextRequest) {
     console.debug("[DEBUG] Initializing git operations")
     const git = simpleGit(DIRECTORY_PATH)
 
+    // Check if branch name already exists
+    // If not, create it
+    // Then, checkout the branch
     try {
       console.debug(`[DEBUG] Checking out branch: ${NEW_BRANCH_NAME}`)
       await checkoutBranch(NEW_BRANCH_NAME)
