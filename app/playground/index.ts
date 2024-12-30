@@ -1,77 +1,50 @@
-import express from 'express';
-import { Octokit } from '@octokit/rest';
-import { execSync } from 'child_process';
-import path from 'path';
-import fs from 'fs';
+import express, { Request, Response } from 'express';
+import { generateCode, createBranch, commitAndPush, createPullRequest } from './githubService';
+import { getIssueDetails } from './issueService';
 
 const app = express();
-const port = process.env.PORT || 3000;
 
-// You'll need a GitHub token with repo scope
-const githubToken = process.env.GITHUB_TOKEN;
-if (!githubToken) {
-  throw new Error('GitHub token is required');
-}
+app.use(express.json());
 
-const octokit = new Octokit({ auth: githubToken });
-const repoOwner = 'your-github-username'; // Replace with your GitHub username or organization
-const repoName = 'your-repo-name'; // Replace with the repository name
-
-app.post('/resolve', async (req, res) => {
+// Endpoint to resolve an issue
+app.post('/resolve', async (req: Request, res: Response) => {
   try {
-    const issueNumber = req.body.issueNumber;
-    const issueTitle = req.body.issueTitle;
-    if (!issueNumber || !issueTitle) {
-      return res.status(400).send('Issue number and title are required');
+    const { issueNumber } = req.body;
+    if (!issueNumber) {
+      return res.status(400).send({ message: 'Issue number is required' });
     }
 
-    const branchName = `${issueNumber}-${issueTitle.toLowerCase().replace(/ /g, '-')}`;
+    // Fetch issue details
+    const issueDetails = await getIssueDetails(issueNumber);
+    if (!issueDetails) {
+      return res.status(404).send({ message: 'Issue not found' });
+    }
 
-    // Clone the repo (assumes you have SSH access or set up a deploy key)
-    execSync(`git clone git@github.com:${repoOwner}/${repoName}.git`);
+    // Generate code for the issue
+    const generatedCode = await generateCode(issueDetails);
 
-    const repoPath = path.join(process.cwd(), repoName);
-    process.chdir(repoPath);
+    // Create and checkout new branch
+    const branchName = `${issueNumber}-${issueDetails.title.toLowerCase().replace(/\s+/g, '-')}`;
+    await createBranch(branchName);
 
-    // Create and checkout the new branch
-    execSync(`git checkout -b ${branchName}`);
+    // Commit and push changes to the new branch
+    await commitAndPush(branchName, generatedCode, `Resolve issue #${issueNumber}`);
 
-    // Placeholder for code generation function
-    generateCode();
+    // Create a pull request with the latest changes
+    const pullRequestUrl = await createPullRequest(branchName, issueNumber, issueDetails.title);
 
-    // Commit and push changes
-    execSync('git add .');
-    execSync(`git commit -m "Fixes #${issueNumber} - ${issueTitle}"`);
-    execSync(`git push origin ${branchName}`);
+    // Return the URL of the created pull request
+    return res.status(200).send({ pullRequestUrl });
 
-    // Create a pull request on GitHub
-    const { data: pullRequest } = await octokit.pulls.create({
-      owner: repoOwner,
-      repo: repoName,
-      title: `Fix #${issueNumber}: ${issueTitle}`,
-      head: branchName,
-      base: 'main', // Or your default branch
-      body: `Pull request to fix issue #${issueNumber} titled "${issueTitle}".`
-    });
-
-    res.send({
-      message: 'Pull request created successfully',
-      pullRequestUrl: pullRequest.html_url
-    });
   } catch (error) {
-    console.error('Failed to resolve issue:', error);
-    res.status(500).send('Internal Server Error');
-  } finally {
-    // Clean up - remove the cloned repo directory
-    execSync(`rm -rf ${repoName}`);
+    console.error('Error resolving issue:', error);
+    return res.status(500).send({ message: 'Internal server error' });
   }
 });
 
-const generateCode = () => {
-  // Implement a function here that generates the code fix
-  fs.writeFileSync('generated-code.txt', 'This is where the generated code would go');
-};
-
-app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
+
+export default app;
