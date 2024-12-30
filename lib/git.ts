@@ -34,7 +34,7 @@ export async function createBranch(branchName: string): Promise<string> {
 
 export async function checkoutBranch(branchName: string): Promise<string> {
   // Checks out branch. Returns error if branch does not exist
-  const command = `git checkout ${branchName}`
+  const command = `git checkout -q ${branchName}`
   return new Promise((resolve, reject) => {
     exec(command, (error, stdout, stderr) => {
       if (error) {
