@@ -33,3 +33,5 @@ export async function checkoutBranch(branchName: string): Promise<string> {
       }
       return resolve(stdout)
     })
+  })
+}
