@@ -12,7 +12,11 @@ const FILE_TO_EDIT = "app/playground/index.ts"
 const NEW_BRANCH_NAME = "playground-fix"
 const DIRECTORY_PATH = "."
 import { promises as fs } from "fs"
-import { checkoutBranch } from "@/lib/git"
+import {
+  checkIfLocalBranchExists,
+  createBranch,
+  checkoutBranch,
+} from "@/lib/git"
 
 export async function POST(request: NextRequest) {
   try {
@@ -44,6 +48,11 @@ export async function POST(request: NextRequest) {
     // Then, checkout the branch
     try {
       console.debug(`[DEBUG] Checking out branch: ${NEW_BRANCH_NAME}`)
+
+      const branchExists = await checkIfLocalBranchExists(NEW_BRANCH_NAME)
+      if (!branchExists) {
+        await createBranch(NEW_BRANCH_NAME)
+      }
       await checkoutBranch(NEW_BRANCH_NAME)
     } catch (error) {
       console.debug("[DEBUG] Error during branch checkout:", error)

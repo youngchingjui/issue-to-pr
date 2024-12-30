@@ -20,9 +20,21 @@ export async function checkIfLocalBranchExists(
   })
 }
 
+export async function createBranch(branchName: string): Promise<string> {
+  const command = `git checkout -b ${branchName}`
+  return new Promise((resolve, reject) => {
+    exec(command, (error, stdout, stderr) => {
+      if (error) {
+        return reject(new Error(error.message))
+      }
+      return resolve(stdout)
+    })
+  })
+}
+
 export async function checkoutBranch(branchName: string): Promise<string> {
-  // Checkouts the branch and creates it if it doesn't exist
-  const command = `git checkout -B ${branchName}`
+  // Checks out branch. Returns error if branch does not exist
+  const command = `git checkout ${branchName}`
   return new Promise((resolve, reject) => {
     exec(command, (error, stdout, stderr) => {
       if (error) {
