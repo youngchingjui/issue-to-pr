@@ -79,10 +79,12 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       console.debug("[DEBUG] Error during branch checkout:", error)
       if (error instanceof GitError) {
-        return NextResponse.json({
-          error: error.message,
-          status: 400,
-        })
+        return NextResponse.json(
+          {
+            error: error.message,
+          },
+          { status: 400 }
+        )
       }
     }
 
@@ -114,10 +116,12 @@ export async function POST(request: NextRequest) {
       // TODO: Handle error if pull request already exists
       console.debug("[DEBUG] Error creating pull request:", error)
       if (error.response.data.errors[0].message.includes("already exists")) {
-        return NextResponse.json({
-          error: `Pull request already exists for issue. Please remove any existing pull requests from ${NEW_BRANCH_NAME} to continue.`,
-          status: 400,
-        })
+        return NextResponse.json(
+          {
+            error: `Pull request already exists for issue. Please remove any existing pull requests from ${NEW_BRANCH_NAME} to continue.`,
+          },
+          { status: 400 }
+        )
       }
       // TODO: Handle errors if PR creation fails because of API limits, such as rate limits, plan limits, etc.
       console.error("Error creating PR:", error)
