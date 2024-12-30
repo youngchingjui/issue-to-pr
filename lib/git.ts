@@ -6,16 +6,19 @@ import { exec } from "child_process"
 export async function checkIfLocalBranchExists(
   branchName: string
 ): Promise<boolean> {
-  const command = `git show-ref refs/heads/${branchName}`
+  // Lists all local branches and greps given branchName
+  const command = `git branch | grep ${branchName}`
   return new Promise((resolve, reject) => {
     exec(command, (error, stdout, stderr) => {
-      if (error) {
+      // grep returns exit code 1 when no matches are found
+      // but other error codes indicate real errors
+      if (error && error.code !== 1) {
         return reject(new Error(error.message))
       }
       if (stderr) {
         return reject(new Error(stderr))
       }
-      return resolve(stdout.includes(branchName))
+      return resolve(!!stdout && stdout.trim().length > 0)
     })
   })
 }

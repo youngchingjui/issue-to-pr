@@ -6,7 +6,7 @@ import {
   createPullRequest,
   GitHubError,
 } from "@/lib/github"
-import simpleGit, { GitError } from "simple-git"
+import simpleGit from "simple-git"
 
 const FILE_TO_EDIT = "app/playground/index.ts"
 const NEW_BRANCH_NAME = "playground-fix"
