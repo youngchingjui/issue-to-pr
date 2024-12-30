@@ -6,7 +6,7 @@ import { exec } from "child_process"
 export async function checkIfLocalBranchExists(
   branchName: string
 ): Promise<boolean> {
-  const command = `git show-ref --verify --quiet refs/heads/${branchName}`
+  const command = `git show-ref refs/heads/${branchName}`
   return new Promise((resolve, reject) => {
     exec(command, (error, stdout, stderr) => {
       if (error) {

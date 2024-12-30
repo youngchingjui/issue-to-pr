@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
       console.debug("[DEBUG] Error during branch checkout:", error)
       return NextResponse.json(
         {
-          error,
+          error: error.message,
         },
         { status: 400 }
       )
