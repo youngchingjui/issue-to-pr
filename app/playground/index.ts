@@ -1,67 +1,74 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
 import { Octokit } from "@octokit/rest";
-import { execSync } from 'child_process';
+import simpleGit from 'simple-git';
+import generateCode from './generateCode';
+import { resolveIssueBranchName } from './utils';
 
 const app = express();
 const port = process.env.PORT || 3000;
-const githubToken = process.env.GITHUB_TOKEN;
-const repositoryOwner = process.env.REPO_OWNER;
-const repositoryName = process.env.REPO_NAME;
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const REPO_OWNER = process.env.REPO_OWNER;
+const REPO_NAME = process.env.REPO_NAME;
 
-const octokit = new Octokit({
-  auth: githubToken,
-});
+const octokit = new Octokit({ auth: GITHUB_TOKEN });
+const git = simpleGit();
 
-// Ensure all environment variables are set
-if (!githubToken || !repositoryOwner || !repositoryName) {
-  console.error("Missing environment variables.");
-  process.exit(1);
-}
+app.post('/resolve', async (req, res) => {
+    try {
+        const { issueNumber, issueTitle } = req.body;
+        if (!issueNumber || !issueTitle) {
+            return res.status(400).send('Issue number and title are required');
+        }
 
-app.post('/resolve', async (req: Request, res: Response) => {
-  try {
-    const { issueNumber, issueTitle, generatedCode } = req.body;
+        // Generate code
+        const generatedCode = generateCode(issueTitle);
 
-    if (!issueNumber || !issueTitle || !generatedCode) {
-      return res.status(400).send("Missing parameters.");
+        // Checkout to a new branch
+        const branchName = resolveIssueBranchName(issueNumber, issueTitle);
+        await git.checkoutLocalBranch(branchName);
+
+        // Save generated code to a file or apply changes.
+        // This step will depend on your specific application structure.
+        // For example:
+        // await fs.writeFileSync('./path/to/file.ts', generatedCode);
+
+        // Commit changes
+        await git.add('./*');
+        await git.commit(`Resolve issue #${issueNumber}: ${issueTitle}`);
+
+        // Push changes
+        await git.push('origin', branchName);
+
+        // Create a pull request
+        const pullRequest = await octokit.pulls.create({
+            owner: REPO_OWNER,
+            repo: REPO_NAME,
+            title: `Fix #${issueNumber}: ${issueTitle}`,
+            head: branchName,
+            base: 'main', // Change base branch as needed
+        });
+
+        return res.status(200).json({ message: 'Pull request created', url: pullRequest.data.html_url });
+    } catch (error) {
+        console.error(`Error resolving issue: ${error}`);
+        return res.status(500).send('An error occurred while processing the request.');
     }
-
-    const branchName = `issue-${issueNumber}-${issueTitle.replace(/\s+/g, '-').toLowerCase()}`;
-
-    // Create a new branch from main
-    execSync(`git checkout main`);
-    execSync(`git pull`);
-    execSync(`git checkout -b ${branchName}`);
-
-    // Save generated code to the appropriate file(s)
-    // This implementation depends on how you decide to structure files
-    execSync(`echo '${generatedCode}' > app/playground/index.ts`);
-
-    // Commit the changes to the new branch
-    execSync(`git add .`);
-    execSync(`git commit -m "Fix for issue #${issueNumber}: ${issueTitle}"`);
-
-    // Push branch to remote
-    execSync(`git push --set-upstream origin ${branchName}`);
-
-    // Create a Pull Request
-    const { data: pullRequest } = await octokit.pulls.create({
-      owner: repositoryOwner,
-      repo: repositoryName,
-      title: `PR for issue #${issueNumber}: ${issueTitle}`,
-      head: branchName,
-      base: "main",
-      body: `Fixes issue #${issueNumber}`
-    });
-
-    // Respond with the URL of the created pull request
-    res.json({ pullRequestUrl: pullRequest.html_url });
-  } catch (error) {
-    console.error(error);
-    res.status(500).send("Internal server error.");
-  }
 });
 
 app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+    console.log(`Server running on port ${port}`);
 });
+
+// utils.ts
+export const resolveIssueBranchName = (issueNumber: string, issueTitle: string): string => {
+    // Use Github's branch auto-naming convention
+    const safeTitle = issueTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    return `${issueNumber}-${safeTitle}`;
+};
+
+// generateCode.ts
+const generateCode = (issueTitle: string): string => {
+    // Pseudocode for generating applicable code based on the issue title
+    // Needs to be replaced with the actual implementation
+    return `// Code generated for: ${issueTitle}`;
+};
