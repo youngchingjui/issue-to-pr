@@ -1,69 +1,65 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
 import { Octokit } from '@octokit/rest';
-import { execSync } from 'child_process';
+import simpleGit from 'simple-git';
+import generateCode from './codeGenerator'; // hypothetical code generator function
 
 const app = express();
+const port = process.env.PORT || 3000;
+
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const REPO_OWNER = 'your-repo-owner';  // replace with actual repo owner
+const REPO_NAME = 'your-repo-name';    // replace with actual repo name
+
+const octokit = new Octokit({ auth: GITHUB_TOKEN });
+const git = simpleGit();
+
 app.use(express.json());
 
-// Initialize Octokit with personal access token
-const octokit = new Octokit({
-  auth: process.env.GITHUB_TOKEN
+app.post('/resolve', async (req, res) => {
+    try {
+        const { issueNumber, issueTitle } = req.body;
+        if (!issueNumber || !issueTitle) {
+            return res.status(400).send('Issue number and title are required.');
+        }
+        
+        // Step 1: Generate the code
+        const generatedCode = generateCode(issueTitle); // hypothetical function that returns code as a string
+
+        // Step 2: Create a new branch
+        const branchName = `issue-${issueNumber}-${issueTitle.toLowerCase().replace(/\s+/g, '-')}`;
+        await git.checkoutLocalBranch(branchName);
+
+        // Step 3: Save generated code to a file or make modifications as needed
+        // (Assuming the code should be written to a file called 'solution.ts')
+        await git.add('.');
+        await git.commit('Generated solution for issue #' + issueNumber);
+
+        // Step 4: Push branch to GitHub
+        await git.push('origin', branchName);
+
+        // Step 5: Create a pull request on GitHub
+        const pullRequest = await octokit.pulls.create({
+            owner: REPO_OWNER,
+            repo: REPO_NAME,
+            title: `Fix for issue #${issueNumber}: ${issueTitle}`,
+            head: branchName,
+            base: 'main', // assuming main is the default branch
+            body: 'This pull request contains the generated code to resolve the issue.',
+        });
+
+        res.json({
+            message: 'Pull request created successfully.',
+            pullRequestUrl: pullRequest.data.html_url,
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('An error occurred while processing the request.');
+    }
 });
 
-// /resolve endpoint
-app.post('/resolve', async (req: Request, res: Response) => {
-  const { issueNumber, issueTitle, repository, owner } = req.body;
-
-  if (!issueNumber || !issueTitle || !repository || !owner) {
-    return res.status(400).send('Required parameters are missing');
-  }
-
-  const branchName = `${issueNumber}-${issueTitle.replace(/\s+/g, '-').toLowerCase()}`;
-
-  try {
-    // Step 1: Generate code
-    const generatedCode = generateCodeForIssue(issueNumber); // Implement this function as needed
-
-    // Step 2: Create a new branch
-    execSync(`git checkout -b ${branchName}`);
-
-    // Step 3: Add and commit changes
-    execSync('git add .');
-    execSync(`git commit -m "Resolved issue #${issueNumber} - ${issueTitle}"`);
-
-    // Step 4: Push the branch
-    execSync(`git push origin ${branchName}`);
-
-    // Step 5: Create a pull request
-    const pullRequest = await octokit.pulls.create({
-      owner,
-      repo: repository,
-      title: `Fix: #${issueNumber} - ${issueTitle}`,
-      head: branchName,
-      base: 'main', // or whichever branch should be the base
-      body: `This pull request resolves issue #${issueNumber} - ${issueTitle}.`
-    });
-
-    res.status(200).json({
-      message: 'Pull request created successfully',
-      pullRequestUrl: pullRequest.data.html_url
-    });
-  } catch (error) {
-    console.error('Error resolving issue:', error);
-    res.status(500).send('Failed to resolve the issue');
-  }
+app.listen(port, () => {
+    console.log(`Server started at http://localhost:${port}`);
 });
 
-// Placeholder function to simulate code generation
-type GeneratedCode = string;
-const generateCodeForIssue = (issueNumber: number): GeneratedCode => {
-  // Implement logic to generate code based on the issue number
-  // This is just a placeholder
-  return `// Code for issue ${issueNumber}`;
-};
-
-// Start the server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+export default app;
