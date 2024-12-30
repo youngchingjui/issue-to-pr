@@ -1,59 +1,67 @@
 import express from 'express';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import { Octokit } from '@octokit/rest';
-import dotenv from 'dotenv';
+import { Octokit } from "@octokit/rest";
+import simpleGit from 'simple-git';
+import * as fs from 'fs';
+import path from 'path';
 
-dotenv.config();
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-const execAsync = promisify(exec);
-const router = express.Router();
+const octokit = new Octokit({
+  auth: process.env.GITHUB_TOKEN,
+});
 
-// Github personal access token needs to be set in environment variables
-const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+const git = simpleGit();
 
-// Configuration for your repository
-const OWNER = 'your-github-username';
-const REPO = 'your-repository-name';
+// Middleware to parse JSON
+app.use(express.json());
 
-router.post('/resolve', async (req, res) => {
-  const { issueNumber, issueTitle, codeToFix } = req.body;
+// Endpoint to resolve issues
+app.post('/resolve', async (req, res) => {
+  const { issueNumber, issueTitle, userDetails } = req.body;
+  if (!issueNumber || !issueTitle) {
+    return res.status(400).json({ error: "Issue number and title are required" });
+  }
+
+  const branchName = `${issueNumber}-${issueTitle.replace(/\s+/g, '-').toLowerCase()}`;
 
   try {
-    // Generate the branch name using GitHub's naming convention
-    const branchName = `${issueNumber}-${issueTitle.toLowerCase().replace(/\s+/g, '-')}`;
-    
-    // Create a new branch
-    await execAsync(`git checkout -b ${branchName}`);
-    
-    // Add the generated code to the appropriate file
-    // Temporary write to a file assuming the code is for a specific file
-    // Use whatever logic necessary to handle where the code needs to be added
-    const filePath = `src/${issueTitle.replace(/\s+/g, '-')}.ts`;
-    await execAsync(`echo "${codeToFix}" > ${filePath}`);
-    
-    // Commit the changes
-    await execAsync(`git add .`);
-    await execAsync(`git commit -m 'fix: resolve #${issueNumber} ${issueTitle}'`);
+    // Generate code snippet (Dummy code generation for this example)
+    const generatedCode = `// This is the auto-generated code for Issue #${issueNumber}\nconst solution = () => { console.log('Issue resolved!'); };`;
+    const filePath = path.resolve(__dirname, 'generatedCode.js');
+    fs.writeFileSync(filePath, generatedCode);
 
-    // Push the new branch to the remote repository
-    await execAsync(`git push origin ${branchName}`);
+    // Check the current branch and create a new branch
+    await git.checkoutLocalBranch(branchName);
+
+    // Add, Commit, and Push
+    await git.add(filePath);
+    await git.commit(`fix: resolve issue #${issueNumber}`);
+    await git.push(['-u', 'origin', branchName]);
 
     // Create a pull request
-    await octokit.pulls.create({
-      owner: OWNER,
-      repo: REPO,
-      title: `Fix issue #${issueNumber} - ${issueTitle}`,
+    const prTitle = `Resolve issue #${issueNumber}: ${issueTitle}`;
+    const prDescription = `This PR resolves the following issue: #${issueNumber}\n\nDetails: ${issueTitle}`;
+
+    const { data: pullRequest } = await octokit.pulls.create({
+      owner: userDetails.githubOwner,
+      repo: userDetails.githubRepo,
       head: branchName,
-      base: 'main', // Adjust base branch if needed
-      body: `This resolves issue #${issueNumber} - ${issueTitle}.`,
+      base: 'main',
+      title: prTitle,
+      body: prDescription,
     });
 
-    res.status(200).json({ message: 'Pull request created successfully!' });
+    res.json({
+      success: true,
+      pullRequest: pullRequest.html_url,
+    });
   } catch (error) {
-    console.error('Error resolving issue:', error);
-    res.status(500).json({ message: 'Failed to resolve issue.', error });
+    console.error("Error resolving issue: ", error);
+    res.status(500).json({ error: "Internal server error", details: error.message });
   }
 });
 
-export default router;
+app.listen(PORT, () => {
+  console.log(`Server is running at http://localhost:${PORT}`);
+});
