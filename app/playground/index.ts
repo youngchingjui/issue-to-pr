@@ -1,56 +1,69 @@
-import express from 'express';
-import simpleGit from 'simple-git';
-import GitHub from '@octokit/rest';
+import express, { Request, Response } from 'express';
+import { Octokit } from '@octokit/rest';
+import { execSync } from 'child_process';
 
-const router = express.Router();
+const app = express();
+app.use(express.json());
 
-// Initialize Git and GitHub client
-const git = simpleGit();
-const github = new GitHub({
+// Initialize Octokit with personal access token
+const octokit = new Octokit({
   auth: process.env.GITHUB_TOKEN
 });
 
-// Endpoint to resolve issues
-router.post('/resolve', async (req, res) => {
-  const { issueNumber, issueTitle, codeGenerationFunction } = req.body;
+// /resolve endpoint
+app.post('/resolve', async (req: Request, res: Response) => {
+  const { issueNumber, issueTitle, repository, owner } = req.body;
+
+  if (!issueNumber || !issueTitle || !repository || !owner) {
+    return res.status(400).send('Required parameters are missing');
+  }
+
   const branchName = `${issueNumber}-${issueTitle.replace(/\s+/g, '-').toLowerCase()}`;
 
   try {
-    // Generate the code
-    const generatedCode = codeGenerationFunction();
+    // Step 1: Generate code
+    const generatedCode = generateCodeForIssue(issueNumber); // Implement this function as needed
 
-    // Create a new branch
-    await git.checkoutLocalBranch(branchName);
+    // Step 2: Create a new branch
+    execSync(`git checkout -b ${branchName}`);
 
-    // Write the generated code to a file (assuming a specific file for simplicity)
-    const filePath = 'path/to/generated/code.ts';
-    require('fs').writeFileSync(filePath, generatedCode);
+    // Step 3: Add and commit changes
+    execSync('git add .');
+    execSync(`git commit -m "Resolved issue #${issueNumber} - ${issueTitle}"`);
 
-    // Add changes
-    await git.add(filePath);
+    // Step 4: Push the branch
+    execSync(`git push origin ${branchName}`);
 
-    // Commit changes
-    await git.commit(`Resolve issue #${issueNumber}: ${issueTitle}`);
-
-    // Push changes
-    await git.push('origin', branchName);
-
-    // Create a pull request
-    const { data: pr } = await github.pulls.create({
-      owner: process.env.GITHUB_OWNER,
-      repo: process.env.GITHUB_REPO,
-      title: `Resolve Issue #${issueNumber}: ${issueTitle}`,
+    // Step 5: Create a pull request
+    const pullRequest = await octokit.pulls.create({
+      owner,
+      repo: repository,
+      title: `Fix: #${issueNumber} - ${issueTitle}`,
       head: branchName,
-      base: 'main',
-      body: `This resolves issue #${issueNumber}.`  // Adjust base branch as needed
+      base: 'main', // or whichever branch should be the base
+      body: `This pull request resolves issue #${issueNumber} - ${issueTitle}.`
     });
 
-    // Respond with pull request URL
-    res.status(200).json({ prUrl: pr.html_url });
+    res.status(200).json({
+      message: 'Pull request created successfully',
+      pullRequestUrl: pullRequest.data.html_url
+    });
   } catch (error) {
     console.error('Error resolving issue:', error);
-    res.status(500).json({ error: 'Failed to resolve the issue' });
+    res.status(500).send('Failed to resolve the issue');
   }
 });
 
-export default router;
+// Placeholder function to simulate code generation
+type GeneratedCode = string;
+const generateCodeForIssue = (issueNumber: number): GeneratedCode => {
+  // Implement logic to generate code based on the issue number
+  // This is just a placeholder
+  return `// Code for issue ${issueNumber}`;
+};
+
+// Start the server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
