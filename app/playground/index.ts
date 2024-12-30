@@ -1,72 +1,58 @@
 import express from 'express';
-import { exec } from 'child_process';
-import { promises as fs } from 'fs';
-import * as path from 'path';
-import fetch from 'node-fetch';
+import { Octokit } from '@octokit/rest';
+import { execSync } from 'child_process';
+import path from 'path';
+import fs from 'fs';
 
-const router = express.Router();
+const app = express();
+app.use(express.json());
 
-// Helper function to run shell commands
-const runCommand = (command: string): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        exec(command, (error, stdout, stderr) => {
-            if (error) {
-                reject(stderr);
-            } else {
-                resolve(stdout);
-            }
-        });
-    });
-};
+app.post('/resolve', async (req, res) => {
+    const { issueNumber, issueTitle, repoOwner, repoName } = req.body;
 
-router.post('/resolve', async (req, res) => {
+    if (!issueNumber || !issueTitle || !repoOwner || !repoName) {
+        return res.status(400).json({ error: 'Missing required parameters' });
+    }
+
     try {
-        const { issueNumber, issueTitle, userRepo, githubToken } = req.body;
-        if (!issueNumber || !issueTitle || !userRepo || !githubToken) {
-            return res.status(400).json({ error: 'Missing required parameters.' });
-        }
+        // Initialize Octokit
+        const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 
-        // Generate the code (simulate code generation)
-        const generatedCode = `// Sample code for issue #${issueNumber}`;// Placeholder comment
-        const filePath = path.join(__dirname, 'generatedCode.ts');
-        await fs.writeFile(filePath, generatedCode);
+        // Define branch name following GitHub's auto-naming convention
+        const branchName = `${issueNumber}-${issueTitle.replace(/\s+/g, '-').toLowerCase()}`;
 
-        // Create and switch to a new branch
-        const branchName = `${issueNumber}-${issueTitle.replace(/ /g, '-')}`;
-        await runCommand(`git checkout -b ${branchName}`);
+        // Generate code (Placeholder: implement your own code generation logic here)
+        const generatedCode = 'console.log("Hello World!");';
+        const generatedFilePath = path.join(__dirname, 'generatedCode.js');
+        fs.writeFileSync(generatedFilePath, generatedCode);
 
-        // Commit changes
-        await runCommand('git add .');
-        await runCommand(`git commit -m "Resolve issue #${issueNumber}"`);
+        // Create a new branch related to the issue number
+        execSync(`git checkout -b ${branchName}`);
+        
+        // Add, commit and push the generated code
+        execSync(`git add ${generatedFilePath}`);
+        execSync(`git commit -m "Fix for issue #${issueNumber}"`);
+        execSync(`git push origin ${branchName}`);
 
-        // Push changes
-        await runCommand(`git push origin ${branchName}`);
-
-        // Create a pull request using GitHub REST API
-        const prResponse = await fetch(`https://api.github.com/repos/${userRepo}/pulls`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `token ${githubToken}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                title: `Resolve issue #${issueNumber}: ${issueTitle}`,
-                head: branchName,
-                base: 'main', // Adjust if your default branch is different
-                body: `This PR addresses issue #${issueNumber}.`,
-            })
+        // Create a pull request
+        await octokit.pulls.create({
+            owner: repoOwner,
+            repo: repoName,
+            title: `Fix: ${issueTitle}`,
+            head: branchName,
+            base: 'main', // Change base as required
+            body: `This pull request resolves issue #${issueNumber}`
         });
 
-        const prData = await prResponse.json();
-        if (!prResponse.ok) {
-            throw new Error(`Error creating PR: ${prData.message}`);
-        }
-
-        res.status(200).json({ message: 'Pull request created successfully.', prUrl: prData.html_url });
-    } catch (error: any) {
-        console.error(error);
-        res.status(500).json({ error: 'An error occurred while resolving the issue: ' + error.message });
+        res.status(200).json({ message: 'Pull request successfully created' });
+    } catch (error) {
+        console.error('Error resolving issue:', error);
+        res.status(500).json({ error: 'An error occurred while resolving the issue' });
     }
 });
 
-export default router;
+// Start the app
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
