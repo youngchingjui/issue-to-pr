@@ -1,58 +1,78 @@
 import express from 'express';
-import { Octokit } from '@octokit/rest';
-import { execSync } from 'child_process';
-import path from 'path';
-import fs from 'fs';
+import { exec } from 'child_process';
+import * as fs from 'fs';
+import { Octokit } from "@octokit/rest";
 
 const app = express();
+const port = process.env.PORT || 3000;
+
+// Initialize Octokit with a personal access token
+const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+
 app.use(express.json());
 
+// Route to handle resolution of an issue
 app.post('/resolve', async (req, res) => {
-    const { issueNumber, issueTitle, repoOwner, repoName } = req.body;
+  try {
+    const { issueNumber, issueTitle, owner, repo } = req.body;
 
-    if (!issueNumber || !issueTitle || !repoOwner || !repoName) {
-        return res.status(400).json({ error: 'Missing required parameters' });
+    if (!issueNumber || !issueTitle || !owner || !repo) {
+      return res.status(400).send({ message: 'Missing required fields'});
     }
 
-    try {
-        // Initialize Octokit
-        const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+    // Step 1: Generate the code (This can be a complex operation; for simplicity, we'll assume code is generated)
+    const generatedCode = "// Example generated code\nconsole.log('Hello, World!');";
+    const filePath = `./generated/fix-${issueNumber}.js`;
+    fs.writeFileSync(filePath, generatedCode);
 
-        // Define branch name following GitHub's auto-naming convention
-        const branchName = `${issueNumber}-${issueTitle.replace(/\s+/g, '-').toLowerCase()}`;
+    // Step 2: Create a new branch
+    const branchName = `issue-${issueNumber}-${issueTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+    await execShellCommand(`git checkout -b ${branchName}`);
 
-        // Generate code (Placeholder: implement your own code generation logic here)
-        const generatedCode = 'console.log("Hello World!");';
-        const generatedFilePath = path.join(__dirname, 'generatedCode.js');
-        fs.writeFileSync(generatedFilePath, generatedCode);
+    // Step 3: Commit the generated code to the new branch
+    fs.writeFileSync(filePath, generatedCode);
+    await execShellCommand(`git add ${filePath}`);
+    await execShellCommand(`git commit -m "Resolve issue #${issueNumber}: ${issueTitle}"`);
 
-        // Create a new branch related to the issue number
-        execSync(`git checkout -b ${branchName}`);
-        
-        // Add, commit and push the generated code
-        execSync(`git add ${generatedFilePath}`);
-        execSync(`git commit -m "Fix for issue #${issueNumber}"`);
-        execSync(`git push origin ${branchName}`);
+    // Step 4: Push the changes to GitHub
+    await execShellCommand(`git push origin ${branchName}`);
 
-        // Create a pull request
-        await octokit.pulls.create({
-            owner: repoOwner,
-            repo: repoName,
-            title: `Fix: ${issueTitle}`,
-            head: branchName,
-            base: 'main', // Change base as required
-            body: `This pull request resolves issue #${issueNumber}`
-        });
+    // Step 5: Create a pull request
+    const pullRequest = await octokit.pulls.create({
+      owner,
+      repo,
+      title: `Fix for issue #${issueNumber}: ${issueTitle}`,
+      head: branchName,
+      base: 'main', // Assuming 'main' is the default branch
+      body: `This PR addresses: #${issueNumber}`
+    });
 
-        res.status(200).json({ message: 'Pull request successfully created' });
-    } catch (error) {
-        console.error('Error resolving issue:', error);
-        res.status(500).json({ error: 'An error occurred while resolving the issue' });
-    }
+    // Return success response
+    res.status(200).send({
+      message: 'Pull request created successfully',
+      pullRequestUrl: pullRequest.data.html_url
+    });
+
+  } catch (error) {
+    console.error('Error resolving issue:', error);
+    res.status(500).send({ message: 'Failed to resolve issue', error: error.message });
+  }
 });
 
-// Start the app
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+// Helper function to execute shell commands
+function execShellCommand(cmd: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    exec(cmd, (error, stdout, stderr) => {
+      if (error) {
+        console.warn(error);
+        reject(stderr);
+      }
+      resolve(stdout);
+    });
+  });
+}
+
+// Start server
+app.listen(port, () => {
+  console.log(`Server is running on http://localhost:${port}`);
 });
