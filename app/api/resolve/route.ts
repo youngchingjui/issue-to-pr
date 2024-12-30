@@ -6,7 +6,7 @@ import {
   createPullRequest,
   GitHubError,
 } from "@/lib/github"
-import simpleGit from "simple-git"
+import simpleGit, { GitError } from "simple-git"
 
 const FILE_TO_EDIT = "app/playground/index.ts"
 const NEW_BRANCH_NAME = "playground-fix"
@@ -70,8 +70,12 @@ export async function POST(request: NextRequest) {
 
       await git.checkout(NEW_BRANCH_NAME)
     } catch (error) {
-      // TODO: Handle error if branch checkout not successful because of existing uncommitted changes
-      console.error("Error checking out branch:", error)
+      if (error instanceof GitError) {
+        return NextResponse.json({
+          error: error.message,
+          status: 400,
+        })
+      }
     }
 
     // Stage the specific file
@@ -110,7 +114,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { message: "Issue resolved successfully.", pr: pr.data.html_url },
+      { message: "Issue resolved successfully.", pr: pr },
       { status: 200 }
     )
   } catch (error) {

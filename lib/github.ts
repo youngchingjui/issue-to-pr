@@ -150,7 +150,7 @@ export async function createPullRequest(issueId: number, branch: string) {
     base: "main",
   })
 
-  return pullRequest.data.html_url
+  return pullRequest
 }
 
 export async function generateCode(issueId: number) {
