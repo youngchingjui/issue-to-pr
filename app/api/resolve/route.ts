@@ -12,6 +12,7 @@ const FILE_TO_EDIT = "app/playground/index.ts"
 const NEW_BRANCH_NAME = "playground-fix"
 const DIRECTORY_PATH = "."
 import { promises as fs } from "fs"
+import { checkoutBranch } from "@/lib/git"
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
 
     try {
       console.debug(`[DEBUG] Checking out branch: ${NEW_BRANCH_NAME}`)
-      await git.checkout(NEW_BRANCH_NAME, { "-b": null })
+      await checkoutBranch(NEW_BRANCH_NAME)
     } catch (error) {
       console.debug("[DEBUG] Error during branch checkout:", error)
       if (error instanceof GitError) {
