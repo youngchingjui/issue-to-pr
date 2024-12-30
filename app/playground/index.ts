@@ -1,52 +1,68 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { Octokit } from "@octokit/rest";
-import { execSync } from 'child_process';
+import express, { Request, Response } from 'express';
+import { exec } from 'child_process';
+import { Octokit } from "@octokit/core";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+const app = express();
+const REPO_OWNER = 'YOUR_GITHUB_USERNAME';
+const REPO_NAME = 'YOUR_REPO_NAME';
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+
+app.use(express.json());
+
+const octokit = new Octokit({ auth: GITHUB_TOKEN });
+
+app.post('/resolve', async (req: Request, res: Response) => {
+  const { issueNumber, issueTitle, generatedCode } = req.body;
+
   try {
-    const { issueNumber, issueTitle, generatedCode } = req.body;
+    // Generate branch name
+    const branchName = `${issueNumber}-${issueTitle.replace(/[^a-zA-Z0-9-]/g, '-').toLowerCase()}`;
 
-    if (!issueNumber || !issueTitle || !generatedCode) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
+    // Step 1 - Create new branch
+    exec(`git checkout -b ${branchName}`, (error, stdout, stderr) => {
+      if (error) {
+        return res.status(500).json({ error: `Error creating branch: ${stderr}` });
+      }
+      console.log(`Branch created: ${branchName}`);
 
-    const branchName = `${issueNumber}-${issueTitle.replace(/\s+/g, '-').toLowerCase()}`;
+      // Step 2 - Write the generated code to the appropriate file
+      // This example assumes the generated code should be placed in src/generatedCode.ts
+      require('fs').writeFileSync('src/generatedCode.ts', generatedCode);
 
-    // Create a new branch and switch to it
-    execSync(`git checkout -b ${branchName}`);
+      // Step 3 - Commit changes
+      exec('git add . && git commit -m "Fix issue via API"', (error, stdout, stderr) => {
+        if (error) {
+          return res.status(500).json({ error: `Error committing changes: ${stderr}` });
+        }
+        console.log(`Code committed.`);
 
-    // Generate code in the desired location in the repository
-    // Assuming generatedCode is a string containing the new file content
-    const pathToNewFile = 'path/to/generated/file.ts';
-    require('fs').writeFileSync(pathToNewFile, generatedCode);
+        // Step 4 - Push new branch to GitHub
+        exec(`git push origin ${branchName}`, (error, stdout, stderr) => {
+          if (error) {
+            return res.status(500).json({ error: `Error pushing to GitHub: ${stderr}` });
+          }
+          console.log(`Branch pushed: ${branchName}`);
 
-    // Commit the changes
-    execSync('git add .');
-    execSync(`git commit -m "Fixes #${issueNumber} - ${issueTitle}"`);
+          // Step 5 - Create a Pull Request
+          octokit.request('POST /repos/{owner}/{repo}/pulls', {
+            owner: REPO_OWNER,
+            repo: REPO_NAME,
+            head: branchName,
+            base: 'main',
+            title: `Resolved: ${issueTitle}`,
+            body: `This pull request addresses issue #${issueNumber}`
+          }).then(response => {
+            res.status(200).json({ message: 'Pull request created', url: response.data.html_url });
+          }).catch((prError) => {
+            res.status(500).json({ error: `Error creating pull request: ${prError.message}` });
+          });
 
-    // Push the new branch to remote
-    execSync(`git push origin ${branchName}`);
-
-    const octokit = new Octokit({
-      auth: process.env.GITHUB_TOKEN,
+        });
+      });
     });
-
-    const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
-
-    // Create a pull request
-    const prResponse = await octokit.pulls.create({
-      owner,
-      repo,
-      title: `Fixes #${issueNumber} - ${issueTitle}`,
-      head: branchName,
-      base: 'main', // Assume main is the default branch
-      body: `This PR resolves issue #${issueNumber} by implementing the requested features.`,
-    });
-
-    res.status(200).json({ pullRequestUrl: prResponse.data.html_url });
-
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: `An unexpected error occurred: ${error.message}` });
   }
-}
+});
+
+app.listen(3000, () => console.log('Server running on http://localhost:3000'));
