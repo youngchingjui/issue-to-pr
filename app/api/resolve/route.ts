@@ -1,24 +1,29 @@
 import { NextRequest, NextResponse } from "next/server"
 import { generateNewContent } from "@/lib/utils"
-import {
-  getIssue,
-  getFileContent,
-  createPullRequest,
-  GitHubError,
-} from "@/lib/github"
+import { getIssue, createPullRequest } from "@/lib/github"
 import simpleGit from "simple-git"
-
-const FILE_TO_EDIT = "app/playground/index.ts"
-const NEW_BRANCH_NAME = "playground-fix"
-const DIRECTORY_PATH = "."
 import { promises as fs } from "fs"
 import {
   checkIfLocalBranchExists,
   createBranch,
   checkoutBranch,
+  checkIfGitExists,
+  cloneRepo,
+  getLocalFileContent,
 } from "@/lib/git"
+import { createTempRepoDir } from "@/lib/tempRepos"
+import path from "path"
+import os from "os"
+
+const FILE_TO_EDIT = "app/page.tsx"
+const NEW_BRANCH_NAME = "playground-fix"
 
 export async function POST(request: NextRequest) {
+  let tempDir: string | null = null
+  const repoName = process.env.GITHUB_REPO
+  const repoOwner = process.env.GITHUB_OWNER
+  const repoUrl = process.env.GITHUB_REPO_URL
+
   try {
     console.debug("[DEBUG] Starting POST request handler")
     const { issueNumber } = await request.json()
@@ -31,6 +36,36 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Get repo directory (if exists)
+    const dirPath = path.join(os.tmpdir(), "git-repos", repoOwner, repoName)
+
+    console.debug(`[DEBUG] Checking if directory exists: ${dirPath}`)
+    // Check if directory exists
+    if (
+      await fs
+        .access(dirPath)
+        .then(() => true)
+        .catch(() => false)
+    ) {
+      console.debug(`[DEBUG] Directory exists: ${dirPath}`)
+      tempDir = dirPath
+    } else {
+      // Create a temporary directory
+      console.debug(`[DEBUG] Creating temporary directory: ${dirPath}`)
+      tempDir = await createTempRepoDir(repoName)
+    }
+
+    // Check if .git and codebase exist in tempDir
+    // If not, clone the repo
+    // If so, checkout the branch
+    console.debug(`[DEBUG] Checking if .git and codebase exist in ${tempDir}`)
+    const gitExists = await checkIfGitExists(tempDir)
+    if (!gitExists) {
+      // Clone the repo
+      console.debug(`[DEBUG] Cloning repo: ${repoUrl}`)
+      await cloneRepo(repoUrl, tempDir)
+    }
+
     console.debug(`[DEBUG] Fetching issue #${issueNumber}`)
     const issue = await getIssue(issueNumber)
 
@@ -41,7 +76,7 @@ export async function POST(request: NextRequest) {
     console.debug(`[DEBUG] Generated branch name: ${branchName}`)
 
     console.debug("[DEBUG] Initializing git operations")
-    const git = simpleGit(DIRECTORY_PATH)
+    const git = simpleGit(tempDir)
 
     // Check if branch name already exists
     // If not, create it
@@ -49,11 +84,14 @@ export async function POST(request: NextRequest) {
     try {
       console.debug(`[DEBUG] Checking out branch: ${NEW_BRANCH_NAME}`)
 
-      const branchExists = await checkIfLocalBranchExists(NEW_BRANCH_NAME)
+      const branchExists = await checkIfLocalBranchExists(
+        NEW_BRANCH_NAME,
+        tempDir
+      )
       if (!branchExists) {
-        await createBranch(NEW_BRANCH_NAME)
+        await createBranch(NEW_BRANCH_NAME, tempDir)
       }
-      await checkoutBranch(NEW_BRANCH_NAME)
+      await checkoutBranch(NEW_BRANCH_NAME, tempDir)
     } catch (error) {
       console.debug("[DEBUG] Error during branch checkout:", error)
       return NextResponse.json(
@@ -65,23 +103,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate code based on issue
-    // TODO: Find fileContent type
     console.debug(
-      `[DEBUG] Attempting to fetch file content from ${FILE_TO_EDIT}`
+      `[DEBUG] Attempting to get file content from ${FILE_TO_EDIT} in ${tempDir}`
     )
+    // TODO: Find fileContent type
     let fileContent
     try {
-      fileContent = await getFileContent(FILE_TO_EDIT)
+      fileContent = await getLocalFileContent(`${tempDir}/${FILE_TO_EDIT}`)
     } catch (error) {
       console.debug("[DEBUG] Error fetching file content:", error)
-      if (error instanceof GitHubError && error.status === 404) {
-        return NextResponse.json({ error: error.message }, { status: 404 })
-      } else {
-        return NextResponse.json(
-          { error: "Failed to fetch file content." },
-          { status: 500 }
-        )
-      }
+      return NextResponse.json(
+        { error: "Failed to fetch file content." },
+        { status: 500 }
+      )
     }
 
     // TODO: Dynamically generate instructions based on the issue
@@ -91,16 +125,16 @@ export async function POST(request: NextRequest) {
       Title: ${issue.title}
       Description: ${issue.body}
     `
-    const newCode = await generateNewContent(
+    const { code } = await generateNewContent(
       fileContent.toString(),
       instructions
     )
 
     console.debug("[DEBUG] Writing new code to file")
-    await fs.writeFile(FILE_TO_EDIT, newCode.code)
+    await fs.writeFile(`${tempDir}/${FILE_TO_EDIT}`, code)
 
     console.debug(`[DEBUG] Staging file: ${FILE_TO_EDIT}`)
-    await git.add(FILE_TO_EDIT)
+    await git.add(`${tempDir}/${FILE_TO_EDIT}`)
 
     console.debug("[DEBUG] Committing changes")
     try {
@@ -108,6 +142,10 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       // TODO: handle errors if there are not differences or changes to commit
       console.error("[ERROR] Error committing code:", error)
+      return NextResponse.json(
+        { error: "Failed to commit changes." },
+        { status: 500 }
+      )
     }
 
     console.debug(`[DEBUG] Pushing to remote branch: ${NEW_BRANCH_NAME}`)
@@ -115,6 +153,10 @@ export async function POST(request: NextRequest) {
       await git.push("origin", NEW_BRANCH_NAME)
     } catch (error) {
       console.error("[ERROR] Error pushing commit:", error)
+      return NextResponse.json(
+        { error: "Failed to push commit." },
+        { status: 500 }
+      )
     }
 
     // Generate PR on latest HEAD of branch
