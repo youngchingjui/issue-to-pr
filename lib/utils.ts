@@ -1,4 +1,4 @@
-import { clsx, type ClassValue } from "clsx"
+import { type ClassValue, clsx } from "clsx"
 import { OpenAI } from "openai"
 import { zodResponseFormat } from "openai/helpers/zod"
 import { twMerge } from "tailwind-merge"

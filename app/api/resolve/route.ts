@@ -13,6 +13,7 @@ import {
   getLocalFileContent,
 } from "@/lib/git"
 import { createPullRequest, getIssue } from "@/lib/github"
+import { identifyRelevantFiles } from "@/lib/nodes"
 import { createTempRepoDir } from "@/lib/tempRepos"
 import { generateNewContent } from "@/lib/utils"
 
@@ -103,14 +104,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // TODO: Identify which file(s) to edit based on issue
+    // Here, we use LLMs to identify
+    const { files } = await identifyRelevantFiles(issue, tempDir)
+
     // Generate code based on issue
     console.debug(
-      `[DEBUG] Attempting to get file content from ${FILE_TO_EDIT} in ${tempDir}`
+      `[DEBUG] Attempting to get file content from ${files[0]} in ${tempDir}`
     )
     // TODO: Find fileContent type
     let fileContent
     try {
-      fileContent = await getLocalFileContent(`${tempDir}/${FILE_TO_EDIT}`)
+      fileContent = await getLocalFileContent(`${tempDir}/${files[0]}`)
     } catch (error) {
       console.debug("[DEBUG] Error fetching file content:", error)
       return NextResponse.json(
@@ -122,7 +127,7 @@ export async function POST(request: NextRequest) {
     // TODO: Dynamically generate instructions based on the issue
     console.debug("[DEBUG] Generating new code content based on issue")
     const instructions = `
-    Please generate a new file called "${FILE_TO_EDIT}" that will resolve this issue:
+    Please generate a new file called "${files[0]}" that will resolve this issue:
       Title: ${issue.title}
       Description: ${issue.body}
     `

@@ -1,4 +1,5 @@
 import { Octokit } from "@octokit/rest"
+
 import { generateNewContent } from "./utils"
 
 const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN })
@@ -12,26 +13,32 @@ if (!owner || !repo) {
   )
 }
 
-export async function getRepositoryIssues() {
+export interface Issue {
+  id: number
+  number: number
+  title: string
+  body: string
+  state: string
+}
+
+export async function getRepositoryIssues(): Promise<Issue[]> {
   try {
     const response = await octokit.issues.listForRepo({
       owner,
       repo,
-      state: "open",
+      state: "all",
+      per_page: 100,
     })
 
+    console.debug("[DEBUG] Issues response:", response.data)
     const issues = await Promise.all(
       response.data.map(async (issue) => {
-        const associatedBranch = await getAssociatedBranch(issue.number)
-        const pullRequest = await getAssociatedPullRequest(issue.number)
-
         return {
           id: issue.id,
           number: issue.number,
           title: issue.title,
+          body: issue.body,
           state: issue.state,
-          associatedBranch,
-          pullRequest,
         }
       })
     )
@@ -51,17 +58,20 @@ async function getAssociatedBranch(issueNumber: number) {
   return null
 }
 
-export async function getIssue(issueNumber: number) {
+export async function getIssue(issueNumber: number): Promise<Issue> {
   const issue = await octokit.issues.get({
     owner,
     repo,
     issue_number: issueNumber,
   })
-  return issue.data
+  return issue.data as Issue
 }
 
 export class GitHubError extends Error {
-  constructor(message: string, public status?: number) {
+  constructor(
+    message: string,
+    public status?: number
+  ) {
     super(message)
     this.name = "GitHubError"
   }
