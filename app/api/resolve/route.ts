@@ -1,19 +1,20 @@
-import { NextRequest, NextResponse } from "next/server"
-import { generateNewContent } from "@/lib/utils"
-import { getIssue, createPullRequest } from "@/lib/github"
-import simpleGit from "simple-git"
 import { promises as fs } from "fs"
+import { NextRequest, NextResponse } from "next/server"
+import os from "os"
+import path from "path"
+import simpleGit from "simple-git"
+
 import {
-  checkIfLocalBranchExists,
-  createBranch,
-  checkoutBranch,
   checkIfGitExists,
+  checkIfLocalBranchExists,
+  checkoutBranch,
   cloneRepo,
+  createBranch,
   getLocalFileContent,
 } from "@/lib/git"
+import { createPullRequest, getIssue } from "@/lib/github"
 import { createTempRepoDir } from "@/lib/tempRepos"
-import path from "path"
-import os from "os"
+import { generateNewContent } from "@/lib/utils"
 
 const FILE_TO_EDIT = "app/page.tsx"
 const NEW_BRANCH_NAME = "playground-fix"
