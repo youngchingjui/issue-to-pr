@@ -1,10 +1,14 @@
 import { getRepositoryIssues } from "../lib/github"
-import { CreatePullRequestButton } from "./CreatePullRequestButton"
 import { IssueActionsDropdown } from "./IssueActionsDropdown"
 
-export default async function IssueTable() {
+interface Props {
+  username: string
+  repo: string
+}
+
+export default async function IssueTable({ username, repo }: Props) {
   try {
-    const issues = await getRepositoryIssues()
+    const issues = await getRepositoryIssues(username, repo)
 
     if (issues.length === 0) {
       return <p className="text-center py-4">No open issues found.</p>
@@ -27,8 +31,8 @@ export default async function IssueTable() {
             <tr key={issue.id} className="border-b">
               <td className="py-2 px-4">{issue.title}</td>
               <td className="py-2 px-4">{issue.state}</td>
-              <td className="py-2 px-4">{issue.associatedBranch || "N/A"}</td>
-              <td className="py-2 px-4">
+              {/* <td className="py-2 px-4">{issue.associatedBranch || "N/A"}</td> */}
+              {/* <td className="py-2 px-4">
                 {issue.pullRequest ? (
                   <a
                     href={issue.pullRequest.url}
@@ -39,12 +43,12 @@ export default async function IssueTable() {
                 ) : (
                   "No PR"
                 )}
-              </td>
-              <td className="py-2 px-4">
+              </td> */}
+              {/* <td className="py-2 px-4">
                 {!issue.pullRequest && (
                   <CreatePullRequestButton issueNumber={issue.number} />
                 )}
-              </td>
+              </td> */}
               <td className="py-2 px-4">
                 <IssueActionsDropdown issueId={issue.id} />
               </td>

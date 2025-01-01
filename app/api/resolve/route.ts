@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.debug(`[DEBUG] Fetching issue #${issueNumber}`)
-    const issue = await getIssue(issueNumber)
+    const issue = await getIssue(repoName, issueNumber)
 
     // Create branch name from issue
     const branchName = `${issueNumber}-${issue.title
@@ -170,7 +170,12 @@ export async function POST(request: NextRequest) {
     console.debug("[DEBUG] Creating pull request")
     let pr
     try {
-      pr = await createPullRequest(issueNumber, NEW_BRANCH_NAME)
+      pr = await createPullRequest(
+        repoOwner,
+        repoName,
+        issueNumber,
+        NEW_BRANCH_NAME
+      )
     } catch (error) {
       // TODO: Handle error if pull request already exists
       console.debug("[DEBUG] Error creating pull request:", error)
