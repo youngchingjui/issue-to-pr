@@ -2,8 +2,8 @@
 // Returns promises for exec operations
 
 import { exec } from "child_process"
-import path from "path"
 import { promises as fs } from "fs"
+import path from "path"
 
 export async function checkIfGitExists(dir: string): Promise<boolean> {
   return await fs

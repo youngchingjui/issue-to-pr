@@ -1,6 +1,6 @@
 import { promises as fs } from "fs"
-import path from "path"
 import os from "os"
+import path from "path"
 
 export async function createTempRepoDir(repoName: string): Promise<string> {
   try {

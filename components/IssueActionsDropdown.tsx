@@ -1,37 +1,18 @@
 "use client"
 
+import { MoreHorizontalIcon } from "lucide-react"
+
 import {
   DropdownMenu,
-  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { MoreHorizontalIcon } from "lucide-react"
+
 import { CreatePullRequestButton } from "./CreatePullRequestButton"
 
 export function IssueActionsDropdown({ issueId }: { issueId: number }) {
-  const handleGenerateCode = async (issueId: number) => {
-    // Implement generate code logic, likely calling an API route
-    console.log(`Generating code for issue ${issueId}`)
-    // Example API call:
-    /*
-    try {
-      const response = await fetch('/api/generate-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ issueId }),
-      })
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Failed to generate code')
-      alert('Code generated successfully')
-    } catch (error) {
-      console.error(error)
-      alert('Failed to generate code. Please try again.')
-    }
-    */
-  }
-
   const handleCommitCode = async (issueId: number) => {
     // Implement commit code logic, likely calling an API route
     console.log(`Committing code for issue ${issueId}`)
@@ -51,9 +32,6 @@ export function IssueActionsDropdown({ issueId }: { issueId: number }) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-        <DropdownMenuItem onClick={() => handleGenerateCode(issueId)}>
-          Generate Code
-        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => handleCommitCode(issueId)}>
           Commit Code
         </DropdownMenuItem>

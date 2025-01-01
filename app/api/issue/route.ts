@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server"
+import { Octokit } from "@octokit/rest"
 import { promises as fs } from "fs"
+import { NextResponse } from "next/server"
 import path from "path"
 import simpleGit from "simple-git"
-import { Octokit } from "@octokit/rest"
+
 import { generateNewContent } from "@/lib/utils"
 
 const EXISTING_CONTENT = `

@@ -218,8 +218,8 @@ export async function createPullRequest(
 }
 
 export async function generateCode(
-  repoOwner: string,
-  repoName: string,
+  owner: string,
+  repo: string,
   issueId: number
 ) {
   // Generate the code based off the contents of the Github issue as well as the code in the repository
@@ -227,8 +227,8 @@ export async function generateCode(
   // Get the issue title and contents
   const octokit = await getOctokit()
   const issue = await octokit.issues.get({
-    owner: repoOwner,
-    repo: repoName,
+    owner,
+    repo,
     issue_number: issueId,
   })
   const issueTitle = issue.data.title
@@ -243,8 +243,8 @@ export async function generateCode(
   `
 
   const existingCode = await octokit.repos.getContent({
-    owner: repoOwner,
-    repo: repoName,
+    owner,
+    repo,
     path: "app/page.tsx",
   })
 
