@@ -2,24 +2,29 @@
 
 import { useState } from "react"
 
+import { GitHubRepository } from "@/lib/types"
+
 import { Button } from "./ui/button"
 
 export function CreatePullRequestButton({
   issueNumber,
+  repo,
 }: {
   issueNumber: number
+  repo: GitHubRepository
 }) {
   const [isLoading, setIsLoading] = useState(false)
 
   const handleCreatePR = async () => {
     setIsLoading(true)
     try {
+      console.log("Creating PR for issue", issueNumber, "in repo", repo)
       const response = await fetch("/api/resolve", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ issueNumber }),
+        body: JSON.stringify({ issueNumber, repo }),
       })
 
       const data = await response.json()

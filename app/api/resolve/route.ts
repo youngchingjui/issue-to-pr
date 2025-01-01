@@ -15,20 +15,25 @@ import {
 import { createPullRequest, getIssue } from "@/lib/github"
 import { identifyRelevantFiles } from "@/lib/nodes"
 import { createTempRepoDir } from "@/lib/tempRepos"
+import { GitHubRepository } from "@/lib/types"
 import { generateNewContent } from "@/lib/utils"
 
 const FILE_TO_EDIT = "app/page.tsx"
 const NEW_BRANCH_NAME = "playground-fix"
 
+type RequestBody = {
+  issueNumber: number
+  repo: GitHubRepository
+}
+
 export async function POST(request: NextRequest) {
-  let tempDir: string | null = null
-  const repoName = process.env.GITHUB_REPO
-  const repoOwner = process.env.GITHUB_OWNER
-  const repoUrl = process.env.GITHUB_REPO_URL
+  const { issueNumber, repo }: RequestBody = await request.json()
+  const repoName = repo.name
+  const repoOwner = repo.owner.login
+  const repoUrl = repo.url
 
   try {
     console.debug("[DEBUG] Starting POST request handler")
-    const { issueNumber } = await request.json()
 
     if (typeof issueNumber !== "number") {
       console.debug("[DEBUG] Invalid issue number provided:", issueNumber)
@@ -42,6 +47,8 @@ export async function POST(request: NextRequest) {
     const dirPath = path.join(os.tmpdir(), "git-repos", repoOwner, repoName)
 
     console.debug(`[DEBUG] Checking if directory exists: ${dirPath}`)
+
+    let tempDir: string | null = null
     // Check if directory exists
     if (
       await fs

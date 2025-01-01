@@ -40,11 +40,10 @@ export async function getRepositoryIssues(
     const response = await octokit.issues.listForRepo({
       owner: username,
       repo,
-      state: "all",
+      state: "open",
       per_page: 100,
     })
 
-    console.debug("[DEBUG] Issues response:", response.data)
     const issues = await Promise.all(
       response.data.map(async (issue) => {
         return {
