@@ -1,22 +1,21 @@
+import { components } from "@octokit/openapi-types"
 import Link from "next/link"
 
-type Repository = {
-  id: number
-  name: string
-  full_name: string
-}
+type GitHubRepository = components["schemas"]["full-repository"]
 
 type RepositoryListProps = {
-  repositories: Repository[]
+  repositories: GitHubRepository[]
 }
 
-export default function RepositoryList({ repositories }: RepositoryListProps) {
+export default async function RepositoryList({
+  repositories,
+}: RepositoryListProps) {
   return (
     <ul className="space-y-4">
       {repositories.map((repo) => (
         <li key={repo.id} className="bg-white shadow rounded-lg p-4">
           <Link
-            href={`/repository/${repo.full_name}`}
+            href={`/${repo.owner.login}/${repo.name}`}
             className="text-blue-600 hover:underline"
           >
             {repo.name}
