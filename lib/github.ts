@@ -1,3 +1,8 @@
+// Functions for accessing the Github API
+// Server side
+// No side effects
+// All required data needs to be passed in as parameters
+
 import { Octokit } from "@octokit/rest"
 
 import { generateNewContent } from "./utils"
@@ -21,10 +26,13 @@ export interface Issue {
   state: string
 }
 
-export async function getRepositoryIssues(): Promise<Issue[]> {
+export async function getRepositoryIssues(
+  username: string,
+  repo: string
+): Promise<Issue[]> {
   try {
     const response = await octokit.issues.listForRepo({
-      owner,
+      owner: username,
       repo,
       state: "all",
       per_page: 100,
