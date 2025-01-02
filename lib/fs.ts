@@ -1,37 +1,64 @@
 // File system operations
-import * as fs from "fs"
+import { promises as fs } from "fs"
+import os from "os"
 import * as path from "path"
 
-export function createDirectoryTree(dir: string, indent: string = ""): string {
-  let output = ""
-  const files = fs.readdirSync(dir)
+import { createTempRepoDir } from "./tempRepos"
 
-  files.forEach((file, index) => {
+export async function createDirectoryTree(
+  dir: string,
+  baseDir: string = dir
+): Promise<string[]> {
+  // Generate a list of all files in the directory
+  // Does not include folders, node_modules, or hidden files or folders
+
+  let output: string[] = []
+  const files = await fs.readdir(dir)
+
+  for (const file of files) {
     const filePath = path.join(dir, file)
-    const stats = fs.statSync(filePath)
-    const isLast = index === files.length - 1
+    const stats = await fs.stat(filePath)
 
     // Skip node_modules
     if (file === "node_modules") {
-      return
+      continue
     }
 
     // Skip hidden folders and files
     if (file.startsWith(".")) {
-      return
+      continue
     }
-
-    // Add file/directory to tree
-    output += `${indent}${isLast ? "└── " : "├── "}${file}\n`
 
     // If it's a directory, recurse
     if (stats.isDirectory()) {
-      output += createDirectoryTree(
-        filePath,
-        indent + (isLast ? "    " : "│   ")
-      )
+      const subDirFiles = await createDirectoryTree(filePath, baseDir)
+      output = output.concat(subDirFiles)
+    } else {
+      // Only add files to the output
+      const relativePath = path.relative(baseDir, filePath)
+      output.push(relativePath)
     }
-  })
+  }
 
   return output
+}
+
+export async function getRepoDir(repoOwner: string, repoName: string) {
+  // Returns the temp directory path for the locally saved repo
+  // Does not determine if the repo exists already
+  // If temp dir does not exist, it will be created
+
+  // Requires the repo owner and name
+  const dirPath = path.join(os.tmpdir(), "git-repos", repoOwner, repoName)
+
+  // Create a temporary directory
+  console.debug(`[DEBUG] Getting temporary directory: ${dirPath}`)
+  const tempDir = await createTempRepoDir(repoName)
+
+  return tempDir
+}
+
+export async function getFileContent(baseDir: string, filePath: string) {
+  const file = await fs.readFile(path.join(baseDir, filePath))
+  return file.toString()
 }

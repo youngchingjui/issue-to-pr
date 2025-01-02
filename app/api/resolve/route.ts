@@ -1,9 +1,8 @@
 import { promises as fs } from "fs"
 import { NextRequest, NextResponse } from "next/server"
-import os from "os"
-import path from "path"
 import simpleGit from "simple-git"
 
+import { getRepoDir } from "@/lib/fs"
 import {
   checkIfGitExists,
   checkIfLocalBranchExists,
@@ -14,7 +13,6 @@ import {
 } from "@/lib/git"
 import { createPullRequest, getIssue } from "@/lib/github"
 import { identifyRelevantFiles } from "@/lib/nodes"
-import { createTempRepoDir } from "@/lib/tempRepos"
 import { GitHubRepository } from "@/lib/types"
 import { generateNewContent } from "@/lib/utils"
 
@@ -43,26 +41,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get repo directory (if exists)
-    const dirPath = path.join(os.tmpdir(), "git-repos", repoOwner, repoName)
-
-    console.debug(`[DEBUG] Checking if directory exists: ${dirPath}`)
-
-    let tempDir: string | null = null
-    // Check if directory exists
-    if (
-      await fs
-        .access(dirPath)
-        .then(() => true)
-        .catch(() => false)
-    ) {
-      console.debug(`[DEBUG] Directory exists: ${dirPath}`)
-      tempDir = dirPath
-    } else {
-      // Create a temporary directory
-      console.debug(`[DEBUG] Creating temporary directory: ${dirPath}`)
-      tempDir = await createTempRepoDir(repoName)
-    }
+    // Get tempDir for repo
+    const tempDir = await getRepoDir(repoOwner, repoName)
 
     // Check if .git and codebase exist in tempDir
     // If not, clone the repo
