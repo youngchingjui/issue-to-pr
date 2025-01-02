@@ -1,14 +1,9 @@
-import OpenAI from "openai"
 import { zodResponseFormat } from "openai/helpers/zod"
 import { z } from "zod"
 
+import { createDirectoryTree } from "@/lib/fs"
 import { Issue } from "@/lib/github"
-
-import { createDirectoryTree } from "./fs"
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+import { openai } from "@/lib/openai"
 
 interface FileListResponse {
   files?: string[]
@@ -50,5 +45,5 @@ export const identifyRelevantFiles = async (
     "[DEBUG] File list response:",
     response.choices[0].message.parsed
   )
-  return { files: ["components/Section.tsx"] }
+  return response.choices[0].message.parsed
 }
