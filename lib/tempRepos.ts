@@ -13,6 +13,6 @@ export async function createTempRepoDir(repoName: string): Promise<string> {
 
     return tempDir
   } catch (error) {
-    throw new Error("Failed to create temporary directory")
+    throw new Error(`Failed to create temporary directory: ${error}`)
   }
 }

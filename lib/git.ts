@@ -12,6 +12,19 @@ export async function checkIfGitExists(dir: string): Promise<boolean> {
     .catch(() => false)
 }
 
+export async function updateToLatest(dir: string): Promise<string> {
+  // Fetches then pulls to latest branch
+  const command = `git fetch && git pull`
+  return new Promise((resolve, reject) => {
+    exec(command, { cwd: dir }, (error, stdout, stderr) => {
+      if (error) {
+        return reject(new Error(error.message))
+      }
+      return resolve(stdout)
+    })
+  })
+}
+
 export async function checkIfLocalBranchExists(
   branchName: string,
   cwd: string = null
