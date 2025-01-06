@@ -1,6 +1,4 @@
-import { promises as fs } from "fs"
 import { NextRequest, NextResponse } from "next/server"
-import simpleGit from "simple-git"
 
 import { generateCodeEditPlan, generateNewContent } from "@/lib/agents"
 import { getRepoDir } from "@/lib/fs"
@@ -12,6 +10,7 @@ import {
   createBranch,
   getLocalFileContent,
 } from "@/lib/git"
+import { updateFileContent } from "@/lib/github/content"
 import { createPullRequest, getIssue } from "@/lib/github-old"
 import { langfuse } from "@/lib/langfuse"
 import { GitHubRepository } from "@/lib/types"
@@ -67,7 +66,6 @@ export async function POST(request: NextRequest) {
     console.debug(`[DEBUG] Generated branch name: ${branchName}`)
 
     console.debug("[DEBUG] Initializing git operations")
-    const git = simpleGit(tempDir)
 
     // Check if branch name already exists
     // If not, create it
@@ -97,6 +95,7 @@ export async function POST(request: NextRequest) {
     console.debug("[DEBUG] Generating code edit plan")
     const { edits } = await generateCodeEditPlan(issue, tempDir, trace)
 
+    // TODO: Be sure that the files to be edited exist in the repo
     const filesContents: { [key: string]: string } = {}
     for (const edit of edits) {
       filesContents[edit.file] = await getLocalFileContent(
@@ -127,37 +126,16 @@ export async function POST(request: NextRequest) {
       filesContents[edit.file] = edit.newCode
     }
 
-    console.debug("[DEBUG] Writing new code to files")
+    // Update the files directly on Github
     for (const edit of updatedEdits) {
-      await fs.writeFile(`${tempDir}/${edit.file}`, edit.newCode)
-    }
-
-    console.debug("[DEBUG] Staging files")
-    for (const edit of edits) {
-      await git.add(`${tempDir}/${edit.file}`)
-    }
-
-    console.debug("[DEBUG] Committing changes")
-    try {
-      await git.commit(`fix: ${issue.number}: ${issue.title}`)
-    } catch (error) {
-      // TODO: handle errors if there are not differences or changes to commit
-      console.error("[ERROR] Error committing code:", error)
-      return NextResponse.json(
-        { error: "Failed to commit changes." },
-        { status: 500 }
-      )
-    }
-
-    console.debug(`[DEBUG] Pushing to remote branch: ${NEW_BRANCH_NAME}`)
-    try {
-      await git.push("origin", NEW_BRANCH_NAME)
-    } catch (error) {
-      console.error("[ERROR] Error pushing commit:", error)
-      return NextResponse.json(
-        { error: "Failed to push commit." },
-        { status: 500 }
-      )
+      console.debug(`[DEBUG] Updating file on Github: ${edit.file}`)
+      await updateFileContent({
+        repo: repoName,
+        path: edit.file,
+        content: edit.newCode,
+        commitMessage: `fix: ${issue.number}: ${issue.title}`,
+        branch: NEW_BRANCH_NAME,
+      })
     }
 
     // Generate PR on latest HEAD of branch
