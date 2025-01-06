@@ -3,6 +3,7 @@
 // No side effects
 // All required data needs to be passed in as parameters, except for auth / session
 
+// TODO: Move all functions below to @/lib/github/ folder
 import { Octokit } from "@octokit/rest"
 
 import { auth } from "@/auth"
@@ -107,6 +108,8 @@ export class GitHubError extends Error {
     this.name = "GitHubError"
   }
 }
+
+// TODO: Move below to @/lib/github/content.ts
 
 export async function getFileContent(
   repoOwner: string,

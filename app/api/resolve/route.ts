@@ -12,7 +12,7 @@ import {
   createBranch,
   getLocalFileContent,
 } from "@/lib/git"
-import { createPullRequest, getIssue } from "@/lib/github"
+import { createPullRequest, getIssue } from "@/lib/github-old"
 import { langfuse } from "@/lib/langfuse"
 import { GitHubRepository } from "@/lib/types"
 

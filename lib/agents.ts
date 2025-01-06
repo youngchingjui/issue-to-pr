@@ -15,7 +15,7 @@ import { ChatCompletionMessageParam } from "openai/resources"
 import { z } from "zod"
 
 import { createDirectoryTree, getFileContent } from "./fs"
-import { Issue } from "./github"
+import { Issue } from "./github-old"
 import { langfuse } from "./langfuse"
 
 const agent = new OpenAI({
