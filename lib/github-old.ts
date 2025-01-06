@@ -3,11 +3,12 @@
 // No side effects
 // All required data needs to be passed in as parameters, except for auth / session
 
+// TODO: Move all functions below to @/lib/github/ folder
 import { Octokit } from "@octokit/rest"
 
 import { auth } from "@/auth"
 
-import { generateNewContent } from "./utils"
+import { GitHubRepository } from "./types"
 
 async function getOctokit() {
   const session = await auth()
@@ -40,11 +41,10 @@ export async function getRepositoryIssues(
     const response = await octokit.issues.listForRepo({
       owner: username,
       repo,
-      state: "all",
+      state: "open",
       per_page: 100,
     })
 
-    console.debug("[DEBUG] Issues response:", response.data)
     const issues = await Promise.all(
       response.data.map(async (issue) => {
         return {
@@ -64,6 +64,19 @@ export async function getRepositoryIssues(
       "Failed to fetch repository issues. Please check your GitHub credentials and repository settings."
     )
   }
+}
+
+export async function getRepoFromString(
+  owner: string,
+  repo: string
+): Promise<GitHubRepository> {
+  const octokit = await getOctokit()
+  const { data: repoData } = await octokit.rest.repos.get({
+    owner,
+    repo,
+  })
+
+  return repoData
 }
 
 export async function getAssociatedBranch() {
@@ -93,34 +106,6 @@ export class GitHubError extends Error {
   ) {
     super(message)
     this.name = "GitHubError"
-  }
-}
-
-export async function getFileContent(
-  repoOwner: string,
-  repoName: string,
-  filePath: string
-) {
-  try {
-    const octokit = await getOctokit()
-    const file = await octokit.repos.getContent({
-      owner: repoOwner,
-      repo: repoName,
-      path: filePath,
-    })
-    return file.data
-  } catch (error) {
-    // Handle specific GitHub API errors
-    if (error.status === 404) {
-      throw new GitHubError(`File not found: ${filePath}`, 404)
-    }
-    if (error.status === 403) {
-      throw new GitHubError("Authentication failed or rate limit exceeded", 403)
-    }
-
-    // Log unexpected errors
-    console.error("Unexpected error in getFileContent:", error)
-    throw new GitHubError(`Failed to fetch file content: ${error.message}`)
   }
 }
 
@@ -217,46 +202,6 @@ export async function createPullRequest(
   return pullRequest
 }
 
-export async function generateCode(
-  owner: string,
-  repo: string,
-  issueId: number
-) {
-  // Generate the code based off the contents of the Github issue as well as the code in the repository
-
-  // Get the issue title and contents
-  const octokit = await getOctokit()
-  const issue = await octokit.issues.get({
-    owner,
-    repo,
-    issue_number: issueId,
-  })
-  const issueTitle = issue.data.title
-  const issueBody = issue.data.body
-
-  const instructions = `
-    You are a software engineer. You are given a file that contains existing code. 
-    
-    Here is the problem that needs to be fixed:
-    Title: ${issueTitle}
-    Description: ${issueBody}
-  `
-
-  const existingCode = await octokit.repos.getContent({
-    owner,
-    repo,
-    path: "app/page.tsx",
-  })
-
-  // Use the title and contents to inform the LLM how to fix the issue
-  const newCode = await generateNewContent(
-    existingCode.data.toString(),
-    instructions
-  )
-
-  return newCode
-}
-
 export async function commitCode(
   repoOwner: string,
   repoName: string,
@@ -288,38 +233,4 @@ export async function gitPush(
   // Push the code to the remote repository
   console.log(`Pushing code for issue ${issueId}`)
   // Example: Push commits to remote repository
-}
-
-export async function resolveIssue(
-  repoOwner: string,
-  repoName: string,
-  issueId: number
-) {
-  // Completely resolve the issue with AI
-  // 1. Create a new branch
-  // 2. Make changes to fix the issue
-  // 3. Commit the changes
-  // 4. Create a pull request
-
-  // 1. Create a new branch
-  const branch = await createBranch(repoOwner, repoName, issueId)
-
-  // 2. Make changes to fix the issue
-  const newCode = await generateCode(repoOwner, repoName, issueId)
-
-  // 3. Commit the changes
-  await commitCode(repoOwner, repoName, issueId, newCode.code, branch)
-
-  // 4. Create a pull request
-  const pullRequestUrl = await createPullRequest(
-    repoOwner,
-    repoName,
-    issueId,
-    branch
-  )
-
-  console.log(`Resolving issue ${issueId}`)
-  // Example: Mark issue as resolved
-
-  return pullRequestUrl
 }

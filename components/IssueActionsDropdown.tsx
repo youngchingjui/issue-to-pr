@@ -9,19 +9,26 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { GitHubRepository } from "@/lib/types"
 
 import { CreatePullRequestButton } from "./CreatePullRequestButton"
 
-export function IssueActionsDropdown({ issueId }: { issueId: number }) {
-  const handleCommitCode = async (issueId: number) => {
+export function IssueActionsDropdown({
+  issueNumber,
+  repo,
+}: {
+  issueNumber: number
+  repo: GitHubRepository
+}) {
+  const handleCommitCode = async (issueNumber: number) => {
     // Implement commit code logic, likely calling an API route
-    console.log(`Committing code for issue ${issueId}`)
+    console.log(`Committing code for issue ${issueNumber}`)
     // Similar API call as above
   }
 
-  const handleGitPush = async (issueId: number) => {
+  const handleGitPush = async (issueNumber: number) => {
     // Implement git push logic, likely calling an API route
-    console.log(`Pushing code for issue ${issueId}`)
+    console.log(`Pushing code for issue ${issueNumber}`)
     // Similar API call as above
   }
 
@@ -32,14 +39,14 @@ export function IssueActionsDropdown({ issueId }: { issueId: number }) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-        <DropdownMenuItem onClick={() => handleCommitCode(issueId)}>
+        <DropdownMenuItem onClick={() => handleCommitCode(issueNumber)}>
           Commit Code
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleGitPush(issueId)}>
+        <DropdownMenuItem onClick={() => handleGitPush(issueNumber)}>
           Git Push
         </DropdownMenuItem>
         <DropdownMenuItem>
-          <CreatePullRequestButton issueNumber={issueId} />
+          <CreatePullRequestButton issueNumber={issueNumber} repo={repo} />
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

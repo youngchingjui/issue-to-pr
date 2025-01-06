@@ -1,9 +1,7 @@
-import { promises as fs } from "fs"
 import { NextRequest, NextResponse } from "next/server"
-import os from "os"
-import path from "path"
-import simpleGit from "simple-git"
 
+import { generateCodeEditPlan, generateNewContent } from "@/lib/agents"
+import { getRepoDir } from "@/lib/fs"
 import {
   checkIfGitExists,
   checkIfLocalBranchExists,
@@ -12,23 +10,30 @@ import {
   createBranch,
   getLocalFileContent,
 } from "@/lib/git"
-import { createPullRequest, getIssue } from "@/lib/github"
-import { identifyRelevantFiles } from "@/lib/nodes"
-import { createTempRepoDir } from "@/lib/tempRepos"
-import { generateNewContent } from "@/lib/utils"
+import { updateFileContent } from "@/lib/github/content"
+import { getPullRequestOnBranch } from "@/lib/github/pullRequests"
+import { createPullRequest, getIssue } from "@/lib/github-old"
+import { langfuse } from "@/lib/langfuse"
+import { GitHubRepository } from "@/lib/types"
 
-const FILE_TO_EDIT = "app/page.tsx"
 const NEW_BRANCH_NAME = "playground-fix"
 
+type RequestBody = {
+  issueNumber: number
+  repo: GitHubRepository
+}
+
 export async function POST(request: NextRequest) {
-  let tempDir: string | null = null
-  const repoName = process.env.GITHUB_REPO
-  const repoOwner = process.env.GITHUB_OWNER
-  const repoUrl = process.env.GITHUB_REPO_URL
+  const { issueNumber, repo }: RequestBody = await request.json()
+  const repoName = repo.name
+  const repoOwner = repo.owner.login
+  const repoUrl = repo.url
+  const cloneUrl = repo.clone_url
+
+  const trace = langfuse.trace({ name: "Generate code and create PR" })
 
   try {
     console.debug("[DEBUG] Starting POST request handler")
-    const { issueNumber } = await request.json()
 
     if (typeof issueNumber !== "number") {
       console.debug("[DEBUG] Invalid issue number provided:", issueNumber)
@@ -38,24 +43,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get repo directory (if exists)
-    const dirPath = path.join(os.tmpdir(), "git-repos", repoOwner, repoName)
-
-    console.debug(`[DEBUG] Checking if directory exists: ${dirPath}`)
-    // Check if directory exists
-    if (
-      await fs
-        .access(dirPath)
-        .then(() => true)
-        .catch(() => false)
-    ) {
-      console.debug(`[DEBUG] Directory exists: ${dirPath}`)
-      tempDir = dirPath
-    } else {
-      // Create a temporary directory
-      console.debug(`[DEBUG] Creating temporary directory: ${dirPath}`)
-      tempDir = await createTempRepoDir(repoName)
-    }
+    // Get tempDir for repo
+    const tempDir = await getRepoDir(repoOwner, repoName)
 
     // Check if .git and codebase exist in tempDir
     // If not, clone the repo
@@ -65,7 +54,7 @@ export async function POST(request: NextRequest) {
     if (!gitExists) {
       // Clone the repo
       console.debug(`[DEBUG] Cloning repo: ${repoUrl}`)
-      await cloneRepo(repoUrl, tempDir)
+      await cloneRepo(cloneUrl, tempDir)
     }
 
     console.debug(`[DEBUG] Fetching issue #${issueNumber}`)
@@ -78,7 +67,6 @@ export async function POST(request: NextRequest) {
     console.debug(`[DEBUG] Generated branch name: ${branchName}`)
 
     console.debug("[DEBUG] Initializing git operations")
-    const git = simpleGit(tempDir)
 
     // Check if branch name already exists
     // If not, create it
@@ -104,65 +92,65 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // TODO: Identify which file(s) to edit based on issue
-    // Here, we use LLMs to identify
-    const { files } = await identifyRelevantFiles(issue, tempDir)
-
-    // Generate code based on issue
-    console.debug(
-      `[DEBUG] Attempting to get file content from ${files[0]} in ${tempDir}`
-    )
-    // TODO: Find fileContent type
-    let fileContent
-    try {
-      fileContent = await getLocalFileContent(`${tempDir}/${files[0]}`)
-    } catch (error) {
-      console.debug("[DEBUG] Error fetching file content:", error)
+    // Check if a pull request already exists on this branch
+    // If so, return error
+    const existingPr = await getPullRequestOnBranch({
+      repo: repoName,
+      branch: NEW_BRANCH_NAME,
+    })
+    if (existingPr) {
       return NextResponse.json(
-        { error: "Failed to fetch file content." },
-        { status: 500 }
+        {
+          error: "Pull request already exists on this branch.",
+        },
+        { status: 400 }
+      )
+    }
+
+    // Generate code edit plan
+    console.debug("[DEBUG] Generating code edit plan")
+    const { edits } = await generateCodeEditPlan(issue, tempDir, trace)
+
+    const filesContents: { [key: string]: string } = {}
+    for (const edit of edits) {
+      filesContents[edit.file] = await getLocalFileContent(
+        `${tempDir}/${edit.file}`
       )
     }
 
     // TODO: Dynamically generate instructions based on the issue
-    console.debug("[DEBUG] Generating new code content based on issue")
-    const instructions = `
-    Please generate a new file called "${files[0]}" that will resolve this issue:
-      Title: ${issue.title}
-      Description: ${issue.body}
-    `
-    const { code } = await generateNewContent(
-      fileContent.toString(),
-      instructions
-    )
+    console.debug("[DEBUG] Generating new code based on edit plan")
 
-    console.debug("[DEBUG] Writing new code to file")
-    await fs.writeFile(`${tempDir}/${FILE_TO_EDIT}`, code)
-
-    console.debug(`[DEBUG] Staging file: ${FILE_TO_EDIT}`)
-    await git.add(`${tempDir}/${FILE_TO_EDIT}`)
-
-    console.debug("[DEBUG] Committing changes")
-    try {
-      await git.commit(`fix: ${issue.number}: ${issue.title}`)
-    } catch (error) {
-      // TODO: handle errors if there are not differences or changes to commit
-      console.error("[ERROR] Error committing code:", error)
-      return NextResponse.json(
-        { error: "Failed to commit changes." },
-        { status: 500 }
+    const promises = edits.map(async (edit) => {
+      const result = await generateNewContent(
+        filesContents[edit.file],
+        edit.instructions,
+        trace
       )
+      return {
+        ...edit,
+        newCode: result.code,
+      }
+    })
+
+    // Resolve all promises in parallel
+    const updatedEdits = await Promise.all(promises)
+
+    // Update filesContents with new code
+    for (const edit of updatedEdits) {
+      filesContents[edit.file] = edit.newCode
     }
 
-    console.debug(`[DEBUG] Pushing to remote branch: ${NEW_BRANCH_NAME}`)
-    try {
-      await git.push("origin", NEW_BRANCH_NAME)
-    } catch (error) {
-      console.error("[ERROR] Error pushing commit:", error)
-      return NextResponse.json(
-        { error: "Failed to push commit." },
-        { status: 500 }
-      )
+    // Update the files directly on Github
+    for (const edit of updatedEdits) {
+      console.debug(`[DEBUG] Updating file on Github: ${edit.file}`)
+      await updateFileContent({
+        repo: repoName,
+        path: edit.file,
+        content: edit.newCode,
+        commitMessage: `fix: ${issue.number}: ${issue.title}`,
+        branch: NEW_BRANCH_NAME,
+      })
     }
 
     // Generate PR on latest HEAD of branch
