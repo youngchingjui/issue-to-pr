@@ -1,153 +1,228 @@
-import { NextRequest, NextResponse } from "next/server"
-import { generateNewContent } from "@/lib/utils"
-import {
-  getIssue,
-  getFileContent,
-  createPullRequest,
-  GitHubError,
-} from "@/lib/github"
-import simpleGit from "simple-git"
+import { promises as fs } from "fs";
+import { NextRequest, NextResponse } from "next/server";
+import os from "os";
+import path from "path";
+import simpleGit from "simple-git";
+import fetch from "node-fetch";
 
-const FILE_TO_EDIT = "app/playground/index.ts"
-const NEW_BRANCH_NAME = "playground-fix"
-const DIRECTORY_PATH = "."
-import { promises as fs } from "fs"
 import {
+  checkIfGitExists,
   checkIfLocalBranchExists,
-  createBranch,
   checkoutBranch,
-} from "@/lib/git"
+  cloneRepo,
+  createBranch,
+  getLocalFileContent,
+} from "@/lib/git";
+import { createPullRequest, getIssue } from "@/lib/github";
+import { identifyRelevantFiles } from "@/lib/nodes";
+import { createTempRepoDir } from "@/lib/tempRepos";
+import { generateNewContent } from "@/lib/utils";
+
+const FILE_TO_EDIT = "app/page.tsx";
+const NEW_BRANCH_NAME = "playground-fix";
+
+async function getAuthenticatedRepoInfo(token: string) {
+  const requestOptions = {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/vnd.github+json',
+    },
+  };
+
+  const response = await fetch('https://api.github.com/user/repos', requestOptions);
+  if (!response.ok) throw new Error('Failed to fetch repository information.');
+
+  const repos = await response.json();
+  if (repos.length === 0) throw new Error('No repositories found.');
+
+  return {
+    repoName: repos[0].name,
+    repoOwner: repos[0].owner.login,
+    repoUrl: repos[0].clone_url,
+  };
+}
 
 export async function POST(request: NextRequest) {
-  try {
-    console.debug("[DEBUG] Starting POST request handler")
-    const { issueNumber } = await request.json()
+  let tempDir: string | null = null;
 
-    if (typeof issueNumber !== "number") {
-      console.debug("[DEBUG] Invalid issue number provided:", issueNumber)
+  try {
+    console.debug("[DEBUG] Starting POST request handler");
+    const { issueNumber, authToken } = await request.json();
+
+    if (typeof issueNumber !== "number" || !authToken) {
+      console.debug("[DEBUG] Invalid input provided:", issueNumber, authToken);
       return NextResponse.json(
-        { error: "Invalid issueNumber provided." },
+        { error: "Invalid input provided." },
         { status: 400 }
-      )
+      );
     }
 
-    console.debug(`[DEBUG] Fetching issue #${issueNumber}`)
-    const issue = await getIssue(issueNumber)
+    const { repoName, repoOwner, repoUrl } = await getAuthenticatedRepoInfo(authToken);
+
+    // Get repo directory (if exists)
+    const dirPath = path.join(os.tmpdir(), "git-repos", repoOwner, repoName);
+
+    console.debug(`[DEBUG] Checking if directory exists: ${dirPath}`);
+    // Check if directory exists
+    if (
+      await fs
+        .access(dirPath)
+        .then(() => true)
+        .catch(() => false)
+    ) {
+      console.debug(`[DEBUG] Directory exists: ${dirPath}`);
+      tempDir = dirPath;
+    } else {
+      // Create a temporary directory
+      console.debug(`[DEBUG] Creating temporary directory: ${dirPath}`);
+      tempDir = await createTempRepoDir(repoName);
+    }
+
+    // Check if .git and codebase exist in tempDir
+    // If not, clone the repo
+    // If so, checkout the branch
+    console.debug(`[DEBUG] Checking if .git and codebase exist in ${tempDir}`);
+    const gitExists = await checkIfGitExists(tempDir);
+    if (!gitExists) {
+      // Clone the repo
+      console.debug(`[DEBUG] Cloning repo: ${repoUrl}`);
+      await cloneRepo(repoUrl, tempDir);
+    }
+
+    console.debug(`[DEBUG] Fetching issue #${issueNumber}`);
+    const issue = await getIssue(repoName, issueNumber);
 
     // Create branch name from issue
     const branchName = `${issueNumber}-${issue.title
       .toLowerCase()
-      .replace(/\s+/g, "-")}`
-    console.debug(`[DEBUG] Generated branch name: ${branchName}`)
+      .replace(/\s+/g, "-")}`;
+    console.debug(`[DEBUG] Generated branch name: ${branchName}`);
 
-    console.debug("[DEBUG] Initializing git operations")
-    const git = simpleGit(DIRECTORY_PATH)
+    console.debug("[DEBUG] Initializing git operations");
+    const git = simpleGit(tempDir);
 
     // Check if branch name already exists
     // If not, create it
     // Then, checkout the branch
     try {
-      console.debug(`[DEBUG] Checking out branch: ${NEW_BRANCH_NAME}`)
+      console.debug(`[DEBUG] Checking out branch: ${NEW_BRANCH_NAME}`);
 
-      const branchExists = await checkIfLocalBranchExists(NEW_BRANCH_NAME)
+      const branchExists = await checkIfLocalBranchExists(
+        NEW_BRANCH_NAME,
+        tempDir
+      );
       if (!branchExists) {
-        await createBranch(NEW_BRANCH_NAME)
+        await createBranch(NEW_BRANCH_NAME, tempDir);
       }
-      await checkoutBranch(NEW_BRANCH_NAME)
+      await checkoutBranch(NEW_BRANCH_NAME, tempDir);
     } catch (error) {
-      console.debug("[DEBUG] Error during branch checkout:", error)
+      console.debug("[DEBUG] Error during branch checkout:", error);
       return NextResponse.json(
         {
           error: error.message,
         },
         { status: 400 }
-      )
+      );
     }
 
+    // TODO: Identify which file(s) to edit based on issue
+    // Here, we use LLMs to identify
+    const { files } = await identifyRelevantFiles(issue, tempDir);
+
     // Generate code based on issue
-    // TODO: Find fileContent type
     console.debug(
-      `[DEBUG] Attempting to fetch file content from ${FILE_TO_EDIT}`
-    )
-    let fileContent
+      `[DEBUG] Attempting to get file content from ${files[0]} in ${tempDir}`
+    );
+    // TODO: Find fileContent type
+    let fileContent;
     try {
-      fileContent = await getFileContent(FILE_TO_EDIT)
+      fileContent = await getLocalFileContent(`${tempDir}/${files[0]}`);
     } catch (error) {
-      console.debug("[DEBUG] Error fetching file content:", error)
-      if (error instanceof GitHubError && error.status === 404) {
-        return NextResponse.json({ error: error.message }, { status: 404 })
-      } else {
-        return NextResponse.json(
-          { error: "Failed to fetch file content." },
-          { status: 500 }
-        )
-      }
+      console.debug("[DEBUG] Error fetching file content:", error);
+      return NextResponse.json(
+        { error: "Failed to fetch file content." },
+        { status: 500 }
+      );
     }
 
     // TODO: Dynamically generate instructions based on the issue
-    console.debug("[DEBUG] Generating new code content based on issue")
+    console.debug("[DEBUG] Generating new code content based on issue");
     const instructions = `
-    Please generate a new file called "${FILE_TO_EDIT}" that will resolve this issue:
+    Please generate a new file called "${files[0]}" that will resolve this issue:
       Title: ${issue.title}
       Description: ${issue.body}
-    `
-    const newCode = await generateNewContent(
+    `;
+    const { code } = await generateNewContent(
       fileContent.toString(),
       instructions
-    )
+    );
 
-    console.debug("[DEBUG] Writing new code to file")
-    await fs.writeFile(FILE_TO_EDIT, newCode.code)
+    console.debug("[DEBUG] Writing new code to file");
+    await fs.writeFile(`${tempDir}/${FILE_TO_EDIT}`, code);
 
-    console.debug(`[DEBUG] Staging file: ${FILE_TO_EDIT}`)
-    await git.add(FILE_TO_EDIT)
+    console.debug(`[DEBUG] Staging file: ${FILE_TO_EDIT}`);
+    await git.add(`${tempDir}/${FILE_TO_EDIT}`);
 
-    console.debug("[DEBUG] Committing changes")
+    console.debug("[DEBUG] Committing changes");
     try {
-      await git.commit(`fix: ${issue.number}: ${issue.title}`)
+      await git.commit(`fix: ${issue.number}: ${issue.title}`);
     } catch (error) {
       // TODO: handle errors if there are not differences or changes to commit
-      console.error("[ERROR] Error committing code:", error)
+      console.error("[ERROR] Error committing code:", error);
+      return NextResponse.json(
+        { error: "Failed to commit changes." },
+        { status: 500 }
+      );
     }
 
-    console.debug(`[DEBUG] Pushing to remote branch: ${NEW_BRANCH_NAME}`)
+    console.debug(`[DEBUG] Pushing to remote branch: ${NEW_BRANCH_NAME}`);
     try {
-      await git.push("origin", NEW_BRANCH_NAME)
+      await git.push("origin", NEW_BRANCH_NAME);
     } catch (error) {
-      console.error("[ERROR] Error pushing commit:", error)
+      console.error("[ERROR] Error pushing commit:", error);
+      return NextResponse.json(
+        { error: "Failed to push commit." },
+        { status: 500 }
+      );
     }
 
     // Generate PR on latest HEAD of branch
     // TODO: Find type for pr
-    console.debug("[DEBUG] Creating pull request")
-    let pr
+    console.debug("[DEBUG] Creating pull request");
+    let pr;
     try {
-      pr = await createPullRequest(issueNumber, NEW_BRANCH_NAME)
+      pr = await createPullRequest(
+        repoOwner,
+        repoName,
+        issueNumber,
+        NEW_BRANCH_NAME
+      );
     } catch (error) {
       // TODO: Handle error if pull request already exists
-      console.debug("[DEBUG] Error creating pull request:", error)
+      console.debug("[DEBUG] Error creating pull request:", error);
       if (error.response.data.errors[0].message.includes("already exists")) {
         return NextResponse.json(
           {
             error: `Pull request already exists for issue. Please remove any existing pull requests from ${NEW_BRANCH_NAME} to continue.`,
           },
           { status: 400 }
-        )
+        );
       }
       // TODO: Handle errors if PR creation fails because of API limits, such as rate limits, plan limits, etc.
-      console.error("Error creating PR:", error)
+      console.error("Error creating PR:", error);
     }
 
-    console.debug("[DEBUG] Operation completed successfully")
+    console.debug("[DEBUG] Operation completed successfully");
     return NextResponse.json(
       { message: "Issue resolved successfully.", pr: pr },
       { status: 200 }
-    )
+    );
   } catch (error) {
-    console.error("[ERROR] Fatal error in POST handler:", error)
+    console.error("[ERROR] Fatal error in POST handler:", error);
     return NextResponse.json(
       { error: "Failed to resolve issue." },
       { status: 500 }
-    )
+    );
   }
 }
