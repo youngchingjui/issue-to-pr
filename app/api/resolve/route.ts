@@ -99,28 +99,37 @@ export async function POST(request: NextRequest) {
 
     const filesContents: { [key: string]: string } = {}
     for (const edit of edits) {
-      const fileContent = await getLocalFileContent(`${tempDir}/${edit.file}`)
-      filesContents[edit.file] = fileContent
+      filesContents[edit.file] = await getLocalFileContent(
+        `${tempDir}/${edit.file}`
+      )
     }
 
     // TODO: Dynamically generate instructions based on the issue
     console.debug("[DEBUG] Generating new code based on edit plan")
 
-    const promises = []
-    edits.map((edit) =>
-      promises.push(
-        generateNewContent(filesContents[edit.file], edit.instructions, trace)
+    const promises = edits.map(async (edit) => {
+      const result = await generateNewContent(
+        filesContents[edit.file],
+        edit.instructions,
+        trace
       )
-    )
+      return {
+        ...edit,
+        newCode: result.code,
+      }
+    })
 
-    const results = await Promise.all(promises)
-    for (const edit of edits) {
-      filesContents[edit.file] = results[edit.file]
+    // Resolve all promises in parallel
+    const updatedEdits = await Promise.all(promises)
+
+    // Update filesContents with new code
+    for (const edit of updatedEdits) {
+      filesContents[edit.file] = edit.newCode
     }
 
     console.debug("[DEBUG] Writing new code to files")
-    for (const edit of edits) {
-      await fs.writeFile(`${tempDir}/${edit.file}`, filesContents[edit.file])
+    for (const edit of updatedEdits) {
+      await fs.writeFile(`${tempDir}/${edit.file}`, edit.newCode)
     }
 
     console.debug("[DEBUG] Staging files")
