@@ -109,36 +109,6 @@ export class GitHubError extends Error {
   }
 }
 
-// TODO: Move below to @/lib/github/content.ts
-
-export async function getFileContent(
-  repoOwner: string,
-  repoName: string,
-  filePath: string
-) {
-  try {
-    const octokit = await getOctokit()
-    const file = await octokit.repos.getContent({
-      owner: repoOwner,
-      repo: repoName,
-      path: filePath,
-    })
-    return file.data
-  } catch (error) {
-    // Handle specific GitHub API errors
-    if (error.status === 404) {
-      throw new GitHubError(`File not found: ${filePath}`, 404)
-    }
-    if (error.status === 403) {
-      throw new GitHubError("Authentication failed or rate limit exceeded", 403)
-    }
-
-    // Log unexpected errors
-    console.error("Unexpected error in getFileContent:", error)
-    throw new GitHubError(`Failed to fetch file content: ${error.message}`)
-  }
-}
-
 export async function createGitHubBranch(
   repoOwner: string,
   repoName: string,

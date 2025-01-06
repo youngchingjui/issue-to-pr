@@ -11,6 +11,7 @@ import {
   getLocalFileContent,
 } from "@/lib/git"
 import { updateFileContent } from "@/lib/github/content"
+import { getPullRequestOnBranch } from "@/lib/github/pullRequests"
 import { createPullRequest, getIssue } from "@/lib/github-old"
 import { langfuse } from "@/lib/langfuse"
 import { GitHubRepository } from "@/lib/types"
@@ -91,11 +92,25 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Check if a pull request already exists on this branch
+    // If so, return error
+    const existingPr = await getPullRequestOnBranch({
+      repo: repoName,
+      branch: NEW_BRANCH_NAME,
+    })
+    if (existingPr) {
+      return NextResponse.json(
+        {
+          error: "Pull request already exists on this branch.",
+        },
+        { status: 400 }
+      )
+    }
+
     // Generate code edit plan
     console.debug("[DEBUG] Generating code edit plan")
     const { edits } = await generateCodeEditPlan(issue, tempDir, trace)
 
-    // TODO: Be sure that the files to be edited exist in the repo
     const filesContents: { [key: string]: string } = {}
     for (const edit of edits) {
       filesContents[edit.file] = await getLocalFileContent(

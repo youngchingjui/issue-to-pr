@@ -1,5 +1,41 @@
 import getOctokit from "@/lib/github"
 
+import { GitHubError } from "../github-old"
+
+export async function getFileContent({
+  repo,
+  path,
+  branch,
+}: {
+  repo: string
+  path: string
+  branch: string
+}) {
+  try {
+    const octokit = await getOctokit()
+    const user = await octokit.users.getAuthenticated()
+    const file = await octokit.repos.getContent({
+      owner: user.data.login,
+      repo,
+      path,
+      ref: branch,
+    })
+    return file.data
+  } catch (error) {
+    // Handle specific GitHub API errors
+    if (error.status === 404) {
+      throw new GitHubError(`File not found: ${path}`, 404)
+    }
+    if (error.status === 403) {
+      throw new GitHubError("Authentication failed or rate limit exceeded", 403)
+    }
+
+    // Log unexpected errors
+    console.error("Unexpected error in getFileContent:", error)
+    throw new GitHubError(`Failed to fetch file content: ${error.message}`, 500)
+  }
+}
+
 export async function updateFileContent({
   repo,
   path,
