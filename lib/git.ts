@@ -16,7 +16,7 @@ export async function updateToLatest(dir: string): Promise<string> {
   // Fetches then pulls to latest branch
   const command = `git fetch && git pull`
   return new Promise((resolve, reject) => {
-    exec(command, { cwd: dir }, (error, stdout, stderr) => {
+    exec(command, { cwd: dir }, (error, stdout) => {
       if (error) {
         return reject(new Error(error.message))
       }
@@ -52,7 +52,7 @@ export async function createBranch(
 ): Promise<string> {
   const command = `git checkout -b ${branchName}`
   return new Promise((resolve, reject) => {
-    exec(command, { cwd }, (error, stdout, stderr) => {
+    exec(command, { cwd }, (error, stdout) => {
       if (error) {
         return reject(new Error(error.message))
       }
@@ -86,7 +86,7 @@ export async function cloneRepo(
 ): Promise<string> {
   const command = `git clone ${cloneUrl}${dir ? ` ${dir}` : ""}`
   return new Promise((resolve, reject) => {
-    exec(command, { cwd: dir }, (error, stdout, stderr) => {
+    exec(command, { cwd: dir }, (error, stdout) => {
       if (error) {
         return reject(new Error(error.message))
       }
