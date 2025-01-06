@@ -1,37 +1,58 @@
+// Functions for accessing the Github API
+// Server side
+// No side effects
+// All required data needs to be passed in as parameters, except for auth / session
+
 import { Octokit } from "@octokit/rest"
+
+import { auth } from "@/auth"
+
 import { generateNewContent } from "./utils"
 
-const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN })
+async function getOctokit() {
+  const session = await auth()
+  if (!session?.user) {
+    throw new Error("User not found")
+  }
 
-const owner = process.env.GITHUB_OWNER
-const repo = process.env.GITHUB_REPO
+  const accessToken = session.user.accessToken
+  if (!accessToken) {
+    throw new Error("Access token not found")
+  }
 
-if (!owner || !repo) {
-  throw new Error(
-    "GITHUB_OWNER and GITHUB_REPO environment variables must be set"
-  )
+  return new Octokit({ auth: accessToken })
 }
 
-export async function getRepositoryIssues() {
+export interface Issue {
+  id: number
+  number: number
+  title: string
+  body: string
+  state: string
+}
+
+export async function getRepositoryIssues(
+  username: string,
+  repo: string
+): Promise<Issue[]> {
   try {
+    const octokit = await getOctokit()
     const response = await octokit.issues.listForRepo({
-      owner,
+      owner: username,
       repo,
-      state: "open",
+      state: "all",
+      per_page: 100,
     })
 
+    console.debug("[DEBUG] Issues response:", response.data)
     const issues = await Promise.all(
       response.data.map(async (issue) => {
-        const associatedBranch = await getAssociatedBranch(issue.number)
-        const pullRequest = await getAssociatedPullRequest(issue.number)
-
         return {
           id: issue.id,
           number: issue.number,
           title: issue.title,
+          body: issue.body,
           state: issue.state,
-          associatedBranch,
-          pullRequest,
         }
       })
     )
@@ -45,31 +66,48 @@ export async function getRepositoryIssues() {
   }
 }
 
-async function getAssociatedBranch(issueNumber: number) {
+export async function getAssociatedBranch() {
   // This is a placeholder. You'll need to implement the logic to find associated branches.
   // It might involve searching for branches with names containing the issue number.
   return null
 }
 
-export async function getIssue(issueNumber: number) {
+export async function getIssue(
+  repo: string,
+  issueNumber: number
+): Promise<Issue> {
+  const octokit = await getOctokit()
+  const user = await octokit.users.getAuthenticated()
   const issue = await octokit.issues.get({
-    owner,
+    owner: user.data.login,
     repo,
     issue_number: issueNumber,
   })
-  return issue.data
+  return issue.data as Issue
 }
 
 export class GitHubError extends Error {
-  constructor(message: string, public status?: number) {
+  constructor(
+    message: string,
+    public status?: number
+  ) {
     super(message)
     this.name = "GitHubError"
   }
 }
 
-export async function getFileContent(filePath: string) {
+export async function getFileContent(
+  repoOwner: string,
+  repoName: string,
+  filePath: string
+) {
   try {
-    const file = await octokit.repos.getContent({ owner, repo, path: filePath })
+    const octokit = await getOctokit()
+    const file = await octokit.repos.getContent({
+      owner: repoOwner,
+      repo: repoName,
+      path: filePath,
+    })
     return file.data
   } catch (error) {
     // Handle specific GitHub API errors
@@ -86,20 +124,31 @@ export async function getFileContent(filePath: string) {
   }
 }
 
-export async function createGitHubBranch(branchName: string, mainRef: string) {
+export async function createGitHubBranch(
+  repoOwner: string,
+  repoName: string,
+  branchName: string,
+  mainRef: string
+) {
+  const octokit = await getOctokit()
   await octokit.git.createRef({
-    owner,
-    repo,
+    owner: repoOwner,
+    repo: repoName,
     ref: `refs/heads/${branchName}`,
     sha: mainRef,
   })
 }
 
-async function getAssociatedPullRequest(issueNumber: number) {
+export async function getAssociatedPullRequest(
+  repoOwner: string,
+  repoName: string,
+  issueNumber: number
+) {
   try {
+    const octokit = await getOctokit()
     const response = await octokit.pulls.list({
-      owner,
-      repo,
+      owner: repoOwner,
+      repo: repoName,
       state: "open",
     })
 
@@ -116,20 +165,29 @@ async function getAssociatedPullRequest(issueNumber: number) {
   }
 }
 
-export async function createBranch(issueId: number) {
+export async function createBranch(
+  repoOwner: string,
+  repoName: string,
+  issueId: number
+) {
   // This should just create a branch off of the branch in the parameters
   // It'll use the same branch naming convention as Github, ie "250-allow-user-to-change-openai-model-for-each-run"
 
   console.log(`Creating branch for issue ${issueId}`)
 
   // Get the issue title
-  const issue = await octokit.issues.get({ owner, repo, issue_number: issueId })
+  const octokit = await getOctokit()
+  const issue = await octokit.issues.get({
+    owner: repoOwner,
+    repo: repoName,
+    issue_number: issueId,
+  })
   const issueTitle = issue.data.title
 
   // Create the branch
   const branch = await octokit.git.createRef({
-    owner,
-    repo,
+    owner: repoOwner,
+    repo: repoName,
     ref: `refs/heads/${issueTitle}`,
     sha: "main",
   })
@@ -137,14 +195,20 @@ export async function createBranch(issueId: number) {
   return branch.data.ref
 }
 
-export async function createPullRequest(issueId: number, branch: string) {
+export async function createPullRequest(
+  repoOwner: string,
+  repoName: string,
+  issueId: number,
+  branch: string
+) {
   // This should just create a pull request off of the branch in the parameters
   console.log(`Creating pull request for issue ${issueId}`)
 
   // Create the pull request
+  const octokit = await getOctokit()
   const pullRequest = await octokit.pulls.create({
-    owner,
-    repo,
+    owner: repoOwner,
+    repo: repoName,
     title: `Fix issue ${issueId}`,
     head: branch,
     base: "main",
@@ -153,11 +217,20 @@ export async function createPullRequest(issueId: number, branch: string) {
   return pullRequest
 }
 
-export async function generateCode(issueId: number) {
+export async function generateCode(
+  owner: string,
+  repo: string,
+  issueId: number
+) {
   // Generate the code based off the contents of the Github issue as well as the code in the repository
 
   // Get the issue title and contents
-  const issue = await octokit.issues.get({ owner, repo, issue_number: issueId })
+  const octokit = await getOctokit()
+  const issue = await octokit.issues.get({
+    owner,
+    repo,
+    issue_number: issueId,
+  })
   const issueTitle = issue.data.title
   const issueBody = issue.data.body
 
@@ -185,6 +258,8 @@ export async function generateCode(issueId: number) {
 }
 
 export async function commitCode(
+  repoOwner: string,
+  repoName: string,
   issueId: number,
   newCode: string,
   branch: string
@@ -193,9 +268,10 @@ export async function commitCode(
   console.log(`Committing code for issue ${issueId}`)
 
   // Create a new commit
+  const octokit = await getOctokit()
   const commit = await octokit.git.createCommit({
-    owner,
-    repo,
+    owner: repoOwner,
+    repo: repoName,
     message: `Fix issue ${issueId}`,
     tree: newCode,
     parents: [branch],
@@ -204,13 +280,21 @@ export async function commitCode(
   return commit.data.sha
 }
 
-export async function gitPush(issueId: number) {
+export async function gitPush(
+  repoOwner: string,
+  repoName: string,
+  issueId: number
+) {
   // Push the code to the remote repository
   console.log(`Pushing code for issue ${issueId}`)
   // Example: Push commits to remote repository
 }
 
-export async function resolveIssue(issueId: number) {
+export async function resolveIssue(
+  repoOwner: string,
+  repoName: string,
+  issueId: number
+) {
   // Completely resolve the issue with AI
   // 1. Create a new branch
   // 2. Make changes to fix the issue
@@ -218,16 +302,21 @@ export async function resolveIssue(issueId: number) {
   // 4. Create a pull request
 
   // 1. Create a new branch
-  const branch = await createBranch(issueId)
+  const branch = await createBranch(repoOwner, repoName, issueId)
 
   // 2. Make changes to fix the issue
-  const newCode = await generateCode(issueId)
+  const newCode = await generateCode(repoOwner, repoName, issueId)
 
   // 3. Commit the changes
-  await commitCode(issueId, newCode.code, branch)
+  await commitCode(repoOwner, repoName, issueId, newCode.code, branch)
 
   // 4. Create a pull request
-  const pullRequestUrl = await createPullRequest(issueId, branch)
+  const pullRequestUrl = await createPullRequest(
+    repoOwner,
+    repoName,
+    issueId,
+    branch
+  )
 
   console.log(`Resolving issue ${issueId}`)
   // Example: Mark issue as resolved
