@@ -81,10 +81,10 @@ export async function checkoutBranch(
 }
 
 export async function cloneRepo(
-  repoUrl: string,
+  cloneUrl: string,
   dir: string = null
 ): Promise<string> {
-  const command = `git clone ${repoUrl}${dir ? ` ${dir}` : ""}`
+  const command = `git clone ${cloneUrl}${dir ? ` ${dir}` : ""}`
   return new Promise((resolve, reject) => {
     exec(command, { cwd: dir }, (error, stdout, stderr) => {
       if (error) {

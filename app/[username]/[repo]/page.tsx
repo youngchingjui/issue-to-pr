@@ -19,7 +19,7 @@ export default async function RepoPage({ params }: Props) {
         {username} / {repo}
       </h1>
       <Suspense fallback={<TableSkeleton />}>
-        <IssueTable username={username} repo={repo} />
+        <IssueTable username={username} repoName={repo} />
       </Suspense>
     </main>
   )

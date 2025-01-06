@@ -3,8 +3,6 @@ import { promises as fs } from "fs"
 import os from "os"
 import * as path from "path"
 
-import { createTempRepoDir } from "./tempRepos"
-
 export async function createDirectoryTree(
   dir: string,
   baseDir: string = dir
@@ -51,11 +49,11 @@ export async function getRepoDir(repoOwner: string, repoName: string) {
   // Requires the repo owner and name
   const dirPath = path.join(os.tmpdir(), "git-repos", repoOwner, repoName)
 
-  // Create a temporary directory
+  // Create directory if it doesn't exist
   console.debug(`[DEBUG] Getting temporary directory: ${dirPath}`)
-  const tempDir = await createTempRepoDir(repoName)
+  await fs.mkdir(dirPath, { recursive: true })
 
-  return tempDir
+  return dirPath
 }
 
 export async function getFileContent(baseDir: string, filePath: string) {

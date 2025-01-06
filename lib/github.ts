@@ -7,7 +7,7 @@ import { Octokit } from "@octokit/rest"
 
 import { auth } from "@/auth"
 
-import { generateNewContent } from "./utils"
+import { GitHubRepository } from "./types"
 
 async function getOctokit() {
   const session = await auth()
@@ -63,6 +63,19 @@ export async function getRepositoryIssues(
       "Failed to fetch repository issues. Please check your GitHub credentials and repository settings."
     )
   }
+}
+
+export async function getRepoFromString(
+  owner: string,
+  repo: string
+): Promise<GitHubRepository> {
+  const octokit = await getOctokit()
+  const { data: repoData } = await octokit.rest.repos.get({
+    owner,
+    repo,
+  })
+
+  return repoData
 }
 
 export async function getAssociatedBranch() {
@@ -216,46 +229,6 @@ export async function createPullRequest(
   return pullRequest
 }
 
-export async function generateCode(
-  owner: string,
-  repo: string,
-  issueId: number
-) {
-  // Generate the code based off the contents of the Github issue as well as the code in the repository
-
-  // Get the issue title and contents
-  const octokit = await getOctokit()
-  const issue = await octokit.issues.get({
-    owner,
-    repo,
-    issue_number: issueId,
-  })
-  const issueTitle = issue.data.title
-  const issueBody = issue.data.body
-
-  const instructions = `
-    You are a software engineer. You are given a file that contains existing code. 
-    
-    Here is the problem that needs to be fixed:
-    Title: ${issueTitle}
-    Description: ${issueBody}
-  `
-
-  const existingCode = await octokit.repos.getContent({
-    owner,
-    repo,
-    path: "app/page.tsx",
-  })
-
-  // Use the title and contents to inform the LLM how to fix the issue
-  const newCode = await generateNewContent(
-    existingCode.data.toString(),
-    instructions
-  )
-
-  return newCode
-}
-
 export async function commitCode(
   repoOwner: string,
   repoName: string,
@@ -287,38 +260,4 @@ export async function gitPush(
   // Push the code to the remote repository
   console.log(`Pushing code for issue ${issueId}`)
   // Example: Push commits to remote repository
-}
-
-export async function resolveIssue(
-  repoOwner: string,
-  repoName: string,
-  issueId: number
-) {
-  // Completely resolve the issue with AI
-  // 1. Create a new branch
-  // 2. Make changes to fix the issue
-  // 3. Commit the changes
-  // 4. Create a pull request
-
-  // 1. Create a new branch
-  const branch = await createBranch(repoOwner, repoName, issueId)
-
-  // 2. Make changes to fix the issue
-  const newCode = await generateCode(repoOwner, repoName, issueId)
-
-  // 3. Commit the changes
-  await commitCode(repoOwner, repoName, issueId, newCode.code, branch)
-
-  // 4. Create a pull request
-  const pullRequestUrl = await createPullRequest(
-    repoOwner,
-    repoName,
-    issueId,
-    branch
-  )
-
-  console.log(`Resolving issue ${issueId}`)
-  // Example: Mark issue as resolved
-
-  return pullRequestUrl
 }

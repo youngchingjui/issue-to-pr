@@ -2,6 +2,7 @@ import { promises as fs } from "fs"
 import { NextRequest, NextResponse } from "next/server"
 import simpleGit from "simple-git"
 
+import { generateCodeEditPlan, generateNewContent } from "@/lib/agents"
 import { getRepoDir } from "@/lib/fs"
 import {
   checkIfGitExists,
@@ -12,11 +13,9 @@ import {
   getLocalFileContent,
 } from "@/lib/git"
 import { createPullRequest, getIssue } from "@/lib/github"
-import { identifyRelevantFiles } from "@/lib/nodes"
+import { langfuse } from "@/lib/langfuse"
 import { GitHubRepository } from "@/lib/types"
-import { generateNewContent } from "@/lib/utils"
 
-const FILE_TO_EDIT = "app/page.tsx"
 const NEW_BRANCH_NAME = "playground-fix"
 
 type RequestBody = {
@@ -29,6 +28,9 @@ export async function POST(request: NextRequest) {
   const repoName = repo.name
   const repoOwner = repo.owner.login
   const repoUrl = repo.url
+  const cloneUrl = repo.clone_url
+
+  const trace = langfuse.trace({ name: "Generate code and create PR" })
 
   try {
     console.debug("[DEBUG] Starting POST request handler")
@@ -52,7 +54,7 @@ export async function POST(request: NextRequest) {
     if (!gitExists) {
       // Clone the repo
       console.debug(`[DEBUG] Cloning repo: ${repoUrl}`)
-      await cloneRepo(repoUrl, tempDir)
+      await cloneRepo(cloneUrl, tempDir)
     }
 
     console.debug(`[DEBUG] Fetching issue #${issueNumber}`)
@@ -91,43 +93,40 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // TODO: Identify which file(s) to edit based on issue
-    // Here, we use LLMs to identify
-    const { files } = await identifyRelevantFiles(issue, tempDir)
+    // Generate code edit plan
+    console.debug("[DEBUG] Generating code edit plan")
+    const { edits } = await generateCodeEditPlan(issue, tempDir, trace)
 
-    // Generate code based on issue
-    console.debug(
-      `[DEBUG] Attempting to get file content from ${files[0]} in ${tempDir}`
-    )
-    // TODO: Find fileContent type
-    let fileContent
-    try {
-      fileContent = await getLocalFileContent(`${tempDir}/${files[0]}`)
-    } catch (error) {
-      console.debug("[DEBUG] Error fetching file content:", error)
-      return NextResponse.json(
-        { error: "Failed to fetch file content." },
-        { status: 500 }
-      )
+    const filesContents: { [key: string]: string } = {}
+    for (const edit of edits) {
+      const fileContent = await getLocalFileContent(`${tempDir}/${edit.file}`)
+      filesContents[edit.file] = fileContent
     }
 
     // TODO: Dynamically generate instructions based on the issue
-    console.debug("[DEBUG] Generating new code content based on issue")
-    const instructions = `
-    Please generate a new file called "${files[0]}" that will resolve this issue:
-      Title: ${issue.title}
-      Description: ${issue.body}
-    `
-    const { code } = await generateNewContent(
-      fileContent.toString(),
-      instructions
+    console.debug("[DEBUG] Generating new code based on edit plan")
+
+    const promises = []
+    edits.map((edit) =>
+      promises.push(
+        generateNewContent(filesContents[edit.file], edit.instructions, trace)
+      )
     )
 
-    console.debug("[DEBUG] Writing new code to file")
-    await fs.writeFile(`${tempDir}/${FILE_TO_EDIT}`, code)
+    const results = await Promise.all(promises)
+    for (const edit of edits) {
+      filesContents[edit.file] = results[edit.file]
+    }
 
-    console.debug(`[DEBUG] Staging file: ${FILE_TO_EDIT}`)
-    await git.add(`${tempDir}/${FILE_TO_EDIT}`)
+    console.debug("[DEBUG] Writing new code to files")
+    for (const edit of edits) {
+      await fs.writeFile(`${tempDir}/${edit.file}`, filesContents[edit.file])
+    }
+
+    console.debug("[DEBUG] Staging files")
+    for (const edit of edits) {
+      await git.add(`${tempDir}/${edit.file}`)
+    }
 
     console.debug("[DEBUG] Committing changes")
     try {
