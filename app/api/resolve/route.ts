@@ -9,6 +9,7 @@ import {
   cloneRepo,
   createBranch,
   getLocalFileContent,
+  pushBranch,
 } from "@/lib/git"
 import { updateFileContent } from "@/lib/github/content"
 import { getPullRequestOnBranch } from "@/lib/github/pullRequests"
@@ -66,8 +67,6 @@ export async function POST(request: NextRequest) {
       .replace(/\s+/g, "-")}`
     console.debug(`[DEBUG] Generated branch name: ${branchName}`)
 
-    console.debug("[DEBUG] Initializing git operations")
-
     // Check if branch name already exists
     // If not, create it
     // Then, checkout the branch
@@ -80,6 +79,9 @@ export async function POST(request: NextRequest) {
       )
       if (!branchExists) {
         await createBranch(NEW_BRANCH_NAME, tempDir)
+
+        // Push branch to remote
+        await pushBranch(NEW_BRANCH_NAME, tempDir)
       }
       await checkoutBranch(NEW_BRANCH_NAME, tempDir)
     } catch (error) {

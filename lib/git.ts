@@ -61,6 +61,21 @@ export async function createBranch(
   })
 }
 
+export async function pushBranch(
+  branchName: string,
+  cwd: string = null
+): Promise<string> {
+  const command = `git push origin ${branchName}`
+  return new Promise((resolve, reject) => {
+    exec(command, { cwd }, (error, stdout) => {
+      if (error) {
+        return reject(new Error(error.message))
+      }
+      return resolve(stdout)
+    })
+  })
+}
+
 export async function checkoutBranch(
   branchName: string,
   cwd: string = null
