@@ -11,7 +11,10 @@
 import { LangfuseTraceClient, observeOpenAI } from "langfuse"
 import OpenAI from "openai"
 import { zodResponseFormat } from "openai/helpers/zod"
-import { ChatCompletionMessageParam } from "openai/resources"
+import {
+  ChatCompletionMessageParam,
+  ChatCompletionTool,
+} from "openai/resources"
 import { z } from "zod"
 
 import { createDirectoryTree, getFileContent } from "./fs"
@@ -186,4 +189,207 @@ export async function generateNewContent(
   await langfuse.flushAsync()
 
   return CodeSchema.parse(JSON.parse(response.choices[0].message.content))
+}
+
+export class CoordinatorAgent {
+  private readonly agent: OpenAI
+  private readonly instructionPrompt: string
+  private readonly tools: ChatCompletionTool[]
+  private trace: LangfuseTraceClient
+  public messages: ChatCompletionMessageParam[]
+  public outputSchema: z.ZodSchema = z
+    .object({
+      agent_type: z.enum(["researcher", "librarian", "software_engineer"]),
+      request_details: z.string(),
+    })
+    .strict()
+
+  constructor(issue: Issue = null) {
+    this.agent = agent
+    this.messages = []
+    this.instructionPrompt = `
+## Goal 
+Resolve the Github Issue and create a Pull Request
+
+## Your role
+
+You are a scrum master trying to resolve a Github Issue ticket. You'll be coordinating with other agents who specialize in their tasks. Your job is to identify which agent needs to be called next in order to get 1 step closer to resolving this Github issue.
+
+## Your team
+These are the agents you can call on to help you. After you call each agent, they will report back to you with new information that should hopefully help you resolve the Github ticket.
+
+- Fact finder: This agent has access to Google searches, and can find any information on the internet for you. You just need to provide some information about what you're looking for, and they'll use Google to conduct an internet search for.
+
+- Librarian: This agent has access to the codebase. They can retrieve information about the codebase for you, including the contents of specific files, as well as the overall codebase structure.
+
+- Coder: This agent can write new code or update existing code for you, based on your instructions.
+
+## Conclusion
+Please output in JSON mode. You may call any or all agents, in sequence or in parallel. Again, your goal is to resolve the Github Issue and submit a Pull Request.
+`
+    this.messages.push({
+      role: "system",
+      content: this.instructionPrompt,
+    })
+
+    this.tools = [
+      {
+        type: "function",
+        function: {
+          name: "call_agent",
+          description:
+            "The agent will call other agents based on what it needs.",
+          parameters: {
+            type: "object",
+            required: ["agent_type", "request_details"],
+            properties: {
+              agent_type: {
+                type: "string",
+                description:
+                  "Type of agent to call, can be 'researcher', 'librarian', or 'coder'",
+                enum: ["researcher", "librarian", "coder"],
+              },
+              request_details: {
+                type: "string",
+                description:
+                  "Details about the request being made to the agent",
+              },
+            },
+            additionalProperties: false,
+          },
+          strict: true,
+        },
+      },
+    ]
+
+    if (issue) {
+      this.messages.push({
+        role: "user",
+        content: `
+## Github Issue
+### Title: ${issue.title}
+### Description: ${issue.body}
+`,
+      })
+    }
+
+    this.trace = langfuse.trace({
+      name: "CoordinatorAgent",
+    })
+  }
+
+  async generateResponse() {
+    if (this.messages.length === 0) {
+      throw new Error(
+        "No messages to process. Please first add at least 1 message"
+      )
+    }
+
+    const span = this.trace.span({ name: "Coordinate agent team" })
+
+    const response = await observeOpenAI(this.agent, {
+      parent: span,
+      generationName: "Coordination next step",
+    }).chat.completions.create({
+      model: "gpt-4o",
+      messages: this.messages,
+      response_format: zodResponseFormat(this.outputSchema, "output"),
+      tools: this.tools,
+      tool_choice: {
+        type: "function",
+        function: {
+          name: "call_agent",
+        },
+      },
+    })
+
+    return response.choices[0].message
+  }
+
+  public async run() {
+    // Initialize with system message if not already present
+    if (!this.messages.some((msg) => msg.role === "system")) {
+      this.messages.unshift({
+        role: "system",
+        content: this.instructionPrompt,
+      })
+    }
+
+    let isComplete = false
+    const maxIterations = 10 // Prevent infinite loops
+    let iterations = 0
+
+    console.debug("[DEBUG] Messages:", this.messages)
+
+    try {
+      while (!isComplete && iterations < maxIterations) {
+        iterations++
+
+        // Get next action from the coordinator
+        const response = await this.generateResponse()
+
+        console.debug("[DEBUG] Response: ", response)
+
+        if (!response.tool_calls?.[0]) {
+          console.log("No further actions needed. Workflow complete.")
+          isComplete = true
+          break
+        }
+
+        // Parse the agent's response
+        const toolCall = response.tool_calls[0]
+        const toolCallId = toolCall.id
+        const functionArgs = JSON.parse(toolCall.function.arguments)
+
+        // Add the agent's decision to the message history
+        this.messages.push(response)
+
+        // Log the current step
+        console.log(
+          `Iteration ${iterations}: Calling ${functionArgs.agent_type} agent`
+        )
+        console.log(`Request details: ${functionArgs.request_details}`)
+
+        // Here you would implement the actual agent calls
+        // For now, we'll simulate the agent responses
+        const agentResponse = await this.simulateAgentResponse(
+          functionArgs.agent_type,
+          functionArgs.request_details
+        )
+
+        // Add the agent's response to the conversation
+        this.messages.push({
+          role: "tool",
+          content: JSON.stringify(agentResponse),
+          tool_call_id: toolCallId,
+        })
+      }
+
+      if (iterations >= maxIterations) {
+        throw new Error("Maximum iterations reached without resolution")
+      }
+
+      return {
+        success: true,
+        iterations,
+        finalMessages: this.messages,
+      }
+    } catch (error) {
+      console.error("Error in coordinator workflow:", error)
+      throw error
+    }
+  }
+
+  // Helper method to simulate agent responses
+  private async simulateAgentResponse(
+    agentType: string,
+    requestDetails: string
+  ): Promise<z.infer<typeof this.outputSchema>> {
+    // In a real implementation, this would call the actual agent
+    // For now, we'll just echo back the request with a simulated response
+    return {
+      agent_type: agentType as "researcher" | "librarian" | "software_engineer",
+      request_details: `Completed: ${requestDetails}`,
+    }
+  }
 }
