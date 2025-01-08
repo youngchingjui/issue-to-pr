@@ -17,6 +17,8 @@ import {
 } from "openai/resources"
 import { z } from "zod"
 
+import { getFileContent as getGithubFileContent } from "@/lib/github/content"
+
 import { createDirectoryTree, getFileContent } from "./fs"
 import { Issue } from "./github-old"
 import { langfuse } from "./langfuse"
@@ -195,7 +197,7 @@ export class CoordinatorAgent {
   private readonly agent: OpenAI
   private readonly instructionPrompt: string
   private readonly tools: ChatCompletionTool[]
-  private trace: LangfuseTraceClient
+  private readonly trace: LangfuseTraceClient
   public messages: ChatCompletionMessageParam[]
   public outputSchema: z.ZodSchema = z
     .object({
@@ -204,9 +206,12 @@ export class CoordinatorAgent {
     })
     .strict()
 
-  constructor(issue: Issue = null) {
+  private issue: Issue
+
+  constructor(issue: Issue = null, trace: LangfuseTraceClient = null) {
     this.agent = agent
     this.messages = []
+    this.issue = issue
     this.instructionPrompt = `
 ## Goal 
 Resolve the Github Issue and create a Pull Request
@@ -262,20 +267,24 @@ Please output in JSON mode. You may call any or all agents, in sequence or in pa
       },
     ]
 
-    if (issue) {
+    if (this.issue) {
       this.messages.push({
         role: "user",
         content: `
 ## Github Issue
-### Title: ${issue.title}
-### Description: ${issue.body}
+### Title: ${this.issue.title}
+### Description: ${this.issue.body}
 `,
       })
     }
 
-    this.trace = langfuse.trace({
-      name: "CoordinatorAgent",
-    })
+    if (trace) {
+      this.trace = trace
+    } else {
+      this.trace = langfuse.trace({
+        name: "CoordinatorAgent",
+      })
+    }
   }
 
   async generateResponse() {
@@ -387,9 +396,157 @@ Please output in JSON mode. You may call any or all agents, in sequence or in pa
   ): Promise<z.infer<typeof this.outputSchema>> {
     // In a real implementation, this would call the actual agent
     // For now, we'll just echo back the request with a simulated response
+
+    if (agentType === "librarian") {
+      const librarianAgent = new LibrarianAgent(this.trace)
+      const response = await librarianAgent.generateResponse()
+      console.debug("[DEBUG] Librarian response: ", response)
+      return {
+        agent_type: "librarian",
+        response_details: JSON.stringify(response),
+      }
+    } else if (agentType === "researcher") {
+      // TODO: Implement researcher agent
+      return {
+        agent_type: "researcher",
+        response_details: `Researcher agent not implemented yet. Please find another agent to call.`,
+      }
+    } else if (agentType === "software_engineer") {
+      // TODO: Implement software engineer agent
+      return {
+        agent_type: "software_engineer",
+        response_details: `Software engineer agent not implemented yet. Please find another agent to call.`,
+      }
+    }
+
     return {
       agent_type: agentType as "researcher" | "librarian" | "software_engineer",
       request_details: `Completed: ${requestDetails}`,
+    }
+  }
+}
+
+export class LibrarianAgent {
+  private trace: LangfuseTraceClient
+  private readonly instruction: string
+  private readonly messages: ChatCompletionMessageParam[]
+  private readonly tools: ChatCompletionTool[]
+  private repo: string
+  private branch: string
+
+  constructor(trace: LangfuseTraceClient) {
+    this.repo = "issue-to-pr"
+    this.branch = "main"
+
+    const cwd =
+      "/var/folders/qf/h4j12hb92wjg98vs8qv_zqnm0000gn/T/git-repos/youngchingjui/issue-to-pr"
+    const tree = createDirectoryTree(cwd || process.cwd())
+
+    this.instruction = `
+      You are a librarian agent. You have access to the codebase and can retrieve information about the codebase.
+      You can request the content of any file using the get_file_content tool.
+      This is the directory structure of the codebase: ${tree}
+      When you request for content data, you're actually requesting from Github, which should have the same codebase structure. Just make sure to use the correct relative path.
+      Only request for files that exist. If you request for a file that doesn't exist, you'll get an error. Try to identify the correct file to request for.
+    `
+    this.messages = []
+    this.messages.push({
+      role: "system",
+      content: this.instruction,
+    })
+
+    if (trace) {
+      this.trace = trace
+    } else {
+      this.trace = langfuse.trace({
+        name: "LibrarianAgent",
+      })
+    }
+
+    this.tools = [
+      {
+        type: "function",
+        function: {
+          name: "get_file_content",
+          description: "Get the content of a file from the repository",
+          parameters: {
+            type: "object",
+            required: ["path"],
+            properties: {
+              path: {
+                type: "string",
+                description: "Path to the file in the repository",
+              },
+            },
+          },
+        },
+      },
+    ]
+  }
+
+  private async handleGetFileContent(path: string): Promise<string> {
+    const span = this.trace.span({ name: "Get file content" })
+    try {
+      const content = await getGithubFileContent({
+        repo: this.repo,
+        path,
+        branch: this.branch,
+      })
+
+      // GitHub API returns base64 encoded content
+      if ("content" in content && typeof content.content === "string") {
+        const decodedContent = Buffer.from(content.content, "base64").toString()
+        return decodedContent
+      }
+
+      throw new Error("Invalid content format received from GitHub")
+    } catch (error) {
+      console.error("Error getting file content:", error)
+      throw error
+    } finally {
+      span.end()
+    }
+  }
+
+  async generateResponse() {
+    if (this.messages.length === 0) {
+      throw new Error("No messages to process")
+    }
+
+    const span = this.trace.span({ name: "Generate librarian response" })
+
+    try {
+      const response = await observeOpenAI(agent, {
+        parent: span,
+        generationName: "Librarian response",
+      }).chat.completions.create({
+        model: "gpt-4o",
+        messages: this.messages,
+        tools: this.tools,
+      })
+
+      if (response.choices[0].message.tool_calls) {
+        const toolCall = response.choices[0].message.tool_calls[0]
+        if (toolCall.function.name === "get_file_content") {
+          const args = JSON.parse(toolCall.function.arguments)
+          const content = await this.handleGetFileContent(args.path)
+
+          // Add the tool call and its result to messages
+          this.messages.push(response.choices[0].message)
+          this.messages.push({
+            role: "tool",
+            content,
+            tool_call_id: toolCall.id,
+          })
+
+          // Generate another response with the file content
+          return this.generateResponse()
+        }
+      }
+
+      return response.choices[0].message
+    } finally {
+      span.end()
     }
   }
 }
