@@ -49,9 +49,21 @@ export async function getRepoDir(repoOwner: string, repoName: string) {
   // Requires the repo owner and name
   const dirPath = path.join(os.tmpdir(), "git-repos", repoOwner, repoName)
 
-  // Create directory if it doesn't exist
-  console.debug(`[DEBUG] Getting temporary directory: ${dirPath}`)
-  await fs.mkdir(dirPath, { recursive: true })
+  try {
+    // Create directory if it doesn't exist
+    console.debug(`[DEBUG] Getting temporary directory: ${dirPath}`)
+    await fs.mkdir(dirPath, { recursive: true })
+  } catch (error) {
+    console.error(`[ERROR] Failed to create directory: ${error}`)
+    throw error
+  }
+
+  // Verify if the directory was created
+  const dirExists = await fs
+    .stat(dirPath)
+    .then(() => true)
+    .catch(() => false)
+  console.debug(`[DEBUG] Directory exists after creation attempt: ${dirExists}`)
 
   return dirPath
 }

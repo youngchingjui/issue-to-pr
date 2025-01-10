@@ -19,9 +19,14 @@ import { z } from "zod"
 
 import { getFileContent as getGithubFileContent } from "@/lib/github/content"
 
-import { createDirectoryTree, getFileContent } from "./fs"
+import { createDirectoryTree, getFileContent, getRepoDir } from "./fs"
+import { checkIfGitExists, checkoutBranch, cloneRepo } from "./git"
 import { Issue } from "./github-old"
 import { langfuse } from "./langfuse"
+
+// TODO: Make this dynamic
+const REPO_OWNER = "youngchingjui"
+const CLONE_URL = "https://github.com/youngchingjui/issue-to-pr.git"
 
 const agent = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -399,6 +404,8 @@ Please output in JSON mode. You may call any or all agents, in sequence or in pa
 
     if (agentType === "librarian") {
       const librarianAgent = new LibrarianAgent(this.trace)
+      await librarianAgent.setupLocalRepo()
+      librarianAgent.addUserMessage(requestDetails)
       const response = await librarianAgent.generateResponse()
       console.debug("[DEBUG] Librarian response: ", response)
       return {
@@ -428,32 +435,16 @@ Please output in JSON mode. You may call any or all agents, in sequence or in pa
 
 export class LibrarianAgent {
   private trace: LangfuseTraceClient
-  private readonly instruction: string
-  private readonly messages: ChatCompletionMessageParam[]
+  private instruction: string
+  private readonly messages: ChatCompletionMessageParam[] = []
   private readonly tools: ChatCompletionTool[]
   private repo: string
   private branch: string
+  private tree: string[]
 
   constructor(trace: LangfuseTraceClient) {
     this.repo = "issue-to-pr"
     this.branch = "main"
-
-    const cwd =
-      "/var/folders/qf/h4j12hb92wjg98vs8qv_zqnm0000gn/T/git-repos/youngchingjui/issue-to-pr"
-    const tree = createDirectoryTree(cwd || process.cwd())
-
-    this.instruction = `
-      You are a librarian agent. You have access to the codebase and can retrieve information about the codebase.
-      You can request the content of any file using the get_file_content tool.
-      This is the directory structure of the codebase: ${tree}
-      When you request for content data, you're actually requesting from Github, which should have the same codebase structure. Just make sure to use the correct relative path.
-      Only request for files that exist. If you request for a file that doesn't exist, you'll get an error. Try to identify the correct file to request for.
-    `
-    this.messages = []
-    this.messages.push({
-      role: "system",
-      content: this.instruction,
-    })
 
     if (trace) {
       this.trace = trace
@@ -484,6 +475,31 @@ export class LibrarianAgent {
     ]
   }
 
+  async setupLocalRepo() {
+    // This ensures LibrarianAgent has access to the repo hosted locally
+    // Run this before generating responses
+    const repoPath = await getRepoDir(REPO_OWNER, this.repo)
+
+    // Check if .git and codebase exist in tempDir
+    // If not, clone the repo
+    // If so, checkout the branch
+    console.debug(`[DEBUG] Checking if .git and codebase exist in ${repoPath}`)
+    const gitExists = await checkIfGitExists(repoPath)
+    if (!gitExists) {
+      // Clone the repo
+      console.debug(`[DEBUG] Cloning repo: ${CLONE_URL}`)
+      await cloneRepo(CLONE_URL, repoPath)
+    }
+
+    console.debug(`[DEBUG] Checking out branch ${this.branch}`)
+    // Checkout the branch
+    await checkoutBranch(this.branch, repoPath)
+
+    const cwd = repoPath
+    this.tree = await createDirectoryTree(cwd || process.cwd())
+    this.updateInstructions()
+  }
+
   private async handleGetFileContent(path: string): Promise<string> {
     const span = this.trace.span({ name: "Get file content" })
     try {
@@ -508,6 +524,34 @@ export class LibrarianAgent {
     }
   }
 
+  addUserMessage(message: string) {
+    this.messages.push({
+      role: "user",
+      content: message,
+    })
+  }
+
+  private updateInstructions() {
+    this.instruction = `
+    You are a librarian agent. You have access to the codebase and can retrieve information about the codebase.
+    You can request the content of any file using the get_file_content tool.
+    This is the directory structure of the codebase: ${this.tree && this.tree.join("\n")}
+    When you request for content data, you're actually requesting from Github, which should have the same codebase structure. Just make sure to use the correct relative path.
+    Only request for files that exist. If you request for a file that doesn't exist, you'll get an error. Try to identify the correct file to request for.
+  `
+
+    // Remove any existing system messages, and add this updated one
+    const index = this.messages.findIndex((msg) => msg.role === "system")
+    if (index !== -1) {
+      this.messages.splice(index, 1)
+    }
+    // Add the new system message
+    this.messages.unshift({
+      role: "system",
+      content: this.instruction,
+    })
+  }
+
   async generateResponse() {
     if (this.messages.length === 0) {
       throw new Error("No messages to process")
@@ -525,26 +569,31 @@ export class LibrarianAgent {
         tools: this.tools,
       })
 
-      if (response.choices[0].message.tool_calls) {
-        const toolCall = response.choices[0].message.tool_calls[0]
+      if (!response.choices[0].message.tool_calls) {
+        // Return the final message if there are no more tool calls
+        return response.choices[0].message
+      }
+
+      // Add the tool call message to messages
+      this.messages.push(response.choices[0].message)
+
+      // Run all tool calls, and add their results to messages
+      for (const toolCall of response.choices[0].message.tool_calls) {
         if (toolCall.function.name === "get_file_content") {
           const args = JSON.parse(toolCall.function.arguments)
           const content = await this.handleGetFileContent(args.path)
 
-          // Add the tool call and its result to messages
-          this.messages.push(response.choices[0].message)
+          // Add the tool call response to messages, with corresponding tool_call_id
           this.messages.push({
             role: "tool",
             content,
             tool_call_id: toolCall.id,
           })
-
-          // Generate another response with the file content
-          return this.generateResponse()
         }
       }
 
-      return response.choices[0].message
+      // Run another response with the tool call responses
+      return this.generateResponse()
     } finally {
       span.end()
     }
