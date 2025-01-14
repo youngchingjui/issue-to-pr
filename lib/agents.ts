@@ -29,6 +29,9 @@ import {
 import { checkIfGitExists, checkoutBranch, cloneRepo } from "./git"
 import { Issue } from "./github-old"
 import { langfuse } from "./langfuse"
+import { callCoderTool } from "./tools"
+import { callLibrarianTool } from "./tools"
+import { callResearcherTool } from "./tools"
 
 // TODO: Make this dynamic
 const REPO_OWNER = "youngchingjui"
@@ -210,68 +213,13 @@ export class CoordinatorAgent {
   private readonly trace: LangfuseTraceClient
   public messages: ChatCompletionMessageParam[]
   private readonly tools: ChatCompletionTool[] = [
-    {
-      type: "function",
-      function: {
-        name: "call_researcher",
-        description:
-          "Call the researcher agent to find information on the internet. This agent has access to Google searches and can help you find information on the internet.",
-        parameters: {
-          type: "object",
-          required: ["query"],
-          properties: {
-            query: {
-              type: "string",
-              description: "What information to search for",
-            },
-          },
-        },
-      },
-    },
-    {
-      type: "function",
-      function: {
-        name: "call_librarian",
-        description:
-          "Call the librarian agent to get information about the codebase",
-        parameters: {
-          type: "object",
-          required: ["request"],
-          properties: {
-            request: {
-              type: "string",
-              description: "What information to find in the codebase",
-            },
-          },
-        },
-      },
-    },
-    {
-      type: "function",
-      function: {
-        name: "call_coder",
-        description: "Call the coder agent to make specific changes to a file",
-        parameters: {
-          type: "object",
-          required: ["file", "instructions"],
-          properties: {
-            file: {
-              type: "string",
-              description: "Path to the file that needs to be modified",
-            },
-            instructions: {
-              type: "string",
-              description:
-                "Specific instructions for what changes to make to the file",
-            },
-          },
-        },
-      },
-    },
+    callResearcherTool,
+    callLibrarianTool,
+    callCoderTool,
   ]
-  public outputSchema: z.ZodSchema = z
+  public outputSchema = z
     .object({
-      agent_type: z.enum(["researcher", "librarian", "software_engineer"]),
+      agent_type: z.enum(["researcher", "librarian", "coder"]),
       request_details: z.string(),
     })
     .strict()
@@ -424,9 +372,7 @@ Please output in JSON mode. You may call any or all agents, in sequence or in pa
   }
 
   // Helper method to simulate agent responses
-  private async simulateAgentResponse(
-    toolCall: ChatCompletionMessageToolCall
-  ): Promise<z.infer<typeof this.outputSchema>> {
+  private async simulateAgentResponse(toolCall: ChatCompletionMessageToolCall) {
     // In a real implementation, this would call the actual agent
     // For now, we'll just echo back the request with a simulated response
 
