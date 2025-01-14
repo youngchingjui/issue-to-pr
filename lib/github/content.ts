@@ -91,3 +91,30 @@ export async function getFileSha({
 
   throw new Error("Could not get file SHA")
 }
+
+export async function getReposSortedByRecentCommit() {
+  const octokit = await getOctokit()
+  const user = await octokit.users.getAuthenticated()
+
+  // Get all repositories for the authenticated user
+  const repos = await octokit.repos.listForAuthenticatedUser({ per_page: 100 })
+
+  // Fetch each repository's latest commit
+  const reposWithCommits = await Promise.all(repos.data.map(async (repo) => {
+    const commits = await octokit.repos.listCommits({
+      owner: user.data.login,
+      repo: repo.name,
+      per_page: 1
+    })
+    return {
+      repo,
+      lastCommitDate: new Date(commits.data[0].commit.committer.date)
+    }
+  }))
+
+  // Sort repositories by the date of the last commit
+  reposWithCommits.sort((a, b) => b.lastCommitDate - a.lastCommitDate)
+
+  // Return sorted repositories
+  return reposWithCommits.map(repoWithCommit => repoWithCommit.repo)
+}
