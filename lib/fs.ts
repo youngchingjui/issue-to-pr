@@ -72,3 +72,20 @@ export async function getFileContent(baseDir: string, filePath: string) {
   const file = await fs.readFile(path.join(baseDir, filePath))
   return file.toString()
 }
+
+// ... existing code ...
+
+export async function writeFile(
+  baseDir: string,
+  filePath: string,
+  content: string
+) {
+  const fullPath = path.join(baseDir, filePath)
+
+  // Ensure the directory exists
+  const dirPath = path.dirname(fullPath)
+  await fs.mkdir(dirPath, { recursive: true })
+
+  // Write the file
+  await fs.writeFile(fullPath, content, "utf-8")
+}

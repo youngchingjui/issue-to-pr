@@ -13,13 +13,19 @@ import OpenAI from "openai"
 import { zodResponseFormat } from "openai/helpers/zod"
 import {
   ChatCompletionMessageParam,
+  ChatCompletionMessageToolCall,
   ChatCompletionTool,
 } from "openai/resources"
 import { z } from "zod"
 
 import { getFileContent as getGithubFileContent } from "@/lib/github/content"
 
-import { createDirectoryTree, getFileContent, getRepoDir } from "./fs"
+import {
+  createDirectoryTree,
+  getFileContent,
+  getRepoDir,
+  writeFile,
+} from "./fs"
 import { checkIfGitExists, checkoutBranch, cloneRepo } from "./git"
 import { Issue } from "./github-old"
 import { langfuse } from "./langfuse"
@@ -201,9 +207,68 @@ export async function generateNewContent(
 export class CoordinatorAgent {
   private readonly agent: OpenAI
   private readonly instructionPrompt: string
-  private readonly tools: ChatCompletionTool[]
   private readonly trace: LangfuseTraceClient
   public messages: ChatCompletionMessageParam[]
+  private readonly tools: ChatCompletionTool[] = [
+    {
+      type: "function",
+      function: {
+        name: "call_researcher",
+        description:
+          "Call the researcher agent to find information on the internet. This agent has access to Google searches and can help you find information on the internet.",
+        parameters: {
+          type: "object",
+          required: ["query"],
+          properties: {
+            query: {
+              type: "string",
+              description: "What information to search for",
+            },
+          },
+        },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "call_librarian",
+        description:
+          "Call the librarian agent to get information about the codebase",
+        parameters: {
+          type: "object",
+          required: ["request"],
+          properties: {
+            request: {
+              type: "string",
+              description: "What information to find in the codebase",
+            },
+          },
+        },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "call_coder",
+        description: "Call the coder agent to make specific changes to a file",
+        parameters: {
+          type: "object",
+          required: ["file", "instructions"],
+          properties: {
+            file: {
+              type: "string",
+              description: "Path to the file that needs to be modified",
+            },
+            instructions: {
+              type: "string",
+              description:
+                "Specific instructions for what changes to make to the file",
+            },
+          },
+        },
+      },
+    },
+  ]
   public outputSchema: z.ZodSchema = z
     .object({
       agent_type: z.enum(["researcher", "librarian", "software_engineer"]),
@@ -232,7 +297,7 @@ These are the agents you can call on to help you. After you call each agent, the
 
 - Librarian: This agent has access to the codebase. They can retrieve information about the codebase for you, including the contents of specific files, as well as the overall codebase structure.
 
-- Coder: This agent can write new code or update existing code for you, based on your instructions.
+- Coder: This agent can write new code or update existing code for you, based on your instructions. The agent can only make edits to a single file at a time. They won't have access to knowledge about the wider scope of the codebase, or your greater goals. So you'll need to give very specific instructions, such as "remove the line that instantiates the counter object" or "move the counter object to within the function that's called when the button is clicked". You'll most likely also need to read the existing file before you can give such specific instructions.
 
 ## Conclusion
 Please output in JSON mode. You may call any or all agents, in sequence or in parallel. Again, your goal is to resolve the Github Issue and submit a Pull Request.
@@ -241,36 +306,6 @@ Please output in JSON mode. You may call any or all agents, in sequence or in pa
       role: "system",
       content: this.instructionPrompt,
     })
-
-    this.tools = [
-      {
-        type: "function",
-        function: {
-          name: "call_agent",
-          description:
-            "The agent will call other agents based on what it needs.",
-          parameters: {
-            type: "object",
-            required: ["agent_type", "request_details"],
-            properties: {
-              agent_type: {
-                type: "string",
-                description:
-                  "Type of agent to call, can be 'researcher', 'librarian', or 'coder'",
-                enum: ["researcher", "librarian", "coder"],
-              },
-              request_details: {
-                type: "string",
-                description:
-                  "Details about the request being made to the agent",
-              },
-            },
-            additionalProperties: false,
-          },
-          strict: true,
-        },
-      },
-    ]
 
     if (this.issue) {
       this.messages.push({
@@ -307,14 +342,8 @@ Please output in JSON mode. You may call any or all agents, in sequence or in pa
     }).chat.completions.create({
       model: "gpt-4o",
       messages: this.messages,
-      response_format: zodResponseFormat(this.outputSchema, "output"),
+      // response_format: zodResponseFormat(this.outputSchema, "output"),
       tools: this.tools,
-      tool_choice: {
-        type: "function",
-        function: {
-          name: "call_agent",
-        },
-      },
     })
 
     return response.choices[0].message
@@ -344,39 +373,39 @@ Please output in JSON mode. You may call any or all agents, in sequence or in pa
 
         console.debug("[DEBUG] Response: ", response)
 
+        // Add the agent's decision to the message history
+        this.messages.push(response)
+
+        // If no more tool calls, then we're done
         if (!response.tool_calls?.[0]) {
           console.log("No further actions needed. Workflow complete.")
           isComplete = true
           break
         }
 
-        // Parse the agent's response
-        const toolCall = response.tool_calls[0]
-        const toolCallId = toolCall.id
-        const functionArgs = JSON.parse(toolCall.function.arguments)
+        // Run all the tool calls
+        for (const toolCall of response.tool_calls) {
+          const toolCallId = toolCall.id
 
-        // Add the agent's decision to the message history
-        this.messages.push(response)
+          // Log the current step
+          console.log(
+            `Iteration ${iterations}: Calling ${toolCall.function.name} agent`
+          )
+          console.log(`Request details: ${toolCall.function.arguments}`)
 
-        // Log the current step
-        console.log(
-          `Iteration ${iterations}: Calling ${functionArgs.agent_type} agent`
-        )
-        console.log(`Request details: ${functionArgs.request_details}`)
+          // Here you would implement the actual agent calls
+          // For now, we'll simulate the agent responses
+          const agentResponse = await this.simulateAgentResponse(toolCall)
 
-        // Here you would implement the actual agent calls
-        // For now, we'll simulate the agent responses
-        const agentResponse = await this.simulateAgentResponse(
-          functionArgs.agent_type,
-          functionArgs.request_details
-        )
+          // Add the agent's response to the conversation
+          this.messages.push({
+            role: "tool",
+            content: JSON.stringify(agentResponse),
+            tool_call_id: toolCallId,
+          })
+        }
 
-        // Add the agent's response to the conversation
-        this.messages.push({
-          role: "tool",
-          content: JSON.stringify(agentResponse),
-          tool_call_id: toolCallId,
-        })
+        // After tool calls, loop back on while loop to generate another response
       }
 
       if (iterations >= maxIterations) {
@@ -396,39 +425,51 @@ Please output in JSON mode. You may call any or all agents, in sequence or in pa
 
   // Helper method to simulate agent responses
   private async simulateAgentResponse(
-    agentType: string,
-    requestDetails: string
+    toolCall: ChatCompletionMessageToolCall
   ): Promise<z.infer<typeof this.outputSchema>> {
     // In a real implementation, this would call the actual agent
     // For now, we'll just echo back the request with a simulated response
 
-    if (agentType === "librarian") {
-      const librarianAgent = new LibrarianAgent(this.trace)
-      await librarianAgent.setupLocalRepo()
-      librarianAgent.addUserMessage(requestDetails)
-      const response = await librarianAgent.generateResponse()
-      console.debug("[DEBUG] Librarian response: ", response)
-      return {
-        agent_type: "librarian",
-        response_details: JSON.stringify(response),
-      }
-    } else if (agentType === "researcher") {
-      // TODO: Implement researcher agent
-      return {
-        agent_type: "researcher",
-        response_details: `Researcher agent not implemented yet. Please find another agent to call.`,
-      }
-    } else if (agentType === "software_engineer") {
-      // TODO: Implement software engineer agent
-      return {
-        agent_type: "software_engineer",
-        response_details: `Software engineer agent not implemented yet. Please find another agent to call.`,
-      }
-    }
+    const args = JSON.parse(toolCall.function.arguments)
 
-    return {
-      agent_type: agentType as "researcher" | "librarian" | "software_engineer",
-      request_details: `Completed: ${requestDetails}`,
+    switch (toolCall.function.name) {
+      case "call_librarian":
+        const librarianAgent = new LibrarianAgent(this.trace)
+        await librarianAgent.setupLocalRepo()
+        librarianAgent.addUserMessage(args.request)
+        const libResponse = await librarianAgent.generateResponse()
+        console.debug("[DEBUG] Librarian response: ", libResponse)
+        return {
+          agent_type: "librarian",
+          response_details: JSON.stringify(libResponse),
+        }
+
+      case "call_researcher":
+        // TODO: Implement researcher agent
+        return {
+          agent_type: "researcher",
+          response_details: `Researcher agent not implemented yet. Please find another agent to call.`,
+        }
+
+      case "call_coder":
+        // Get the repo directory
+        const repoDir = await getRepoDir(REPO_OWNER, "issue-to-pr")
+
+        // Create and use the coder agent
+        const coderAgent = new CoderAgent(this.trace, repoDir)
+        const response = await coderAgent.processEditRequest(
+          args.instructions,
+          args.file
+        )
+
+        console.debug("[DEBUG] Coder response: ", response)
+        return {
+          agent_type: "coder",
+          request_details: response,
+        }
+
+      default:
+        throw new Error(`Unknown tool: ${toolCall.function.name}`)
     }
   }
 }
@@ -594,6 +635,156 @@ export class LibrarianAgent {
 
       // Run another response with the tool call responses
       return this.generateResponse()
+    } finally {
+      span.end()
+    }
+  }
+}
+
+export class CoderAgent {
+  private trace: LangfuseTraceClient
+  private messages: ChatCompletionMessageParam[] = []
+  private baseDir: string
+  private readonly tools: ChatCompletionTool[] = [
+    {
+      type: "function",
+      function: {
+        name: "write_file",
+        description: "Write content to a file in the repository",
+        parameters: {
+          type: "object",
+          required: ["path", "content"],
+          properties: {
+            path: {
+              type: "string",
+              description: "Relative path where the file should be written",
+            },
+            content: {
+              type: "string",
+              description: "Content to write to the file",
+            },
+          },
+        },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "read_file",
+        description: "Read content from an existing file",
+        parameters: {
+          type: "object",
+          required: ["path"],
+          properties: {
+            path: {
+              type: "string",
+              description: "Relative path to the file to read",
+            },
+          },
+        },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "get_directory_structure",
+        description: "Get the repository directory structure",
+        parameters: {
+          type: "object",
+          properties: {},
+        },
+      },
+    },
+  ]
+  private outputSchema = z
+    .object({
+      summary: z.string(),
+      file_path: z.string(),
+      type: z.enum(["update", "create"]),
+      additional_context: z.string().optional(),
+    })
+    .strict()
+
+  constructor(trace: LangfuseTraceClient, baseDir: string) {
+    this.trace = trace
+    this.baseDir = baseDir
+  }
+
+  async processEditRequest(instructions: string, filePath?: string) {
+    // Add system message explaining the agent's role
+    this.messages = [
+      {
+        role: "system",
+        content: `
+You are a coding agent responsible for implementing code changes. You are tasked with updating a file according to incoming instructions.
+
+Always write clean, well-documented code that matches existing codebase style.
+Respond with a summary of changes made.`,
+      },
+    ]
+
+    // Add the user's request
+    this.messages.push({
+      role: "user",
+      content: `Instructions: ${instructions}${filePath ? `\nFile to modify: ${filePath}` : ""}`,
+    })
+
+    return this.generateResponse()
+  }
+
+  private async handleToolCall(
+    toolCall: ChatCompletionMessageToolCall
+  ): Promise<string> {
+    const args = JSON.parse(toolCall.function.arguments)
+
+    switch (toolCall.function.name) {
+      case "write_file":
+        await writeFile(this.baseDir, args.path, args.content)
+        return `File written successfully to ${args.path}`
+
+      case "read_file":
+        return await getFileContent(this.baseDir, args.path)
+
+      case "get_directory_structure":
+        return JSON.stringify(await createDirectoryTree(this.baseDir))
+
+      default:
+        throw new Error(`Unknown tool: ${toolCall.function.name}`)
+    }
+  }
+
+  async generateResponse() {
+    const span = this.trace.span({ name: "Generate code changes" })
+
+    try {
+      const response = await observeOpenAI(agent, {
+        parent: span,
+        generationName: "Code implementation",
+      }).chat.completions.create({
+        model: "gpt-4o",
+        messages: this.messages,
+        tools: this.tools,
+      })
+
+      // Handle any tool calls
+      if (response.choices[0].message.tool_calls) {
+        this.messages.push(response.choices[0].message)
+
+        for (const toolCall of response.choices[0].message.tool_calls) {
+          const result = await this.handleToolCall(toolCall)
+          this.messages.push({
+            role: "tool",
+            content: result,
+            tool_call_id: toolCall.id,
+          })
+        }
+
+        // Continue the conversation
+        return this.generateResponse()
+      }
+
+      // No more tool calls, return the final response
+      return response.choices[0].message.content
     } finally {
       span.end()
     }
