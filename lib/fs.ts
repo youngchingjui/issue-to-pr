@@ -2,6 +2,7 @@
 import { promises as fs } from "fs"
 import os from "os"
 import * as path from "path"
+import { existsSync } from "fs";
 
 export async function createDirectoryTree(
   dir: string,
@@ -59,4 +60,9 @@ export async function getRepoDir(repoOwner: string, repoName: string) {
 export async function getFileContent(baseDir: string, filePath: string) {
   const file = await fs.readFile(path.join(baseDir, filePath))
   return file.toString()
+}
+
+export function fileExists(filePath: string): boolean {
+  // Check if a file exists
+  return existsSync(filePath);
 }
