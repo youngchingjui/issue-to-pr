@@ -16,22 +16,23 @@ import {
   ChatCompletionMessageToolCall,
   ChatCompletionTool,
 } from "openai/resources"
+import path from "path"
 import { z } from "zod"
-
-import { getFileContent as getGithubFileContent } from "@/lib/github/content"
 
 import {
   createDirectoryTree,
   getFileContent,
-  getRepoDir,
+  getLocalRepoDir,
   writeFile,
-} from "./fs"
-import { checkIfGitExists, checkoutBranch, cloneRepo } from "./git"
-import { Issue } from "./github-old"
-import { langfuse } from "./langfuse"
-import { callCoderTool } from "./tools"
-import { callLibrarianTool } from "./tools"
-import { callResearcherTool } from "./tools"
+} from "@/lib/fs"
+import { checkIfGitExists, checkoutBranch, cloneRepo } from "@/lib/git"
+import { getFileContent as getGithubFileContent } from "@/lib/github/content"
+import { langfuse } from "@/lib/langfuse"
+import { callCoderTool } from "@/lib/tools"
+import { callLibrarianTool } from "@/lib/tools"
+import { callResearcherTool } from "@/lib/tools"
+import UploadAndPRTool from "@/lib/tools/UploadAndPR"
+import { Issue } from "@/lib/types"
 
 // TODO: Make this dynamic
 const REPO_OWNER = "youngchingjui"
@@ -80,7 +81,7 @@ export async function generateCodeEditPlan(
   // TODO: Automate this portion
   const filesToAdd = ["overview.md", "app/api/resolve/route.ts", "auth.ts"]
   for (const file of filesToAdd) {
-    fileContents[file] = await getFileContent(tempDir, file)
+    fileContents[file] = await getFileContent(path.join(tempDir, file))
   }
 
   const span = trace.span({ name: "Plan code edits" })
@@ -212,11 +213,10 @@ export class CoordinatorAgent {
   private readonly instructionPrompt: string
   private readonly trace: LangfuseTraceClient
   public messages: ChatCompletionMessageParam[]
-  private readonly tools: ChatCompletionTool[] = [
-    callResearcherTool,
-    callLibrarianTool,
-    callCoderTool,
-  ]
+  private readonly tools: ChatCompletionTool[]
+  private uploadAndPrTool: UploadAndPRTool
+  private readonly baseDir: string
+  private readonly repoName: string
   public outputSchema = z
     .object({
       agent_type: z.enum(["researcher", "librarian", "coder"]),
@@ -226,10 +226,17 @@ export class CoordinatorAgent {
 
   private issue: Issue
 
-  constructor(issue: Issue = null, trace: LangfuseTraceClient = null) {
+  constructor(
+    issue: Issue = null,
+    trace: LangfuseTraceClient = null,
+    baseDir: string,
+    repoName: string
+  ) {
     this.agent = agent
     this.messages = []
     this.issue = issue
+    this.baseDir = baseDir
+    this.repoName = repoName
     this.instructionPrompt = `
 ## Goal 
 Resolve the Github Issue and create a Pull Request
@@ -246,6 +253,8 @@ These are the agents you can call on to help you. After you call each agent, the
 - Librarian: This agent has access to the codebase. They can retrieve information about the codebase for you, including the contents of specific files, as well as the overall codebase structure.
 
 - Coder: This agent can write new code or update existing code for you, based on your instructions. The agent can only make edits to a single file at a time. They won't have access to knowledge about the wider scope of the codebase, or your greater goals. So you'll need to give very specific instructions, such as "remove the line that instantiates the counter object" or "move the counter object to within the function that's called when the button is clicked". You'll most likely also need to read the existing file before you can give such specific instructions.
+
+- Upload and PR: This function can upload the updated files to Github, and create a pull request. This should be the last tool you call. After this tool, you should provide your final output.
 
 ## Conclusion
 Please output in JSON mode. You may call any or all agents, in sequence or in parallel. Again, your goal is to resolve the Github Issue and submit a Pull Request.
@@ -273,6 +282,17 @@ Please output in JSON mode. You may call any or all agents, in sequence or in pa
         name: "CoordinatorAgent",
       })
     }
+
+    // Initialize tools with context
+    this.uploadAndPrTool = new UploadAndPRTool(baseDir, repoName)
+
+    // Initialize other tools
+    this.tools = [
+      callResearcherTool,
+      callLibrarianTool,
+      callCoderTool,
+      this.uploadAndPrTool.tool,
+    ]
   }
 
   async generateResponse() {
@@ -290,7 +310,6 @@ Please output in JSON mode. You may call any or all agents, in sequence or in pa
     }).chat.completions.create({
       model: "gpt-4o",
       messages: this.messages,
-      // response_format: zodResponseFormat(this.outputSchema, "output"),
       tools: this.tools,
     })
 
@@ -398,11 +417,8 @@ Please output in JSON mode. You may call any or all agents, in sequence or in pa
         }
 
       case "call_coder":
-        // Get the repo directory
-        const repoDir = await getRepoDir(REPO_OWNER, "issue-to-pr")
-
         // Create and use the coder agent
-        const coderAgent = new CoderAgent(this.trace, repoDir)
+        const coderAgent = new CoderAgent(this.trace, this.baseDir)
         const response = await coderAgent.processEditRequest(
           args.instructions,
           args.file
@@ -412,6 +428,17 @@ Please output in JSON mode. You may call any or all agents, in sequence or in pa
         return {
           agent_type: "coder",
           request_details: response,
+        }
+
+      case "upload_and_create_PR":
+        // Make sure the args fit
+        const parsedArgs = this.uploadAndPrTool.parameters.parse(args)
+        const uploadAndPRResponse =
+          await this.uploadAndPrTool.handler(parsedArgs)
+
+        return {
+          agent_type: "upload_and_create_PR",
+          request_details: uploadAndPRResponse,
         }
 
       default:
@@ -465,7 +492,7 @@ export class LibrarianAgent {
   async setupLocalRepo() {
     // This ensures LibrarianAgent has access to the repo hosted locally
     // Run this before generating responses
-    const repoPath = await getRepoDir(REPO_OWNER, this.repo)
+    const repoPath = await getLocalRepoDir(REPO_OWNER, this.repo)
 
     // Check if .git and codebase exist in tempDir
     // If not, clone the repo
@@ -689,7 +716,7 @@ Respond with a summary of changes made.`,
         return `File written successfully to ${args.path}`
 
       case "read_file":
-        return await getFileContent(this.baseDir, args.path)
+        return await getFileContent(path.join(this.baseDir, args.path))
 
       case "get_directory_structure":
         return JSON.stringify(await createDirectoryTree(this.baseDir))

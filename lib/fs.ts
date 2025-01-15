@@ -41,7 +41,7 @@ export async function createDirectoryTree(
   return output
 }
 
-export async function getRepoDir(repoOwner: string, repoName: string) {
+export async function getLocalRepoDir(repoOwner: string, repoName: string) {
   // Returns the temp directory path for the locally saved repo
   // Does not determine if the repo exists already
   // If temp dir does not exist, it will be created
@@ -68,12 +68,15 @@ export async function getRepoDir(repoOwner: string, repoName: string) {
   return dirPath
 }
 
-export async function getFileContent(baseDir: string, filePath: string) {
-  const file = await fs.readFile(path.join(baseDir, filePath))
-  return file.toString()
+export async function getFileContent(filePath: string) {
+  try {
+    const file = await fs.readFile(filePath)
+    return file.toString()
+  } catch (error) {
+    // Return error if path is directory or file does not exist
+    throw new Error(`File not found: ${error}`)
+  }
 }
-
-// ... existing code ...
 
 export async function writeFile(
   baseDir: string,

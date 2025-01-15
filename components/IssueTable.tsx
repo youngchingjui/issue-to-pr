@@ -1,5 +1,5 @@
-import { getRepoFromString, getRepositoryIssues } from "../lib/github-old"
-import { IssueActionsDropdown } from "./IssueActionsDropdown"
+import { IssueActionsDropdown } from "@/components/IssueActionsDropdown"
+import { getRepoFromString, getRepositoryIssues } from "@/lib/github-old"
 
 interface Props {
   username: string
