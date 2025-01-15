@@ -1,5 +1,6 @@
 import { IssueActionsDropdown } from "@/components/IssueActionsDropdown"
-import { getRepoFromString, getRepositoryIssues } from "@/lib/github-old"
+import { getRepoFromString } from "@/lib/github/content"
+import { getRepositoryIssues } from "@/lib/github-old"
 
 interface Props {
   username: string
@@ -9,7 +10,7 @@ interface Props {
 export default async function IssueTable({ username, repoName }: Props) {
   try {
     const issues = await getRepositoryIssues(username, repoName)
-    const repo = await getRepoFromString(username, repoName)
+    const repo = await getRepoFromString(repoName)
 
     if (issues.length === 0) {
       return <p className="text-center py-4">No open issues found.</p>

@@ -4,16 +4,12 @@ import { z } from "zod"
 
 import { getFileContent } from "@/lib/fs"
 import { checkBranchExists, updateFileContent } from "@/lib/github/content"
+import { createBranch } from "@/lib/github/git"
 import {
   createPullRequest,
   getPullRequestOnBranch,
 } from "@/lib/github/pullRequests"
-import { Tool } from "@/lib/types"
-
-import { createBranch } from "../github/git"
-
-// TODO: Automate this part
-const REPO_NAME = "issue-to-pr"
+import { GitHubRepository, Tool } from "@/lib/types"
 
 const uploadAndPRParameters = z.object({
   files: z
@@ -37,11 +33,13 @@ class UploadAndPRTool implements Tool<typeof uploadAndPRParameters> {
     name: "upload_and_create_PR",
     parameters: uploadAndPRParameters,
   })
+  repository: GitHubRepository
+  baseDir: string
 
-  constructor(
-    private baseDir: string,
-    private repoName: string
-  ) {}
+  constructor(repository: GitHubRepository, baseDir: string) {
+    this.repository = repository
+    this.baseDir = baseDir
+  }
 
   async handler(params: z.infer<typeof uploadAndPRParameters>) {
     const { files, commitMessage, branch, pullRequest } = params
@@ -57,16 +55,19 @@ class UploadAndPRTool implements Tool<typeof uploadAndPRParameters> {
     }
 
     // First, create branch if it doesn't exist
-    const branchExists = await checkBranchExists(REPO_NAME, branch)
+    const branchExists = await checkBranchExists(
+      this.repository.full_name,
+      branch
+    )
     if (!branchExists) {
-      await createBranch(REPO_NAME, branch)
+      await createBranch(this.repository.name, branch)
     }
 
     // Upload files to Github
     for (const file of files) {
       console.debug(`[DEBUG] Updating file on Github: ${file}`)
       await updateFileContent({
-        repo: REPO_NAME,
+        repo: this.repository.name,
         path: file,
         content: fileContents.get(file),
         commitMessage,
@@ -75,7 +76,10 @@ class UploadAndPRTool implements Tool<typeof uploadAndPRParameters> {
     }
 
     // Check if PR on branch exists before creating new one
-    const existingPR = await getPullRequestOnBranch({ repo: REPO_NAME, branch })
+    const existingPR = await getPullRequestOnBranch({
+      repo: this.repository.name,
+      branch,
+    })
     if (existingPR) {
       // There exists a PR already
       return new Error(
@@ -87,7 +91,7 @@ class UploadAndPRTool implements Tool<typeof uploadAndPRParameters> {
     console.debug("[DEBUG] Creating pull request")
     try {
       await createPullRequest({
-        repo: REPO_NAME,
+        repo: this.repository.name,
         branch,
         title: pullRequest.title,
         body: pullRequest.body,

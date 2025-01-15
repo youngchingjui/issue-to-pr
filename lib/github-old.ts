@@ -7,7 +7,7 @@
 import { Octokit } from "@octokit/rest"
 
 import { auth } from "@/auth"
-import { GitHubRepository, Issue } from "@/lib/types"
+import { Issue } from "@/lib/types"
 
 async function getOctokit() {
   const session = await auth()
@@ -55,19 +55,6 @@ export async function getRepositoryIssues(
       "Failed to fetch repository issues. Please check your GitHub credentials and repository settings."
     )
   }
-}
-
-export async function getRepoFromString(
-  owner: string,
-  repo: string
-): Promise<GitHubRepository> {
-  const octokit = await getOctokit()
-  const { data: repoData } = await octokit.rest.repos.get({
-    owner,
-    repo,
-  })
-
-  return repoData
 }
 
 export async function getAssociatedBranch() {
