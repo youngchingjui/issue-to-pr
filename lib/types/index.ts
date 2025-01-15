@@ -7,7 +7,7 @@ export type GitHubRepository = components["schemas"]["full-repository"]
 export type Tool<T extends z.ZodType> = {
   tool: ReturnType<typeof zodFunction>
   parameters: T
-  handler: (params: z.infer<T>) => Promise<any>
+  handler: (params: z.infer<T>) => unknown
 }
 
 export interface Issue {
