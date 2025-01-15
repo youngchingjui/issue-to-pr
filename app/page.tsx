@@ -5,7 +5,7 @@ import RepositoryList from "@/components/RepositoryList"
 
 async function getRepositories(accessToken: string, page = 1, perPage = 30) {
   const res = await fetch(
-    `https://api.github.com/user/repos?page=${page}&per_page=${perPage}`,
+    `https://api.github.com/user/repos?page=${page}&per_page=${perPage}&sort=updated`,
     {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -19,6 +19,10 @@ async function getRepositories(accessToken: string, page = 1, perPage = 30) {
   )
   const maxPage = lastPageMatch ? Number(lastPageMatch[1]) : page
   const repositories = await res.json()
+  
+  // Remove client-side sorting as the 'updated' sort is now handled by the API.
+  // repositories.sort((a, b) => new Date(b.pushed_at).getTime() - new Date(a.pushed_at).getTime())
+
   return { repositories, currentPage: page, maxPage }
 }
 
