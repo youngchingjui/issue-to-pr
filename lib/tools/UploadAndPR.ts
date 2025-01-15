@@ -8,7 +8,7 @@ import {
   createPullRequest,
   getPullRequestOnBranch,
 } from "@/lib/github/pullRequests"
-import { Tool } from "@/lib/types"
+import { GitHubRepository, Tool } from "@/lib/types"
 
 import { createBranch } from "../github/git"
 
@@ -37,11 +37,13 @@ class UploadAndPRTool implements Tool<typeof uploadAndPRParameters> {
     name: "upload_and_create_PR",
     parameters: uploadAndPRParameters,
   })
+  repository: GitHubRepository
+  baseDir: string
 
-  constructor(
-    private baseDir: string,
-    private repoName: string
-  ) {}
+  constructor(repository: GitHubRepository, baseDir: string) {
+    this.repository = repository
+    this.baseDir = baseDir
+  }
 
   async handler(params: z.infer<typeof uploadAndPRParameters>) {
     const { files, commitMessage, branch, pullRequest } = params

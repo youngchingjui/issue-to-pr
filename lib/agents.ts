@@ -34,9 +34,6 @@ import { callResearcherTool } from "@/lib/tools"
 import UploadAndPRTool from "@/lib/tools/UploadAndPR"
 import { GitHubRepository, Issue } from "@/lib/types"
 
-// TODO: Make this dynamic
-const CLONE_URL = "https://github.com/youngchingjui/issue-to-pr.git"
-
 const agent = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
@@ -286,7 +283,7 @@ Please output in JSON mode. You may call any or all agents, in sequence or in pa
     }
 
     // Initialize tools with context
-    this.uploadAndPrTool = new UploadAndPRTool(baseDir, repoName)
+    this.uploadAndPrTool = new UploadAndPRTool(repository, baseDir)
 
     // Initialize other tools
     this.tools = [
@@ -503,8 +500,8 @@ export class LibrarianAgent {
     const gitExists = await checkIfGitExists(repoPath)
     if (!gitExists) {
       // Clone the repo
-      console.debug(`[DEBUG] Cloning repo: ${CLONE_URL}`)
-      await cloneRepo(CLONE_URL, repoPath)
+      console.debug(`[DEBUG] Cloning repo: ${this.repository.clone_url}`)
+      await cloneRepo(this.repository.clone_url, repoPath)
     }
 
     console.debug(`[DEBUG] Checking out branch ${this.branch}`)
