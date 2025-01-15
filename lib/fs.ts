@@ -41,13 +41,15 @@ export async function createDirectoryTree(
   return output
 }
 
-export async function getLocalRepoDir(repoOwner: string, repoName: string) {
+export async function getLocalRepoDir(repo_full_name: string) {
+  // Args
+  // - repo_full_name: The full name of the repository, e.g. "youngchingjui/issue-to-pr"
+
   // Returns the temp directory path for the locally saved repo
   // Does not determine if the repo exists already
   // If temp dir does not exist, it will be created
 
-  // Requires the repo owner and name
-  const dirPath = path.join(os.tmpdir(), "git-repos", repoOwner, repoName)
+  const dirPath = path.join(os.tmpdir(), "git-repos", repo_full_name)
 
   try {
     // Create directory if it doesn't exist

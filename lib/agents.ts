@@ -494,10 +494,7 @@ export class LibrarianAgent {
   async setupLocalRepo() {
     // This ensures LibrarianAgent has access to the repo hosted locally
     // Run this before generating responses
-    const repoPath = await getLocalRepoDir(
-      this.repository.owner.login,
-      this.repository.name
-    )
+    const repoPath = await getLocalRepoDir(this.repository.full_name)
 
     // Check if .git and codebase exist in tempDir
     // If not, clone the repo

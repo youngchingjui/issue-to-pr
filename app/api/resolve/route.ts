@@ -14,7 +14,6 @@ type RequestBody = {
 export async function POST(request: NextRequest) {
   const { issueNumber, repo }: RequestBody = await request.json()
   const repoName = repo.name
-  const repoOwner = repo.owner.login
   const repoUrl = repo.url
   const cloneUrl = repo.clone_url
 
@@ -30,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get tempDir for repo
-    const tempDir = await getLocalRepoDir(repoOwner, repoName)
+    const tempDir = await getLocalRepoDir(repo.full_name)
 
     // Check if .git and codebase exist in tempDir
     // If not, clone the repo

@@ -10,13 +10,10 @@ import { Issue } from "@/lib/types"
 import { getRepoFromString } from "../github/content"
 import { langfuse } from "../langfuse"
 
-//
-const REPO_OWNER = "youngchingjui"
-
 export const resolveIssue = async (issue: Issue, repoName: string) => {
   // Get or create a local directory to work off of
-  const baseDir = await getLocalRepoDir(REPO_OWNER, repoName)
   const repository = await getRepoFromString(repoName)
+  const baseDir = await getLocalRepoDir(repository.full_name)
 
   // Start a trace for this workflow
   const trace = langfuse.trace({
