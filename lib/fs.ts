@@ -41,7 +41,7 @@ export async function createDirectoryTree(
   return output
 }
 
-export async function getRepoDir(repoOwner: string, repoName: string) {
+export async function getLocalRepoDir(repoOwner: string, repoName: string) {
   // Returns the temp directory path for the locally saved repo
   // Does not determine if the repo exists already
   // If temp dir does not exist, it will be created
@@ -49,14 +49,46 @@ export async function getRepoDir(repoOwner: string, repoName: string) {
   // Requires the repo owner and name
   const dirPath = path.join(os.tmpdir(), "git-repos", repoOwner, repoName)
 
-  // Create directory if it doesn't exist
-  console.debug(`[DEBUG] Getting temporary directory: ${dirPath}`)
-  await fs.mkdir(dirPath, { recursive: true })
+  try {
+    // Create directory if it doesn't exist
+    console.debug(`[DEBUG] Getting temporary directory: ${dirPath}`)
+    await fs.mkdir(dirPath, { recursive: true })
+  } catch (error) {
+    console.error(`[ERROR] Failed to create directory: ${error}`)
+    throw error
+  }
+
+  // Verify if the directory was created
+  const dirExists = await fs
+    .stat(dirPath)
+    .then(() => true)
+    .catch(() => false)
+  console.debug(`[DEBUG] Directory exists after creation attempt: ${dirExists}`)
 
   return dirPath
 }
 
-export async function getFileContent(baseDir: string, filePath: string) {
-  const file = await fs.readFile(path.join(baseDir, filePath))
-  return file.toString()
+export async function getFileContent(filePath: string) {
+  try {
+    const file = await fs.readFile(filePath)
+    return file.toString()
+  } catch (error) {
+    // Return error if path is directory or file does not exist
+    throw new Error(`File not found: ${error}`)
+  }
+}
+
+export async function writeFile(
+  baseDir: string,
+  filePath: string,
+  content: string
+) {
+  const fullPath = path.join(baseDir, filePath)
+
+  // Ensure the directory exists
+  const dirPath = path.dirname(fullPath)
+  await fs.mkdir(dirPath, { recursive: true })
+
+  // Write the file
+  await fs.writeFile(fullPath, content, "utf-8")
 }

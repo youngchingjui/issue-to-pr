@@ -1,7 +1,8 @@
 import getOctokit from "@/lib/github"
+import { GitHubError } from "@/lib/github-old"
 
-import { GitHubError } from "../github-old"
-
+// TODO: Since all octokit functions here are using octokit.repos, then
+// This file should be renamed to `repos.tsx` to reflect the resource being called
 export async function getFileContent({
   repo,
   path,
@@ -90,4 +91,26 @@ export async function getFileSha({
   }
 
   throw new Error("Could not get file SHA")
+}
+
+export async function checkBranchExists(
+  repo: string,
+  branch: string
+): Promise<boolean> {
+  const octokit = await getOctokit()
+  const user = await octokit.users.getAuthenticated()
+
+  try {
+    await octokit.repos.getBranch({
+      owner: user.data.login,
+      repo,
+      branch,
+    })
+    return true
+  } catch (error) {
+    if (error.status === 404) {
+      return false
+    }
+    throw error
+  }
 }

@@ -2,6 +2,7 @@
 
 import { MoreHorizontalIcon } from "lucide-react"
 
+import { CreatePullRequestButton } from "@/components/CreatePullRequestButton"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,8 +11,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { GitHubRepository } from "@/lib/types"
-
-import { CreatePullRequestButton } from "./CreatePullRequestButton"
 
 export function IssueActionsDropdown({
   issueNumber,

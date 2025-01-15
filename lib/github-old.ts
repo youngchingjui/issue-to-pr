@@ -7,8 +7,7 @@
 import { Octokit } from "@octokit/rest"
 
 import { auth } from "@/auth"
-
-import { GitHubRepository } from "./types"
+import { GitHubRepository, Issue } from "@/lib/types"
 
 async function getOctokit() {
   const session = await auth()
@@ -22,14 +21,6 @@ async function getOctokit() {
   }
 
   return new Octokit({ auth: accessToken })
-}
-
-export interface Issue {
-  id: number
-  number: number
-  title: string
-  body: string
-  state: string
 }
 
 export async function getRepositoryIssues(

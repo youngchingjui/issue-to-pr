@@ -2,9 +2,8 @@
 
 import { useState } from "react"
 
+import { Button } from "@/components/ui/button"
 import { GitHubRepository } from "@/lib/types"
-
-import { Button } from "./ui/button"
 
 export function CreatePullRequestButton({
   issueNumber,

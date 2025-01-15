@@ -6,7 +6,7 @@ import {
   PaginationContent,
   PaginationItem,
   PaginationLink,
-} from "./ui/pagination"
+} from "@/components/ui/pagination"
 
 type GitHubRepository = components["schemas"]["full-repository"]
 
