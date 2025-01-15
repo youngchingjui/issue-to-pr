@@ -7,6 +7,7 @@ import { CoordinatorAgent } from "@/lib/agents"
 import { getLocalRepoDir } from "@/lib/fs"
 import { Issue } from "@/lib/types"
 
+import { getRepoFromString } from "../github/content"
 import { langfuse } from "../langfuse"
 
 //
@@ -15,12 +16,19 @@ const REPO_OWNER = "youngchingjui"
 export const resolveIssue = async (issue: Issue, repoName: string) => {
   // Get or create a local directory to work off of
   const baseDir = await getLocalRepoDir(REPO_OWNER, repoName)
+  const repository = await getRepoFromString(repoName)
 
   // Start a trace for this workflow
   const trace = langfuse.trace({
     name: "Resolve issue",
   })
 
-  const agent = new CoordinatorAgent(issue, trace, baseDir, repoName)
+  const agent = new CoordinatorAgent(
+    issue,
+    repository,
+    trace,
+    baseDir,
+    repoName
+  )
   await agent.run()
 }

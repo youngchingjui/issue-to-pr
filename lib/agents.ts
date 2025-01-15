@@ -32,10 +32,9 @@ import { callCoderTool } from "@/lib/tools"
 import { callLibrarianTool } from "@/lib/tools"
 import { callResearcherTool } from "@/lib/tools"
 import UploadAndPRTool from "@/lib/tools/UploadAndPR"
-import { Issue } from "@/lib/types"
+import { GitHubRepository, Issue } from "@/lib/types"
 
 // TODO: Make this dynamic
-const REPO_OWNER = "youngchingjui"
 const CLONE_URL = "https://github.com/youngchingjui/issue-to-pr.git"
 
 const agent = new OpenAI({
@@ -217,6 +216,7 @@ export class CoordinatorAgent {
   private uploadAndPrTool: UploadAndPRTool
   private readonly baseDir: string
   private readonly repoName: string
+  private readonly repository: GitHubRepository
   public outputSchema = z
     .object({
       agent_type: z.enum(["researcher", "librarian", "coder"]),
@@ -228,6 +228,7 @@ export class CoordinatorAgent {
 
   constructor(
     issue: Issue = null,
+    repository: GitHubRepository,
     trace: LangfuseTraceClient = null,
     baseDir: string,
     repoName: string
@@ -235,6 +236,7 @@ export class CoordinatorAgent {
     this.agent = agent
     this.messages = []
     this.issue = issue
+    this.repository = repository
     this.baseDir = baseDir
     this.repoName = repoName
     this.instructionPrompt = `
@@ -399,7 +401,7 @@ Please output in JSON mode. You may call any or all agents, in sequence or in pa
 
     switch (toolCall.function.name) {
       case "call_librarian":
-        const librarianAgent = new LibrarianAgent(this.trace)
+        const librarianAgent = new LibrarianAgent(this.repository, this.trace)
         await librarianAgent.setupLocalRepo()
         librarianAgent.addUserMessage(args.request)
         const libResponse = await librarianAgent.generateResponse()
@@ -452,12 +454,12 @@ export class LibrarianAgent {
   private instruction: string
   private readonly messages: ChatCompletionMessageParam[] = []
   private readonly tools: ChatCompletionTool[]
-  private repo: string
   private branch: string
   private tree: string[]
+  private repository: GitHubRepository
 
-  constructor(trace: LangfuseTraceClient) {
-    this.repo = "issue-to-pr"
+  constructor(repository: GitHubRepository, trace: LangfuseTraceClient) {
+    this.repository = repository
     this.branch = "main"
 
     if (trace) {
@@ -492,7 +494,10 @@ export class LibrarianAgent {
   async setupLocalRepo() {
     // This ensures LibrarianAgent has access to the repo hosted locally
     // Run this before generating responses
-    const repoPath = await getLocalRepoDir(REPO_OWNER, this.repo)
+    const repoPath = await getLocalRepoDir(
+      this.repository.owner.login,
+      this.repository.name
+    )
 
     // Check if .git and codebase exist in tempDir
     // If not, clone the repo
@@ -518,7 +523,7 @@ export class LibrarianAgent {
     const span = this.trace.span({ name: "Get file content" })
     try {
       const content = await getGithubFileContent({
-        repo: this.repo,
+        repo: this.repository.name,
         path,
         branch: this.branch,
       })

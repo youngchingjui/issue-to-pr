@@ -1,5 +1,6 @@
 import getOctokit from "@/lib/github"
 import { GitHubError } from "@/lib/github-old"
+import { GitHubRepository } from "@/lib/types"
 
 // TODO: Since all octokit functions here are using octokit.repos, then
 // This file should be renamed to `repos.tsx` to reflect the resource being called
@@ -113,4 +114,16 @@ export async function checkBranchExists(
     }
     throw error
   }
+}
+
+export async function getRepoFromString(
+  repo: string
+): Promise<GitHubRepository> {
+  const octokit = await getOctokit()
+  const user = await octokit.users.getAuthenticated()
+  const { data: repoData } = await octokit.repos.get({
+    owner: user.data.login,
+    repo,
+  })
+  return repoData
 }
