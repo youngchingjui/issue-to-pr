@@ -1,6 +1,6 @@
 "use client"
 
-import { motion } from "framer-motion"
+import * as motion from "motion/react-client"
 import { useEffect, useState } from "react"
 
 const fibonacciSequence = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144]

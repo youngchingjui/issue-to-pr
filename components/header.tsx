@@ -1,7 +1,7 @@
 "use client"
 
-import { motion } from "framer-motion"
 import { Github } from "lucide-react"
+import * as motion from "motion/react-client"
 
 export default function Header() {
   return (

@@ -1,7 +1,7 @@
 "use client"
 
-import { motion } from "framer-motion"
 import { Bot, Code, GitBranch, GitPullRequest } from "lucide-react"
+import * as motion from "motion/react-client"
 
 const features = [
   {
