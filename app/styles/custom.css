@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --custom-amber: 180 83 9;
+  }
+}
+
+@layer components {
+  .custom-amber {
+    @apply text-[rgb(var(--custom-amber))];
+  }
+  .bg-custom-amber {
+    @apply bg-[rgb(var(--custom-amber))];
+  }
+}

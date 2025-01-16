@@ -1,42 +1,25 @@
 "use client"
 
-import Link from "next/link"
-import { Session } from "next-auth"
-import { signOut } from "next-auth/react"
+import { motion } from "framer-motion"
+import { Github } from "lucide-react"
 
-type HeaderProps = {
-  session: Session | null
-}
-
-export default function Header({ session }: HeaderProps) {
+export default function Header() {
   return (
-    <header className="bg-white shadow-sm">
-      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" aria-label="Top">
-        <div className="w-full py-6 flex items-center justify-between border-b border-indigo-500 lg:border-none">
-          <div className="flex items-center">
-            <Link href="/">
-              <span className="sr-only">Issue to PR</span>
-            </Link>
-          </div>
-          <div className="ml-10 space-x-4">
-            {session ? (
-              <button
-                onClick={() => signOut()}
-                className="inline-block bg-indigo-500 py-2 px-4 border border-transparent rounded-md text-base font-medium text-white hover:bg-opacity-75"
-              >
-                Sign out
-              </button>
-            ) : (
-              <Link
-                href="/api/auth/signin"
-                className="inline-block bg-indigo-500 py-2 px-4 border border-transparent rounded-md text-base font-medium text-white hover:bg-opacity-75"
-              >
-                Sign in
-              </Link>
-            )}
-          </div>
-        </div>
-      </nav>
-    </header>
+    <motion.header
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="flex justify-between items-center py-4 px-6 bg-white bg-opacity-50 backdrop-blur-sm"
+    >
+      <div className="text-2xl font-bold text-stone-700">Issue-to-PR</div>
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        className="flex items-center px-4 py-2 bg-stone-700 text-stone-100 rounded-md hover:bg-stone-600 transition-colors"
+      >
+        <Github className="mr-2" size={20} />
+        Login with GitHub
+      </motion.button>
+    </motion.header>
   )
 }
