@@ -1,4 +1,5 @@
-import getOctokit from "."
+import getOctokit from "@/lib/github"
+import { getGithubUser } from "@/lib/github/users"
 
 export async function createBranch(
   repo: string,
@@ -6,7 +7,7 @@ export async function createBranch(
   baseBranch: string = "main"
 ) {
   const octokit = await getOctokit()
-  const user = await octokit.users.getAuthenticated()
+  const user = await getGithubUser()
 
   // Get the latest commit SHA of the base branch
   const { data: baseBranchData } = await octokit.repos.getBranch({

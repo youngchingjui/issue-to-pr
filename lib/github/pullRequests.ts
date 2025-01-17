@@ -1,4 +1,5 @@
-import getOctokit from "."
+import getOctokit from "@/lib/github"
+import { getGithubUser } from "@/lib/github/users"
 
 export async function getPullRequestOnBranch({
   repo,
@@ -8,7 +9,7 @@ export async function getPullRequestOnBranch({
   branch: string
 }) {
   const octokit = await getOctokit()
-  const user = await octokit.users.getAuthenticated()
+  const user = await getGithubUser()
   const userName = user.data.login
   const pr = await octokit.pulls.list({
     owner: userName,
@@ -35,7 +36,7 @@ export async function createPullRequest({
   body: string
 }) {
   const octokit = await getOctokit()
-  const user = await octokit.users.getAuthenticated()
+  const user = await getGithubUser()
 
   const pullRequest = await octokit.pulls.create({
     owner: user.data.login,

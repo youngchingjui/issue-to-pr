@@ -2,6 +2,8 @@ import getOctokit from "@/lib/github"
 import { GitHubError } from "@/lib/github-old"
 import { GitHubRepository } from "@/lib/types"
 
+import { getGithubUser } from "./users"
+
 // TODO: Since all octokit functions here are using octokit.repos, then
 // This file should be renamed to `repos.tsx` to reflect the resource being called
 export async function getFileContent({
@@ -15,7 +17,7 @@ export async function getFileContent({
 }) {
   try {
     const octokit = await getOctokit()
-    const user = await octokit.users.getAuthenticated()
+    const user = await getGithubUser()
     const file = await octokit.repos.getContent({
       owner: user.data.login,
       repo,
@@ -52,7 +54,7 @@ export async function updateFileContent({
   branch: string
 }) {
   const octokit = await getOctokit()
-  const user = await octokit.users.getAuthenticated()
+  const user = await getGithubUser()
   const sha = await getFileSha({ repo, path, branch })
   await octokit.rest.repos.createOrUpdateFileContents({
     owner: user.data.login,
@@ -75,7 +77,7 @@ export async function getFileSha({
   branch: string
 }) {
   const octokit = await getOctokit()
-  const user = await octokit.users.getAuthenticated()
+  const user = await getGithubUser()
   const response = await octokit.rest.repos.getContent({
     owner: user.data.login,
     repo,
@@ -99,7 +101,7 @@ export async function checkBranchExists(
   branch: string
 ): Promise<boolean> {
   const octokit = await getOctokit()
-  const user = await octokit.users.getAuthenticated()
+  const user = await getGithubUser()
 
   try {
     await octokit.repos.getBranch({
@@ -120,7 +122,7 @@ export async function getRepoFromString(
   repo: string
 ): Promise<GitHubRepository> {
   const octokit = await getOctokit()
-  const user = await octokit.users.getAuthenticated()
+  const user = await getGithubUser()
   const { data: repoData } = await octokit.repos.get({
     owner: user.data.login,
     repo,
