@@ -23,9 +23,6 @@ export default async function Hero() {
       <h1 className="text-4xl md:text-5xl font-bold mb-6 text-stone-700">
         Automatically Resolve Your GitHub Issues and Create Pull Requests
       </h1>
-      <p className="text-xl mb-8 text-stone-600">
-        Let AI handle your issues while you focus on what matters most.
-      </p>
       <Link href={user ? `/${user.login}` : "/api/auth/signin"}>
         <motion.button
           whileHover={{ scale: 1.05 }}
@@ -36,9 +33,11 @@ export default async function Hero() {
           {user ? "View my repositories" : "Login with GitHub"}
         </motion.button>
       </Link>
-      <p className="mt-4 text-stone-500">
-        to automatically resolve your GitHub issues
-      </p>
+      {!user && (
+        <p className="mt-4 text-stone-500">
+          to automatically resolve your GitHub issues
+        </p>
+      )}
     </motion.section>
   )
 }

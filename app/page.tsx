@@ -3,7 +3,6 @@ import Footer from "@/components/Footer"
 import Header from "@/components/Header"
 import Hero from "@/components/Hero"
 import Pricing from "@/components/Pricing"
-import Screenshot from "@/components/Screenshot"
 
 export default function LandingPage() {
   return (
@@ -11,7 +10,6 @@ export default function LandingPage() {
       <Header />
       <main>
         <Hero />
-        <Screenshot />
         <Details />
         <Pricing />
       </main>
