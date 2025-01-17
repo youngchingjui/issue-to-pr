@@ -3,6 +3,7 @@ import { zodFunction } from "openai/helpers/zod"
 import { z } from "zod"
 
 export type GitHubRepository = components["schemas"]["full-repository"]
+export type GitHubUser = components["schemas"]["simple-user"]
 
 export type Tool<T extends z.ZodType> = {
   tool: ReturnType<typeof zodFunction>

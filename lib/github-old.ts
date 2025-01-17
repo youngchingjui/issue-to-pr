@@ -71,7 +71,7 @@ export async function getIssue(
   const octokit = await getOctokit()
   const user = await getGithubUser()
   const issue = await octokit.issues.get({
-    owner: user.data.login,
+    owner: user.login,
     repo,
     issue_number: issueNumber,
   })

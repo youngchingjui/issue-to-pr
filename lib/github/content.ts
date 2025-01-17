@@ -19,7 +19,7 @@ export async function getFileContent({
     const octokit = await getOctokit()
     const user = await getGithubUser()
     const file = await octokit.repos.getContent({
-      owner: user.data.login,
+      owner: user.login,
       repo,
       path,
       ref: branch,
@@ -57,7 +57,7 @@ export async function updateFileContent({
   const user = await getGithubUser()
   const sha = await getFileSha({ repo, path, branch })
   await octokit.rest.repos.createOrUpdateFileContents({
-    owner: user.data.login,
+    owner: user.login,
     repo,
     path,
     message: commitMessage,
@@ -79,7 +79,7 @@ export async function getFileSha({
   const octokit = await getOctokit()
   const user = await getGithubUser()
   const response = await octokit.rest.repos.getContent({
-    owner: user.data.login,
+    owner: user.login,
     repo,
     path,
     ref: branch,
@@ -105,7 +105,7 @@ export async function checkBranchExists(
 
   try {
     await octokit.repos.getBranch({
-      owner: user.data.login,
+      owner: user.login,
       repo,
       branch,
     })
@@ -124,7 +124,7 @@ export async function getRepoFromString(
   const octokit = await getOctokit()
   const user = await getGithubUser()
   const { data: repoData } = await octokit.repos.get({
-    owner: user.data.login,
+    owner: user.login,
     repo,
   })
   return repoData

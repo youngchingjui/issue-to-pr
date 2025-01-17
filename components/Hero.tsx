@@ -3,10 +3,15 @@ import * as motion from "motion/react-client"
 import Link from "next/link"
 
 import { getGithubUser } from "@/lib/github/users"
+import { GitHubUser } from "@/lib/types"
 
 export default async function Hero() {
-  const user = await getGithubUser()
-  // TODO: Find the user's Github username
+  let user: GitHubUser | null = null
+  try {
+    user = await getGithubUser()
+  } catch (error) {
+    console.debug("[DEBUG] User not found: ", error)
+  }
 
   return (
     <motion.section
@@ -21,7 +26,7 @@ export default async function Hero() {
       <p className="text-xl mb-8 text-stone-600">
         Let AI handle your issues while you focus on what matters most.
       </p>
-      <Link href={user ? `/${user.data.login}` : "/api/auth/signin"}>
+      <Link href={user ? `/${user.login}` : "/api/auth/signin"}>
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}

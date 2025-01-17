@@ -11,14 +11,14 @@ export async function createBranch(
 
   // Get the latest commit SHA of the base branch
   const { data: baseBranchData } = await octokit.repos.getBranch({
-    owner: user.data.login,
+    owner: user.login,
     repo,
     branch: baseBranch,
   })
 
   // Create a new branch
   await octokit.git.createRef({
-    owner: user.data.login,
+    owner: user.login,
     repo,
     ref: `refs/heads/${branch}`,
     sha: baseBranchData.commit.sha,

@@ -1,7 +1,8 @@
-import getOctokit from "."
+import getOctokit from "@/lib/github"
+import { GitHubUser } from "@/lib/types"
 
-export async function getGithubUser() {
+export async function getGithubUser(): Promise<GitHubUser> {
   const octokit = await getOctokit()
   const user = await octokit.users.getAuthenticated()
-  return user
+  return user.data
 }
