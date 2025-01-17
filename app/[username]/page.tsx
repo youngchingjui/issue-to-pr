@@ -23,8 +23,10 @@ async function getRepositories(accessToken: string, page = 1, perPage = 30) {
 }
 
 export default async function Home({
+  params,
   searchParams,
 }: {
+  params: { username: string }
   searchParams: { page: string }
 }) {
   const session = await auth()
