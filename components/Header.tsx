@@ -10,6 +10,8 @@ export default async function Header() {
   const session = await auth()
 
   let user: GitHubUser | null = null
+  // Check for session first before getting Github user to avoid NextJS dynamic server error
+  // https://nextjs.org/docs/messages/dynamic-server-error
   if (session) {
     user = await getGithubUser()
   }

@@ -1,16 +1,18 @@
 import { Github } from "lucide-react"
 import * as motion from "motion/react-client"
 
-import { signIn } from "@/auth"
+import { auth, signIn } from "@/auth"
 import { getGithubUser } from "@/lib/github/users"
 import { GitHubUser } from "@/lib/types"
 
 export default async function Hero() {
+  const session = await auth()
+
   let user: GitHubUser | null = null
-  try {
+  // Check for session first before getting Github user to avoid NextJS dynamic server error
+  // https://nextjs.org/docs/messages/dynamic-server-error
+  if (session) {
     user = await getGithubUser()
-  } catch (error) {
-    console.debug("[DEBUG] User not found: ", error)
   }
 
   return (
