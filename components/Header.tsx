@@ -55,7 +55,7 @@ export default async function Header() {
         <form
           action={async () => {
             "use server"
-            await signIn("github", { redirectTo: `/${user.login}` })
+            await signIn("github", { redirectTo: "/redirect" })
           }}
         >
           <motion.button
