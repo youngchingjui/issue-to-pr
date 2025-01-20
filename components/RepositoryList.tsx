@@ -1,4 +1,3 @@
-import { components } from "@octokit/openapi-types"
 import Link from "next/link"
 
 import {
@@ -7,19 +6,20 @@ import {
   PaginationItem,
   PaginationLink,
 } from "@/components/ui/pagination"
-
-type GitHubRepository = components["schemas"]["full-repository"]
+import { AuthenticatedUserRepository } from "@/lib/types"
 
 type RepositoryListProps = {
-  repositories: GitHubRepository[]
+  repositories: AuthenticatedUserRepository[]
   currentPage: number
   maxPage: number
+  username: string
 }
 
 export default async function RepositoryList({
   repositories,
   currentPage,
   maxPage,
+  username,
 }: RepositoryListProps) {
   const pages = Array.from({ length: maxPage }, (_, i) => i + 1)
   return (
@@ -27,7 +27,7 @@ export default async function RepositoryList({
       {repositories.map((repo) => (
         <li key={repo.id} className="bg-white shadow rounded-lg p-4">
           <Link
-            href={`/${repo.owner.login}/${repo.name}`}
+            href={`/${username}/${repo.name}`}
             className="text-blue-600 hover:underline"
           >
             {repo.name}
@@ -39,7 +39,7 @@ export default async function RepositoryList({
           {pages.map((page) => (
             <PaginationItem key={page}>
               <PaginationLink
-                href={`/?page=${page}`}
+                href={`/${username}?page=${page}`}
                 isActive={page === currentPage}
               >
                 {page}
