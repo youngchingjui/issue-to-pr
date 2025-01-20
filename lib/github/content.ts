@@ -1,6 +1,6 @@
 import getOctokit from "@/lib/github"
 import { GitHubError } from "@/lib/github-old"
-import { GitHubRepository } from "@/lib/types"
+import { AuthenticatedUserRepository, GitHubRepository } from "@/lib/types"
 
 import { getGithubUser } from "./users"
 
@@ -128,4 +128,32 @@ export async function getRepoFromString(
     repo,
   })
   return repoData
+}
+
+export async function getUserRepositories(
+  username: string,
+  options: {
+    type?: "owner" | "all" | "public" | "private" | "member"
+    sort?: "created" | "updated" | "pushed" | "full_name"
+    direction?: "asc" | "desc"
+    per_page?: number
+    page?: number
+  } = {}
+): Promise<{
+  repositories: AuthenticatedUserRepository[]
+  maxPage: number
+}> {
+  const octokit = await getOctokit()
+
+  const response = await octokit.repos.listForAuthenticatedUser({
+    username,
+    ...options,
+  })
+
+  const linkHeader = response.headers.link
+  const lastPageMatch = linkHeader?.match(
+    /<[^>]*[?&]page=(\d+)[^>]*>;\s*rel="last"/
+  )
+  const maxPage = lastPageMatch ? Number(lastPageMatch[1]) : 1
+  return { repositories: response.data, maxPage }
 }
