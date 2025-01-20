@@ -7,6 +7,7 @@
 import { Octokit } from "@octokit/rest"
 
 import { auth } from "@/auth"
+import { getGithubUser } from "@/lib/github/users"
 import { Issue } from "@/lib/types"
 
 async function getOctokit() {
@@ -68,9 +69,9 @@ export async function getIssue(
   issueNumber: number
 ): Promise<Issue> {
   const octokit = await getOctokit()
-  const user = await octokit.users.getAuthenticated()
+  const user = await getGithubUser()
   const issue = await octokit.issues.get({
-    owner: user.data.login,
+    owner: user.login,
     repo,
     issue_number: issueNumber,
   })

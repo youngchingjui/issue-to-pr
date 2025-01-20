@@ -1,59 +1,19 @@
-import { redirect } from "next/navigation"
+import Details from "@/components/Details"
+import Footer from "@/components/Footer"
+import Header from "@/components/Header"
+import Hero from "@/components/Hero"
+import Pricing from "@/components/Pricing"
 
-import { auth } from "@/auth"
-import RepositoryList from "@/components/RepositoryList"
-
-async function getRepositories(accessToken: string, page = 1, perPage = 30) {
-  const res = await fetch(
-    `https://api.github.com/user/repos?page=${page}&per_page=${perPage}`,
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    }
-  )
-
-  const linkHeader = res.headers.get("link")
-  const lastPageMatch = linkHeader?.match(
-    /<[^>]*[?&]page=(\d+)[^>]*>;\s*rel="last"/
-  )
-  const maxPage = lastPageMatch ? Number(lastPageMatch[1]) : page
-  const repositories = await res.json()
-  return { repositories, currentPage: page, maxPage }
-}
-
-export default async function Home({
-  searchParams,
-}: {
-  searchParams: { page: string }
-}) {
-  const session = await auth()
-
-  if (!session?.user) {
-    redirect("/api/auth/signin")
-  }
-
-  const accessToken = session.user.accessToken
-  if (!accessToken) {
-    redirect("/api/auth/signin")
-  }
-
-  const page = Number(searchParams.page) || 1
-  const { repositories, currentPage, maxPage } = await getRepositories(
-    accessToken,
-    page
-  )
-
+export default function LandingPage() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm">
-        <h1 className="text-4xl font-bold mb-8">Select a Repository</h1>
-        <RepositoryList
-          repositories={repositories}
-          currentPage={currentPage}
-          maxPage={maxPage}
-        />
-      </div>
-    </main>
+    <div className="min-h-screen bg-gradient-to-br from-stone-100 via-amber-50 to-orange-50 text-stone-800">
+      <Header />
+      <main>
+        <Hero />
+        <Details />
+        <Pricing />
+      </main>
+      <Footer />
+    </div>
   )
 }
