@@ -2,16 +2,16 @@ import { Github } from "lucide-react"
 import * as motion from "motion/react-client"
 import Link from "next/link"
 
-import { signIn, signOut } from "@/auth"
+import { auth, signIn, signOut } from "@/auth"
 import { getGithubUser } from "@/lib/github/users"
 import { GitHubUser } from "@/lib/types"
 
 export default async function Header() {
+  const session = await auth()
+
   let user: GitHubUser | null = null
-  try {
+  if (session) {
     user = await getGithubUser()
-  } catch (error) {
-    console.debug("[DEBUG] User not found: ", error)
   }
 
   return (
