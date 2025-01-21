@@ -23,7 +23,6 @@ export default async function IssueTable({ username, repoName }: Props) {
             <th className="py-2 px-4 border-b">Issue</th>
             <th className="py-2 px-4 border-b">Status</th>
             <th className="py-2 px-4 border-b">Associated Branch</th>
-            <th className="py-2 px-4 border-b">Pull Request</th>
             <th className="py-2 px-4 border-b">Actions</th>
             <th className="py-2 px-4 border-b">More</th>
           </tr>
@@ -33,24 +32,6 @@ export default async function IssueTable({ username, repoName }: Props) {
             <tr key={issue.id} className="border-b">
               <td className="py-2 px-4">{issue.title}</td>
               <td className="py-2 px-4">{issue.state}</td>
-              {/* <td className="py-2 px-4">{issue.associatedBranch || "N/A"}</td> */}
-              {/* <td className="py-2 px-4">
-                {issue.pullRequest ? (
-                  <a
-                    href={issue.pullRequest.url}
-                    className="text-blue-500 hover:underline"
-                  >
-                    #{issue.pullRequest.number}
-                  </a>
-                ) : (
-                  "No PR"
-                )}
-              </td> */}
-              {/* <td className="py-2 px-4">
-                {!issue.pullRequest && (
-                  <CreatePullRequestButton issueNumber={issue.number} />
-                )}
-              </td> */}
               <td className="py-2 px-4">
                 <IssueActionsDropdown issueNumber={issue.number} repo={repo} />
               </td>
