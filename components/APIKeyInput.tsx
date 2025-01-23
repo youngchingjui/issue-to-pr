@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 const ApiKeyInput = () => {
   const [apiKey, setApiKey] = useState("")
@@ -35,16 +36,24 @@ const ApiKeyInput = () => {
   }
 
   return (
-    <div className="flex items-center justify-end gap-2">
-      <Input
-        type="text"
-        id="openai-api-key"
-        placeholder={isEditing ? "Enter your OpenAI API key" : ""}
-        value={isEditing ? apiKey : maskedKey}
-        onChange={handleInputChange}
-        readOnly={!isEditing}
-        className={!isEditing ? "bg-gray-100 text-gray-500" : ""}
-      />
+    <div className="flex items-end justify-end gap-2">
+      <div>
+        <Label
+          htmlFor="openai-api-key"
+          className="text-xs text-muted-foreground"
+        >
+          OpenAI API Key
+        </Label>
+        <Input
+          type="text"
+          id="openai-api-key"
+          placeholder={isEditing ? "Enter your OpenAI API key" : ""}
+          value={isEditing ? apiKey : maskedKey}
+          onChange={handleInputChange}
+          readOnly={!isEditing}
+          className={!isEditing ? "bg-gray-100 text-gray-500" : ""}
+        />
+      </div>
       {isEditing ? (
         <Button onClick={handleSave}>Save</Button>
       ) : (
