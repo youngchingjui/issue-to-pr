@@ -5,6 +5,7 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { useToast } from "@/hooks/use-toast"
 
 const LOCAL_STORAGE_KEY = "openAIApiKey"
 
@@ -12,6 +13,8 @@ const ApiKeyInput = () => {
   const [apiKey, setApiKey] = useState("")
   const [maskedKey, setMaskedKey] = useState("")
   const [isEditing, setIsEditing] = useState(false)
+
+  const { toast } = useToast()
 
   useEffect(() => {
     const storedKey = localStorage.getItem(LOCAL_STORAGE_KEY)
@@ -29,7 +32,7 @@ const ApiKeyInput = () => {
 
   const handleSave = async () => {
     try {
-      const response = await fetch("/api/test", {
+      const response = await fetch("/api/openai/check", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -37,12 +40,25 @@ const ApiKeyInput = () => {
         body: JSON.stringify({ apiKey }),
       })
 
+      if (!response.ok) {
+        toast({
+          title: "API key verification failed",
+          description: "Please check your API key and try again.",
+          variant: "destructive",
+        })
+        localStorage.removeItem(LOCAL_STORAGE_KEY)
+        return
+      }
+
       const result = await response.json()
 
       if (result.success) {
+        toast({
+          title: "API key saved",
+          description:
+            "Your API key was verified and saved successfully. You can now generate Github comments and create Pull Requests.",
+        })
         localStorage.setItem(LOCAL_STORAGE_KEY, apiKey)
-      } else {
-        localStorage.removeItem(LOCAL_STORAGE_KEY)
       }
     } catch (error) {
       console.error("Failed to verify API key:", error)

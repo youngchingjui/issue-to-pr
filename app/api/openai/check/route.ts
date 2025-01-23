@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 
-export const GET = async (req: NextRequest) => {
+export const POST = async (req: NextRequest) => {
   // Get the API key from cookies
   const { apiKey } = await req.json()
 
@@ -17,7 +17,7 @@ export const GET = async (req: NextRequest) => {
     })
 
     if (response.ok) {
-      return NextResponse.json({ message: "API key is valid" }, { status: 200 })
+      return NextResponse.json({ success: true }, { status: 200 })
     } else if (response.status === 401) {
       return NextResponse.json(
         { error: "Authentication error: Invalid API key" },

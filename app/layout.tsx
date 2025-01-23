@@ -5,6 +5,7 @@ import { Inter } from "next/font/google"
 import { SessionProvider } from "next-auth/react"
 
 import { auth } from "@/auth"
+import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -27,6 +28,7 @@ export default async function RootLayout({
         style={{ "--custom-amber": "#B45309" } as React.CSSProperties}
       >
         <SessionProvider session={session}>{children}</SessionProvider>
+        <Toaster />
       </body>
     </html>
   )
