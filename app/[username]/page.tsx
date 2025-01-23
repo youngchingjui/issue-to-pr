@@ -2,27 +2,9 @@ import { redirect } from "next/navigation"
 
 import { auth } from "@/auth"
 import RepositoryList from "@/components/RepositoryList"
+import { getUserRepositories } from "@/lib/github/content"
 
-async function getRepositories(accessToken: string, page = 1, perPage = 30) {
-  const res = await fetch(
-    `https://api.github.com/user/repos?page=${page}&per_page=${perPage}`,
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    }
-  )
-
-  const linkHeader = res.headers.get("link")
-  const lastPageMatch = linkHeader?.match(
-    /<[^>]*[?&]page=(\d+)[^>]*>;\s*rel="last"/
-  )
-  const maxPage = lastPageMatch ? Number(lastPageMatch[1]) : page
-  const repositories = await res.json()
-  return { repositories, currentPage: page, maxPage }
-}
-
-export default async function Home({
+export default async function Repositories({
   params,
   searchParams,
 }: {
@@ -41,10 +23,13 @@ export default async function Home({
   }
 
   const page = Number(searchParams.page) || 1
-  const { repositories, currentPage, maxPage } = await getRepositories(
-    accessToken,
-    page
-  )
+
+  const { repositories, maxPage } = await getUserRepositories(params.username, {
+    per_page: 30,
+    page,
+    sort: "updated",
+    direction: "desc",
+  })
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
@@ -52,8 +37,9 @@ export default async function Home({
         <h1 className="text-4xl font-bold mb-8">Select a Repository</h1>
         <RepositoryList
           repositories={repositories}
-          currentPage={currentPage}
+          currentPage={page}
           maxPage={maxPage}
+          username={params.username}
         />
       </div>
     </main>

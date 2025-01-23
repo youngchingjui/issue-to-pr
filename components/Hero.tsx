@@ -28,7 +28,7 @@ export default async function Hero() {
       <form
         action={async () => {
           "use server"
-          await signIn("github", { redirectTo: "/dashboard" })
+          await signIn("github", { redirectTo: "/redirect" })
         }}
       >
         <motion.button
