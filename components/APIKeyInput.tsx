@@ -1,5 +1,6 @@
 "use client"
 
+import { Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -13,6 +14,7 @@ const ApiKeyInput = () => {
   const [apiKey, setApiKey] = useState("")
   const [maskedKey, setMaskedKey] = useState("")
   const [isEditing, setIsEditing] = useState(false)
+  const [isVerifying, setIsVerifying] = useState(false)
 
   const { toast } = useToast()
 
@@ -32,6 +34,7 @@ const ApiKeyInput = () => {
 
   const handleSave = async () => {
     try {
+      setIsVerifying(true)
       const response = await fetch("/api/openai/check", {
         method: "POST",
         headers: {
@@ -64,13 +67,14 @@ const ApiKeyInput = () => {
       console.error("Failed to verify API key:", error)
       localStorage.removeItem(LOCAL_STORAGE_KEY)
     } finally {
+      setIsVerifying(false)
       setIsEditing(false)
     }
   }
 
   const maskApiKey = (key: string) => {
     if (key.length <= 10) return key
-    return `${key.slice(0, 5)}**********${key.slice(-5)}`
+    return `${key.slice(0, 5)}**********${key.slice(-4)}`
   }
 
   return (
@@ -78,7 +82,7 @@ const ApiKeyInput = () => {
       <div>
         <Label
           htmlFor="openai-api-key"
-          className="text-xs text-muted-foreground"
+          className="text-xs text-muted-foreground font-light"
         >
           OpenAI API Key
         </Label>
@@ -93,7 +97,9 @@ const ApiKeyInput = () => {
         />
       </div>
       {isEditing ? (
-        <Button onClick={handleSave}>Save</Button>
+        <Button onClick={handleSave} disabled={isVerifying}>
+          {isVerifying ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
+        </Button>
       ) : (
         <Button onClick={() => setIsEditing(!isEditing)} variant="secondary">
           Edit
