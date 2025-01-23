@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 const ApiKeyInput = () => {
   const [apiKey, setApiKey] = useState("")
   const [maskedKey, setMaskedKey] = useState("")
+  const [isEditing, setIsEditing] = useState(false)
 
   useEffect(() => {
     const storedKey = localStorage.getItem("openaiApiKey")
@@ -17,14 +18,15 @@ const ApiKeyInput = () => {
     }
   }, [])
 
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newKey = event.target.value
     setApiKey(newKey)
     setMaskedKey(maskApiKey(newKey))
   }
 
   const handleSave = () => {
-    localStorage.setItem("openaiApiKey", apiKey)
+    localStorage.setItem("openAIApiKey", apiKey)
+    setIsEditing(false)
   }
 
   const maskApiKey = (key: string) => {
@@ -36,12 +38,20 @@ const ApiKeyInput = () => {
     <div className="flex items-center justify-end gap-2">
       <Input
         type="text"
-        value={apiKey}
-        onChange={handleChange}
-        placeholder="Enter API Key"
+        id="openai-api-key"
+        placeholder={isEditing ? "Enter your OpenAI API key" : ""}
+        value={isEditing ? apiKey : maskedKey}
+        onChange={handleInputChange}
+        readOnly={!isEditing}
+        className={!isEditing ? "bg-gray-100 text-gray-500" : ""}
       />
-      <Button onClick={handleSave}>Save</Button>
-      <div className="ml-2">{maskedKey}</div>
+      {isEditing ? (
+        <Button onClick={handleSave}>Save</Button>
+      ) : (
+        <Button onClick={() => setIsEditing(!isEditing)} variant="secondary">
+          Edit
+        </Button>
+      )}
     </div>
   )
 }
