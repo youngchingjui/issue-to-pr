@@ -27,9 +27,29 @@ const ApiKeyInput = () => {
     setMaskedKey(maskApiKey(newKey))
   }
 
-  const handleSave = () => {
-    localStorage.setItem(LOCAL_STORAGE_KEY, apiKey)
-    setIsEditing(false)
+  const handleSave = async () => {
+    try {
+      const response = await fetch("/api/test", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ apiKey }),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        localStorage.setItem(LOCAL_STORAGE_KEY, apiKey)
+      } else {
+        localStorage.removeItem(LOCAL_STORAGE_KEY)
+      }
+    } catch (error) {
+      console.error("Failed to verify API key:", error)
+      localStorage.removeItem(LOCAL_STORAGE_KEY)
+    } finally {
+      setIsEditing(false)
+    }
   }
 
   const maskApiKey = (key: string) => {
