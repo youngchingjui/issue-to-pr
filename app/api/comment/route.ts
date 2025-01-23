@@ -20,7 +20,7 @@ type RequestBody = {
 export async function POST(request: NextRequest) {
   const { issueNumber, repo }: RequestBody = await request.json()
 
-  await commentOnIssue(issueNumber, repo)
+  const response = await commentOnIssue(issueNumber, repo)
 
-  return NextResponse.json({ message: "Comment posted" })
+  return NextResponse.json(response)
 }

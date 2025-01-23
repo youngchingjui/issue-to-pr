@@ -35,13 +35,14 @@ export default async function commentOnIssue(
     await updateToLatest(dirPath)
   }
 
+  // Create the thinker agent
   const thinker = new ThinkerAgent(dirPath)
   thinker.issue = issue
 
   await thinker.thinkAboutIssue()
-  await thinker.exploreCodebase()
-  await thinker.generateComment()
-  // Have the LLM think about the issue. What could it mean? What is the user's intent?
+  // await thinker.exploreCodebase()
+  // await thinker.generateComment()
+  // Have the LLM think about the issue. What could it mean? What is the user's intent? Add more details to the issue.
   // Let the LLM explore the codebase
   // Let the LLM generate a post that includes the following sections:
   // - Understanding the issue
@@ -52,4 +53,5 @@ export default async function commentOnIssue(
   // Post the comment to the Github issue
 
   // Return the comment
+  return { status: "complete" }
 }
