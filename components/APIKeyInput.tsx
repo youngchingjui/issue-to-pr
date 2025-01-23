@@ -6,13 +6,15 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
+const LOCAL_STORAGE_KEY = "openAIApiKey"
+
 const ApiKeyInput = () => {
   const [apiKey, setApiKey] = useState("")
   const [maskedKey, setMaskedKey] = useState("")
   const [isEditing, setIsEditing] = useState(false)
 
   useEffect(() => {
-    const storedKey = localStorage.getItem("openaiApiKey")
+    const storedKey = localStorage.getItem(LOCAL_STORAGE_KEY)
     if (storedKey) {
       setApiKey(storedKey)
       setMaskedKey(maskApiKey(storedKey))
@@ -26,7 +28,7 @@ const ApiKeyInput = () => {
   }
 
   const handleSave = () => {
-    localStorage.setItem("openAIApiKey", apiKey)
+    localStorage.setItem(LOCAL_STORAGE_KEY, apiKey)
     setIsEditing(false)
   }
 
