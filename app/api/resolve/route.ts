@@ -18,8 +18,14 @@ export async function POST(request: NextRequest) {
   const { issueNumber, repo, apiKey }: RequestBody = await request.json()
   const repoName = repo.name
   const repoUrl = repo.url
+
   const session = await auth()
-  const token = session?.user?.accessToken
+
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const token = session.user?.accessToken
 
   try {
     console.debug("[DEBUG] Starting POST request handler")
