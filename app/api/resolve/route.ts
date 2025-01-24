@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 
+import { auth } from "@/auth"
 import { getLocalRepoDir } from "@/lib/fs"
 import { checkIfGitExists, cloneRepo } from "@/lib/git"
 import { getIssue } from "@/lib/github-old"
 import { GitHubRepository } from "@/lib/types"
+import { getCloneUrlWithAccessToken } from "@/lib/utils"
 import { resolveIssue } from "@/lib/workflows/resolveIssue"
 
 type RequestBody = {
@@ -16,7 +18,8 @@ export async function POST(request: NextRequest) {
   const { issueNumber, repo, apiKey }: RequestBody = await request.json()
   const repoName = repo.name
   const repoUrl = repo.url
-  const cloneUrl = repo.clone_url
+  const session = await auth()
+  const token = session?.user?.accessToken
 
   try {
     console.debug("[DEBUG] Starting POST request handler")
@@ -40,7 +43,14 @@ export async function POST(request: NextRequest) {
     if (!gitExists) {
       // Clone the repo
       console.debug(`[DEBUG] Cloning repo: ${repoUrl}`)
-      await cloneRepo(cloneUrl, tempDir)
+
+      // Attach access token to cloneUrl
+      const cloneUrlWithToken = getCloneUrlWithAccessToken(
+        repo.full_name,
+        token
+      )
+
+      await cloneRepo(cloneUrlWithToken, tempDir)
     }
 
     console.debug(`[DEBUG] Fetching issue #${issueNumber}`)

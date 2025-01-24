@@ -7,12 +7,14 @@
 // - Relevant code
 // - Suggested plan
 
+import { auth } from "@/auth"
 import { ThinkerAgent } from "@/lib/agents/thinker"
 import { getLocalRepoDir } from "@/lib/fs"
 import { checkIfGitExists, cloneRepo, updateToLatest } from "@/lib/git"
 import { createIssueComment, getIssue } from "@/lib/github/issues"
 import { langfuse } from "@/lib/langfuse"
 import { GitHubRepository } from "@/lib/types"
+import { getCloneUrlWithAccessToken } from "@/lib/utils"
 
 export default async function commentOnIssue(
   issueNumber: number,
@@ -22,6 +24,8 @@ export default async function commentOnIssue(
   console.log("commentOnIssue workflow", issueNumber, repo)
 
   const trace = langfuse.trace({ name: "commentOnIssue" })
+  const session = await auth()
+  const token = session?.user?.accessToken
 
   // Get the issue
   const issue = await getIssue({
@@ -33,8 +37,12 @@ export default async function commentOnIssue(
   const dirPath = await getLocalRepoDir(repo.full_name)
 
   // Ensure .git is initialized and setup in directory
-  if (!(await checkIfGitExists(dirPath))) {
-    await cloneRepo(repo.clone_url, dirPath)
+  const gitExists = await checkIfGitExists(dirPath)
+  if (!gitExists) {
+    // Clone the repo
+    // Attach access token to cloneUrl
+    const cloneUrlWithToken = getCloneUrlWithAccessToken(repo.full_name, token)
+    await cloneRepo(cloneUrlWithToken, dirPath)
   } else {
     await updateToLatest(dirPath)
   }
