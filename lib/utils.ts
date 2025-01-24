@@ -10,3 +10,11 @@ export function cn(...inputs: ClassValue[]) {
 export function getApiKeyFromLocalStorage(): string | null {
   return localStorage.getItem(LOCAL_STORAGE_KEY)
 }
+
+export function getCloneUrlWithAccessToken(
+  userRepo: string,
+  token: string
+): string {
+  // userRepo format is "username/repo"
+  return `https://${token}@github.com/${userRepo}.git`
+}

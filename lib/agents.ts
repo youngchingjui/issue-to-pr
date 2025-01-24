@@ -18,6 +18,7 @@ import {
 import path from "path"
 import { z } from "zod"
 
+import { auth } from "@/auth"
 import {
   createDirectoryTree,
   getFileContent,
@@ -34,6 +35,7 @@ import {
 } from "@/lib/tools"
 import UploadAndPRTool from "@/lib/tools/UploadAndPR"
 import { GitHubRepository, Issue } from "@/lib/types"
+import { getCloneUrlWithAccessToken } from "@/lib/utils"
 
 export class CoordinatorAgent {
   private readonly agent: OpenAI
@@ -341,6 +343,14 @@ export class LibrarianAgent {
     // Run this before generating responses
     const repoPath = await getLocalRepoDir(this.repository.full_name)
 
+    const session = await auth()
+
+    if (!session) {
+      throw new Error("Unauthorized")
+    }
+
+    const token = session.user?.accessToken
+
     // Check if .git and codebase exist in tempDir
     // If not, clone the repo
     // If so, checkout the branch
@@ -349,7 +359,13 @@ export class LibrarianAgent {
     if (!gitExists) {
       // Clone the repo
       console.debug(`[DEBUG] Cloning repo: ${this.repository.clone_url}`)
-      await cloneRepo(this.repository.clone_url, repoPath)
+
+      // Attach access token to cloneUrl
+      const cloneUrlWithToken = getCloneUrlWithAccessToken(
+        this.repository.full_name,
+        token
+      )
+      await cloneRepo(cloneUrlWithToken, repoPath)
     }
 
     console.debug(`[DEBUG] Checking out branch ${this.branch}`)
