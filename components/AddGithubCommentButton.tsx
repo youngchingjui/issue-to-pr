@@ -26,9 +26,10 @@ export function AddGithubCommentButton({
   }, [])
 
   const handleAddComment = async () => {
-    if (!apiKey) {
+    let key = apiKey
+    if (!key) {
       // Pull API key if recently saved
-      const key = getApiKeyFromLocalStorage()
+      key = getApiKeyFromLocalStorage()
       if (!key) {
         toast({
           title: "API key not found",
@@ -37,13 +38,13 @@ export function AddGithubCommentButton({
         })
         return
       }
-      setApiKey(key)
+      setApiKey(key) // Async, will not be used in this call, but will be used in future calls
     }
 
     setIsLoading(true)
     const response = await fetch("/api/comment", {
       method: "POST",
-      body: JSON.stringify({ issueNumber, repo, apiKey }),
+      body: JSON.stringify({ issueNumber, repo, apiKey: key }),
     })
     console.log(response)
     setIsLoading(false)

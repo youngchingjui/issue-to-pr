@@ -25,9 +25,10 @@ export function CreatePullRequestButton({
   }, [])
 
   const handleCreatePR = async () => {
-    if (!apiKey) {
+    let key = apiKey
+    if (!key) {
       // Pull API key if recently saved
-      const key = getApiKeyFromLocalStorage()
+      key = getApiKeyFromLocalStorage()
       if (!key) {
         toast({
           title: "API key not found",
@@ -36,7 +37,7 @@ export function CreatePullRequestButton({
         })
         return
       }
-      setApiKey(key)
+      setApiKey(key) // Async, will not be used in this call, but will be used in future calls
     }
 
     setIsLoading(true)
@@ -47,7 +48,7 @@ export function CreatePullRequestButton({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ issueNumber, repo, apiKey }),
+        body: JSON.stringify({ issueNumber, repo, apiKey: key }),
       })
 
       const data = await response.json()
