@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
+import { toast } from "@/hooks/use-toast"
 import { GitHubRepository } from "@/lib/types"
-
+import { getApiKeyFromLocalStorage } from "@/lib/utils"
 export function CreatePullRequestButton({
   issueNumber,
   repo,
@@ -13,8 +14,31 @@ export function CreatePullRequestButton({
   repo: GitHubRepository
 }) {
   const [isLoading, setIsLoading] = useState(false)
+  const [apiKey, setApiKey] = useState("")
+
+  // Load any existing API key from local storage
+  useEffect(() => {
+    const key = getApiKeyFromLocalStorage()
+    if (key) {
+      setApiKey(key)
+    }
+  }, [])
 
   const handleCreatePR = async () => {
+    if (!apiKey) {
+      // Pull API key if recently saved
+      const key = getApiKeyFromLocalStorage()
+      if (!key) {
+        toast({
+          title: "API key not found",
+          description: "Please save an OpenAI API key first.",
+          variant: "destructive",
+        })
+        return
+      }
+      setApiKey(key)
+    }
+
     setIsLoading(true)
     try {
       console.log("Creating PR for issue", issueNumber, "in repo", repo)
@@ -23,7 +47,7 @@ export function CreatePullRequestButton({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ issueNumber, repo }),
+        body: JSON.stringify({ issueNumber, repo, apiKey }),
       })
 
       const data = await response.json()

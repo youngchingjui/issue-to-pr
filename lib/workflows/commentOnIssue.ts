@@ -16,7 +16,8 @@ import { GitHubRepository } from "@/lib/types"
 
 export default async function commentOnIssue(
   issueNumber: number,
-  repo: GitHubRepository
+  repo: GitHubRepository,
+  apiKey: string
 ) {
   console.log("commentOnIssue workflow", issueNumber, repo)
 
@@ -39,7 +40,7 @@ export default async function commentOnIssue(
   }
 
   // Create the thinker agent
-  const thinker = new ThinkerAgent(dirPath, trace)
+  const thinker = new ThinkerAgent(dirPath, trace, apiKey)
   thinker.issue = issue
 
   const span = trace.span({ name: "generateComment" })
