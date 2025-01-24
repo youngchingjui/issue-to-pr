@@ -22,10 +22,10 @@ export class ThinkerAgent {
   issue: Issue
   trace: LangfuseTraceClient
 
-  constructor(dirPath: string, trace: LangfuseTraceClient) {
+  constructor(dirPath: string, trace: LangfuseTraceClient, apiKey: string) {
     this.prompt = thinkerAgentPrompt
     this.llm = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey,
     })
     this.dirPath = dirPath
     this.trace = trace

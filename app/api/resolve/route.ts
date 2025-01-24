@@ -9,10 +9,11 @@ import { resolveIssue } from "@/lib/workflows/resolveIssue"
 type RequestBody = {
   issueNumber: number
   repo: GitHubRepository
+  apiKey: string
 }
 
 export async function POST(request: NextRequest) {
-  const { issueNumber, repo }: RequestBody = await request.json()
+  const { issueNumber, repo, apiKey }: RequestBody = await request.json()
   const repoName = repo.name
   const repoUrl = repo.url
   const cloneUrl = repo.clone_url
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest) {
     // This workflow starts with a coordinator agent, that will call other agents to figure out what to do
     // And resolve the issue
 
-    await resolveIssue(issue, repoName)
+    await resolveIssue(issue, repoName, apiKey)
 
     return NextResponse.json(
       { message: "Finished agent workflow." },

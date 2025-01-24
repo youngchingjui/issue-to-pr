@@ -35,10 +35,6 @@ import {
 import UploadAndPRTool from "@/lib/tools/UploadAndPR"
 import { GitHubRepository, Issue } from "@/lib/types"
 
-const agent = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
-
 export class CoordinatorAgent {
   private readonly agent: OpenAI
   private readonly instructionPrompt: string
@@ -49,6 +45,7 @@ export class CoordinatorAgent {
   private readonly baseDir: string
   private readonly repoName: string
   private readonly repository: GitHubRepository
+  private readonly apiKey: string
   public outputSchema = z
     .object({
       agent_type: z.enum(["researcher", "librarian", "coder"]),
@@ -63,9 +60,13 @@ export class CoordinatorAgent {
     repository: GitHubRepository,
     trace: LangfuseTraceClient = null,
     baseDir: string,
-    repoName: string
+    repoName: string,
+    apiKey: string
   ) {
-    this.agent = agent
+    this.apiKey = apiKey
+    this.agent = new OpenAI({
+      apiKey,
+    })
     this.messages = []
     this.issue = issue
     this.repository = repository
@@ -233,7 +234,11 @@ Please output in JSON mode. You may call any or all agents, in sequence or in pa
 
     switch (toolCall.function.name) {
       case "call_librarian":
-        const librarianAgent = new LibrarianAgent(this.repository, this.trace)
+        const librarianAgent = new LibrarianAgent(
+          this.repository,
+          this.trace,
+          this.apiKey
+        )
         await librarianAgent.setupLocalRepo()
         librarianAgent.addUserMessage(args.request)
         const libResponse = await librarianAgent.generateResponse()
@@ -252,7 +257,7 @@ Please output in JSON mode. You may call any or all agents, in sequence or in pa
 
       case "call_coder":
         // Create and use the coder agent
-        const coderAgent = new CoderAgent(this.trace, this.baseDir)
+        const coderAgent = new CoderAgent(this.trace, this.baseDir, this.apiKey)
         const response = await coderAgent.processEditRequest(
           args.instructions,
           args.file
@@ -289,10 +294,18 @@ export class LibrarianAgent {
   private branch: string
   private tree: string[]
   private repository: GitHubRepository
+  private agent: OpenAI
 
-  constructor(repository: GitHubRepository, trace: LangfuseTraceClient) {
+  constructor(
+    repository: GitHubRepository,
+    trace: LangfuseTraceClient,
+    apiKey: string
+  ) {
     this.repository = repository
     this.branch = "main"
+    this.agent = new OpenAI({
+      apiKey,
+    })
 
     if (trace) {
       this.trace = trace
@@ -408,7 +421,7 @@ export class LibrarianAgent {
     const span = this.trace.span({ name: "Generate librarian response" })
 
     try {
-      const response = await observeOpenAI(agent, {
+      const response = await observeOpenAI(this.agent, {
         parent: span,
         generationName: "Librarian response",
       }).chat.completions.create({
@@ -452,6 +465,7 @@ export class CoderAgent {
   private trace: LangfuseTraceClient
   private messages: ChatCompletionMessageParam[] = []
   private baseDir: string
+  private agent: OpenAI
   private readonly tools: ChatCompletionTool[] = [
     {
       type: "function",
@@ -512,9 +526,12 @@ export class CoderAgent {
     })
     .strict()
 
-  constructor(trace: LangfuseTraceClient, baseDir: string) {
+  constructor(trace: LangfuseTraceClient, baseDir: string, apiKey: string) {
     this.trace = trace
     this.baseDir = baseDir
+    this.agent = new OpenAI({
+      apiKey,
+    })
   }
 
   async processEditRequest(instructions: string, filePath?: string) {
@@ -564,7 +581,7 @@ Respond with a summary of changes made.`,
     const span = this.trace.span({ name: "Generate code changes" })
 
     try {
-      const response = await observeOpenAI(agent, {
+      const response = await observeOpenAI(this.agent, {
         parent: span,
         generationName: "Code implementation",
       }).chat.completions.create({

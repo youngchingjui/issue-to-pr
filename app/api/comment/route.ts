@@ -15,12 +15,13 @@ import commentOnIssue from "@/lib/workflows/commentOnIssue"
 type RequestBody = {
   issueNumber: number
   repo: GitHubRepository
+  apiKey: string
 }
 
 export async function POST(request: NextRequest) {
-  const { issueNumber, repo }: RequestBody = await request.json()
+  const { issueNumber, repo, apiKey }: RequestBody = await request.json()
 
-  const response = await commentOnIssue(issueNumber, repo)
+  const response = await commentOnIssue(issueNumber, repo, apiKey)
 
   return NextResponse.json(response)
 }

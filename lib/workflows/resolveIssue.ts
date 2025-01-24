@@ -10,7 +10,11 @@ import { Issue } from "@/lib/types"
 import { getRepoFromString } from "../github/content"
 import { langfuse } from "../langfuse"
 
-export const resolveIssue = async (issue: Issue, repoName: string) => {
+export const resolveIssue = async (
+  issue: Issue,
+  repoName: string,
+  apiKey: string
+) => {
   // Get or create a local directory to work off of
   const repository = await getRepoFromString(repoName)
   const baseDir = await getLocalRepoDir(repository.full_name)
@@ -25,7 +29,8 @@ export const resolveIssue = async (issue: Issue, repoName: string) => {
     repository,
     trace,
     baseDir,
-    repoName
+    repoName,
+    apiKey
   )
   await agent.run()
 }
