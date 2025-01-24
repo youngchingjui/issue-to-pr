@@ -344,7 +344,12 @@ export class LibrarianAgent {
     const repoPath = await getLocalRepoDir(this.repository.full_name)
 
     const session = await auth()
-    const token = session?.user?.accessToken
+
+    if (!session) {
+      throw new Error("Unauthorized")
+    }
+
+    const token = session.user?.accessToken
 
     // Check if .git and codebase exist in tempDir
     // If not, clone the repo

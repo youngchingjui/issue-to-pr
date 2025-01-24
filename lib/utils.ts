@@ -15,6 +15,6 @@ export function getCloneUrlWithAccessToken(
   userRepo: string,
   token: string
 ): string {
-  // userRepo format is "username/repo", like "youngchingjui/issue-to-pr"
+  // userRepo format is "username/repo"
   return `https://${token}@github.com/${userRepo}.git`
 }
