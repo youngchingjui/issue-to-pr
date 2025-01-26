@@ -28,6 +28,9 @@ You will need to generate a comment on the issue that includes the following sec
 - Relevant code (files, functions, methods, etc.)
 - Possible solutions
 - Suggested plan
+
+You have access to the contents of all files in the codebase through the "get_file_content" tool.
+Even though you will be given a tree of the codebase, I encourage you to open up specific files to get a full understanding of the problem in the code.
 `
     super({
       systemPrompt:

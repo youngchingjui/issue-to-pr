@@ -13,6 +13,7 @@ import { createDirectoryTree, getLocalRepoDir } from "@/lib/fs"
 import { checkIfGitExists, cloneRepo, updateToLatest } from "@/lib/git"
 import { createIssueComment, getIssue } from "@/lib/github/issues"
 import { langfuse } from "@/lib/langfuse"
+import GetFileContentTool from "@/lib/tools/GetFileContent"
 import { GitHubRepository } from "@/lib/types"
 import { getCloneUrlWithAccessToken } from "@/lib/utils"
 
@@ -49,10 +50,13 @@ export default async function commentOnIssue(
 
   const tree = await createDirectoryTree(dirPath)
 
+  const getFileContentTool = new GetFileContentTool(dirPath)
+
   // Create the thinker agent
   const thinker = new ThinkerAgent({ issue, apiKey, tree })
   const span = trace.span({ name: "generateComment" })
   thinker.addSpan({ span, generationName: "commentOnIssue" })
+  thinker.addTool(getFileContentTool)
 
   const response = await thinker.runWithFunctions()
   // await thinker.exploreCodebase()
