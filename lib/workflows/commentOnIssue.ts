@@ -22,8 +22,6 @@ export default async function commentOnIssue(
   repo: GitHubRepository,
   apiKey: string
 ) {
-  console.log("commentOnIssue workflow", issueNumber, repo)
-
   const trace = langfuse.trace({ name: "commentOnIssue" })
   const session = await auth()
   const token = session?.user?.accessToken

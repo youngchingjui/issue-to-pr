@@ -1,6 +1,7 @@
 "use client"
 
 import * as motion from "motion/react-client"
+import Link from "next/link"
 import { useEffect, useState } from "react"
 
 const fibonacciSequence = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144]
@@ -55,14 +56,16 @@ export default function Pricing() {
             ${currentPrice}/month
           </p>
           <p className="mb-6 text-stone-600">Bring your own OpenAI API key</p>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={handlePurchase}
-            className="px-6 py-3 bg-amber-700 text-amber-50 rounded-md hover:bg-amber-600 transition-colors text-lg"
-          >
-            Subscribe Now
-          </motion.button>
+          <Link href="https://buy.stripe.com/dR603Q1Zy6YL7bq007">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handlePurchase}
+              className="px-6 py-3 bg-amber-700 text-amber-50 rounded-md hover:bg-amber-600 transition-colors text-lg"
+            >
+              Subscribe Now
+            </motion.button>
+          </Link>
           <p className="mt-4 text-sm text-stone-500">
             Price increases with each sale. Resets if no sales in 72 hours.
           </p>
