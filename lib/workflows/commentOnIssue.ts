@@ -59,6 +59,7 @@ export default async function commentOnIssue(
   thinker.addTool(getFileContentTool)
 
   const response = await thinker.runWithFunctions()
+  span.end()
   // await thinker.exploreCodebase()
   // await thinker.generateComment()
   // Have the LLM think about the issue. What could it mean? What is the user's intent? Add more details to the issue.

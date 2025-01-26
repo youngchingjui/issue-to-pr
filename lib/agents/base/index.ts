@@ -70,7 +70,7 @@ export class Agent {
     this.llm = observeOpenAI(this.llm, { parent: span, generationName })
   }
 
-  async runWithFunctions() {
+  async runWithFunctions(): Promise<string> {
     const params: ChatCompletionCreateParamsNonStreaming = {
       model: this.model,
       messages: this.messages,
@@ -82,21 +82,34 @@ export class Agent {
 
     const response = await this.llm.chat.completions.create(params)
 
+    this.addMessage(response.choices[0].message)
+
     if (response.choices[0].message.tool_calls) {
       for (const toolCall of response.choices[0].message.tool_calls) {
         const tool = this.tools.find(
-          (t) => t.tool.__name === toolCall.function.name
+          (t) => t.tool.function.name === toolCall.function.name
         )
         if (tool) {
-          const toolResponse = await tool.handler(toolCall.function.arguments)
+          const validationResult = tool.parameters.safeParse(
+            JSON.parse(toolCall.function.arguments)
+          )
+          if (!validationResult.success) {
+            console.error(
+              `Validation failed for tool ${toolCall.function.name}: ${validationResult.error.message}`
+            )
+            continue
+          }
+          const toolResponse = await tool.handler(validationResult.data)
           this.addMessage({
             role: "tool",
             content: toolResponse,
             tool_call_id: toolCall.id,
           })
+        } else {
+          console.error(`Tool ${toolCall.function.name} not found`)
         }
       }
-      this.runWithFunctions()
+      return await this.runWithFunctions()
     } else {
       return response.choices[0].message.content
     }
