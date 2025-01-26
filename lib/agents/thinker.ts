@@ -1,73 +1,61 @@
-import {
-  LangfuseSpanClient,
-  LangfuseTraceClient,
-  observeOpenAI,
-} from "langfuse"
-import OpenAI from "openai"
-import {
-  ChatCompletionMessageParam,
-  ChatCompletionTool,
-} from "openai/resources/chat/completions"
-
-import { thinkerAgentPrompt } from "@/lib/prompts"
+import { Agent } from "@/lib/agents/base"
 import { Issue } from "@/lib/types"
 
-import GetFileContentTool from "../tools/GetFileContent"
+export class ThinkerAgent extends Agent {
+  private initialSystemPrompt: string
 
-export class ThinkerAgent {
-  tools: ChatCompletionTool[]
-  prompt: string
-  llm: OpenAI
-  dirPath: string
-  issue: Issue
-  trace: LangfuseTraceClient
+  constructor({
+    issue,
+    apiKey,
+    tree,
+  }: {
+    issue: Issue
+    apiKey: string
+    tree?: string[]
+  }) {
+    const initialSystemPrompt = `
+You are a senior software engineer. 
+You are given a Github issue, and your job is to understand the issue in relation to the codebase, 
+and try to best understand the user's intent.
 
-  constructor(dirPath: string, trace: LangfuseTraceClient, apiKey: string) {
-    this.prompt = thinkerAgentPrompt
-    this.llm = new OpenAI({
+You will be given the following information:
+- The Github issue, including title, body, and comments.
+- A tree directory of the codebase.
+- Access to the codebase through function calls.
+
+You will need to generate a comment on the issue that includes the following sections:
+- Explanation of the issue
+- Relevant code (files, functions, methods, etc.)
+- Possible solutions
+- Suggested plan
+
+You have access to the contents of all files in the codebase through the "get_file_content" tool.
+Even though you will be given a tree of the codebase, I encourage you to open up specific files to get a full understanding of the problem in the code.
+`
+    super({
+      systemPrompt:
+        initialSystemPrompt +
+        (tree
+          ? `\nHere is the codebase's tree directory:\n${tree.join("\n")}`
+          : ""),
       apiKey,
     })
-    this.dirPath = dirPath
-    this.trace = trace
 
-    // Setup tools
-    // const getFileContentTool = new GetFileContentTool(dirPath)
-    // this.tools.push(getFileContentTool.tool)
-  }
+    this.initialSystemPrompt = initialSystemPrompt
 
-  public async thinkAboutIssue(span: LangfuseSpanClient) {
-    const instructionPrompt: ChatCompletionMessageParam = {
-      role: "system",
-      content: `
-    You are a Product Manager that is reviewing a Github issue submitted by a user or engineer.
-    Your job is to better understand the issue. 
-    Please try to understand the user's intent and the problem they are trying to solve.
-    Also think about ways to split this issue into smaller issues.
-    Then expand upon the issue with more details.
-    `,
-    }
-
-    const userMessage: ChatCompletionMessageParam = {
+    this.addMessage({
       role: "user",
       content: `
-      Github issue title: ${this.issue.title}
-      Github issue description: ${this.issue.body}
+      Github issue title: ${issue.title}
+      Github issue description: ${issue.body}
       `,
-    }
-
-    const response = await observeOpenAI(this.llm, {
-      parent: span,
-      generationName: "thinkAboutIssue",
-    }).chat.completions.create({
-      messages: [instructionPrompt, userMessage],
-      model: "gpt-4o",
     })
-
-    console.log(response.choices[0].message.content)
-
-    return response.choices[0].message.content
   }
 
-  public async exploreCodebase() {}
-  public async generateComment() {}
+  updateSystemPrompt(tree: string[]) {
+    this.setSystemPrompt(
+      this.initialSystemPrompt +
+        `\nHere is the codebase's tree directory:\n${tree.join("\n")}`
+    )
+  }
 }

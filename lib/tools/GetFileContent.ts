@@ -16,22 +16,22 @@ class GetFileContentTool implements Tool<typeof getFileContentParameters> {
   tool = zodFunction({
     name: "get_file_content",
     parameters: getFileContentParameters,
+    description: "Retrieves the file contents from local repository",
   })
-  baseDir: string | null
 
-  constructor(baseDir: string | null = null) {
+  baseDir: string
+
+  constructor(baseDir: string) {
     this.baseDir = baseDir
   }
 
-  async handler(params: z.infer<typeof getFileContentParameters>) {
+  async handler(
+    params: z.infer<typeof getFileContentParameters>
+  ): Promise<string> {
     const { relativePath } = params
 
-    if (!this.baseDir) {
-      throw new Error("Base directory not set")
-    }
-
     try {
-      return await getFileContent(path.join(this.baseDir, relativePath))
+      return getFileContent(path.join(this.baseDir, relativePath))
     } catch (error) {
       console.error("Error getting file content:", error)
       throw error

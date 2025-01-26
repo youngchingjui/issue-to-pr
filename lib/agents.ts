@@ -18,15 +18,8 @@ import {
 import path from "path"
 import { z } from "zod"
 
-import { auth } from "@/auth"
-import {
-  createDirectoryTree,
-  getFileContent,
-  getLocalRepoDir,
-  writeFile,
-} from "@/lib/fs"
-import { checkIfGitExists, checkoutBranch, cloneRepo } from "@/lib/git"
-import { getFileContent as getGithubFileContent } from "@/lib/github/content"
+import { LibrarianAgent } from "@/lib/agents/librarian"
+import { createDirectoryTree, getFileContent, writeFile } from "@/lib/fs"
 import { langfuse } from "@/lib/langfuse"
 import {
   callCoderTool,
@@ -35,7 +28,6 @@ import {
 } from "@/lib/tools"
 import UploadAndPRTool from "@/lib/tools/UploadAndPR"
 import { GitHubRepository, Issue } from "@/lib/types"
-import { getCloneUrlWithAccessToken } from "@/lib/utils"
 
 export class CoordinatorAgent {
   private readonly agent: OpenAI
@@ -236,11 +228,11 @@ Please output in JSON mode. You may call any or all agents, in sequence or in pa
 
     switch (toolCall.function.name) {
       case "call_librarian":
-        const librarianAgent = new LibrarianAgent(
-          this.repository,
-          this.trace,
-          this.apiKey
-        )
+        const librarianAgent = new LibrarianAgent({
+          repository: this.repository,
+          trace: this.trace,
+          apiKey: this.apiKey,
+        })
         await librarianAgent.setupLocalRepo()
         librarianAgent.addUserMessage(args.request)
         const libResponse = await librarianAgent.generateResponse()
@@ -284,195 +276,6 @@ Please output in JSON mode. You may call any or all agents, in sequence or in pa
 
       default:
         throw new Error(`Unknown tool: ${toolCall.function.name}`)
-    }
-  }
-}
-
-export class LibrarianAgent {
-  private trace: LangfuseTraceClient
-  private instruction: string
-  private readonly messages: ChatCompletionMessageParam[] = []
-  private readonly tools: ChatCompletionTool[]
-  private branch: string
-  private tree: string[]
-  private repository: GitHubRepository
-  private agent: OpenAI
-
-  constructor(
-    repository: GitHubRepository,
-    trace: LangfuseTraceClient,
-    apiKey: string
-  ) {
-    this.repository = repository
-    this.branch = "main"
-    this.agent = new OpenAI({
-      apiKey,
-    })
-
-    if (trace) {
-      this.trace = trace
-    } else {
-      this.trace = langfuse.trace({
-        name: "LibrarianAgent",
-      })
-    }
-
-    this.tools = [
-      {
-        type: "function",
-        function: {
-          name: "get_file_content",
-          description: "Get the content of a file from the repository",
-          parameters: {
-            type: "object",
-            required: ["path"],
-            properties: {
-              path: {
-                type: "string",
-                description: "Path to the file in the repository",
-              },
-            },
-          },
-        },
-      },
-    ]
-  }
-
-  async setupLocalRepo() {
-    // This ensures LibrarianAgent has access to the repo hosted locally
-    // Run this before generating responses
-    const repoPath = await getLocalRepoDir(this.repository.full_name)
-
-    const session = await auth()
-
-    if (!session) {
-      throw new Error("Unauthorized")
-    }
-
-    const token = session.user?.accessToken
-
-    // Check if .git and codebase exist in tempDir
-    // If not, clone the repo
-    // If so, checkout the branch
-    console.debug(`[DEBUG] Checking if .git and codebase exist in ${repoPath}`)
-    const gitExists = await checkIfGitExists(repoPath)
-    if (!gitExists) {
-      // Clone the repo
-      console.debug(`[DEBUG] Cloning repo: ${this.repository.clone_url}`)
-
-      // Attach access token to cloneUrl
-      const cloneUrlWithToken = getCloneUrlWithAccessToken(
-        this.repository.full_name,
-        token
-      )
-      await cloneRepo(cloneUrlWithToken, repoPath)
-    }
-
-    console.debug(`[DEBUG] Checking out branch ${this.branch}`)
-    // Checkout the branch
-    await checkoutBranch(this.branch, repoPath)
-
-    const cwd = repoPath
-    this.tree = await createDirectoryTree(cwd || process.cwd())
-    this.updateInstructions()
-  }
-
-  private async handleGetFileContent(path: string): Promise<string> {
-    const span = this.trace.span({ name: "Get file content" })
-    try {
-      const content = await getGithubFileContent({
-        repo: this.repository.name,
-        path,
-        branch: this.branch,
-      })
-
-      // GitHub API returns base64 encoded content
-      if ("content" in content && typeof content.content === "string") {
-        const decodedContent = Buffer.from(content.content, "base64").toString()
-        return decodedContent
-      }
-
-      throw new Error("Invalid content format received from GitHub")
-    } catch (error) {
-      console.error("Error getting file content:", error)
-      throw error
-    } finally {
-      span.end()
-    }
-  }
-
-  addUserMessage(message: string) {
-    this.messages.push({
-      role: "user",
-      content: message,
-    })
-  }
-
-  private updateInstructions() {
-    this.instruction = `
-    You are a librarian agent. You have access to the codebase and can retrieve information about the codebase.
-    You can request the content of any file using the get_file_content tool.
-    This is the directory structure of the codebase: ${this.tree && this.tree.join("\n")}
-    When you request for content data, you're actually requesting from Github, which should have the same codebase structure. Just make sure to use the correct relative path.
-    Only request for files that exist. If you request for a file that doesn't exist, you'll get an error. Try to identify the correct file to request for.
-  `
-
-    // Remove any existing system messages, and add this updated one
-    const index = this.messages.findIndex((msg) => msg.role === "system")
-    if (index !== -1) {
-      this.messages.splice(index, 1)
-    }
-    // Add the new system message
-    this.messages.unshift({
-      role: "system",
-      content: this.instruction,
-    })
-  }
-
-  async generateResponse() {
-    if (this.messages.length === 0) {
-      throw new Error("No messages to process")
-    }
-
-    const span = this.trace.span({ name: "Generate librarian response" })
-
-    try {
-      const response = await observeOpenAI(this.agent, {
-        parent: span,
-        generationName: "Librarian response",
-      }).chat.completions.create({
-        model: "gpt-4o",
-        messages: this.messages,
-        tools: this.tools,
-      })
-
-      if (!response.choices[0].message.tool_calls) {
-        // Return the final message if there are no more tool calls
-        return response.choices[0].message
-      }
-
-      // Add the tool call message to messages
-      this.messages.push(response.choices[0].message)
-
-      // Run all tool calls, and add their results to messages
-      for (const toolCall of response.choices[0].message.tool_calls) {
-        if (toolCall.function.name === "get_file_content") {
-          const args = JSON.parse(toolCall.function.arguments)
-          const content = await this.handleGetFileContent(args.path)
-
-          // Add the tool call response to messages, with corresponding tool_call_id
-          this.messages.push({
-            role: "tool",
-            content,
-            tool_call_id: toolCall.id,
-          })
-        }
-      }
-
-      // Run another response with the tool call responses
-      return this.generateResponse()
-    } finally {
-      span.end()
     }
   }
 }

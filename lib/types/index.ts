@@ -10,7 +10,7 @@ export type GitHubIssueComment = components["schemas"]["issue-comment"]
 export type Tool<T extends z.ZodType, U = unknown> = {
   tool: ReturnType<typeof zodFunction>
   parameters: T
-  handler: (params: z.infer<T>, ...args: U[]) => unknown
+  handler: (params: z.infer<T>, ...args: U[]) => Promise<string>
 }
 
 export interface Issue {
