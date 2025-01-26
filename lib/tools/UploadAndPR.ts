@@ -82,7 +82,7 @@ class UploadAndPRTool implements Tool<typeof uploadAndPRParameters> {
     })
     if (existingPR) {
       // There exists a PR already
-      return new Error(
+      throw new Error(
         `There already exists an PR on this branch: ${branch}. PR: ${existingPR}`
       )
     }
@@ -90,14 +90,15 @@ class UploadAndPRTool implements Tool<typeof uploadAndPRParameters> {
     // Generate PR on latest HEAD of branch
     console.debug("[DEBUG] Creating pull request")
     try {
-      await createPullRequest({
+      const pr = await createPullRequest({
         repo: this.repository.name,
         branch,
         title: pullRequest.title,
         body: pullRequest.body,
       })
+      return JSON.stringify(pr)
     } catch (error) {
-      return new Error(error)
+      throw new Error(error)
     }
   }
 }
