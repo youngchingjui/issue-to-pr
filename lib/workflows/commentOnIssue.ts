@@ -48,12 +48,13 @@ export default async function commentOnIssue(
   }
 
   // Create the thinker agent
-  const thinker = new ThinkerAgent(dirPath, trace, apiKey)
-  thinker.issue = issue
+  const thinker = new ThinkerAgent({ issue, apiKey })
 
   const span = trace.span({ name: "generateComment" })
 
-  const thinking = await thinker.thinkAboutIssue(span)
+  thinker.addSpan({ span, generationName: "commentOnIssue" })
+
+  const response = await thinker.runWithFunctions()
   // await thinker.exploreCodebase()
   // await thinker.generateComment()
   // Have the LLM think about the issue. What could it mean? What is the user's intent? Add more details to the issue.
@@ -68,7 +69,7 @@ export default async function commentOnIssue(
   const issueComment = await createIssueComment({
     issueNumber,
     repo,
-    comment: thinking,
+    comment: response,
   })
 
   // Return the comment

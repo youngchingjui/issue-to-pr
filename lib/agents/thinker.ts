@@ -1,73 +1,32 @@
-import {
-  LangfuseSpanClient,
-  LangfuseTraceClient,
-  observeOpenAI,
-} from "langfuse"
-import OpenAI from "openai"
-import {
-  ChatCompletionMessageParam,
-  ChatCompletionTool,
-} from "openai/resources/chat/completions"
-
-import { thinkerAgentPrompt } from "@/lib/prompts"
+import { Agent } from "@/lib/agents/base"
 import { Issue } from "@/lib/types"
 
-import GetFileContentTool from "../tools/GetFileContent"
+export class ThinkerAgent extends Agent {
+  constructor({ issue, apiKey }: { issue: Issue; apiKey: string }) {
+    super({
+      systemPrompt: `
+You are a senior software engineer. 
+You are given a Github issue, and your job is to understand the issue in relation to the codebase, 
+and try to best understand the user's intent.
 
-export class ThinkerAgent {
-  tools: ChatCompletionTool[]
-  prompt: string
-  llm: OpenAI
-  dirPath: string
-  issue: Issue
-  trace: LangfuseTraceClient
+You will be given the following information:
+- The Github issue, including title, body, and comments.
+- Access to the codebase through function calls.
 
-  constructor(dirPath: string, trace: LangfuseTraceClient, apiKey: string) {
-    this.prompt = thinkerAgentPrompt()
-    this.llm = new OpenAI({
+You will need to generate a comment on the issue that includes the following sections:
+- Understanding the issue
+- Relevant code
+- Possible solutions
+- Suggested plan
+`,
       apiKey,
     })
-    this.dirPath = dirPath
-    this.trace = trace
-
-    // Setup tools
-    // const getFileContentTool = new GetFileContentTool(dirPath)
-    // this.tools.push(getFileContentTool.tool)
-  }
-
-  public async thinkAboutIssue(span: LangfuseSpanClient) {
-    const instructionPrompt: ChatCompletionMessageParam = {
-      role: "system",
-      content: `
-    You are a Product Manager that is reviewing a Github issue submitted by a user or engineer.
-    Your job is to better understand the issue. 
-    Please try to understand the user's intent and the problem they are trying to solve.
-    Also think about ways to split this issue into smaller issues.
-    Then expand upon the issue with more details.
-    `,
-    }
-
-    const userMessage: ChatCompletionMessageParam = {
+    this.addMessage({
       role: "user",
       content: `
-      Github issue title: ${this.issue.title}
-      Github issue description: ${this.issue.body}
+      Github issue title: ${issue.title}
+      Github issue description: ${issue.body}
       `,
-    }
-
-    const response = await observeOpenAI(this.llm, {
-      parent: span,
-      generationName: "thinkAboutIssue",
-    }).chat.completions.create({
-      messages: [instructionPrompt, userMessage],
-      model: "gpt-4o",
     })
-
-    console.log(response.choices[0].message.content)
-
-    return response.choices[0].message.content
   }
-
-  public async exploreCodebase() {}
-  public async generateComment() {}
 }
