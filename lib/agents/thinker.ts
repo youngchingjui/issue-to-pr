@@ -23,7 +23,7 @@ export class ThinkerAgent {
   trace: LangfuseTraceClient
 
   constructor(dirPath: string, trace: LangfuseTraceClient, apiKey: string) {
-    this.prompt = thinkerAgentPrompt
+    this.prompt = thinkerAgentPrompt()
     this.llm = new OpenAI({
       apiKey,
     })
