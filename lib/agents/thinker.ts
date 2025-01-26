@@ -2,25 +2,44 @@ import { Agent } from "@/lib/agents/base"
 import { Issue } from "@/lib/types"
 
 export class ThinkerAgent extends Agent {
-  constructor({ issue, apiKey }: { issue: Issue; apiKey: string }) {
-    super({
-      systemPrompt: `
+  private initialSystemPrompt: string
+
+  constructor({
+    issue,
+    apiKey,
+    tree,
+  }: {
+    issue: Issue
+    apiKey: string
+    tree?: string[]
+  }) {
+    const initialSystemPrompt = `
 You are a senior software engineer. 
 You are given a Github issue, and your job is to understand the issue in relation to the codebase, 
 and try to best understand the user's intent.
 
 You will be given the following information:
 - The Github issue, including title, body, and comments.
+- A tree directory of the codebase.
 - Access to the codebase through function calls.
 
 You will need to generate a comment on the issue that includes the following sections:
-- Understanding the issue
-- Relevant code
+- Explanation of the issue
+- Relevant code (files, functions, methods, etc.)
 - Possible solutions
 - Suggested plan
-`,
+`
+    super({
+      systemPrompt:
+        initialSystemPrompt +
+        (tree
+          ? `\nHere is the codebase's tree directory:\n${tree.join("\n")}`
+          : ""),
       apiKey,
     })
+
+    this.initialSystemPrompt = initialSystemPrompt
+
     this.addMessage({
       role: "user",
       content: `
@@ -28,5 +47,12 @@ You will need to generate a comment on the issue that includes the following sec
       Github issue description: ${issue.body}
       `,
     })
+  }
+
+  updateSystemPrompt(tree: string[]) {
+    this.setSystemPrompt(
+      this.initialSystemPrompt +
+        `\nHere is the codebase's tree directory:\n${tree.join("\n")}`
+    )
   }
 }

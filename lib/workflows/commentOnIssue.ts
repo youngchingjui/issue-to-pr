@@ -9,7 +9,7 @@
 
 import { auth } from "@/auth"
 import { ThinkerAgent } from "@/lib/agents/thinker"
-import { getLocalRepoDir } from "@/lib/fs"
+import { createDirectoryTree, getLocalRepoDir } from "@/lib/fs"
 import { checkIfGitExists, cloneRepo, updateToLatest } from "@/lib/git"
 import { createIssueComment, getIssue } from "@/lib/github/issues"
 import { langfuse } from "@/lib/langfuse"
@@ -47,11 +47,11 @@ export default async function commentOnIssue(
     await updateToLatest(dirPath)
   }
 
+  const tree = await createDirectoryTree(dirPath)
+
   // Create the thinker agent
-  const thinker = new ThinkerAgent({ issue, apiKey })
-
+  const thinker = new ThinkerAgent({ issue, apiKey, tree })
   const span = trace.span({ name: "generateComment" })
-
   thinker.addSpan({ span, generationName: "commentOnIssue" })
 
   const response = await thinker.runWithFunctions()
