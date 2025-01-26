@@ -228,11 +228,11 @@ Please output in JSON mode. You may call any or all agents, in sequence or in pa
 
     switch (toolCall.function.name) {
       case "call_librarian":
-        const librarianAgent = new LibrarianAgent(
-          this.repository,
-          this.trace,
-          this.apiKey
-        )
+        const librarianAgent = new LibrarianAgent({
+          repository: this.repository,
+          trace: this.trace,
+          apiKey: this.apiKey,
+        })
         await librarianAgent.setupLocalRepo()
         librarianAgent.addUserMessage(args.request)
         const libResponse = await librarianAgent.generateResponse()

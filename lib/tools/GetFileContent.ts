@@ -16,6 +16,7 @@ class GetFileContentTool implements Tool<typeof getFileContentParameters> {
   tool = zodFunction({
     name: "get_file_content",
     parameters: getFileContentParameters,
+    description: "Retrieves the file contents from local repository",
   })
   baseDir: string | null
 
