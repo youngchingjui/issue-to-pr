@@ -1,6 +1,5 @@
 import { Agent } from "@/lib/agents/base"
-import { GitHubRepository, Issue } from "@/lib/types"
-import { getIssueComments } from "@/lib/github/issues";  // Import getIssueComments
+import { GitHubIssue, GitHubIssueComment, GitHubRepository } from "@/lib/types"
 
 export class CoordinatorAgent extends Agent {
   repo: GitHubRepository
@@ -15,11 +14,13 @@ export class CoordinatorAgent extends Agent {
     apiKey,
     repo,
     tree,
+    comments,
   }: {
-    issue?: Issue
+    issue?: GitHubIssue
     apiKey: string
     repo: GitHubRepository
     tree: string[]
+    comments?: GitHubIssueComment[]
   }) {
     const initialSystemPrompt = `
 ## Goal 
@@ -50,30 +51,27 @@ Please output in JSON mode. You may call any or all functions, in sequence or in
 `
     super({ systemPrompt: initialSystemPrompt, apiKey })
 
-    this.repo = repo;
+    this.repo = repo
 
-    (async () => {
-      if (issue) {
-        const comments = await getIssueComments({
-          repo: repo.name,
-          issueNumber: issue.number,
-        });
-
-        let commentsContent = "No comments available.";
-        if (comments.length > 0) {
-          commentsContent = comments.map(comment => `- ${comment.body}`).join("\n");
-        }
-
-        this.addMessage({
-          role: "user",
-          content: `
+    if (issue) {
+      this.addMessage({
+        role: "user",
+        content: `
 Github issue title: ${issue.title}
 Github issue description: ${issue.body}
 Github issue comments: 
-${commentsContent}
-          `,
-        });
-      }
-    })();
+${comments
+  ?.map(
+    (comment) => `
+- **User**: ${comment.user.login}
+- **Created At**: ${new Date(comment.created_at).toLocaleString()}
+- **Reactions**: ${comment.reactions ? comment.reactions.total_count : 0}
+- **Comment**: ${comment.body}
+`
+  )
+  .join("\n")}
+`,
+      })
+    }
   }
 }
