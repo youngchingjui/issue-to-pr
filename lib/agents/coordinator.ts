@@ -1,5 +1,6 @@
 import { Agent } from "@/lib/agents/base"
-import { GitHubRepository, Issue } from "@/lib/types"
+import { GitHubRepository, Issue, GitHubIssueComment } from "@/lib/types"
+import { getIssueComments } from "@/lib/github/issues";
 
 export class CoordinatorAgent extends Agent {
   repo: GitHubRepository
@@ -57,8 +58,28 @@ Github issue title: ${issue.title}
 Github issue description: ${issue.body}
       `,
       })
+
+      // Execute the function to get issue comments and store them
+      this.getAndStoreIssueComments(issue.number);
     }
 
     this.repo = repo
+  }
+
+  private async getAndStoreIssueComments(issueNumber: number) {
+    try {
+      const comments: GitHubIssueComment[] = await getIssueComments({
+        repo: this.repo.name,
+        issueNumber,
+      });
+      comments.forEach(comment => {
+        this.addMessage({
+          role: "comment",
+          content: `User ${comment.user.login} commented: ${comment.body}`,
+        });
+      });
+    } catch (error) {
+      console.error("Error retrieving issue comments:", error);
+    }
   }
 }

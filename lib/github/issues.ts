@@ -39,3 +39,20 @@ export async function createIssueComment({
   })
   return issue.data
 }
+
+export async function getIssueComments({
+  repo,
+  issueNumber,
+}: {
+  repo: string
+  issueNumber: number
+}): Promise<GitHubIssueComment[]> {
+  const octokit = await getOctokit()
+  const user = await getGithubUser()
+  const comments = await octokit.issues.listComments({
+    owner: user.login,
+    repo,
+    issue_number: issueNumber,
+  })
+  return comments.data as GitHubIssueComment[]
+}
