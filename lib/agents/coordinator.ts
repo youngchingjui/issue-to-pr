@@ -1,5 +1,5 @@
 import { Agent } from "@/lib/agents/base"
-import { GitHubRepository, Issue } from "@/lib/types"
+import { GitHubIssue, GitHubIssueComment, GitHubRepository } from "@/lib/types"
 
 export class CoordinatorAgent extends Agent {
   repo: GitHubRepository
@@ -14,11 +14,13 @@ export class CoordinatorAgent extends Agent {
     apiKey,
     repo,
     tree,
+    comments,
   }: {
-    issue?: Issue
+    issue?: GitHubIssue
     apiKey: string
     repo: GitHubRepository
     tree: string[]
+    comments?: GitHubIssueComment[]
   }) {
     const initialSystemPrompt = `
 ## Goal 
@@ -49,16 +51,27 @@ Please output in JSON mode. You may call any or all functions, in sequence or in
 `
     super({ systemPrompt: initialSystemPrompt, apiKey })
 
+    this.repo = repo
+
     if (issue) {
       this.addMessage({
         role: "user",
         content: `
 Github issue title: ${issue.title}
 Github issue description: ${issue.body}
-      `,
+Github issue comments: 
+${comments
+  ?.map(
+    (comment) => `
+- **User**: ${comment.user.login}
+- **Created At**: ${new Date(comment.created_at).toLocaleString()}
+- **Reactions**: ${comment.reactions ? comment.reactions.total_count : 0}
+- **Comment**: ${comment.body}
+`
+  )
+  .join("\n")}
+`,
       })
     }
-
-    this.repo = repo
   }
 }

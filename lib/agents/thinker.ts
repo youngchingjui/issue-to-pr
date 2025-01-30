@@ -1,5 +1,5 @@
 import { Agent } from "@/lib/agents/base"
-import { Issue } from "@/lib/types"
+import { GitHubIssue } from "@/lib/types"
 
 export class ThinkerAgent extends Agent {
   private initialSystemPrompt: string
@@ -9,7 +9,7 @@ export class ThinkerAgent extends Agent {
     apiKey,
     tree,
   }: {
-    issue: Issue
+    issue: GitHubIssue
     apiKey: string
     tree?: string[]
   }) {
