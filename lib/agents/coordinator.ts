@@ -1,13 +1,14 @@
 import { Agent } from "@/lib/agents/base"
 import { GitHubRepository, Issue } from "@/lib/types"
 
+import { getLocalRepoDir } from "../fs"
+import GetFileContentTool from "../tools/GetFileContent"
+import UploadAndPRTool from "../tools/UploadAndPR"
+import WriteFileContentTool from "../tools/WriteFileContent"
+import { getIssueComments } from "../github/issues" // Import the getIssueComments function
+
 export class CoordinatorAgent extends Agent {
   repo: GitHubRepository
-  REQUIRED_TOOLS = [
-    "get_file_content",
-    "call_coder_agent",
-    "upload_and_create_PR",
-  ]
 
   constructor({
     issue,
@@ -47,6 +48,7 @@ ${tree.join("\n")}
 ## Conclusion
 Please output in JSON mode. You may call any or all functions, in sequence or in parallel. Again, your goal is to resolve the Github Issue.
 `
+    
     super({ systemPrompt: initialSystemPrompt, apiKey })
 
     if (issue) {
@@ -57,8 +59,52 @@ Github issue title: ${issue.title}
 Github issue description: ${issue.body}
       `,
       })
+
+      // Fetch and process GitHub issue comments
+      this.fetchIssueComments(issue, repo).then(comments => {
+        const commentsContent = comments.map(comment => "Author: " + comment.author + "\n\n" + comment.body).join("\n---\n");
+        if (commentsContent) {
+          this.addMessage({
+            role: "system",
+            content: `GitHub issue comments:\n${commentsContent}`
+          });
+        }
+      }).catch(error => {
+        console.error("Failed to fetch issue comments:", error);
+      });
     }
 
     this.repo = repo
+  }
+
+  // Method to fetch and process issue comments
+  async fetchIssueComments(issue: Issue, repo: GitHubRepository) {
+    try {
+      const comments = await getIssueComments({
+        repo: repo.name,
+        issueNumber: issue.number
+      });
+      return comments;
+    } catch (error) {
+      throw new Error(`Failed to fetch comments for issue: ${issue.number}, error: ${error.message}`);
+    }
+  }
+
+  async checkTools() {
+    // TODO: Check that the required tool are attached:
+    // - get_file_content
+    // - write_file
+    // - submit_pr
+
+    return true
+  }
+
+  async runWithFunctions() {
+    const hasTools = await this.checkTools()
+    if (!hasTools) {
+      throw new Error("Missing tools, please attach required tools first")
+    }
+
+    return super.runWithFunctions()
   }
 }
