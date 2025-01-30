@@ -116,3 +116,15 @@ export async function getLocalFileContent(filePath: string): Promise<string> {
   const fileContent = await fs.readFile(filePath, "utf8")
   return fileContent
 }
+
+export async function stash(dir: string): Promise<string> {
+  const command = `git stash`
+  return new Promise((resolve, reject) => {
+    exec(command, { cwd: dir }, (error, stdout) => {
+      if (error) {
+        return reject(new Error(error.message))
+      }
+      return resolve(stdout)
+    })
+  })
+}
