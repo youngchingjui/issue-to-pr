@@ -1,5 +1,6 @@
 import { Agent } from "@/lib/agents/base"
 import { GitHubRepository, Issue } from "@/lib/types"
+import { getIssueComments } from "@/lib/github/issues";  // Import getIssueComments
 
 export class CoordinatorAgent extends Agent {
   repo: GitHubRepository
@@ -49,16 +50,30 @@ Please output in JSON mode. You may call any or all functions, in sequence or in
 `
     super({ systemPrompt: initialSystemPrompt, apiKey })
 
-    if (issue) {
-      this.addMessage({
-        role: "user",
-        content: `
+    this.repo = repo;
+
+    (async () => {
+      if (issue) {
+        const comments = await getIssueComments({
+          repo: repo.name,
+          issueNumber: issue.number,
+        });
+
+        let commentsContent = "No comments available.";
+        if (comments.length > 0) {
+          commentsContent = comments.map(comment => `- ${comment.body}`).join("\n");
+        }
+
+        this.addMessage({
+          role: "user",
+          content: `
 Github issue title: ${issue.title}
 Github issue description: ${issue.body}
-      `,
-      })
-    }
-
-    this.repo = repo
+Github issue comments: 
+${commentsContent}
+          `,
+        });
+      }
+    })();
   }
 }
