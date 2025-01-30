@@ -3,13 +3,16 @@
 // All the agents will share the same trace
 // They can also all access the same data, such as the issue, the codebase, etc.
 
+import { CoordinatorAgent } from "@/lib/agents/coordinator"
 import { createDirectoryTree, getLocalRepoDir } from "@/lib/fs"
+import { getRepoFromString } from "@/lib/github/content"
+import { langfuse } from "@/lib/langfuse"
+import {
+  CallCoderAgentTool,
+  GetFileContentTool,
+  UploadAndPRTool,
+} from "@/lib/tools"
 import { Issue } from "@/lib/types"
-
-import { CoordinatorAgent } from "../agents/coordinator"
-import { getRepoFromString } from "../github/content"
-import { langfuse } from "../langfuse"
-import GetFileContentTool from "../tools/GetFileContent"
 
 export const resolveIssue = async (
   issue: Issue,
@@ -29,8 +32,9 @@ export const resolveIssue = async (
   const tree = await createDirectoryTree(baseDir)
 
   // Load all the tools
-  const callCoderAgentTool = new CallCoderAgentTool()
-  const getFileContentTool = new GetFileContentTool()
+  const callCoderAgentTool = new CallCoderAgentTool({ apiKey, baseDir })
+  const getFileContentTool = new GetFileContentTool(baseDir)
+  const submitPRTool = new UploadAndPRTool(repository, baseDir)
 
   // Prepare the coordinator agent
   const coordinatorAgent = new CoordinatorAgent({
@@ -41,15 +45,10 @@ export const resolveIssue = async (
   })
   coordinatorAgent.addSpan({ span, generationName: "coordinate" })
 
-  // Add tools for coordinator agent
-
-  // Prepare the coder agent
-  const coderAgent = new CoderAgent()
-
-  callCoderAgentTool.attachCoderAgent(coderAgent)
-  coordinatorAgent.addTool(callCoderAgentTool) // Coordinator will pass off work to coder and wait for response
-
+  // Add tools for coordinator agen
   coordinatorAgent.addTool(getFileContentTool)
+  coordinatorAgent.addTool(callCoderAgentTool) // Coordinator will pass off work to coder and wait for response
+  coordinatorAgent.addTool(submitPRTool)
 
   return await coordinatorAgent.runWithFunctions()
 }

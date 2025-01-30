@@ -62,8 +62,8 @@ export async function updateFileContent({
     path,
     message: commitMessage,
     content: Buffer.from(content).toString("base64"),
-    sha,
     branch,
+    ...(sha && { sha }),
   })
 }
 
@@ -75,22 +75,29 @@ export async function getFileSha({
   repo: string
   path: string
   branch: string
-}) {
+}): Promise<string | null> {
   const octokit = await getOctokit()
   const user = await getGithubUser()
-  const response = await octokit.rest.repos.getContent({
-    owner: user.login,
-    repo,
-    path,
-    ref: branch,
-  })
+  try {
+    const response = await octokit.rest.repos.getContent({
+      owner: user.login,
+      repo,
+      path,
+      ref: branch,
+    })
+    if (Array.isArray(response.data)) {
+      throw new Error("Path points to a directory, not a file")
+    }
 
-  if (Array.isArray(response.data)) {
-    throw new Error("Path points to a directory, not a file")
-  }
-
-  if ("sha" in response.data) {
-    return response.data.sha
+    if ("sha" in response.data) {
+      return response.data.sha
+    }
+  } catch (error) {
+    if (error.status === 404) {
+      console.debug(`[DEBUG] File ${path} not found on branch ${branch}`)
+      return null
+    }
+    throw error
   }
 
   throw new Error("Could not get file SHA")

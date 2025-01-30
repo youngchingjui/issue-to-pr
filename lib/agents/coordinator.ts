@@ -1,13 +1,13 @@
 import { Agent } from "@/lib/agents/base"
 import { GitHubRepository, Issue } from "@/lib/types"
 
-import { getLocalRepoDir } from "../fs"
-import GetFileContentTool from "../tools/GetFileContent"
-import UploadAndPRTool from "../tools/UploadAndPR"
-import WriteFileContentTool from "../tools/WriteFileContent"
-
 export class CoordinatorAgent extends Agent {
   repo: GitHubRepository
+  REQUIRED_TOOLS = [
+    "get_file_content",
+    "call_coder_agent",
+    "upload_and_create_PR",
+  ]
 
   constructor({
     issue,
@@ -60,23 +60,5 @@ Github issue description: ${issue.body}
     }
 
     this.repo = repo
-  }
-
-  async checkTools() {
-    // TODO: Check that the required tool are attached:
-    // - get_file_content
-    // - write_file
-    // - submit_pr
-
-    return true
-  }
-
-  async runWithFunctions() {
-    const hasTools = await this.checkTools()
-    if (!hasTools) {
-      throw new Error("Missing tools, please attach required tools first")
-    }
-
-    return super.runWithFunctions()
   }
 }

@@ -10,6 +10,7 @@ import { z } from "zod"
 import { Tool } from "@/lib/types"
 
 export class Agent {
+  REQUIRED_TOOLS: string[] = []
   prompt: string
   messages: ChatCompletionMessageParam[] = []
   tools: Tool<z.ZodType>[] = []
@@ -70,7 +71,22 @@ export class Agent {
     this.llm = observeOpenAI(this.llm, { parent: span, generationName })
   }
 
+  checkTools() {
+    for (const tool of this.REQUIRED_TOOLS) {
+      if (!this.tools.some((t) => t.tool.function.name === tool)) {
+        console.error(`Agent does not have the ${tool} tool`)
+        return false
+      }
+    }
+    return true
+  }
+
   async runWithFunctions(): Promise<string> {
+    const hasTools = this.checkTools()
+    if (!hasTools) {
+      throw new Error("Missing tools, please attach required tools first")
+    }
+
     const params: ChatCompletionCreateParamsNonStreaming = {
       model: this.model,
       messages: this.messages,
@@ -81,7 +97,9 @@ export class Agent {
     }
 
     const response = await this.llm.chat.completions.create(params)
-
+    console.log(
+      `[DEBUG] response: ${JSON.stringify(response.choices[0].message)}`
+    )
     this.addMessage(response.choices[0].message)
 
     if (response.choices[0].message.tool_calls) {

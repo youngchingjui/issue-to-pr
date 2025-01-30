@@ -7,7 +7,7 @@ export type AuthenticatedUserRepository = components["schemas"]["repository"]
 export type GitHubUser = components["schemas"]["simple-user"]
 export type GitHubIssueComment = components["schemas"]["issue-comment"]
 
-export type Tool<T extends z.ZodType, U = unknown> = {
+export interface Tool<T extends z.ZodType, U = unknown> {
   tool: ReturnType<typeof zodFunction>
   parameters: T
   handler: (params: z.infer<T>, ...args: U[]) => Promise<string>

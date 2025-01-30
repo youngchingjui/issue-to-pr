@@ -1,8 +1,8 @@
 import { zodFunction } from "openai/helpers/zod"
-import { z } from "zod/lib"
+import { z } from "zod"
 
-import { writeFile } from "../fs"
-import { Tool } from "../types"
+import { writeFile } from "@/lib/fs"
+import { Tool } from "@/lib/types"
 
 const writeFileContentParameters = z.object({
   relativePath: z
@@ -24,6 +24,7 @@ export default class WriteFileContentTool
   tool = zodFunction({
     name: "write_file",
     parameters: writeFileContentParameters,
+    description: "Writes content to a file in the repository",
   })
 
   async handler(
