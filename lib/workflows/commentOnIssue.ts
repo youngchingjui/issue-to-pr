@@ -10,7 +10,7 @@
 import { auth } from "@/auth"
 import { ThinkerAgent } from "@/lib/agents/thinker"
 import { createDirectoryTree, getLocalRepoDir } from "@/lib/fs"
-import { checkIfGitExists, cloneRepo, updateToLatest } from "@/lib/git"
+import { checkIfGitExists, addWorktree, updateToLatest } from "@/lib/git"
 import { createIssueComment, getIssue } from "@/lib/github/issues"
 import { langfuse } from "@/lib/langfuse"
 import GetFileContentTool from "@/lib/tools/GetFileContent"
@@ -32,19 +32,24 @@ export default async function commentOnIssue(
     issueNumber,
   })
 
-  // Get the local repo directory
-  const dirPath = await getLocalRepoDir(repo.full_name)
+  // Get the local repo directory and append issue number to ensure unique worktree
+  const baseDirPath = await getLocalRepoDir(repo.full_name)
+  const dirPath = `${baseDirPath}-issue-${issueNumber}` // Use unique directory for each issue
 
-  // Ensure .git is initialized and setup in directory
-  const gitExists = await checkIfGitExists(dirPath)
-  if (!gitExists) {
-    // Clone the repo
-    // Attach access token to cloneUrl
-    const cloneUrlWithToken = getCloneUrlWithAccessToken(repo.full_name, token)
-    await cloneRepo(cloneUrlWithToken, dirPath)
+  // Ensure .git is initialized and setup worktree in directory
+  const gitExists = await checkIfGitExists(baseDirPath)
+  if (gitExists) {
+    // Add a worktree for this particular issue
+    await addWorktree(baseDirPath, dirPath, `issue-${issueNumber}`)
   } else {
-    await updateToLatest(dirPath)
+    // Clone the repo first if it doesn't exist
+    const cloneUrlWithToken = getCloneUrlWithAccessToken(repo.full_name, token)
+    await cloneRepo(cloneUrlWithToken, baseDirPath)
+    await addWorktree(baseDirPath, dirPath, `issue-${issueNumber}`)
   }
+
+  // Update worktree to latest
+  await updateToLatest(dirPath)
 
   const tree = await createDirectoryTree(dirPath)
 
@@ -58,15 +63,6 @@ export default async function commentOnIssue(
 
   const response = await thinker.runWithFunctions()
   span.end()
-  // await thinker.exploreCodebase()
-  // await thinker.generateComment()
-  // Have the LLM think about the issue. What could it mean? What is the user's intent? Add more details to the issue.
-  // Let the LLM explore the codebase
-  // Let the LLM generate a post that includes the following sections:
-  // - Understanding the issue
-  // - Possible solutions
-  // - Relevant code
-  // - Suggested plan
 
   // Post the comment to the Github issue
   const issueComment = await createIssueComment({

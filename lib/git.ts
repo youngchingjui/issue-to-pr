@@ -128,3 +128,16 @@ export async function stash(dir: string): Promise<string> {
     })
   })
 }
+
+export async function addWorktree(baseDir: string, worktreePath: string, branchName: string): Promise<string> {
+  // Adds a new worktree at the specified path for a given branch
+  const command = `git worktree add ${worktreePath} ${branchName}`;
+  return new Promise((resolve, reject) => {
+    exec(command, { cwd: baseDir }, (error, stdout) => {
+      if (error) {
+        return reject(new Error(error.message));
+      }
+      return resolve(stdout);
+    });
+  });
+}
