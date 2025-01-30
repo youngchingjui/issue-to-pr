@@ -12,6 +12,8 @@ import {
   cloneRepo,
   stash,
   updateToLatest,
+  createWorktree,
+  removeWorktree,
 } from "@/lib/git"
 import { langfuse } from "@/lib/langfuse"
 import {
@@ -32,7 +34,10 @@ export const resolveIssue = async (
   // Get or create a local directory to work off of
   const baseDir = await getLocalRepoDir(repository.full_name)
 
-  // Check if .git and codebase exist in tempDir
+  // Define a specific worktree directory
+  const worktreeDir = `${baseDir}-worktree`
+
+  // Check if .git and codebase exist in baseDir
   // If not, clone the repo
 
   console.debug(`[DEBUG] Checking if .git and codebase exist in ${baseDir}`)
@@ -52,11 +57,15 @@ export const resolveIssue = async (
     await cloneRepo(cloneUrlWithToken, baseDir)
   }
 
+  // Create or reset the worktree for the branch
+  console.debug(`[DEBUG] Creating worktree in ${worktreeDir}`)
+  await createWorktree(worktreeDir, repository.default_branch, baseDir)
+
   // Clear away any untracked files and checkout the branch
   // And git pull to latest
-  await stash(baseDir)
-  await checkoutBranch(repository.default_branch, baseDir)
-  await updateToLatest(baseDir)
+  await stash(worktreeDir)
+  await checkoutBranch(repository.default_branch, worktreeDir)
+  await updateToLatest(worktreeDir)
 
   // Start a trace for this workflow
   const trace = langfuse.trace({
@@ -65,7 +74,7 @@ export const resolveIssue = async (
   const span = trace.span({ name: "coordinate" })
 
   // Generate a directory tree of the codebase
-  const tree = await createDirectoryTree(baseDir)
+  const tree = await createDirectoryTree(worktreeDir)
 
   // Retrieve all the comments on the issue
   const comments = await getIssueComments({
@@ -74,9 +83,9 @@ export const resolveIssue = async (
   })
 
   // Load all the tools
-  const callCoderAgentTool = new CallCoderAgentTool({ apiKey, baseDir })
-  const getFileContentTool = new GetFileContentTool(baseDir)
-  const submitPRTool = new UploadAndPRTool(repository, baseDir)
+  const callCoderAgentTool = new CallCoderAgentTool({ apiKey, baseDir: worktreeDir })
+  const getFileContentTool = new GetFileContentTool(worktreeDir)
+  const submitPRTool = new UploadAndPRTool(repository, worktreeDir)
 
   // Prepare the coordinator agent
   const coordinatorAgent = new CoordinatorAgent({
@@ -88,10 +97,15 @@ export const resolveIssue = async (
   })
   coordinatorAgent.addSpan({ span, generationName: "coordinate" })
 
-  // Add tools for coordinator agen
+  // Add tools for coordinator agent
   coordinatorAgent.addTool(getFileContentTool)
   coordinatorAgent.addTool(callCoderAgentTool) // Coordinator will pass off work to coder and wait for response
   coordinatorAgent.addTool(submitPRTool)
 
-  return await coordinatorAgent.runWithFunctions()
+  const result = await coordinatorAgent.runWithFunctions()
+
+  // Clean up the worktree after use
+  await removeWorktree(worktreeDir, true, baseDir)
+
+  return result
 }

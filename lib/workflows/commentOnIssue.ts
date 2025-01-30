@@ -10,7 +10,7 @@
 import { auth } from "@/auth"
 import { ThinkerAgent } from "@/lib/agents/thinker"
 import { createDirectoryTree, getLocalRepoDir } from "@/lib/fs"
-import { checkIfGitExists, cloneRepo, updateToLatest } from "@/lib/git"
+import { checkIfGitExists, cloneRepo, createWorktree, removeWorktree, updateToLatest } from "@/lib/git"
 import { createIssueComment, getIssue } from "@/lib/github/issues"
 import { langfuse } from "@/lib/langfuse"
 import GetFileContentTool from "@/lib/tools/GetFileContent"
@@ -35,20 +35,29 @@ export default async function commentOnIssue(
   // Get the local repo directory
   const dirPath = await getLocalRepoDir(repo.full_name)
 
-  // Ensure .git is initialized and setup in directory
+  // Determine worktree path for the specific issue
+  const worktreePath = `${dirPath}-worktree-${issueNumber}`
+  const branchName = `issue-${issueNumber}`
+
+  // Ensure .git is initialized and setup in main directory
   const gitExists = await checkIfGitExists(dirPath)
   if (!gitExists) {
     // Clone the repo
-    // Attach access token to cloneUrl
     const cloneUrlWithToken = getCloneUrlWithAccessToken(repo.full_name, token)
     await cloneRepo(cloneUrlWithToken, dirPath)
-  } else {
-    await updateToLatest(dirPath)
   }
 
-  const tree = await createDirectoryTree(dirPath)
+  // Remove existing worktree if any
+  await removeWorktree(worktreePath, true)
 
-  const getFileContentTool = new GetFileContentTool(dirPath)
+  // Create a worktree for the branch if not exists
+  await createWorktree(worktreePath, branchName, dirPath)
+
+  // Update to the latest state
+  await updateToLatest(worktreePath)
+
+  const tree = await createDirectoryTree(worktreePath)
+  const getFileContentTool = new GetFileContentTool(worktreePath)
 
   // Create the thinker agent
   const thinker = new ThinkerAgent({ issue, apiKey, tree })
@@ -58,15 +67,6 @@ export default async function commentOnIssue(
 
   const response = await thinker.runWithFunctions()
   span.end()
-  // await thinker.exploreCodebase()
-  // await thinker.generateComment()
-  // Have the LLM think about the issue. What could it mean? What is the user's intent? Add more details to the issue.
-  // Let the LLM explore the codebase
-  // Let the LLM generate a post that includes the following sections:
-  // - Understanding the issue
-  // - Possible solutions
-  // - Relevant code
-  // - Suggested plan
 
   // Post the comment to the Github issue
   const issueComment = await createIssueComment({
@@ -74,6 +74,9 @@ export default async function commentOnIssue(
     repo,
     comment: response,
   })
+
+  // Optional: Clean up worktree
+  // await removeWorktree(worktreePath)
 
   // Return the comment
   return { status: "complete", issueComment }
