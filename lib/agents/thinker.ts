@@ -1,18 +1,10 @@
 import { Agent } from "@/lib/agents/base"
-import { Issue } from "@/lib/types"
+import { ThinkerAgentParams } from "@/lib/types"
 
 export class ThinkerAgent extends Agent {
   private initialSystemPrompt: string
 
-  constructor({
-    issue,
-    apiKey,
-    tree,
-  }: {
-    issue: Issue
-    apiKey: string
-    tree?: string[]
-  }) {
+  constructor({ issue, tree, ...rest }: ThinkerAgentParams) {
     const initialSystemPrompt = `
 You are a senior software engineer. 
 You are given a Github issue, and your job is to understand the issue in relation to the codebase, 
@@ -38,7 +30,7 @@ Even though you will be given a tree of the codebase, I encourage you to open up
         (tree
           ? `\nHere is the codebase's tree directory:\n${tree.join("\n")}`
           : ""),
-      apiKey,
+      ...rest,
     })
 
     this.initialSystemPrompt = initialSystemPrompt

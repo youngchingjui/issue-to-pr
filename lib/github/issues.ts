@@ -1,5 +1,5 @@
 import { getGithubUser } from "@/lib/github/users"
-import { GitHubIssueComment, GitHubRepository, Issue } from "@/lib/types"
+import { GitHubIssue, GitHubIssueComment, GitHubRepository } from "@/lib/types"
 
 import getOctokit from "."
 
@@ -9,7 +9,7 @@ export async function getIssue({
 }: {
   repo: string
   issueNumber: number
-}): Promise<Issue> {
+}): Promise<GitHubIssue> {
   const octokit = await getOctokit()
   const user = await getGithubUser()
   const issue = await octokit.issues.get({
@@ -17,7 +17,7 @@ export async function getIssue({
     repo,
     issue_number: issueNumber,
   })
-  return issue.data as Issue
+  return issue.data
 }
 
 export async function createIssueComment({
@@ -38,4 +38,21 @@ export async function createIssueComment({
     body: comment,
   })
   return issue.data
+}
+
+export async function getIssueComments({
+  repo,
+  issueNumber,
+}: {
+  repo: string
+  issueNumber: number
+}): Promise<GitHubIssueComment[]> {
+  const octokit = await getOctokit()
+  const user = await getGithubUser()
+  const comments = await octokit.issues.listComments({
+    owner: user.login,
+    repo,
+    issue_number: issueNumber,
+  })
+  return comments.data as GitHubIssueComment[]
 }

@@ -7,8 +7,7 @@
 import { Octokit } from "@octokit/rest"
 
 import { auth } from "@/auth"
-import { getGithubUser } from "@/lib/github/users"
-import { Issue } from "@/lib/types"
+import { GitHubIssue } from "@/lib/types"
 
 async function getOctokit() {
   const session = await auth()
@@ -27,7 +26,7 @@ async function getOctokit() {
 export async function getRepositoryIssues(
   username: string,
   repo: string
-): Promise<Issue[]> {
+): Promise<GitHubIssue[]> {
   try {
     const octokit = await getOctokit()
     const response = await octokit.issues.listForRepo({
@@ -39,13 +38,7 @@ export async function getRepositoryIssues(
 
     const issues = await Promise.all(
       response.data.map(async (issue) => {
-        return {
-          id: issue.id,
-          number: issue.number,
-          title: issue.title,
-          body: issue.body,
-          state: issue.state,
-        }
+        return issue
       })
     )
 
@@ -62,20 +55,6 @@ export async function getAssociatedBranch() {
   // This is a placeholder. You'll need to implement the logic to find associated branches.
   // It might involve searching for branches with names containing the issue number.
   return null
-}
-
-export async function getIssue(
-  repo: string,
-  issueNumber: number
-): Promise<Issue> {
-  const octokit = await getOctokit()
-  const user = await getGithubUser()
-  const issue = await octokit.issues.get({
-    owner: user.login,
-    repo,
-    issue_number: issueNumber,
-  })
-  return issue.data as Issue
 }
 
 export class GitHubError extends Error {

@@ -19,11 +19,13 @@ import {
   GetFileContentTool,
   UploadAndPRTool,
 } from "@/lib/tools"
-import { GitHubRepository, Issue } from "@/lib/types"
+import { GitHubIssue, GitHubRepository } from "@/lib/types"
 import { getCloneUrlWithAccessToken } from "@/lib/utils"
 
+import { getIssueComments } from "../github/issues"
+
 export const resolveIssue = async (
-  issue: Issue,
+  issue: GitHubIssue,
   repository: GitHubRepository,
   apiKey: string
 ) => {
@@ -62,7 +64,14 @@ export const resolveIssue = async (
   })
   const span = trace.span({ name: "coordinate" })
 
+  // Generate a directory tree of the codebase
   const tree = await createDirectoryTree(baseDir)
+
+  // Retrieve all the comments on the issue
+  const comments = await getIssueComments({
+    repo: repository.name,
+    issueNumber: issue.number,
+  })
 
   // Load all the tools
   const callCoderAgentTool = new CallCoderAgentTool({ apiKey, baseDir })
@@ -75,6 +84,7 @@ export const resolveIssue = async (
     apiKey,
     repo: repository,
     tree,
+    comments,
   })
   coordinatorAgent.addSpan({ span, generationName: "coordinate" })
 

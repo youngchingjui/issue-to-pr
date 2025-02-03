@@ -7,7 +7,7 @@ import {
 } from "openai/resources/chat/completions"
 import { z } from "zod"
 
-import { Tool } from "@/lib/types"
+import { AgentConstructorParams, Tool } from "@/lib/types"
 
 export class Agent {
   REQUIRED_TOOLS: string[] = []
@@ -17,15 +17,7 @@ export class Agent {
   llm: OpenAI
   model: ChatModel = "gpt-4o"
 
-  constructor({
-    model,
-    systemPrompt,
-    apiKey,
-  }: {
-    model?: ChatModel
-    systemPrompt?: string
-    apiKey?: string
-  }) {
+  constructor({ model, systemPrompt, apiKey }: AgentConstructorParams) {
     if (model) {
       this.model = model
     }
