@@ -2,6 +2,7 @@
 import { promises as fs } from "fs"
 import os from "os"
 import * as path from "path"
+import { existsSync } from "fs";
 
 export async function createDirectoryTree(
   dir: string,
@@ -93,4 +94,9 @@ export async function writeFile(
 
   // Write the file
   await fs.writeFile(fullPath, content, "utf-8")
+}
+
+export function fileExists(filePath: string): boolean {
+  // Check if a file exists
+  return existsSync(filePath);
 }

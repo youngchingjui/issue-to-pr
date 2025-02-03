@@ -4,6 +4,7 @@
 import { exec } from "child_process"
 import { promises as fs } from "fs"
 import path from "path"
+import { existsSync } from "fs";
 
 export async function checkIfGitExists(dir: string): Promise<boolean> {
   return await fs
@@ -65,6 +66,10 @@ export async function pushBranch(
   branchName: string,
   cwd: string = null
 ): Promise<string> {
+  if (!existsSync(cwd)) {
+    throw new Error(`Directory does not exist: ${cwd}`);
+  }
+
   const command = `git push origin ${branchName}`
   return new Promise((resolve, reject) => {
     exec(command, { cwd }, (error, stdout) => {
