@@ -80,8 +80,8 @@ export async function checkoutBranch(
   branchName: string,
   cwd: string = null
 ): Promise<string> {
-  // Checks out branch. Returns error if branch does not exist
-  const command = `git checkout -q ${branchName}`
+  // Updated to support worktrees.
+  const command = `git worktree add --checkout ${cwd} ${branchName}`
   return new Promise((resolve, reject) => {
     exec(command, { cwd }, (error, stdout, stderr) => {
       if (error) {
@@ -99,9 +99,44 @@ export async function cloneRepo(
   cloneUrl: string,
   dir: string = null
 ): Promise<string> {
+  // Assume cloneRepo is for initial clone; can be reused with worktrees
   const command = `git clone ${cloneUrl}${dir ? ` ${dir}` : ""}`
   return new Promise((resolve, reject) => {
     exec(command, { cwd: dir }, (error, stdout) => {
+      if (error) {
+        return reject(new Error(error.message))
+      }
+      return resolve(stdout)
+    })
+  })
+}
+
+export async function createWorktree(
+  worktreePath: string,
+  branchName: string,
+  cwd: string = null
+): Promise<string> {
+  // Create a new worktree linked to a branch
+  const command = `git worktree add ${worktreePath} ${branchName}`
+  return new Promise((resolve, reject) => {
+    exec(command, { cwd }, (error, stdout) => {
+      if (error) {
+        return reject(new Error(error.message))
+      }
+      return resolve(stdout)
+    })
+  })
+}
+
+export async function removeWorktree(
+  worktreePath: string,
+  force: boolean = false,
+  cwd: string = null
+): Promise<string> {
+  // Remove the specified worktree
+  const command = `git worktree remove ${force ? '--force ' : ''}${worktreePath}`
+  return new Promise((resolve, reject) => {
+    exec(command, { cwd }, (error, stdout) => {
       if (error) {
         return reject(new Error(error.message))
       }
