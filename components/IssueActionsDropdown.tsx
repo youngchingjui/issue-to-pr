@@ -1,5 +1,6 @@
 "use client"
 
+import { CreatePullRequestButton } from "@/components/CreatePullRequestButton"
 import { GitHubRepository } from "@/lib/types"
 
 export function IssueActionsDropdown({
@@ -9,5 +10,5 @@ export function IssueActionsDropdown({
   issueNumber: number
   repo: GitHubRepository
 }) {
-  return null;
+  return <CreatePullRequestButton issueNumber={issueNumber} repo={repo} />
 }

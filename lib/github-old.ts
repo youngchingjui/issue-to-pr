@@ -7,7 +7,6 @@
 import { Octokit } from "@octokit/rest"
 
 import { auth } from "@/auth"
-import { GitHubIssue } from "@/lib/types"
 
 async function getOctokit() {
   const session = await auth()
@@ -21,34 +20,6 @@ async function getOctokit() {
   }
 
   return new Octokit({ auth: accessToken })
-}
-
-export async function getRepositoryIssues(
-  username: string,
-  repo: string
-): Promise<GitHubIssue[]> {
-  try {
-    const octokit = await getOctokit()
-    const response = await octokit.issues.listForRepo({
-      owner: username,
-      repo,
-      state: "open",
-      per_page: 100,
-    })
-
-    const issues = await Promise.all(
-      response.data.map(async (issue) => {
-        return issue
-      })
-    )
-
-    return issues
-  } catch (error) {
-    console.error("Error fetching repository issues:", error)
-    throw new Error(
-      "Failed to fetch repository issues. Please check your GitHub credentials and repository settings."
-    )
-  }
 }
 
 export async function getAssociatedBranch() {

@@ -1,5 +1,10 @@
 import { getGithubUser } from "@/lib/github/users"
-import { GitHubIssue, GitHubIssueComment, GitHubRepository } from "@/lib/types"
+import {
+  GitHubIssue,
+  GitHubIssueComment,
+  GitHubRepository,
+  ListForRepoParams,
+} from "@/lib/types"
 
 import getOctokit from "."
 
@@ -55,4 +60,20 @@ export async function getIssueComments({
     issue_number: issueNumber,
   })
   return comments.data as GitHubIssueComment[]
+}
+
+export async function getIssueList({
+  repo,
+  ...rest
+}: {
+  repo: string
+} & Omit<ListForRepoParams, "owner" | "repo">): Promise<GitHubIssue[]> {
+  const octokit = await getOctokit()
+  const user = await getGithubUser()
+  const issues = await octokit.issues.listForRepo({
+    owner: user.login,
+    repo,
+    ...rest,
+  })
+  return issues.data
 }

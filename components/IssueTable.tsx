@@ -1,16 +1,16 @@
 import { AddGithubCommentButton } from "@/components/AddGithubCommentButton"
 import { IssueActionsDropdown } from "@/components/IssueActionsDropdown"
 import { getRepoFromString } from "@/lib/github/content"
-import { getRepositoryIssues } from "@/lib/github-old"
+import { getIssueList } from "@/lib/github/issues"
 
 interface Props {
   username: string
   repoName: string
 }
 
-export default async function IssueTable({ username, repoName }: Props) {
+export default async function IssueTable({ repoName }: Props) {
   try {
-    const issues = await getRepositoryIssues(username, repoName)
+    const issues = await getIssueList({ repo: repoName, per_page: 100 })
     const repo = await getRepoFromString(repoName)
 
     if (issues.length === 0) {
