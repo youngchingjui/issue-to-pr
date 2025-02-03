@@ -10,7 +10,5 @@ export function IssueActionsDropdown({
   issueNumber: number
   repo: GitHubRepository
 }) {
-  return (
-    <CreatePullRequestButton issueNumber={issueNumber} repo={repo} />
-  )
+  return <CreatePullRequestButton issueNumber={issueNumber} repo={repo} />
 }
