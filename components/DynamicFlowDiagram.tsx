@@ -9,8 +9,10 @@ import ReactFlow, {
   ConnectionLineType,
   Controls,
   type Edge,
+  Handle,
   MarkerType,
   type Node,
+  Position,
 } from "reactflow"
 
 const nodeTypes = {
@@ -22,11 +24,15 @@ const nodeTypes = {
   agent: ({ data }: { data: { label: string } }) => (
     <div className="bg-blue-100 border-2 border-blue-500 rounded p-2 shadow-md">
       <strong>{data.label}</strong>
+      <Handle type="source" position={Position.Right} />
+      <Handle type="target" position={Position.Left} />
     </div>
   ),
   tool: ({ data }: { data: { label: string } }) => (
     <div className="bg-green-100 border-2 border-green-500 rounded p-2 shadow-md">
       <strong>{data.label}</strong>
+      <Handle type="source" position={Position.Right} />
+      <Handle type="target" position={Position.Left} />
     </div>
   ),
 }
@@ -83,11 +89,15 @@ export function DynamicFlowDiagram() {
             ...eds,
             {
               ...data,
-              // type: "smoothstep",
+              type: "smoothstep",
               animated: true,
               markerEnd: { type: MarkerType.ArrowClosed },
             },
           ])
+        } else if (data.type === "end") {
+          console.log("Workflow complete")
+          setIsFlowStarted(false)
+          eventSource.close()
         }
       } catch (error) {
         console.error("Error parsing event data:", error)
