@@ -1,5 +1,5 @@
-import TestButton from "@/components/TestButton"
+import { DynamicFlowDiagram } from "@/components/DynamicFlowDiagram"
 
 export default function PlaygroundPage() {
-  return <TestButton />
+  return <DynamicFlowDiagram />
 }
