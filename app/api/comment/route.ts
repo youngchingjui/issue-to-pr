@@ -12,6 +12,12 @@ import { NextRequest, NextResponse } from "next/server"
 import { GitHubRepository } from "@/lib/types"
 import commentOnIssue from "@/lib/workflows/commentOnIssue"
 
+// Importing UUID to generate unique job IDs
+import { v4 as uuidv4 } from 'uuid';
+
+// Simulate a database or cache to store job statuses
+const jobStatus: Record<string, string> = {};
+
 type RequestBody = {
   issueNumber: number
   repo: GitHubRepository
@@ -21,7 +27,43 @@ type RequestBody = {
 export async function POST(request: NextRequest) {
   const { issueNumber, repo, apiKey }: RequestBody = await request.json()
 
-  const response = await commentOnIssue(issueNumber, repo, apiKey)
+  // Generate a unique job ID
+  const jobId = uuidv4();
 
-  return NextResponse.json(response)
+  // Start the comment workflow as a background job
+  (async () => {
+    try {
+      jobStatus[jobId] = "Processing";
+      const response = await commentOnIssue(issueNumber, repo, apiKey);
+      jobStatus[jobId] = "Completed: " + JSON.stringify(response);
+    } catch (error) {
+      jobStatus[jobId] = "Failed: " + error.message;
+    }
+  })();
+
+  // Immediately return the job ID to the client
+  return NextResponse.json({ jobId });
+}
+
+export function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const jobId = searchParams.get('jobId');
+
+  if (!jobId || !(jobId in jobStatus)) {
+    return NextResponse.json({ error: "Job ID not found" }, { status: 404 });
+  }
+
+  // Set up SSE
+  return new NextResponse(new ReadableStream({
+    start(controller) {
+      controller.enqueue(`data: ${jobStatus[jobId]}\n\n`);
+      controller.close();
+    },
+  }), {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+    },
+  });
 }
