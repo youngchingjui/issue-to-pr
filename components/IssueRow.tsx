@@ -1,7 +1,7 @@
 "use client"
 
 import {
-  AlertCircle,
+  CheckCircle,
   GitPullRequest,
   Loader2,
   MessageCircle,
@@ -72,6 +72,17 @@ export function IssueRow({ issue, repo }: IssueRowProps) {
 
           if (status === "Stream finished") {
             setSseStatus((prev) => ({ ...prev, [issueId]: "closed" }))
+            setLogs((prev) => ({
+              ...prev,
+              [issueId]: [
+                ...(prev[issueId] || []),
+                {
+                  message: "GitHub comment created",
+                  timestamp: new Date().toISOString(),
+                },
+              ],
+            }))
+            setExpandedIssue(null) // Automatically close the collapsible
             eventSource.close()
           } else if (
             status.startsWith("Completed") ||
@@ -143,8 +154,10 @@ export function IssueRow({ issue, repo }: IssueRowProps) {
                   )}
                   {sseStatus[issue.id] === "closed" && (
                     <>
-                      <AlertCircle className="h-4 w-4 text-yellow-500" />{" "}
-                      <span className="text-yellow-500">Connection closed</span>
+                      <CheckCircle className="h-4 w-4 text-green-500" />{" "}
+                      <span className="text-green-500">
+                        GitHub comment created
+                      </span>
                     </>
                   )}
                 </div>
