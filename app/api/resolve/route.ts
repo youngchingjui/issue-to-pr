@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from "next/server"
+import { v4 as uuidv4 } from "uuid"
 
 import { getIssue } from "@/lib/github/issues"
 import { GitHubRepository } from "@/lib/types"
 import { resolveIssue } from "@/lib/workflows/resolveIssue"
 
-type RequestBody = {
+// In-memory store for job status
+const jobStatusStore: { [key: string]: { status: string; progress: string } } =
+  {}
+
+// TypeScript type for request body
+interface RequestBody {
   issueNumber: number
   repo: GitHubRepository
   apiKey: string
@@ -24,24 +30,76 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.debug(`[DEBUG] Fetching issue #${issueNumber}`)
-    const issue = await getIssue({ repo: repo.name, issueNumber })
+    // Generate a unique job ID
+    const jobId = uuidv4()
+    console.debug(`[DEBUG] Generated job ID: ${jobId}`)
 
-    // Enter resolve issue workflow
-    // This workflow starts with a coordinator agent, that will call other agents to figure out what to do
-    // And resolve the issue
+    // Initialize job status
+    jobStatusStore[jobId] = { status: "queued", progress: "0%" }
 
-    await resolveIssue(issue, repo, apiKey)
+    // Start the issue resolution in a new asynchronous task
+    ;(async () => {
+      try {
+        console.debug(`[DEBUG] Fetching issue #${issueNumber}`)
+        const issue = await getIssue({ repo: repo.name, issueNumber })
+        jobStatusStore[jobId].progress = "30%"
+
+        // Enter resolve issue workflow asynchronously
+        await resolveIssue(issue, repo, apiKey)
+        jobStatusStore[jobId].status = "completed"
+        jobStatusStore[jobId].progress = "100%"
+
+        console.debug(
+          `[DEBUG] Workflow for job ID ${jobId} completed successfully`
+        )
+      } catch (error) {
+        jobStatusStore[jobId].status = "failed"
+        console.error(`[ERROR] Workflow failed for job ID ${jobId}:`, error)
+      }
+    })()
 
     return NextResponse.json(
-      { message: "Finished agent workflow." },
-      { status: 200 }
+      { message: "Workflow started successfully.", jobId },
+      { status: 202 }
     )
   } catch (error) {
     console.error("[ERROR] Fatal error in POST handler:", error)
     return NextResponse.json(
-      { error: "Failed to resolve issue." },
+      { error: "Failed to initiate workflow." },
       { status: 500 }
     )
   }
+}
+
+// SSE endpoint for providing real-time updates on job status
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url)
+  const jobId = searchParams.get("jobId")
+
+  if (!jobId || !jobStatusStore[jobId]) {
+    return NextResponse.json(
+      { error: "Invalid or missing jobId." },
+      { status: 400 }
+    )
+  }
+
+  return new ReadableStream({
+    async start(controller) {
+      let previousStatus = jobStatusStore[jobId].status
+
+      while (previousStatus !== "completed" && previousStatus !== "failed") {
+        const currentStatus = jobStatusStore[jobId]
+
+        if (currentStatus.status !== previousStatus) {
+          controller.enqueue(`data: ${JSON.stringify(currentStatus)}\n\n`)
+          previousStatus = currentStatus.status
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+      }
+
+      controller.enqueue(`data: ${JSON.stringify(jobStatusStore[jobId])}\n\n`)
+      controller.close()
+    },
+  })
 }

@@ -8,7 +8,9 @@
 // - Suggested plan
 
 import { NextRequest, NextResponse } from "next/server"
+import { v4 as uuidv4 } from "uuid"
 
+import { initializeRedis, updateJobStatus } from "@/lib/redis"
 import { GitHubRepository } from "@/lib/types"
 import commentOnIssue from "@/lib/workflows/commentOnIssue"
 
@@ -21,7 +23,22 @@ type RequestBody = {
 export async function POST(request: NextRequest) {
   const { issueNumber, repo, apiKey }: RequestBody = await request.json()
 
-  const response = await commentOnIssue(issueNumber, repo, apiKey)
+  await initializeRedis()
 
-  return NextResponse.json(response)
+  // Generate a unique job ID
+  const jobId = uuidv4()
+  await updateJobStatus(jobId, "Starting comment workflow")
+
+  // Start the comment workflow as a background job
+  ;(async () => {
+    try {
+      const response = await commentOnIssue(issueNumber, repo, apiKey, jobId)
+      await updateJobStatus(jobId, "Completed: " + JSON.stringify(response))
+    } catch (error) {
+      await updateJobStatus(jobId, "Failed: " + error.message)
+    }
+  })()
+
+  // Immediately return the job ID to the client
+  return NextResponse.json({ jobId })
 }

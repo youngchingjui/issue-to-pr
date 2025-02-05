@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Issue To PR
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Before you begin, ensure you have the following installed:
+
+- Node.js (version 14 or later)
+- npm or yarn
+- Redis server
+
+### Setting Up Redis
+
+1. **Install Redis**: Follow the instructions for your operating system to install Redis.
+
+   - **macOS**: Use Homebrew
+
+     ```bash
+     brew update
+     brew install redis
+     ```
+
+   - **Ubuntu**: Use the package manager
+
+     ```bash
+     sudo apt update
+     sudo apt install redis-server
+     ```
+
+   - **Windows**: Use WSL or download a precompiled binary from [Microsoft's Redis page](https://github.com/microsoftarchive/redis/releases).
+
+2. **Start Redis Server**: Run the Redis server with the default configuration.
+
+   ```bash
+   redis-server
+   ```
+
+3. **Test Redis**: Use the Redis CLI to ensure Redis is running.
+   ```bash
+   redis-cli
+   ping
+   ```
+   You should receive a `PONG` response.
+
+### Running the Development Server
+
+1. **Clone the Repository**:
+
+   ```bash
+   git clone <repository-url>
+   cd <repository-directory>
+   ```
+
+2. **Install Dependencies**:
+
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
+
+3. **Run the Development Server**:
+
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
+
+4. **Open the Application**: Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+### Environment Variables
+
+Ensure you have the necessary environment variables set up. You may need to create a `.env.local` file in the root of your project with the following variables:
+
 ```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+AUTH_GITHUB_ID=your_github_client_id
+AUTH_GITHUB_SECRET=your_github_client_secret
+```
