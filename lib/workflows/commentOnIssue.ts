@@ -77,6 +77,9 @@ export default async function commentOnIssue(
 
   updateJobStatus(jobId, "Comment posted successfully")
 
+  // Send a final message indicating the stream is finished
+  updateJobStatus(jobId, "Stream finished")
+
   // Return the comment
   return { status: "complete", issueComment }
 }

@@ -70,7 +70,13 @@ export function IssueRow({ issue, repo }: IssueRowProps) {
             ],
           }))
 
-          if (status.startsWith("Completed") || status.startsWith("Failed")) {
+          if (status === "Stream finished") {
+            setSseStatus((prev) => ({ ...prev, [issueId]: "closed" }))
+            eventSource.close()
+          } else if (
+            status.startsWith("Completed") ||
+            status.startsWith("Failed")
+          ) {
             setSseStatus((prev) => ({ ...prev, [issueId]: "closed" }))
             eventSource.close()
           } else {

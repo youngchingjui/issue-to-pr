@@ -58,6 +58,8 @@ export function GET(request: NextRequest) {
 
             if (status.startsWith("Completed") || status.startsWith("Failed")) {
               jobStatusEmitter.removeListener("statusUpdate", onStatusUpdate)
+              // Send a final message indicating the stream is finished
+              controller.enqueue(`data: Stream finished\n\n`)
               controller.close()
             }
           }
