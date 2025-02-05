@@ -25,6 +25,7 @@ export default async function IssueTable({ repoName }: Props) {
             <th className="py-2 px-4 border-b">Status</th>
             <th className="py-2 px-4 border-b">Comment</th>
             <th className="py-2 px-4 border-b">Actions</th>
+            <th className="py-2 px-4 border-b">Link</th> {/* New Link column header */}
           </tr>
         </thead>
         <tbody>
@@ -40,6 +41,14 @@ export default async function IssueTable({ repoName }: Props) {
               </td>
               <td className="py-2 px-4">
                 <IssueActionsDropdown issueNumber={issue.number} repo={repo} />
+              </td>
+              <td className="py-2 px-4"> {/* New Link column data */}
+                <a
+                  href={`https://github.com/${repoName}/issues/${issue.number}`}
+                  target="_blank"
+                  rel="noopener noreferrer">
+                  View Issue
+                </a>
               </td>
             </tr>
           ))}
