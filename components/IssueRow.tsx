@@ -82,7 +82,6 @@ export function IssueRow({ issue, repo }: IssueRowProps) {
                 },
               ],
             }))
-            setExpandedIssue(null) // Automatically close the collapsible
             eventSource.close()
           } else if (
             status.startsWith("Completed") ||
