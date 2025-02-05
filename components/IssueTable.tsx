@@ -8,7 +8,7 @@ interface Props {
   repoName: string
 }
 
-export default async function IssueTable({ repoName }: Props) {
+export default async function IssueTable({ username, repoName }: Props) {
   try {
     const issues = await getIssueList({ repo: repoName, per_page: 100 })
     const repo = await getRepoFromString(repoName)
@@ -25,6 +25,7 @@ export default async function IssueTable({ repoName }: Props) {
             <th className="py-2 px-4 border-b">Status</th>
             <th className="py-2 px-4 border-b">Comment</th>
             <th className="py-2 px-4 border-b">Actions</th>
+            <th className="py-2 px-4 border-b">Link</th> {/* New Column */}
           </tr>
         </thead>
         <tbody>
@@ -40,6 +41,14 @@ export default async function IssueTable({ repoName }: Props) {
               </td>
               <td className="py-2 px-4">
                 <IssueActionsDropdown issueNumber={issue.number} repo={repo} />
+              </td>
+              <td className="py-2 px-4"> {/* Link Column */}
+                <a 
+                  href={`https://github.com/${username}/${repoName}/issues/${issue.number}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer">
+                  View Issue
+                </a>
               </td>
             </tr>
           ))}
