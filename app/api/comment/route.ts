@@ -55,8 +55,15 @@ export function GET(request: NextRequest) {
   return new NextResponse(
     new ReadableStream({
       start(controller) {
-        controller.enqueue(`data: ${jobStatus[jobId]}\n\n`)
-        controller.close()
+        const interval = setInterval(() => {
+          const status = jobStatus[jobId]
+          controller.enqueue(`data: ${status}\n\n`)
+
+          if (status.startsWith("Completed") || status.startsWith("Failed")) {
+            clearInterval(interval)
+            controller.close()
+          }
+        }, 1500) // Send update every 1.5 seconds
       },
     }),
     {
