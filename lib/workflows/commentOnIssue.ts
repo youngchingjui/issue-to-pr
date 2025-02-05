@@ -63,6 +63,7 @@ export default async function commentOnIssue(
   const span = trace.span({ name: "generateComment" })
   thinker.addSpan({ span, generationName: "commentOnIssue" })
   thinker.addTool(getFileContentTool)
+  thinker.addJobId(jobId)
 
   updateJobStatus(jobId, "Generating comment")
   const response = await thinker.runWithFunctions()
