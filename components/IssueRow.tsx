@@ -55,7 +55,7 @@ export function IssueRow({ issue, repo }: IssueRowProps) {
         const { jobId } = await response.json()
 
         // Set up SSE to listen for updates
-        const eventSource = new EventSource(`/api/comment?jobId=${jobId}`)
+        const eventSource = new EventSource(`/api/sse?jobId=${jobId}`)
 
         eventSource.onmessage = (event) => {
           const status = event.data

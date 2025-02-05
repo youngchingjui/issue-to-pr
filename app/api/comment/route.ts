@@ -10,8 +10,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { v4 as uuidv4 } from "uuid"
 
+import { updateJobStatus } from "@/lib/redis"
 import { GitHubRepository } from "@/lib/types"
-import { jobStatus, jobStatusEmitter } from "@/lib/utils"
 import commentOnIssue from "@/lib/workflows/commentOnIssue"
 
 type RequestBody = {
@@ -25,58 +25,18 @@ export async function POST(request: NextRequest) {
 
   // Generate a unique job ID
   const jobId = uuidv4()
+  await updateJobStatus(jobId, "Starting comment workflow")
 
   // Start the comment workflow as a background job
   ;(async () => {
     try {
-      jobStatus[jobId] = "Processing"
       const response = await commentOnIssue(issueNumber, repo, apiKey, jobId)
-      jobStatus[jobId] = "Completed: " + JSON.stringify(response)
+      await updateJobStatus(jobId, "Completed: " + JSON.stringify(response))
     } catch (error) {
-      jobStatus[jobId] = "Failed: " + error.message
+      await updateJobStatus(jobId, "Failed: " + error.message)
     }
   })()
 
   // Immediately return the job ID to the client
   return NextResponse.json({ jobId })
-}
-
-export function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url)
-  const jobId = searchParams.get("jobId")
-
-  if (!jobId || !(jobId in jobStatus)) {
-    return NextResponse.json({ error: "Job ID not found" }, { status: 404 })
-  }
-
-  return new NextResponse(
-    new ReadableStream({
-      start(controller) {
-        const onStatusUpdate = (updatedJobId: string, status: string) => {
-          if (updatedJobId === jobId) {
-            controller.enqueue(`data: ${status}\n\n`)
-
-            if (status.startsWith("Completed") || status.startsWith("Failed")) {
-              jobStatusEmitter.removeListener("statusUpdate", onStatusUpdate)
-              // Send a final message indicating the stream is finished
-              controller.enqueue(`data: Stream finished\n\n`)
-              controller.close()
-            }
-          }
-        }
-
-        jobStatusEmitter.on("statusUpdate", onStatusUpdate)
-
-        // Send the initial status
-        controller.enqueue(`data: ${jobStatus[jobId]}\n\n`)
-      },
-    }),
-    {
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-      },
-    }
-  )
 }
