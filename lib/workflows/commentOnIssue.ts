@@ -13,9 +13,10 @@ import { createDirectoryTree, getLocalRepoDir } from "@/lib/fs"
 import { checkIfGitExists, cloneRepo, updateToLatest } from "@/lib/git"
 import { createIssueComment, getIssue } from "@/lib/github/issues"
 import { langfuse } from "@/lib/langfuse"
+import { updateJobStatus } from "@/lib/redis"
 import GetFileContentTool from "@/lib/tools/GetFileContent"
 import { GitHubRepository } from "@/lib/types"
-import { getCloneUrlWithAccessToken, updateJobStatus } from "@/lib/utils"
+import { getCloneUrlWithAccessToken } from "@/lib/utils"
 
 export default async function commentOnIssue(
   issueNumber: number,
