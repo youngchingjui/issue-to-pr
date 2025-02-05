@@ -8,7 +8,7 @@ interface Props {
   repoName: string
 }
 
-export default async function IssueTable({ repoName }: Props) {
+export default async function IssueTable({ username, repoName }: Props) {
   try {
     const issues = await getIssueList({ repo: repoName, per_page: 100 })
     const repo = await getRepoFromString(repoName)
@@ -30,7 +30,16 @@ export default async function IssueTable({ repoName }: Props) {
         <tbody>
           {issues.map((issue) => (
             <tr key={issue.id} className="border-b">
-              <td className="py-2 px-4">{issue.title}</td>
+              <td className="py-2 px-4">
+                <a 
+                  href={`https://github.com/${username}/${repoName}/issues/${issue.number}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:underline"
+                >
+                  {issue.title}
+                </a>
+              </td>
               <td className="py-2 px-4">{issue.state}</td>
               <td className="py-2 px-4">
                 <AddGithubCommentButton
