@@ -11,10 +11,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { v4 as uuidv4 } from "uuid"
 
 import { GitHubRepository } from "@/lib/types"
+import { jobStatus, jobStatusEmitter } from "@/lib/utils"
 import commentOnIssue from "@/lib/workflows/commentOnIssue"
-
-// Simulate a database or cache to store job statuses
-const jobStatus: Record<string, string> = {}
 
 type RequestBody = {
   issueNumber: number
@@ -32,7 +30,7 @@ export async function POST(request: NextRequest) {
   ;(async () => {
     try {
       jobStatus[jobId] = "Processing"
-      const response = await commentOnIssue(issueNumber, repo, apiKey)
+      const response = await commentOnIssue(issueNumber, repo, apiKey, jobId)
       jobStatus[jobId] = "Completed: " + JSON.stringify(response)
     } catch (error) {
       jobStatus[jobId] = "Failed: " + error.message
@@ -51,19 +49,24 @@ export function GET(request: NextRequest) {
     return NextResponse.json({ error: "Job ID not found" }, { status: 404 })
   }
 
-  // Set up SSE
   return new NextResponse(
     new ReadableStream({
       start(controller) {
-        const interval = setInterval(() => {
-          const status = jobStatus[jobId]
-          controller.enqueue(`data: ${status}\n\n`)
+        const onStatusUpdate = (updatedJobId: string, status: string) => {
+          if (updatedJobId === jobId) {
+            controller.enqueue(`data: ${status}\n\n`)
 
-          if (status.startsWith("Completed") || status.startsWith("Failed")) {
-            clearInterval(interval)
-            controller.close()
+            if (status.startsWith("Completed") || status.startsWith("Failed")) {
+              jobStatusEmitter.removeListener("statusUpdate", onStatusUpdate)
+              controller.close()
+            }
           }
-        }, 1500) // Send update every 1.5 seconds
+        }
+
+        jobStatusEmitter.on("statusUpdate", onStatusUpdate)
+
+        // Send the initial status
+        controller.enqueue(`data: ${jobStatus[jobId]}\n\n`)
       },
     }),
     {
