@@ -2,7 +2,10 @@ import { createClient } from "redis"
 
 import { jobStatusEmitter } from "@/lib/utils"
 
-const redis = createClient()
+const redis = createClient({
+  url: process.env.REDIS_URL,
+})
+
 await redis.connect()
 redis.on("error", (err) => console.log("Redis Client Error", err))
 

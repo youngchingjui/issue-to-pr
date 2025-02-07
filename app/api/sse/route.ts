@@ -14,7 +14,9 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  const redis = createClient()
+  const redis = createClient({
+    url: process.env.REDIS_URL,
+  })
   await redis.connect()
 
   try {
