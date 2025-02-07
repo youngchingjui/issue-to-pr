@@ -170,11 +170,11 @@ export function IssueRow({ issue, repo }: IssueRowProps) {
                 </div>
                 <ScrollArea className="h-40 w-full border rounded-md p-4">
                   {logs[issue.id]?.map((log, index) => (
-                    <div key={index} className="mb-2">
-                      <span className="text-sm text-gray-500">
+                    <div key={index}>
+                      <span className="text-xs text-gray-400">
                         {new Date(log.timestamp).toLocaleTimeString()}
                       </span>
-                      <span className="ml-2">
+                      <span className="ml-2 text-xs text-gray-400">
                         {log.message.split("\\n\\n").map((line, i) => (
                           <React.Fragment key={i}>
                             {line}
