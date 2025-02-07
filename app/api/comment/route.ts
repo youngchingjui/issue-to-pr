@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { v4 as uuidv4 } from "uuid"
 
-import { initializeRedis, updateJobStatus } from "@/lib/redis"
+import { updateJobStatus } from "@/lib/redis"
 import { GitHubRepository } from "@/lib/types"
 import commentOnIssue from "@/lib/workflows/commentOnIssue"
 
@@ -22,8 +22,6 @@ type RequestBody = {
 
 export async function POST(request: NextRequest) {
   const { issueNumber, repo, apiKey }: RequestBody = await request.json()
-
-  await initializeRedis()
 
   // Generate a unique job ID
   const jobId = uuidv4()

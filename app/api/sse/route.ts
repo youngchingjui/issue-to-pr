@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-
-import { getJobStatus, initializeRedis } from "@/lib/redis"
-import { jobStatusEmitter } from "@/lib/utils"
+import { createClient } from "redis"
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const jobId = searchParams.get("jobId")
-  await initializeRedis()
 
   if (!jobId) {
     return NextResponse.json(
@@ -15,20 +12,20 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  try {
-    const status = await getJobStatus(jobId)
+  const redis = createClient()
+  await redis.connect()
 
-    if (!status) {
-      return NextResponse.json(
-        { error: `Job ID ${jobId} not found in cache.` },
-        { status: 404 }
-      )
-    }
+  try {
+    let subscriber
 
     return new NextResponse(
       new ReadableStream({
         start(controller) {
-          const onStatusUpdate = (updatedJobId: string, status: string) => {
+          subscriber = redis.duplicate()
+          subscriber.connect()
+
+          subscriber.subscribe("jobStatusUpdate", (message) => {
+            const { jobId: updatedJobId, status } = JSON.parse(message)
             if (updatedJobId === jobId) {
               controller.enqueue(`data: ${status}\n\n`)
 
@@ -36,18 +33,24 @@ export async function GET(request: NextRequest) {
                 status.startsWith("Completed") ||
                 status.startsWith("Failed")
               ) {
-                jobStatusEmitter.removeListener("statusUpdate", onStatusUpdate)
-                // Send a final message indicating the stream is finished
+                subscriber.unsubscribe("jobStatusUpdate")
                 controller.enqueue(`data: Stream finished\n\n`)
                 controller.close()
               }
             }
+          })
+
+          controller.close = () => {
+            subscriber.unsubscribe("jobStatusUpdate")
+            subscriber.quit()
           }
+        },
 
-          jobStatusEmitter.on("statusUpdate", onStatusUpdate)
-
-          // Send the initial status
-          controller.enqueue(`data: ${status}\n\n`)
+        cancel(reason) {
+          if (subscriber) {
+            subscriber.unsubscribe("jobStatusUpdate")
+            subscriber.quit()
+          }
         },
       }),
       {
