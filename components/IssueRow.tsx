@@ -133,6 +133,11 @@ export function IssueRow({ issue, repo }: IssueRowProps) {
         <div className="flex-1">
           <CreatePullRequestButton issueNumber={issue.number} repo={repo} />
         </div>
+        <div className="flex-1">
+          <a href={issue.html_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
+            View Issue
+          </a>
+        </div>        
       </div>
       {expandedIssue === issue.id && (
         <div className="w-full py-2 px-4">
