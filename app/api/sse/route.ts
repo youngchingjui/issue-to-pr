@@ -27,7 +27,9 @@ export async function GET(request: NextRequest) {
           subscriber.subscribe("jobStatusUpdate", (message) => {
             const { jobId: updatedJobId, status } = JSON.parse(message)
             if (updatedJobId === jobId) {
-              controller.enqueue(`data: ${status}\n\n`)
+              // Replace \n\n with placeholder
+              const safeStatus = status.replace(/\n\n/g, "\\n\\n")
+              controller.enqueue(`data: ${safeStatus}\n\n`)
 
               if (
                 status.startsWith("Completed") ||
@@ -39,15 +41,10 @@ export async function GET(request: NextRequest) {
               }
             }
           })
-
-          controller.close = () => {
-            subscriber.unsubscribe("jobStatusUpdate")
-            subscriber.quit()
-          }
         },
 
         cancel(reason) {
-          if (subscriber) {
+          if (subscriber && subscriber.isOpen) {
             subscriber.unsubscribe("jobStatusUpdate")
             subscriber.quit()
           }

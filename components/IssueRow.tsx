@@ -7,6 +7,7 @@ import {
   MessageCircle,
 } from "lucide-react"
 import { useState } from "react"
+import React from "react"
 
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible"
@@ -28,7 +29,7 @@ export function IssueRow({ issue, repo }: IssueRowProps) {
   const [expandedIssue, setExpandedIssue] = useState<number | null>(null)
   const [logs, setLogs] = useState<Record<string, Log[]>>({})
   const [sseStatus, setSseStatus] = useState<
-    Record<string, "connecting" | "open" | "closed">
+    Record<string, "connecting" | "working" | "open" | "closed">
   >({})
 
   const apiKey = getApiKeyFromLocalStorage()
@@ -57,6 +58,8 @@ export function IssueRow({ issue, repo }: IssueRowProps) {
         // Set up SSE to listen for updates
         const eventSource = new EventSource(`/api/sse?jobId=${jobId}`)
 
+        setSseStatus((prev) => ({ ...prev, [issueId]: "working" }))
+
         eventSource.onmessage = (event) => {
           const status = event.data
           setLogs((prev) => ({
@@ -64,7 +67,7 @@ export function IssueRow({ issue, repo }: IssueRowProps) {
             [issueId]: [
               ...(prev[issueId] || []),
               {
-                message: `Status update: ${status}`,
+                message: status,
                 timestamp: new Date().toISOString(),
               },
             ],
@@ -166,7 +169,14 @@ export function IssueRow({ issue, repo }: IssueRowProps) {
                       <span className="text-sm text-gray-500">
                         {new Date(log.timestamp).toLocaleTimeString()}
                       </span>
-                      <span className="ml-2">{log.message}</span>
+                      <span className="ml-2">
+                        {log.message.split("\\n\\n").map((line, i) => (
+                          <React.Fragment key={i}>
+                            {line}
+                            <br />
+                          </React.Fragment>
+                        ))}
+                      </span>
                     </div>
                   ))}
                 </ScrollArea>
