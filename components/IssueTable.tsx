@@ -1,5 +1,4 @@
-import { AddGithubCommentButton } from "@/components/AddGithubCommentButton"
-import { IssueActionsDropdown } from "@/components/IssueActionsDropdown"
+import { IssueRow } from "@/components/IssueRow"
 import { getRepoFromString } from "@/lib/github/content"
 import { getIssueList } from "@/lib/github/issues"
 
@@ -18,33 +17,19 @@ export default async function IssueTable({ repoName }: Props) {
     }
 
     return (
-      <table className="min-w-full bg-white border border-gray-300">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="py-2 px-4 border-b">Issue</th>
-            <th className="py-2 px-4 border-b">Status</th>
-            <th className="py-2 px-4 border-b">Comment</th>
-            <th className="py-2 px-4 border-b">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
+      <div className="bg-white border border-gray-300">
+        <div className="flex bg-gray-100 py-2 px-4">
+          <div className="flex-1 font-bold">Issue</div>
+          <div className="flex-1 font-bold">Status</div>
+          <div className="flex-1 font-bold">Comment</div>
+          <div className="flex-1 font-bold">Actions</div>
+        </div>
+        <div>
           {issues.map((issue) => (
-            <tr key={issue.id} className="border-b">
-              <td className="py-2 px-4">{issue.title}</td>
-              <td className="py-2 px-4">{issue.state}</td>
-              <td className="py-2 px-4">
-                <AddGithubCommentButton
-                  issueNumber={issue.number}
-                  repo={repo}
-                />
-              </td>
-              <td className="py-2 px-4">
-                <IssueActionsDropdown issueNumber={issue.number} repo={repo} />
-              </td>
-            </tr>
+            <IssueRow key={issue.id} issue={issue} repo={repo} />
           ))}
-        </tbody>
-      </table>
+        </div>
+      </div>
     )
   } catch (error) {
     return (

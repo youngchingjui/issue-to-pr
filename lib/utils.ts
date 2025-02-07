@@ -1,4 +1,5 @@
 import { type ClassValue, clsx } from "clsx"
+import { EventEmitter } from "events"
 import { twMerge } from "tailwind-merge"
 
 import { LOCAL_STORAGE_KEY } from "@/lib/globals"
@@ -8,7 +9,10 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function getApiKeyFromLocalStorage(): string | null {
-  return localStorage.getItem(LOCAL_STORAGE_KEY)
+  if (typeof window !== "undefined") {
+    return localStorage.getItem(LOCAL_STORAGE_KEY)
+  }
+  return null
 }
 
 export function getCloneUrlWithAccessToken(
@@ -17,4 +21,26 @@ export function getCloneUrlWithAccessToken(
 ): string {
   // userRepo format is "username/repo"
   return `https://${token}@github.com/${userRepo}.git`
+}
+
+export const jobStatusEmitter = new EventEmitter()
+export const jobStatus: Record<string, string> = {}
+
+/**
+ * Updates the status of a job.
+ * @param jobId - The unique identifier for the job.
+ * @param status - The current status message for the job.
+ */
+export function updateJobStatus(jobId: string, status: string) {
+  jobStatus[jobId] = status
+  jobStatusEmitter.emit("statusUpdate", jobId, status)
+}
+
+export const SSEUtils = {
+  encodeStatus(status: string): string {
+    return status.replace(/\n/g, "\\n")
+  },
+  decodeStatus(encodedStatus: string): string {
+    return encodedStatus.replace(/\\n/g, "\n")
+  },
 }

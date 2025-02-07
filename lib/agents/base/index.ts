@@ -7,6 +7,7 @@ import {
 } from "openai/resources/chat/completions"
 import { z } from "zod"
 
+import { updateJobStatus } from "@/lib/redis"
 import { AgentConstructorParams, Tool } from "@/lib/types"
 
 export class Agent {
@@ -16,6 +17,7 @@ export class Agent {
   tools: Tool<z.ZodType>[] = []
   llm: OpenAI
   model: ChatModel = "gpt-4o"
+  jobId?: string
 
   constructor({ model, systemPrompt, apiKey }: AgentConstructorParams) {
     if (model) {
@@ -63,6 +65,10 @@ export class Agent {
     this.llm = observeOpenAI(this.llm, { parent: span, generationName })
   }
 
+  addJobId(jobId: string) {
+    this.jobId = jobId
+  }
+
   checkTools() {
     for (const tool of this.REQUIRED_TOOLS) {
       if (!this.tools.some((t) => t.tool.function.name === tool)) {
@@ -92,6 +98,11 @@ export class Agent {
     console.log(
       `[DEBUG] response: ${JSON.stringify(response.choices[0].message)}`
     )
+
+    if (this.jobId) {
+      await updateJobStatus(this.jobId, response.choices[0].message.content)
+    }
+
     this.addMessage(response.choices[0].message)
 
     if (response.choices[0].message.tool_calls) {
