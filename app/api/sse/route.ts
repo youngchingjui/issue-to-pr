@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "redis"
 
+import { SSEUtils } from "@/lib/utils"
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const jobId = searchParams.get("jobId")
@@ -28,7 +30,7 @@ export async function GET(request: NextRequest) {
             const { jobId: updatedJobId, status } = JSON.parse(message)
             if (updatedJobId === jobId) {
               // Replace \n\n with placeholder
-              const safeStatus = status.replace(/\n\n/g, "\\n\\n")
+              const safeStatus = SSEUtils.encodeStatus(status)
               controller.enqueue(`data: ${safeStatus}\n\n`)
 
               if (

@@ -35,3 +35,12 @@ export function updateJobStatus(jobId: string, status: string) {
   jobStatus[jobId] = status
   jobStatusEmitter.emit("statusUpdate", jobId, status)
 }
+
+export const SSEUtils = {
+  encodeStatus(status: string): string {
+    return status.replace(/\n/g, "\\n")
+  },
+  decodeStatus(encodedStatus: string): string {
+    return encodedStatus.replace(/\\n/g, "\n")
+  },
+}

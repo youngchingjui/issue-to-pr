@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { GitHubIssue, GitHubRepository } from "@/lib/types"
-import { getApiKeyFromLocalStorage } from "@/lib/utils"
+import { getApiKeyFromLocalStorage, SSEUtils } from "@/lib/utils"
 
 type Log = {
   message: string
@@ -29,92 +29,90 @@ export function IssueRow({ issue, repo }: IssueRowProps) {
   const [expandedIssue, setExpandedIssue] = useState<number | null>(null)
   const [logs, setLogs] = useState<Record<string, Log[]>>({})
   const [sseStatus, setSseStatus] = useState<
-    Record<string, "connecting" | "working" | "open" | "closed">
+    Record<string, "connecting" | "working" | "closed">
   >({})
 
   const apiKey = getApiKeyFromLocalStorage()
 
   const handleAddComment = async (issueId: number) => {
-    setExpandedIssue(expandedIssue === issueId ? null : issueId)
-    if (!sseStatus[issueId]) {
-      setSseStatus((prev) => ({ ...prev, [issueId]: "connecting" }))
+    setExpandedIssue(issueId)
+    setLogs({}) // Clear previous logs
 
-      try {
-        // Initiate POST request to start comment workflow
-        const response = await fetch("/api/comment", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            issueNumber: issue.number,
-            repo,
-            apiKey,
-          }),
-        })
+    setSseStatus({ [issueId]: "connecting" })
 
-        const { jobId } = await response.json()
+    try {
+      // Initiate POST request to start comment workflow
+      const response = await fetch("/api/comment", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          issueNumber: issue.number,
+          repo,
+          apiKey,
+        }),
+      })
 
-        // Set up SSE to listen for updates
-        const eventSource = new EventSource(`/api/sse?jobId=${jobId}`)
+      const { jobId } = await response.json()
 
-        setSseStatus((prev) => ({ ...prev, [issueId]: "working" }))
+      // Set up SSE to listen for updates
+      const eventSource = new EventSource(`/api/sse?jobId=${jobId}`)
 
-        eventSource.onmessage = (event) => {
-          const status = event.data
-          setLogs((prev) => ({
-            ...prev,
-            [issueId]: [
-              ...(prev[issueId] || []),
-              {
-                message: status,
-                timestamp: new Date().toISOString(),
-              },
-            ],
-          }))
+      setSseStatus({ [issueId]: "working" })
 
-          if (status === "Stream finished") {
-            setSseStatus((prev) => ({ ...prev, [issueId]: "closed" }))
-            setLogs((prev) => ({
-              ...prev,
-              [issueId]: [
-                ...(prev[issueId] || []),
-                {
-                  message: "GitHub comment created",
-                  timestamp: new Date().toISOString(),
-                },
-              ],
-            }))
-            eventSource.close()
-          } else if (
-            status.startsWith("Completed") ||
-            status.startsWith("Failed")
-          ) {
-            setSseStatus((prev) => ({ ...prev, [issueId]: "closed" }))
-            eventSource.close()
-          } else {
-            setSseStatus((prev) => ({ ...prev, [issueId]: "open" }))
-          }
-        }
-
-        eventSource.onerror = (event) => {
-          console.error("SSE connection failed:", event)
-          setSseStatus((prev) => ({ ...prev, [issueId]: "closed" }))
-        }
-      } catch (error) {
+      eventSource.onmessage = (event) => {
+        const status = SSEUtils.decodeStatus(event.data)
         setLogs((prev) => ({
           ...prev,
           [issueId]: [
             ...(prev[issueId] || []),
             {
-              message: `Error: ${error.message}`,
+              message: status,
               timestamp: new Date().toISOString(),
             },
           ],
         }))
-        console.error("Failed to start comment workflow:", error)
+
+        if (status === "Stream finished") {
+          setSseStatus({ [issueId]: "closed" })
+          setLogs((prev) => ({
+            ...prev,
+            [issueId]: [
+              ...(prev[issueId] || []),
+              {
+                message: "GitHub comment created",
+                timestamp: new Date().toISOString(),
+              },
+            ],
+          }))
+          eventSource.close()
+        } else if (
+          status.startsWith("Completed") ||
+          status.startsWith("Failed")
+        ) {
+          setSseStatus((prev) => ({ ...prev, [issueId]: "closed" }))
+          eventSource.close()
+        }
+      }
+
+      eventSource.onerror = (event) => {
+        console.error("SSE connection failed:", event)
         setSseStatus((prev) => ({ ...prev, [issueId]: "closed" }))
       }
+    } catch (error) {
+      setLogs((prev) => ({
+        ...prev,
+        [issueId]: [
+          ...(prev[issueId] || []),
+          {
+            message: `Error: ${error.message}`,
+            timestamp: new Date().toISOString(),
+          },
+        ],
+      }))
+      console.error("Failed to start comment workflow:", error)
+      setSseStatus((prev) => ({ ...prev, [issueId]: "closed" }))
     }
   }
 
@@ -124,7 +122,14 @@ export function IssueRow({ issue, repo }: IssueRowProps) {
         <div className="flex-1">{issue.title}</div>
         <div className="flex-1">{issue.state}</div>
         <div className="flex-1">
-          <Button onClick={() => handleAddComment(issue.id)} variant="outline">
+          <Button
+            onClick={() => handleAddComment(issue.id)}
+            variant="outline"
+            disabled={
+              sseStatus[issue.id] === "connecting" ||
+              sseStatus[issue.id] === "working"
+            }
+          >
             <MessageCircle className="mr-2 h-4 w-4" />
             Add GitHub Comment
           </Button>
@@ -148,10 +153,10 @@ export function IssueRow({ issue, repo }: IssueRowProps) {
                       <span>Connecting...</span>
                     </>
                   )}
-                  {sseStatus[issue.id] === "open" && (
+                  {sseStatus[issue.id] === "working" && (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin text-green-500" />{" "}
-                      <span className="text-green-500">Connected</span>
+                      <span className="text-green-500">Working</span>
                     </>
                   )}
                   {sseStatus[issue.id] === "closed" && (
