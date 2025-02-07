@@ -1,5 +1,6 @@
 "use client"
 
+import { GitPullRequest } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -69,6 +70,7 @@ export function CreatePullRequestButton({
 
   return (
     <Button onClick={handleCreatePR} disabled={isLoading}>
+      <GitPullRequest className="h-4 w-4" />
       {isLoading ? "Creating PR..." : "Fix Issue & Create PR"}
     </Button>
   )

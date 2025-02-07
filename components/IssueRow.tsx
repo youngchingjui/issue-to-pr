@@ -1,14 +1,10 @@
 "use client"
 
-import {
-  CheckCircle,
-  GitPullRequest,
-  Loader2,
-  MessageCircle,
-} from "lucide-react"
+import { CheckCircle, Loader2, MessageCircle } from "lucide-react"
 import { useState } from "react"
 import React from "react"
 
+import { CreatePullRequestButton } from "@/components/CreatePullRequestButton"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -135,10 +131,7 @@ export function IssueRow({ issue, repo }: IssueRowProps) {
           </Button>
         </div>
         <div className="flex-1">
-          <Button variant="outline">
-            <GitPullRequest className="mr-2 h-4 w-4" />
-            Fix Issue & Create PR
-          </Button>
+          <CreatePullRequestButton issueNumber={issue.number} repo={repo} />
         </div>
       </div>
       {expandedIssue === issue.id && (
