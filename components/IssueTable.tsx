@@ -23,6 +23,7 @@ export default async function IssueTable({ repoName }: Props) {
           <div className="flex-1 font-bold">Status</div>
           <div className="flex-1 font-bold">Comment</div>
           <div className="flex-1 font-bold">Actions</div>
+          <div className="flex-1 font-bold">Link</div> {/* New Link column added */}
         </div>
         <div>
           {issues.map((issue) => (
