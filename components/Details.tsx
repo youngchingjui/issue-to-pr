@@ -5,27 +5,33 @@ import * as motion from "motion/react-client"
 
 const features = [
   {
-    icon: <Bot size={24} />,
+    icon: <Bot size={24} />,  
     title: "Multiple AI Agents",
     description:
       "Coordinates multiple agents to review and understand your issues.",
   },
   {
-    icon: <Code size={24} />,
+    icon: <Code size={24} />,  
     title: "Codebase Analysis",
     description: "Explores solutions based on your specific codebase.",
   },
   {
-    icon: <GitPullRequest size={24} />,
+    icon: <GitPullRequest size={24} />,  
     title: "Automatic PRs",
     description: "Creates pull requests with generated solutions.",
   },
   {
-    icon: <GitBranch size={24} />,
+    icon: <GitBranch size={24} />,  
     title: "Safe Changes",
     description:
       "Creates a new branch for changes, keeping your production branch safe.",
   },
+  {
+    icon: <GitPullRequest size={24} />,  
+    title: "PR Review Feature",
+    description:
+      "Ability to view and review open pull requests directly from the application interface.",
+  }
 ]
 
 export default function Details() {
