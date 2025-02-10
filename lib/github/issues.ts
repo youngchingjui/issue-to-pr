@@ -75,5 +75,6 @@ export async function getIssueList({
     repo,
     ...rest,
   })
-  return issues.data
+  // Filter out pull requests from the list of issues
+  return issues.data.filter(issue => !issue.pull_request)
 }
