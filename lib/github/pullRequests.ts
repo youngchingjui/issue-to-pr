@@ -29,20 +29,25 @@ export async function createPullRequest({
   branch,
   title,
   body,
+  issueNumber,
 }: {
   repo: string
   branch: string
   title: string
   body: string
+  issueNumber?: number
 }) {
   const octokit = await getOctokit()
   const user = await getGithubUser()
+
+  // Append issue-closing keyword if issueNumber is provided
+  const finalBody = issueNumber ? `${body}\nCloses #${issueNumber}` : body;
 
   const pullRequest = await octokit.pulls.create({
     owner: user.login,
     repo,
     title,
-    body,
+    body: finalBody,
     head: branch,
     base: "main",
   })
