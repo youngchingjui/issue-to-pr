@@ -76,7 +76,16 @@ export const resolveIssue = async (
   // Load all the tools
   const callCoderAgentTool = new CallCoderAgentTool({ apiKey, baseDir })
   const getFileContentTool = new GetFileContentTool(baseDir)
+
+  // Modify the pull request creation to append 'Closes #<issueNumber>' to the PR body
   const submitPRTool = new UploadAndPRTool(repository, baseDir)
+  const enhancedPRTool = {
+    ...submitPRTool,
+    updatePRDetails: (pullRequest) => ({
+      ...pullRequest,
+      body: `${pullRequest.body}\n\nCloses #${issue.number}`
+    })
+  }
 
   // Prepare the coordinator agent
   const coordinatorAgent = new CoordinatorAgent({
@@ -88,10 +97,10 @@ export const resolveIssue = async (
   })
   coordinatorAgent.addSpan({ span, generationName: "coordinate" })
 
-  // Add tools for coordinator agen
+  // Add tools for coordinator agent
   coordinatorAgent.addTool(getFileContentTool)
   coordinatorAgent.addTool(callCoderAgentTool) // Coordinator will pass off work to coder and wait for response
-  coordinatorAgent.addTool(submitPRTool)
+  coordinatorAgent.addTool(enhancedPRTool)
 
   return await coordinatorAgent.runWithFunctions()
 }
