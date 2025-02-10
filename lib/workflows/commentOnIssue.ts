@@ -14,6 +14,7 @@ import { checkIfGitExists, cloneRepo, updateToLatest } from "@/lib/git"
 import { createIssueComment, getIssue } from "@/lib/github/issues"
 import { langfuse } from "@/lib/langfuse"
 import { updateJobStatus } from "@/lib/redis"
+import { SearchCodeTool } from "@/lib/tools"
 import GetFileContentTool from "@/lib/tools/GetFileContent"
 import { GitHubRepository } from "@/lib/types"
 import { getCloneUrlWithAccessToken } from "@/lib/utils"
@@ -56,13 +57,16 @@ export default async function commentOnIssue(
   const tree = await createDirectoryTree(dirPath)
   updateJobStatus(jobId, "Directory tree created")
 
+  // Prepare the tools
   const getFileContentTool = new GetFileContentTool(dirPath)
+  const searchCodeTool = new SearchCodeTool(repo.full_name)
 
   // Create the thinker agent
   const thinker = new ThinkerAgent({ issue, apiKey, tree })
   const span = trace.span({ name: "generateComment" })
   thinker.addSpan({ span, generationName: "commentOnIssue" })
   thinker.addTool(getFileContentTool)
+  thinker.addTool(searchCodeTool)
   thinker.addJobId(jobId)
 
   updateJobStatus(jobId, "Generating comment")
