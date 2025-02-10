@@ -112,6 +112,8 @@ export function IssueRow({ issue, repo }: IssueRowProps) {
     }
   }
 
+  const issueUrl = `https://github.com/${repo.owner}/${repo.name}/issues/${issue.number}`
+
   return (
     <div className="flex flex-col border-b">
       <div className="flex py-2 px-4">
@@ -128,6 +130,17 @@ export function IssueRow({ issue, repo }: IssueRowProps) {
           >
             <MessageCircle className="mr-2 h-4 w-4" />
             Add GitHub Comment
+          </Button>
+        </div>
+        <div className="flex-1 flex items-center">
+          <Button
+            as="a"
+            href={issueUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            variant="secondary"
+          >
+            Go to issue
           </Button>
         </div>
         <div className="flex-1">
