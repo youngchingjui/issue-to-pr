@@ -7,6 +7,7 @@ export class CoordinatorAgent extends Agent {
     "get_file_content",
     "call_coder_agent",
     "upload_and_create_PR",
+    "search_code",
   ]
 
   constructor({
@@ -41,6 +42,7 @@ These are the functions you can call on to help you. After you call each functio
 - get_file_content: This function can read the contents of a file for you. You'll need to provide the relative path of the file you want to read.
 - call_coder_agent: Call your compatriot coder agent to help you write the code for a single file. Give very specific instructions on what changes to make to the file. Include the very specific variables needed and their names, what those variables should do, etc.
 - submit_pr: This function can upload the updated files to Github, and create a pull request. This should be the last tool you call. After this tool, you should provide your final output.
+- search_code: This function can search the codebase for you. You'll need to provide a query to search for. Use this to identify which files use any functions or variables that you edit, so you can provide a holistic edit across the codebase.
 
 ## Codebase tree
 Here is the structure of the codebase, so you understand what files are available to retrieve.

@@ -100,7 +100,10 @@ export class Agent {
     )
 
     if (this.jobId) {
-      await updateJobStatus(this.jobId, response.choices[0].message.content)
+      await updateJobStatus(
+        this.jobId,
+        JSON.stringify(response.choices[0].message)
+      )
     }
 
     this.addMessage(response.choices[0].message)

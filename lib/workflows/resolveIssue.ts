@@ -17,6 +17,7 @@ import { langfuse } from "@/lib/langfuse"
 import {
   CallCoderAgentTool,
   GetFileContentTool,
+  SearchCodeTool,
   UploadAndPRTool,
 } from "@/lib/tools"
 import { GitHubIssue, GitHubRepository } from "@/lib/types"
@@ -77,6 +78,7 @@ export const resolveIssue = async (
   const callCoderAgentTool = new CallCoderAgentTool({ apiKey, baseDir })
   const getFileContentTool = new GetFileContentTool(baseDir)
   const submitPRTool = new UploadAndPRTool(repository, baseDir)
+  const searchCodeTool = new SearchCodeTool(repository.full_name)
 
   // Prepare the coordinator agent
   const coordinatorAgent = new CoordinatorAgent({
@@ -92,6 +94,7 @@ export const resolveIssue = async (
   coordinatorAgent.addTool(getFileContentTool)
   coordinatorAgent.addTool(callCoderAgentTool) // Coordinator will pass off work to coder and wait for response
   coordinatorAgent.addTool(submitPRTool)
+  coordinatorAgent.addTool(searchCodeTool)
 
   return await coordinatorAgent.runWithFunctions()
 }
