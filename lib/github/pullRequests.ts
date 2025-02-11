@@ -56,3 +56,37 @@ export async function createPullRequest({
 
   return pullRequest
 }
+
+export async function getPullRequestDiff({
+  repo,
+  pullNumber,
+}: {
+  repo: string
+  pullNumber: number
+}): Promise<string> {
+  try {
+    const octokit = await getOctokit()
+    const user = await getGithubUser()
+
+    const response = await octokit.pulls.get({
+      owner: user.login,
+      repo,
+      pull_number: pullNumber,
+      mediaType: {
+        format: "diff",
+      },
+    })
+
+    // Check if response.data is a string
+    if (typeof response.data !== "string") {
+      throw new Error("Unexpected response type")
+    }
+
+    const diff: string = response.data
+
+    return diff
+  } catch (error) {
+    console.error("Failed to fetch pull request diff:", error)
+    throw new Error("Could not retrieve pull request diff")
+  }
+}

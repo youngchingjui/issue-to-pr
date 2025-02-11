@@ -128,3 +128,16 @@ export async function stash(dir: string): Promise<string> {
     })
   })
 }
+
+export async function getDiff(dir: string): Promise<string> {
+  // Returns the git diff of the current branch in the `dir`
+  const command = `git diff`
+  return new Promise((resolve, reject) => {
+    exec(command, { cwd: dir }, (error, stdout) => {
+      if (error) {
+        return reject(new Error(error.message))
+      }
+      return resolve(stdout)
+    })
+  })
+}
