@@ -77,7 +77,7 @@ export const resolveIssue = async (
   // Load all the tools
   const callCoderAgentTool = new CallCoderAgentTool({ apiKey, baseDir })
   const getFileContentTool = new GetFileContentTool(baseDir)
-  const submitPRTool = new UploadAndPRTool(repository, baseDir)
+  const submitPRTool = new UploadAndPRTool(repository, baseDir, issue.number)
   const searchCodeTool = new SearchCodeTool(repository.full_name)
 
   // Prepare the coordinator agent

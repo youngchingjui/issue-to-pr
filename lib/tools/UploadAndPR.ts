@@ -28,18 +28,25 @@ const uploadAndPRParameters = z.object({
 })
 
 class UploadAndPRTool implements Tool<typeof uploadAndPRParameters> {
+  repository: GitHubRepository
+  baseDir: string
+  issueNumber: number
+
+  constructor(
+    repository: GitHubRepository,
+    baseDir: string,
+    issueNumber: number
+  ) {
+    this.repository = repository
+    this.baseDir = baseDir
+    this.issueNumber = issueNumber
+  }
+
   parameters = uploadAndPRParameters
   tool = zodFunction({
     name: "upload_and_create_PR",
     parameters: uploadAndPRParameters,
   })
-  repository: GitHubRepository
-  baseDir: string
-
-  constructor(repository: GitHubRepository, baseDir: string) {
-    this.repository = repository
-    this.baseDir = baseDir
-  }
 
   async handler(params: z.infer<typeof uploadAndPRParameters>) {
     const { files, commitMessage, branch, pullRequest } = params
@@ -95,6 +102,7 @@ class UploadAndPRTool implements Tool<typeof uploadAndPRParameters> {
         branch,
         title: pullRequest.title,
         body: pullRequest.body,
+        issueNumber: this.issueNumber,
       })
       return JSON.stringify(pr)
     } catch (error) {
