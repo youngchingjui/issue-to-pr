@@ -13,17 +13,17 @@ import {
   stash,
   updateToLatest,
 } from "@/lib/git"
+import { getIssueComments } from "@/lib/github/issues"
 import { langfuse } from "@/lib/langfuse"
 import {
   CallCoderAgentTool,
   GetFileContentTool,
+  ReviewCodeTool,
   SearchCodeTool,
   UploadAndPRTool,
 } from "@/lib/tools"
 import { GitHubIssue, GitHubRepository } from "@/lib/types"
 import { getCloneUrlWithAccessToken } from "@/lib/utils"
-
-import { getIssueComments } from "../github/issues"
 
 export const resolveIssue = async (
   issue: GitHubIssue,
@@ -79,6 +79,12 @@ export const resolveIssue = async (
   const getFileContentTool = new GetFileContentTool(baseDir)
   const submitPRTool = new UploadAndPRTool(repository, baseDir)
   const searchCodeTool = new SearchCodeTool(repository.full_name)
+  const reviewCodeTool = new ReviewCodeTool({
+    repo: repository,
+    issue,
+    baseDir,
+    apiKey,
+  })
 
   // Prepare the coordinator agent
   const coordinatorAgent = new CoordinatorAgent({
@@ -92,9 +98,9 @@ export const resolveIssue = async (
 
   // Add tools for coordinator agen
   coordinatorAgent.addTool(getFileContentTool)
-  coordinatorAgent.addTool(callCoderAgentTool) // Coordinator will pass off work to coder and wait for response
+  coordinatorAgent.addTool(callCoderAgentTool)
   coordinatorAgent.addTool(submitPRTool)
   coordinatorAgent.addTool(searchCodeTool)
-
+  coordinatorAgent.addTool(reviewCodeTool)
   return await coordinatorAgent.runWithFunctions()
 }

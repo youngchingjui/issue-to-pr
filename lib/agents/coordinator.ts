@@ -8,6 +8,7 @@ export class CoordinatorAgent extends Agent {
     "call_coder_agent",
     "upload_and_create_PR",
     "search_code",
+    "review_pull_request",
   ]
 
   constructor({
@@ -34,6 +35,7 @@ First, review the details of the Github Issue.
 You'll receive a tree of the codebase, so you understand what files are available.
 First, use the 'get_file_content' function to pull up the contents of individual files, to better understand the issue.
 Then, use 'call_coder_agent' to ask another coder agent to write the file changes needed.
+Then, use 'review_pull_request' to review your proposed changes. Handle any feedback from the reviewer.
 Finally, use 'submit_pr' to submit a pull request with the changes.
 
 ## Your functions
@@ -41,8 +43,9 @@ These are the functions you can call on to help you. After you call each functio
 
 - get_file_content: This function can read the contents of a file for you. You'll need to provide the relative path of the file you want to read.
 - call_coder_agent: Call your compatriot coder agent to help you write the code for a single file. Give very specific instructions on what changes to make to the file. Include the very specific variables needed and their names, what those variables should do, etc.
-- submit_pr: This function can upload the updated files to Github, and create a pull request. This should be the last tool you call. After this tool, you should provide your final output.
 - search_code: This function can search the codebase for you. You'll need to provide a query to search for. Use this to identify which files use any functions or variables that you edit, so you can provide a holistic edit across the codebase.
+- review_pull_request: This function will call a workflow to review your proposed changes. Please call this function before submitting a pull request.
+- submit_pr: This function can upload the updated files to Github, and create a pull request. This should be the last tool you call. After this tool, you should provide your final output.
 
 ## Codebase tree
 Here is the structure of the codebase, so you understand what files are available to retrieve.
