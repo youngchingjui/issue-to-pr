@@ -4,7 +4,7 @@ import { z } from "zod"
 
 import { getFileContent } from "@/lib/fs"
 import { checkBranchExists, updateFileContent } from "@/lib/github/content"
-import { createBranch } from "@/lib/github/git"
+import { BranchCreationStatus, createBranch } from "@/lib/github/git"
 import {
   createPullRequest,
   getPullRequestOnBranch,
@@ -60,7 +60,19 @@ class UploadAndPRTool implements Tool<typeof uploadAndPRParameters> {
       branch
     )
     if (!branchExists) {
-      await createBranch(this.repository.name, branch)
+      const branchCreationResult = await createBranch(
+        this.repository.name,
+        branch
+      )
+      if (
+        branchCreationResult.status === BranchCreationStatus.BranchAlreadyExists
+      ) {
+        // Let LLM know it needs to try a different branch name
+        return JSON.stringify({
+          status: "error",
+          message: branchCreationResult.message,
+        })
+      }
     }
 
     // Upload files to Github
