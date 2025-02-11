@@ -24,6 +24,7 @@ const uploadAndPRParameters = z.object({
   pullRequest: z.object({
     title: z.string().describe("The title of the pull request"),
     body: z.string().describe("The body of the pull request"),
+    issueNumber: z.number().optional().describe("The associated issue number, if available")
   }),
 })
 
@@ -107,6 +108,7 @@ class UploadAndPRTool implements Tool<typeof uploadAndPRParameters> {
         branch,
         title: pullRequest.title,
         body: pullRequest.body,
+        issueNumber: pullRequest.issueNumber
       })
       return JSON.stringify(pr)
     } catch (error) {
