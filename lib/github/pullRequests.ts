@@ -49,3 +49,30 @@ export async function createPullRequest({
 
   return pullRequest
 }
+
+export async function getPullRequestDiff({
+  repo,
+  pullNumber,
+}: {
+  repo: string
+  pullNumber: number
+}) {
+  try {
+    const octokit = await getOctokit();
+    const user = await getGithubUser();
+
+    const response = await octokit.pulls.get({
+      owner: user.login,
+      repo,
+      pull_number: pullNumber,
+      mediaType: {
+        format: "diff",
+      },
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error("Failed to fetch pull request diff:", error);
+    throw new Error("Could not retrieve pull request diff");
+  }
+}
