@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Route the payload to the appropriate handler
-    routeWebhookHandler({
+    await routeWebhookHandler({
       event,
       payload,
     })

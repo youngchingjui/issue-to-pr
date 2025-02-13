@@ -1,3 +1,6 @@
+import { getRepoFromString } from "./github/content"
+import commentOnIssue from "./workflows/commentOnIssue"
+
 // Subscribed events for Github App
 enum GitHubEvent {
   Create = "create",
@@ -15,7 +18,7 @@ enum GitHubEvent {
   Repository = "repository",
 }
 
-export const routeWebhookHandler = ({
+export const routeWebhookHandler = async ({
   event,
   payload,
 }: {
@@ -30,7 +33,13 @@ export const routeWebhookHandler = ({
   if (event === GitHubEvent.Issues) {
     const action = payload["action"]
     if (action === "opened") {
-      console.log("issue opened", payload)
+      const repo = await getRepoFromString(payload["repository"]["name"])
+      commentOnIssue(
+        payload["issue"]["number"],
+        repo,
+        process.env.GITHUB_API_KEY,
+        payload["installation"]["id"]
+      )
     }
   } else {
     const repository =
