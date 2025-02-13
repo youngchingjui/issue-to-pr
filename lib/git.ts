@@ -99,15 +99,40 @@ export async function cloneRepo(
   cloneUrl: string,
   dir: string = null
 ): Promise<string> {
-  const command = `git clone ${cloneUrl}${dir ? ` ${dir}` : ""}`
+  const command = `git clone ${cloneUrl}${dir ? ` ${dir}` : ""}`;
   return new Promise((resolve, reject) => {
-    exec(command, { cwd: dir }, (error, stdout) => {
+    exec(command, { cwd: dir }, async (error, stdout, stderr) => {
       if (error) {
-        return reject(new Error(error.message))
+        return reject(new Error(error.message));
       }
-      return resolve(stdout)
-    })
-  })
+
+      try {
+        // Switch to the newly cloned repository directory for future commands
+        const targetDir = dir ? path.join(dir, path.basename(cloneUrl, '.git')) : path.basename(cloneUrl, '.git');
+        
+        // Handle potential uncommitted changes before updating
+        await execPromise('git stash', { cwd: targetDir });
+
+        // Update to latest after cloning
+        const updateMessage = await updateToLatest(targetDir);
+        return resolve(stdout + updateMessage);
+      } catch (err) {
+        return reject(new Error(`Unable to update to the latest version: ${err.message}`));
+      }
+    });
+  });
+}
+
+// Helper function for promisified exec with options
+function execPromise(command: string, options: object): Promise<string> {
+  return new Promise((resolve, reject) => {
+    exec(command, options, (error, stdout, stderr) => {
+      if (error) {
+        return reject(new Error(stderr || stdout));
+      }
+      return resolve(stdout);
+    });
+  });
 }
 
 export async function getLocalFileContent(filePath: string): Promise<string> {
