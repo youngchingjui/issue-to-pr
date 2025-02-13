@@ -53,6 +53,10 @@ class ReviewPullRequestTool
       this.diff = await getDiff(this.baseDir)
     }
 
+    if (!this.diff) {
+      return "No pull request number was provided , and no file changes were detected."
+    }
+
     return await reviewPullRequest({
       repo: this.repo,
       issue: this.issue,
