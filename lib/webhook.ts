@@ -1,5 +1,8 @@
-import { getRepoFromString } from "./github/content"
-import commentOnIssue from "./workflows/commentOnIssue"
+import { v4 as uuidv4 } from "uuid"
+
+import { getRepoFromString } from "@/lib/github/content"
+import { updateJobStatus } from "@/lib/redis"
+import commentOnIssue from "@/lib/workflows/commentOnIssue"
 
 // Subscribed events for Github App
 enum GitHubEvent {
@@ -33,12 +36,19 @@ export const routeWebhookHandler = async ({
   if (event === GitHubEvent.Issues) {
     const action = payload["action"]
     if (action === "opened") {
-      const repo = await getRepoFromString(payload["repository"]["name"])
+      // Generate a unique job ID
+      const jobId = uuidv4()
+      await updateJobStatus(
+        jobId,
+        "Received webhook event for new issue. Starting commentOnIssue workflow."
+      )
+
+      const repo = await getRepoFromString(payload["repository"]["full_name"])
       commentOnIssue(
         payload["issue"]["number"],
         repo,
-        process.env.GITHUB_API_KEY,
-        payload["installation"]["id"]
+        process.env.OPENAI_API_KEY, // TODO: Pull API key from user account
+        jobId
       )
     }
   } else {

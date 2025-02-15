@@ -34,7 +34,10 @@ export async function POST(request: NextRequest) {
     ;(async () => {
       try {
         console.debug(`[DEBUG] Fetching issue #${issueNumber}`)
-        const issue = await getIssue({ repo: repo.name, issueNumber })
+        const issue = await getIssue({
+          fullName: repo.full_name,
+          issueNumber,
+        })
 
         // Enter resolve issue workflow asynchronously
         await resolveIssue(issue, repo, apiKey)
