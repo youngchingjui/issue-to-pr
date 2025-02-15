@@ -1,7 +1,7 @@
 import { zodFunction } from "openai/helpers/zod"
 import { z } from "zod"
 
-import getOctokit from "@/lib/github"
+import { searchCode } from "@/lib/github/search"
 import { Tool } from "@/lib/types"
 
 const searchCodeParameters = z.object({
@@ -24,14 +24,14 @@ class SearchCodeTool implements Tool<typeof searchCodeParameters> {
 
   async handler(params: z.infer<typeof searchCodeParameters>): Promise<string> {
     const { query } = params
-    const octokit = await getOctokit()
 
     try {
-      const response = await octokit.search.code({
-        q: `${query} repo:${this.repoFullName}`,
+      const searchCodeItems = await searchCode({
+        repoFullName: this.repoFullName,
+        query,
       })
 
-      return JSON.stringify(response.data.items)
+      return JSON.stringify(searchCodeItems)
     } catch (error) {
       console.error("Error searching code:", error)
       throw error
