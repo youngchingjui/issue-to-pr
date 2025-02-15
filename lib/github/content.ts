@@ -126,12 +126,13 @@ export async function checkBranchExists(
 }
 
 export async function getRepoFromString(
-  repo: string
+  fullName: string
 ): Promise<GitHubRepository> {
+  // fullName should be in format like `owner/repo`
+  const [owner, repo] = fullName.split("/")
   const octokit = await getOctokit()
-  const user = await getGithubUser()
-  const { data: repoData } = await octokit.repos.get({
-    owner: user.login,
+  const { data: repoData } = await octokit.rest.repos.get({
+    owner,
     repo,
   })
   return repoData

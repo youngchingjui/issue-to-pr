@@ -1,6 +1,7 @@
 import crypto from "crypto"
 import { NextRequest } from "next/server"
 
+import { runWithInstallationId } from "@/lib/utils-server"
 import { routeWebhookHandler } from "@/lib/webhook"
 
 async function verifySignature(
@@ -30,10 +31,14 @@ export async function POST(req: NextRequest) {
       return new Response("Invalid signature", { status: 401 })
     }
 
+    const installationId = payload["installation"]["id"]
+
     // Route the payload to the appropriate handler
-    routeWebhookHandler({
-      event,
-      payload,
+    runWithInstallationId(installationId, async () => {
+      await routeWebhookHandler({
+        event,
+        payload,
+      })
     })
 
     // Respond with a success status

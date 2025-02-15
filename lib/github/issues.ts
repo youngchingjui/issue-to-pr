@@ -9,16 +9,16 @@ import {
 import getOctokit from "."
 
 export async function getIssue({
-  repo,
+  fullName,
   issueNumber,
 }: {
-  repo: string
+  fullName: string
   issueNumber: number
 }): Promise<GitHubIssue> {
   const octokit = await getOctokit()
-  const user = await getGithubUser()
-  const issue = await octokit.issues.get({
-    owner: user.login,
+  const [owner, repo] = fullName.split("/")
+  const issue = await octokit.rest.issues.get({
+    owner,
     repo,
     issue_number: issueNumber,
   })
@@ -35,9 +35,8 @@ export async function createIssueComment({
   comment: string
 }): Promise<GitHubIssueComment> {
   const octokit = await getOctokit()
-  const user = await getGithubUser()
-  const issue = await octokit.issues.createComment({
-    owner: user.login,
+  const issue = await octokit.rest.issues.createComment({
+    owner: repo.owner.login,
     repo: repo.name,
     issue_number: issueNumber,
     body: comment,
@@ -76,5 +75,5 @@ export async function getIssueList({
     ...rest,
   })
   // Filter out pull requests from the list of issues
-  return issues.data.filter(issue => !issue.pull_request)
+  return issues.data.filter((issue) => !issue.pull_request)
 }

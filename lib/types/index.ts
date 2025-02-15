@@ -11,6 +11,7 @@ export type GitHubIssue = components["schemas"]["issue"]
 export type GitHubIssueComment = components["schemas"]["issue-comment"]
 export type ListForRepoParams =
   RestEndpointMethodTypes["issues"]["listForRepo"]["parameters"]
+export type SearchCodeItem = components["schemas"]["code-search-result-item"]
 
 export interface Tool<T extends z.ZodType, U = unknown> {
   tool: ReturnType<typeof zodFunction>

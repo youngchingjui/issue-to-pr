@@ -7,10 +7,10 @@ interface Props {
   repoName: string
 }
 
-export default async function IssueTable({ repoName }: Props) {
+export default async function IssueTable({ username, repoName }: Props) {
   try {
     const issues = await getIssueList({ repo: repoName, per_page: 100 })
-    const repo = await getRepoFromString(repoName)
+    const repo = await getRepoFromString(username + "/" + repoName)
 
     if (issues.length === 0) {
       return <p className="text-center py-4">No open issues found.</p>

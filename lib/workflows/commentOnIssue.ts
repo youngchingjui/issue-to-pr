@@ -32,7 +32,7 @@ export default async function commentOnIssue(
   updateJobStatus(jobId, "Authenticating and retrieving token")
   // Get the issue
   const issue = await getIssue({
-    repo: repo.name,
+    fullName: repo.full_name,
     issueNumber,
   })
 
