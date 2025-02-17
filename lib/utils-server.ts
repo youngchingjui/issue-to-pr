@@ -4,13 +4,7 @@ import { AsyncLocalStorage } from "node:async_hooks"
 
 import { auth } from "@/auth"
 import { getLocalRepoDir } from "@/lib/fs"
-import {
-  checkIfGitExists,
-  checkoutBranch,
-  cloneRepo,
-  stash,
-  updateToLatest,
-} from "@/lib/git"
+import { checkIfGitExists, cleanCheckout, cloneRepo } from "@/lib/git"
 import { getCloneUrlWithAccessToken } from "@/lib/utils"
 
 // For storing Github App installation ID in async context
@@ -58,11 +52,8 @@ export async function setupLocalRepository({
     await cloneRepo(cloneUrlWithToken, baseDir)
   }
 
-  // Clear away any untracked files and checkout the branch
   // And git pull to latest
-  await stash(baseDir)
-  await checkoutBranch(workingBranch, baseDir)
-  await updateToLatest(baseDir)
+  await cleanCheckout(workingBranch, baseDir)
 
   return baseDir
 }

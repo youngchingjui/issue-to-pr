@@ -3,16 +3,8 @@
 // All the agents will share the same trace
 // They can also all access the same data, such as the issue, the codebase, etc.
 
-import { auth } from "@/auth"
 import { CoordinatorAgent } from "@/lib/agents/coordinator"
-import { createDirectoryTree, getLocalRepoDir } from "@/lib/fs"
-import {
-  checkIfGitExists,
-  checkoutBranch,
-  cloneRepo,
-  stash,
-  updateToLatest,
-} from "@/lib/git"
+import { createDirectoryTree } from "@/lib/fs"
 import { getIssueComments } from "@/lib/github/issues"
 import { langfuse } from "@/lib/langfuse"
 import {
@@ -23,41 +15,18 @@ import {
   UploadAndPRTool,
 } from "@/lib/tools"
 import { GitHubIssue, GitHubRepository } from "@/lib/types"
-import { getCloneUrlWithAccessToken } from "@/lib/utils"
+import { setupLocalRepository } from "@/lib/utils-server"
 
 export const resolveIssue = async (
   issue: GitHubIssue,
   repository: GitHubRepository,
   apiKey: string
 ) => {
-  // Get or create a local directory to work off of
-  const baseDir = await getLocalRepoDir(repository.full_name)
-
-  // Check if .git and codebase exist in tempDir
-  // If not, clone the repo
-
-  console.debug(`[DEBUG] Checking if .git and codebase exist in ${baseDir}`)
-  const gitExists = await checkIfGitExists(baseDir)
-  if (!gitExists) {
-    // Clone the repo
-    console.debug(`[DEBUG] Cloning repo: ${repository.full_name}`)
-
-    const session = await auth()
-    const token = session.user?.accessToken
-    // Attach access token to cloneUrl
-    const cloneUrlWithToken = getCloneUrlWithAccessToken(
-      repository.full_name,
-      token
-    )
-
-    await cloneRepo(cloneUrlWithToken, baseDir)
-  }
-
-  // Clear away any untracked files and checkout the branch
-  // And git pull to latest
-  await stash(baseDir)
-  await checkoutBranch(repository.default_branch, baseDir)
-  await updateToLatest(baseDir)
+  // Setup local repoistory
+  const baseDir = await setupLocalRepository({
+    repoFullName: repository.full_name,
+    workingBranch: repository.default_branch,
+  })
 
   // Start a trace for this workflow
   const trace = langfuse.trace({
