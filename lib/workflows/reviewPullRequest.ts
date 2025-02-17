@@ -1,6 +1,10 @@
 import { ReviewerAgent } from "@/lib/agents/reviewer"
 import { createDirectoryTree } from "@/lib/fs"
-import { getPullRequestDiff } from "@/lib/github/pullRequests"
+import {
+  getPullRequestComments,
+  getPullRequestDiff,
+  getPullRequestReviews,
+} from "@/lib/github/pullRequests"
 import { langfuse } from "@/lib/langfuse"
 import { SearchCodeTool } from "@/lib/tools"
 import { GetFileContentTool } from "@/lib/tools"
@@ -94,6 +98,28 @@ export async function reviewPullRequest({
 
   const tree = await createDirectoryTree(updatedBaseDir)
 
+  // Fetch comments and reviews if pullNumber is provided
+  let comments = []
+  let reviews = []
+  if (pullNumber) {
+    comments = await getPullRequestComments({ repoFullName, pullNumber })
+    reviews = await getPullRequestReviews({ repoFullName, pullNumber })
+  }
+
+  // Format comments and reviews
+  const formattedComments = comments
+    .map(
+      (comment, index) =>
+        `Comment ${index + 1} by ${comment.user.login}:\n${comment.body}`
+    )
+    .join("\n\n")
+  const formattedReviews = reviews
+    .map(
+      (review, index) =>
+        `Review ${index + 1} by ${review.user.login} (${review.state}):\n${review.body || "No comment provided"}`
+    )
+    .join("\n\n")
+
   // Provide initial user message with all necessary information
   const message = `
   ## Pull request diff\n
@@ -111,6 +137,10 @@ export async function reviewPullRequest({
   }
   ## Codebase directory\n
   ${tree.join("\n")}\n
+
+  ${formattedComments ? `## Comments\n${formattedComments}\n` : ""}
+
+  ${formattedReviews ? `## Reviews\n${formattedReviews}\n` : ""}
   `
 
   reviewer.addMessage({
