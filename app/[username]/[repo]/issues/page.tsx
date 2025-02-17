@@ -2,6 +2,7 @@ import { Suspense } from "react"
 
 import IssueTable from "@/components/IssueTable"
 import { TableSkeleton } from "@/components/TableSkeleton"
+import NavigationBar from "@/components/NavigationBar"
 
 interface Props {
   params: {
@@ -18,6 +19,7 @@ export default async function RepoPage({ params }: Props) {
       <h1 className="text-2xl font-bold mb-4">
         {username} / {repo}
       </h1>
+      <NavigationBar />
       <Suspense fallback={<TableSkeleton />}>
         <IssueTable username={username} repoName={repo} />
       </Suspense>
