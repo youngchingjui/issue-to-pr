@@ -9,6 +9,8 @@ export type AuthenticatedUserRepository = components["schemas"]["repository"]
 export type GitHubUser = components["schemas"]["simple-user"]
 export type GitHubIssue = components["schemas"]["issue"]
 export type GitHubIssueComment = components["schemas"]["issue-comment"]
+export type PullRequest =
+  RestEndpointMethodTypes["pulls"]["list"]["response"]["data"][0]
 export type ListForRepoParams =
   RestEndpointMethodTypes["issues"]["listForRepo"]["parameters"]
 export type SearchCodeItem = components["schemas"]["code-search-result-item"]

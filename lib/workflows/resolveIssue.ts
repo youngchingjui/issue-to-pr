@@ -18,7 +18,7 @@ import { langfuse } from "@/lib/langfuse"
 import {
   CallCoderAgentTool,
   GetFileContentTool,
-  ReviewCodeTool,
+  ReviewPullRequestTool,
   SearchCodeTool,
   UploadAndPRTool,
 } from "@/lib/tools"
@@ -79,7 +79,7 @@ export const resolveIssue = async (
   const getFileContentTool = new GetFileContentTool(baseDir)
   const submitPRTool = new UploadAndPRTool(repository, baseDir, issue.number)
   const searchCodeTool = new SearchCodeTool(repository.full_name)
-  const reviewCodeTool = new ReviewCodeTool({
+  const reviewPullRequestTool = new ReviewPullRequestTool({
     repo: repository,
     issue,
     baseDir,
@@ -101,6 +101,6 @@ export const resolveIssue = async (
   coordinatorAgent.addTool(callCoderAgentTool)
   coordinatorAgent.addTool(submitPRTool)
   coordinatorAgent.addTool(searchCodeTool)
-  coordinatorAgent.addTool(reviewCodeTool)
+  coordinatorAgent.addTool(reviewPullRequestTool)
   return await coordinatorAgent.runWithFunctions()
 }

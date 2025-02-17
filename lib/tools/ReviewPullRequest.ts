@@ -58,7 +58,7 @@ class ReviewPullRequestTool
     }
 
     return await reviewPullRequest({
-      repo: this.repo,
+      repoFullName: this.repo.full_name,
       issue: this.issue,
       pullNumber: this.pullNumber,
       diff: this.diff,

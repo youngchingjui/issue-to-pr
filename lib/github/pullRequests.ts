@@ -1,5 +1,6 @@
 import getOctokit from "@/lib/github"
 import { getGithubUser } from "@/lib/github/users"
+import { PullRequest } from "@/lib/types"
 
 export async function getPullRequestOnBranch({
   repo,
@@ -58,18 +59,19 @@ export async function createPullRequest({
 }
 
 export async function getPullRequestDiff({
-  repo,
+  repoFullName,
   pullNumber,
 }: {
-  repo: string
+  repoFullName: string
   pullNumber: number
 }): Promise<string> {
   try {
     const octokit = await getOctokit()
-    const user = await getGithubUser()
+
+    const [owner, repo] = repoFullName.split("/")
 
     const response = await octokit.pulls.get({
-      owner: user.login,
+      owner,
       repo,
       pull_number: pullNumber,
       mediaType: {
@@ -89,4 +91,20 @@ export async function getPullRequestDiff({
     console.error("Failed to fetch pull request diff:", error)
     throw new Error("Could not retrieve pull request diff")
   }
+}
+
+export async function getPullRequestList({
+  repoFullName,
+}: {
+  repoFullName: string
+}): Promise<PullRequest[]> {
+  const octokit = await getOctokit()
+  const [owner, repo] = repoFullName.split("/")
+
+  const pullRequests = await octokit.rest.pulls.list({
+    owner,
+    repo,
+  })
+
+  return pullRequests.data
 }
