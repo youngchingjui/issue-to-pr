@@ -80,13 +80,7 @@ export async function getFileContent(filePath: string) {
   }
 }
 
-export async function writeFile(
-  baseDir: string,
-  filePath: string,
-  content: string
-) {
-  const fullPath = path.join(baseDir, filePath)
-
+export async function writeFile(fullPath: string, content: string) {
   // Ensure the directory exists
   const dirPath = path.dirname(fullPath)
   await fs.mkdir(dirPath, { recursive: true })

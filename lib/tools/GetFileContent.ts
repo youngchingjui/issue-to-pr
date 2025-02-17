@@ -33,6 +33,9 @@ class GetFileContentTool implements Tool<typeof getFileContentParameters> {
     try {
       return getFileContent(path.join(this.baseDir, relativePath))
     } catch (error) {
+      if (error.code === "ENOENT") {
+        return "FileNotFound"
+      }
       console.error("Error getting file content:", error)
       throw error
     }

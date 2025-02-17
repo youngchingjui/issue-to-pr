@@ -50,8 +50,13 @@ class CallCoderAgentTool implements Tool<typeof callCoderAgentParameters> {
     coderAgent.addTool(writeFileTool)
     coderAgent.addTool(getDirectoryStructureTool)
 
-    // Call the coder agent
-    return await coderAgent.generateCode(instructions, relativeFilePath)
+    coderAgent.addMessage({
+      role: "user",
+      content: `Instructions: ${instructions}\nFile to modify: ${relativeFilePath}`,
+    })
+
+    // Start the run
+    return await coderAgent.runWithFunctions()
   }
 }
 
