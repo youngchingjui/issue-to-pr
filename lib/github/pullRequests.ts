@@ -1,6 +1,6 @@
 import getOctokit from "@/lib/github"
 import { getGithubUser } from "@/lib/github/users"
-import { PullRequest } from "@/lib/types"
+import { PullRequest, GitHubRepository } from "@/lib/types"
 
 export async function getPullRequestOnBranch({
   repo,
@@ -107,4 +107,28 @@ export async function getPullRequestList({
   })
 
   return pullRequests.data
+}
+
+export async function createPullRequestComment({
+  pullNumber,
+  repo,
+  comment,
+}: {
+  pullNumber: number
+  repo: GitHubRepository
+  comment: string
+}): Promise<any> {
+  const octokit = await getOctokit()
+
+  const reviewComment = await octokit.pulls.createReviewComment({
+    owner: repo.owner.login,
+    repo: repo.name,
+    pull_number: pullNumber,
+    body: comment,
+    commit_id: '', // Specify the commit ID if needed
+    path: '', // Specify the file path if needed (optional)
+    position: 1, // Position in the file if path is specified (default to line 1)
+  })
+
+  return reviewComment.data
 }
