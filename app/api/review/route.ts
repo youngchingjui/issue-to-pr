@@ -3,7 +3,10 @@ import { v4 as uuidv4 } from "uuid"
 
 import { updateJobStatus } from "@/lib/redis"
 import { reviewPullRequest } from "@/lib/workflows/reviewPullRequest"
+import { createIssueComment } from "@/lib/github/issues"
 
+// Type definition for the request body
+// Contains information about the pull request to review.
 type RequestBody = {
   pullNumber: number
   repoFullName: string
@@ -25,8 +28,21 @@ export async function POST(request: NextRequest) {
         pullNumber,
         apiKey,
       })
-      await updateJobStatus(jobId, "Completed: " + JSON.stringify(response))
+
+      // Split the repoFullName into owner and repo
+      const [owner, name] = repoFullName.split("/")
+      const repo = { owner, name }
+
+      // Post the AI-generated review as a comment on the pull request
+      await createIssueComment({
+        issueNumber: pullNumber,
+        repo,
+        comment: response,
+      })
+
+      await updateJobStatus(jobId, "Review completed and comment posted")
     } catch (error) {
+      console.error("Error posting comment:", error)
       await updateJobStatus(jobId, "Failed: " + error.message)
     }
   })()
