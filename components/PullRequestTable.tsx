@@ -1,11 +1,17 @@
 import { PullRequestRow } from "@/components/PullRequestRow"
-import { PullRequest } from "@/lib/types"
+import { getPullRequestList } from "@/lib/github/pullRequests"
 
-export default function PullRequestTable({
-  pullRequests,
+export default async function PullRequestTable({
+  username,
+  repoName,
 }: {
-  pullRequests: PullRequest[]
+  username: string
+  repoName: string
 }) {
+  const pullRequests = await getPullRequestList({
+    repoFullName: `${username}/${repoName}`,
+  })
+
   return (
     <div className="bg-white border border-gray-300">
       <div className="flex bg-gray-100 py-2 px-4">
