@@ -1,4 +1,3 @@
-import { auth } from "@/auth"
 import { ThinkerAgent } from "@/lib/agents/thinker"
 import { createDirectoryTree } from "@/lib/fs"
 import { createIssueComment, getIssue } from "@/lib/github/issues"
@@ -7,7 +6,7 @@ import { updateJobStatus } from "@/lib/redis"
 import { SearchCodeTool } from "@/lib/tools"
 import GetFileContentTool from "@/lib/tools/GetFileContent"
 import { GitHubRepository } from "@/lib/types"
-import { setupLocalRepository } from '@/lib/utils-server' // Import setupLocalRepository
+import { setupLocalRepository } from "@/lib/utils-server"
 
 export default async function commentOnIssue(
   issueNumber: number,
@@ -16,8 +15,6 @@ export default async function commentOnIssue(
   jobId: string
 ) {
   const trace = langfuse.trace({ name: "commentOnIssue" })
-  const session = await auth()
-  const token = session?.user?.accessToken
 
   updateJobStatus(jobId, "Authenticating and retrieving token")
   // Get the issue
@@ -30,10 +27,7 @@ export default async function commentOnIssue(
 
   updateJobStatus(jobId, "Setting up the local repository")
   // Setup local repository using setupLocalRepository
-  const dirPath = await setupLocalRepository({
-    repoFullName: repo.full_name,
-    workingBranch: 'main'
-  })
+  const dirPath = await setupLocalRepository({ repoFullName: repo.full_name })
 
   updateJobStatus(jobId, "Repository setup completed")
 
