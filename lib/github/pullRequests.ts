@@ -1,6 +1,6 @@
 import getOctokit from "@/lib/github"
 import { getGithubUser } from "@/lib/github/users"
-import { PullRequest } from "@/lib/types"
+import { IssueComment, PullRequest, PullRequestReview } from "@/lib/types"
 
 export async function getPullRequestOnBranch({
   repo,
@@ -115,7 +115,7 @@ export async function getPullRequestComments({
 }: {
   repoFullName: string
   pullNumber: number
-}): Promise<any[]> {
+}): Promise<IssueComment[]> {
   const octokit = await getOctokit()
   const [owner, repo] = repoFullName.split("/")
 
@@ -134,7 +134,7 @@ export async function getPullRequestReviews({
 }: {
   repoFullName: string
   pullNumber: number
-}): Promise<any[]> {
+}): Promise<PullRequestReview[]> {
   const octokit = await getOctokit()
   const [owner, repo] = repoFullName.split("/")
 
