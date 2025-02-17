@@ -144,11 +144,17 @@ export async function cleanCheckout(branchName: string, dir: string) {
   return new Promise((resolve, reject) => {
     exec(command, { cwd: dir }, (error, stdout, stderr) => {
       if (error) {
-        return reject(new Error(error.message))
+        console.error(`[ERROR] Command failed: ${command}\n${error.message}`)
+        return reject(
+          new Error(`Failed to execute git command: ${error.message}`)
+        )
       }
       if (stderr) {
-        return reject(new Error(stderr))
+        console.warn(`[WARNING] Command produced stderr: ${stderr}`)
+        // Consider whether stderr should always cause rejection
+        // return reject(new Error(stderr))
       }
+      console.debug(`[DEBUG] Command output: ${stdout}`)
       return resolve(stdout)
     })
   })
