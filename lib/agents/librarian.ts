@@ -5,14 +5,12 @@ import {
   ChatCompletionTool,
 } from "openai/resources/chat/completions"
 
-import { auth } from "@/auth"
-import { createDirectoryTree, getLocalRepoDir } from "@/lib/fs"
-import { checkIfGitExists, checkoutBranch, cloneRepo } from "@/lib/git"
+import { createDirectoryTree } from "@/lib/fs"
 import { getFileContent as getGithubFileContent } from "@/lib/github/content"
 import { librarianAgentPrompt } from "@/lib/prompts"
 import GetFileContentTool from "@/lib/tools/GetFileContent"
 import { GitHubRepository } from "@/lib/types"
-import { getCloneUrlWithAccessToken } from "@/lib/utils"
+import { setupLocalRepository } from "@/lib/utils-server"
 
 export class LibrarianAgent {
   private trace?: LangfuseTraceClient
@@ -61,37 +59,12 @@ export class LibrarianAgent {
     if (!this.baseDir) {
       throw new Error("Base directory is required to setup local repo")
     }
-    // This ensures LibrarianAgent has access to the repo hosted locally
-    // Run this before generating responses
-    const baseDir = await getLocalRepoDir(this.repository.full_name)
 
-    // Check if .git and codebase exist in tempDir
-    // If not, clone the repo
-    // If so, checkout the branch
-    console.debug(`[DEBUG] Checking if .git and codebase exist in ${baseDir}`)
-    const gitExists = await checkIfGitExists(baseDir)
-    if (!gitExists) {
-      // Clone the repo
-      console.debug(`[DEBUG] Cloning repo: ${this.repository.clone_url}`)
-
-      const session = await auth()
-
-      if (!session) {
-        throw new Error("Unauthorized")
-      }
-
-      const token = session.user?.accessToken
-      // Attach access token to cloneUrl
-      const cloneUrlWithToken = getCloneUrlWithAccessToken(
-        this.repository.full_name,
-        token
-      )
-      await cloneRepo(cloneUrlWithToken, baseDir)
-    }
-
-    console.debug(`[DEBUG] Checking out branch ${this.branch}`)
-    // Checkout the branch
-    await checkoutBranch(this.branch, baseDir)
+    // Use the setupLocalRepository function to initiate the repository setup
+    const baseDir = await setupLocalRepository({
+      repoFullName: this.repository.full_name,
+      workingBranch: this.branch || "main",
+    })
 
     this.tree = await createDirectoryTree(baseDir)
     this.updateInstructions()
