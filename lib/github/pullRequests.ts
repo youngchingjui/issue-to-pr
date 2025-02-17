@@ -90,3 +90,20 @@ export async function getPullRequestDiff({
     throw new Error("Could not retrieve pull request diff")
   }
 }
+
+export async function getPullRequestList({
+  repo,
+  per_page = 100
+}: {
+  repo: string
+  per_page?: number
+}) {
+  const octokit = await getOctokit()
+  const user = await getGithubUser()
+  const response = await octokit.pulls.list({
+    owner: user.login,
+    repo,
+    per_page
+  })
+  return response.data
+}
