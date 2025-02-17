@@ -4,6 +4,7 @@
     "paths": {
       "@/styles/*": ["styles/*"],
       "@/components/*": ["components/*"],
+      "@/hooks/*": ["lib/hooks/*"], // updated path
       "@/*": ["./*"]
     },
     "target": "ES2017",
@@ -22,11 +23,9 @@
     "jsx": "preserve",
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ]
+    "plugins": [{
+      "name": "next"
+    }]
   },
   "include": ["**/*", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]
