@@ -1,5 +1,4 @@
 import { Agent } from "@/lib/agents/base"
-import { getFileContent } from "@/lib/fs"
 
 export class CoderAgent extends Agent {
   REQUIRED_TOOLS = ["write_file", "get_file_content", "get_directory_structure"]
@@ -21,34 +20,5 @@ You must call write_file near the end of your process to implement the changes.
 Always write clean, well-documented code that matches existing codebase style.
 Respond with a summary of changes made.`
     super({ systemPrompt: initialSystemPrompt, apiKey })
-  }
-
-  private async checkFileExists(relativeFilePath: string): Promise<boolean> {
-    try {
-      await getFileContent(relativeFilePath)
-      return true
-    } catch {
-      return false
-    }
-  }
-
-  async generateCode(instructions: string, relativeFilePath: string) {
-    const hasTools = this.checkTools()
-
-    if (!hasTools) {
-      throw new Error("CoderAgent does not have all the required tools")
-    }
-
-    const fileExists = await this.checkFileExists(relativeFilePath)
-    if (!fileExists) {
-      console.error(`File ${relativeFilePath} does not exist`)
-    }
-
-    this.addMessage({
-      role: "user",
-      content: `Instructions: ${instructions}\nFile to modify: ${relativeFilePath}`,
-    })
-
-    return super.runWithFunctions()
   }
 }

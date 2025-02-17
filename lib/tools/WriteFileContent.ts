@@ -1,4 +1,5 @@
 import { zodFunction } from "openai/helpers/zod"
+import path from "path"
 import { z } from "zod"
 
 import { writeFile } from "@/lib/fs"
@@ -31,7 +32,8 @@ export default class WriteFileContentTool
     params: z.infer<typeof writeFileContentParameters>
   ): Promise<string> {
     const { relativePath, content } = params
-    await writeFile(this.baseDir, relativePath, content)
+    const fullPath = path.join(this.baseDir, relativePath)
+    await writeFile(fullPath, content)
     return `File written successfully to ${relativePath}`
   }
 }
