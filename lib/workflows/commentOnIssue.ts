@@ -54,7 +54,7 @@ export default async function commentOnIssue(
   // Post the comment to the Github issue
   const issueComment = await createIssueComment({
     issueNumber,
-    repo,
+    repoFullName: repo.full_name,
     comment: response,
   })
 

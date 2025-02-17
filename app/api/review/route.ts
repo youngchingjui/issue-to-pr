@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { v4 as uuidv4 } from "uuid"
 
+import { createIssueComment } from "@/lib/github/issues"
 import { updateJobStatus } from "@/lib/redis"
 import { reviewPullRequest } from "@/lib/workflows/reviewPullRequest"
-import { createIssueComment } from "@/lib/github/issues"
 
 // Type definition for the request body
 // Contains information about the pull request to review.
@@ -29,14 +29,10 @@ export async function POST(request: NextRequest) {
         apiKey,
       })
 
-      // Split the repoFullName into owner and repo
-      const [owner, name] = repoFullName.split("/")
-      const repo = { owner, name }
-
       // Post the AI-generated review as a comment on the pull request
       await createIssueComment({
         issueNumber: pullNumber,
-        repo,
+        repoFullName,
         comment: response,
       })
 

@@ -1,10 +1,5 @@
 import { getGithubUser } from "@/lib/github/users"
-import {
-  GitHubIssue,
-  GitHubIssueComment,
-  GitHubRepository,
-  ListForRepoParams,
-} from "@/lib/types"
+import { GitHubIssue, GitHubIssueComment, ListForRepoParams } from "@/lib/types"
 
 import getOctokit from "."
 
@@ -27,17 +22,18 @@ export async function getIssue({
 
 export async function createIssueComment({
   issueNumber,
-  repo,
+  repoFullName,
   comment,
 }: {
   issueNumber: number
-  repo: GitHubRepository
+  repoFullName: string
   comment: string
 }): Promise<GitHubIssueComment> {
   const octokit = await getOctokit()
+  const [owner, repo] = repoFullName.split("/")
   const issue = await octokit.rest.issues.createComment({
-    owner: repo.owner.login,
-    repo: repo.name,
+    owner,
+    repo,
     issue_number: issueNumber,
     body: comment,
   })

@@ -38,7 +38,7 @@ You will need to generate an assessment of the PR or git diff that addresses the
 - Open specific files to get a full understanding of the problem in the code
 
 ## Output
-Your output should be an assessment of the PR or git diff that addresses the questions above. Please output in JSON.
+Your output should be an assessment of the PR or git diff that addresses the questions above. Please output in markdown.
 `
     super({
       systemPrompt: initialSystemPrompt,
