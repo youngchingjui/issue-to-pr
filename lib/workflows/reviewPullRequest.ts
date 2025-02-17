@@ -87,11 +87,12 @@ export async function reviewPullRequest({
     throw new Error("No diff provided")
   }
 
+  let updatedBaseDir = baseDir
   if (!baseDir) {
-    baseDir = await setupLocalRepository({ repoFullName })
+    updatedBaseDir = await setupLocalRepository({ repoFullName })
   }
 
-  const tree = await createDirectoryTree(baseDir)
+  const tree = await createDirectoryTree(updatedBaseDir)
 
   // Provide initial user message with all necessary information
   const message = `
