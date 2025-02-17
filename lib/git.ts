@@ -117,8 +117,9 @@ export async function getLocalFileContent(filePath: string): Promise<string> {
   return fileContent
 }
 
-export async function stash(dir: string): Promise<string> {
-  const command = `git stash`
+export async function getDiff(dir: string): Promise<string> {
+  // Returns the git diff of the current branch in the `dir`
+  const command = `git diff`
   return new Promise((resolve, reject) => {
     exec(command, { cwd: dir }, (error, stdout) => {
       if (error) {
@@ -129,13 +130,24 @@ export async function stash(dir: string): Promise<string> {
   })
 }
 
-export async function getDiff(dir: string): Promise<string> {
-  // Returns the git diff of the current branch in the `dir`
-  const command = `git diff`
+export async function cleanCheckout(branchName: string, dir: string) {
+  // Resets any changes in the working directory, cleans untracked files,
+  // fetches the latest changes, and resets the local branch to match the remote branch
+  const command = `
+    git checkout -q ${branchName} &&
+    git reset --hard &&
+    git clean -fd &&
+    git fetch &&
+    git reset --hard origin/${branchName}
+  `
+
   return new Promise((resolve, reject) => {
-    exec(command, { cwd: dir }, (error, stdout) => {
+    exec(command, { cwd: dir }, (error, stdout, stderr) => {
       if (error) {
         return reject(new Error(error.message))
+      }
+      if (stderr) {
+        return reject(new Error(stderr))
       }
       return resolve(stdout)
     })
