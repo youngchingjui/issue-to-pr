@@ -4,19 +4,21 @@ import { getPullRequestDiff } from "@/lib/github/pullRequests"
 import { langfuse } from "@/lib/langfuse"
 import { SearchCodeTool } from "@/lib/tools"
 import { GetFileContentTool } from "@/lib/tools"
-import { GitHubIssue, GitHubRepository } from "@/lib/types"
+import { GitHubIssue } from "@/lib/types"
+
+import { setupLocalRepository } from "../utils-server"
 
 interface ReviewPullRequestParams {
-  repo: GitHubRepository
-  issue: GitHubIssue
+  repoFullName: string
+  issue?: GitHubIssue
   pullNumber?: number
   diff?: string
-  baseDir: string
+  baseDir?: string
   apiKey: string
 }
 
 export async function reviewPullRequest({
-  repo,
+  repoFullName,
   issue,
   pullNumber,
   diff,
@@ -47,15 +49,17 @@ export async function reviewPullRequest({
   let traceName: string
   if (pullNumber) {
     traceName = `Review PR#${pullNumber}`
-  } else {
+  } else if (issue) {
     traceName = `Review diff for #${issue.number} ${issue.title}`
+  } else {
+    traceName = `Review diff`
   }
 
   const trace = langfuse.trace({
     name: traceName,
     input: {
-      repo: repo.name,
-      issue: issue.number,
+      repoFullName,
+      issueNumber: issue?.number,
       pullNumber,
       diff,
     },
@@ -65,7 +69,7 @@ export async function reviewPullRequest({
 
   // Initialize tools
   const getFileContentTool = new GetFileContentTool(baseDir)
-  const searchCodeTool = new SearchCodeTool(repo.full_name)
+  const searchCodeTool = new SearchCodeTool(repoFullName)
 
   // Initialize LLM
   const reviewer = new ReviewerAgent({ apiKey })
@@ -74,7 +78,7 @@ export async function reviewPullRequest({
   // Identify the diff
   if (pullNumber) {
     finalDiff = await getPullRequestDiff({
-      repo: repo.name,
+      repoFullName,
       pullNumber,
     })
   } else if (diff) {
@@ -83,18 +87,27 @@ export async function reviewPullRequest({
     throw new Error("No diff provided")
   }
 
-  // Get the tree of the codebase
+  if (!baseDir) {
+    baseDir = await setupLocalRepository({ repoFullName })
+  }
+
   const tree = await createDirectoryTree(baseDir)
 
   // Provide initial user message with all necessary information
   const message = `
   ## Pull request diff\n
   ${finalDiff}\n
+  ${
+    issue
+      ? `
   ## Github issue \n
-  ### Title\n
-  ${issue.title}\n
-  ### Description\n
-  ${issue.body}\n
+    ### Title\n
+    ${issue.title}\n
+    ### Description\n
+    ${issue.body}\n
+  `
+      : ""
+  }
   ## Codebase directory\n
   ${tree.join("\n")}\n
   `

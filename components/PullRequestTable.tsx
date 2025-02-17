@@ -1,15 +1,54 @@
 "use client"
 
+import { useEffect, useState } from "react"
+
 import { Button } from "@/components/ui/button"
+import { toast } from "@/hooks/use-toast"
 import { PullRequest } from "@/lib/types"
+import { getApiKeyFromLocalStorage } from "@/lib/utils"
 
 export default function PullRequestTable({
   pullRequests,
 }: {
   pullRequests: PullRequest[]
 }) {
-  function handleReviewPullRequest(pullNumber: number) {
-    // Trigger AI review logic
+  const [isLoading, setIsLoading] = useState(false)
+  const [apiKey, setApiKey] = useState("")
+
+  // Load any existing API key from local storage
+  useEffect(() => {
+    const key = getApiKeyFromLocalStorage()
+    if (key) {
+      setApiKey(key)
+    }
+  }, [])
+
+  const handleReviewPullRequest = async (
+    pullNumber: number,
+    repoFullName: string
+  ) => {
+    let key = apiKey
+    if (!key) {
+      // Pull API key if recently saved
+      key = getApiKeyFromLocalStorage()
+      if (!key) {
+        toast({
+          title: "API key not found",
+          description: "Please save an OpenAI API key first.",
+          variant: "destructive",
+        })
+        return
+      }
+      setApiKey(key)
+    }
+
+    setIsLoading(true)
+    const response = await fetch("/api/review", {
+      method: "POST",
+      body: JSON.stringify({ pullNumber, repoFullName, apiKey: key }),
+    })
+    console.log(response)
+    setIsLoading(false)
   }
 
   return (
@@ -27,8 +66,14 @@ export default function PullRequestTable({
             <div className="flex-1">{pr.title}</div>
             <div className="flex-1">{pr.state}</div>
             <div className="flex-1">
-              <Button onClick={() => handleReviewPullRequest(pr.number)}>
-                Let AI review your PR
+              <Button
+                onClick={() =>
+                  handleReviewPullRequest(pr.number, pr.head.repo.full_name)
+                }
+                disabled={isLoading}
+                variant="default"
+              >
+                {isLoading ? "Reviewing PR..." : "Review Pull Request"}
               </Button>
             </div>
           </div>

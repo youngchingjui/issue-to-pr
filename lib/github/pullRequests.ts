@@ -59,18 +59,19 @@ export async function createPullRequest({
 }
 
 export async function getPullRequestDiff({
-  repo,
+  repoFullName,
   pullNumber,
 }: {
-  repo: string
+  repoFullName: string
   pullNumber: number
 }): Promise<string> {
   try {
     const octokit = await getOctokit()
-    const user = await getGithubUser()
+
+    const [owner, repo] = repoFullName.split("/")
 
     const response = await octokit.pulls.get({
-      owner: user.login,
+      owner,
       repo,
       pull_number: pullNumber,
       mediaType: {
