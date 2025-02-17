@@ -1,22 +1,51 @@
-import React from 'react';
-import { Button } from './ui/button';
-import Link from 'next/link';
+import Link from "next/link"
+import React from "react"
 
-const NavigationBar: React.FC = () => {
+import {
+  NavigationMenu,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  navigationMenuTriggerStyle,
+} from "@/components/ui/navigation-menu"
+
+const NavigationBar: React.FC<{
+  currentPage: "pullRequests" | "issues"
+  username: string
+  repo: string
+}> = ({ currentPage, username, repo }) => {
   return (
-    <nav className="flex justify-center gap-4 my-4">
-      <Link href="/issues" passHref>
-        <Button asChild>
-          <a>Issues</a>
-        </Button>
-      </Link>
-      <Link href="/pullRequests" passHref>
-        <Button asChild>
-          <a>Pull Requests</a>
-        </Button>
-      </Link>
-    </nav>
-  );
-};
+    <NavigationMenu>
+      <NavigationMenuList>
+        <NavigationMenuItem>
+          <Link href={`/${username}/${repo}/issues`} legacyBehavior passHref>
+            <NavigationMenuLink
+              className={`${navigationMenuTriggerStyle()} ${
+                currentPage === "issues" ? "active" : ""
+              }`}
+            >
+              Issues
+            </NavigationMenuLink>
+          </Link>
+        </NavigationMenuItem>
+        <NavigationMenuItem>
+          <Link
+            href={`/${username}/${repo}/pullRequests`}
+            legacyBehavior
+            passHref
+          >
+            <NavigationMenuLink
+              className={`${navigationMenuTriggerStyle()} ${
+                currentPage === "pullRequests" ? "active" : ""
+              }`}
+            >
+              Pull Requests
+            </NavigationMenuLink>
+          </Link>
+        </NavigationMenuItem>
+      </NavigationMenuList>
+    </NavigationMenu>
+  )
+}
 
-export default NavigationBar;
+export default NavigationBar

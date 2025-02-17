@@ -27,7 +27,7 @@ export default async function RepositoryList({
       {repositories.map((repo) => (
         <li key={repo.id} className="bg-white shadow rounded-lg p-4">
           <Link
-            href={`/${username}/${repo.name}`}
+            href={`/${username}/${repo.name}/issues`}
             className="text-blue-600 hover:underline"
           >
             {repo.name}
