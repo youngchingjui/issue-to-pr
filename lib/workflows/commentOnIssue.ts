@@ -1,23 +1,13 @@
-// This workflow uses an LLM to understand a Github issue,
-// Explore possibilities, understand the codebase,
-// Then generates a post as a comment on the issue.
-// The comment should include the following sections:
-// - Understanding the issue
-// - Possible solutions
-// - Relevant code
-// - Suggested plan
-
 import { auth } from "@/auth"
 import { ThinkerAgent } from "@/lib/agents/thinker"
-import { createDirectoryTree, getLocalRepoDir } from "@/lib/fs"
-import { checkIfGitExists, cloneRepo, updateToLatest } from "@/lib/git"
+import { createDirectoryTree } from "@/lib/fs"
 import { createIssueComment, getIssue } from "@/lib/github/issues"
 import { langfuse } from "@/lib/langfuse"
 import { updateJobStatus } from "@/lib/redis"
 import { SearchCodeTool } from "@/lib/tools"
 import GetFileContentTool from "@/lib/tools/GetFileContent"
 import { GitHubRepository } from "@/lib/types"
-import { getCloneUrlWithAccessToken } from "@/lib/utils"
+import { setupLocalRepository } from '@/lib/utils-server' // Import setupLocalRepository
 
 export default async function commentOnIssue(
   issueNumber: number,
@@ -38,21 +28,14 @@ export default async function commentOnIssue(
 
   updateJobStatus(jobId, "Issue retrieved successfully")
 
-  // Get the local repo directory
-  const dirPath = await getLocalRepoDir(repo.full_name)
+  updateJobStatus(jobId, "Setting up the local repository")
+  // Setup local repository using setupLocalRepository
+  const dirPath = await setupLocalRepository({
+    repoFullName: repo.full_name,
+    workingBranch: 'main'
+  })
 
-  updateJobStatus(jobId, "Checking repository setup")
-  // Ensure .git is initialized and setup in directory
-  const gitExists = await checkIfGitExists(dirPath)
-  if (!gitExists) {
-    // Clone the repo
-    const cloneUrlWithToken = getCloneUrlWithAccessToken(repo.full_name, token)
-    await cloneRepo(cloneUrlWithToken, dirPath)
-    updateJobStatus(jobId, "Repository cloned successfully")
-  } else {
-    await updateToLatest(dirPath)
-    updateJobStatus(jobId, "Repository updated to latest version")
-  }
+  updateJobStatus(jobId, "Repository setup completed")
 
   const tree = await createDirectoryTree(dirPath)
   updateJobStatus(jobId, "Directory tree created")
