@@ -2,15 +2,17 @@ import { IssueRow } from "@/components/IssueRow"
 import { getRepoFromString } from "@/lib/github/content"
 import { getIssueList } from "@/lib/github/issues"
 
-interface Props {
-  username: string
-  repoName: string
-}
-
-export default async function IssueTable({ username, repoName }: Props) {
+export default async function IssueTable({
+  repoFullName,
+}: {
+  repoFullName: string
+}) {
   try {
-    const issues = await getIssueList({ repo: repoName, per_page: 100 })
-    const repo = await getRepoFromString(username + "/" + repoName)
+    const issues = await getIssueList({
+      repoFullName,
+      per_page: 100,
+    })
+    const repo = await getRepoFromString(repoFullName)
 
     if (issues.length === 0) {
       return <p className="text-center py-4">No open issues found.</p>

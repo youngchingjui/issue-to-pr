@@ -10,6 +10,7 @@ import { SearchCodeTool } from "@/lib/tools"
 import { GetFileContentTool } from "@/lib/tools"
 import { GitHubIssue } from "@/lib/types"
 
+import { getRepoFromString } from "../github/content"
 import { setupLocalRepository } from "../utils-server"
 
 interface ReviewPullRequestParams {
@@ -93,7 +94,11 @@ export async function reviewPullRequest({
 
   let updatedBaseDir = baseDir
   if (!baseDir) {
-    updatedBaseDir = await setupLocalRepository({ repoFullName })
+    const repo = await getRepoFromString(repoFullName)
+    updatedBaseDir = await setupLocalRepository({
+      repoFullName,
+      workingBranch: repo.default_branch,
+    })
   }
 
   const tree = await createDirectoryTree(updatedBaseDir)

@@ -27,7 +27,10 @@ export default async function commentOnIssue(
 
   updateJobStatus(jobId, "Setting up the local repository")
   // Setup local repository using setupLocalRepository
-  const dirPath = await setupLocalRepository({ repoFullName: repo.full_name })
+  const dirPath = await setupLocalRepository({
+    repoFullName: repo.full_name,
+    workingBranch: repo.default_branch,
+  })
 
   updateJobStatus(jobId, "Repository setup completed")
 
