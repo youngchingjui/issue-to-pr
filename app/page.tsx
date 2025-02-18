@@ -1,8 +1,9 @@
-import Details from "@/components/Details"
-import Footer from "@/components/Footer"
-import Header from "@/components/Header"
-import Hero from "@/components/Hero"
-import Pricing from "@/components/Pricing"
+import Details from "@/components/landing-page/Details"
+import Diagram from "@/components/landing-page/Diagram"
+import Footer from "@/components/landing-page/Footer"
+import Header from "@/components/landing-page/Header"
+import Hero from "@/components/landing-page/Hero"
+import Pricing from "@/components/landing-page/Pricing"
 
 export default function LandingPage() {
   return (
@@ -11,6 +12,7 @@ export default function LandingPage() {
       <main>
         <Hero />
         <Details />
+        <Diagram />
         <Pricing />
       </main>
       <Footer />
