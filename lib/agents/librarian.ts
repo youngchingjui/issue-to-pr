@@ -63,7 +63,7 @@ export class LibrarianAgent {
     // Use the setupLocalRepository function to initiate the repository setup
     const baseDir = await setupLocalRepository({
       repoFullName: this.repository.full_name,
-      workingBranch: this.branch || "main",
+      workingBranch: this.branch || this.repository.default_branch,
     })
 
     this.tree = await createDirectoryTree(baseDir)
