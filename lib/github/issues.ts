@@ -58,15 +58,15 @@ export async function getIssueComments({
 }
 
 export async function getIssueList({
-  repo,
+  repoFullName,
   ...rest
 }: {
-  repo: string
+  repoFullName: string
 } & Omit<ListForRepoParams, "owner" | "repo">): Promise<GitHubIssue[]> {
   const octokit = await getOctokit()
-  const user = await getGithubUser()
+  const [owner, repo] = repoFullName.split("/")
   const issues = await octokit.issues.listForRepo({
-    owner: user.login,
+    owner,
     repo,
     ...rest,
   })

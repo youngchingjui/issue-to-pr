@@ -25,7 +25,7 @@ export default async function RepoPage({ params }: Props) {
       </div>
       <NavigationBar currentPage="issues" username={username} repo={repo} />
       <Suspense fallback={<TableSkeleton />}>
-        <IssueTable username={username} repoName={repo} />
+        <IssueTable repoFullName={username + "/" + repo} />
       </Suspense>
     </main>
   )
