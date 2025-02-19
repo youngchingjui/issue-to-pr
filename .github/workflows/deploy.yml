@@ -10,27 +10,21 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-        with:
-          ref: main
-          fetch-depth: 0
-
       - name: Fetch latest updates
         run: git fetch origin main
+        working-directory: /home/ec2-user/issue-to-pr/
 
       - name: Pull latest changes
         run: git pull origin main
+        working-directory: /home/ec2-user/issue-to-pr/
 
       - name: Install dependencies
         run: npm install
+        working-directory: /home/ec2-user/issue-to-pr/
 
       - name: Build project
         run: npm run build
-
-      - name: Copy files to application directory
-        run: |
-          rsync -av --delete ${{ github.workspace }}/ /home/ec2-user/issue-to-pr/
+        working-directory: /home/ec2-user/issue-to-pr/
 
       - name: Restart EC2 service
         run: sudo systemctl restart issue-to-pr.service
