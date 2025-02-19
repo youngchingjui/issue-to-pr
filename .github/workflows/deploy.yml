@@ -16,6 +16,9 @@ jobs:
           ref: main
           fetch-depth: 0
 
+      - name: Fetch latest updates
+        run: git fetch origin main
+
       - name: Pull latest changes
         run: git pull origin main
 
