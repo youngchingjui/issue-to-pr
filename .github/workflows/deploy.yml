@@ -1,4 +1,4 @@
-name: Deploy to EC2
+name: Deploy to youngandai-EC2
 
 on:
   push:
@@ -7,31 +7,23 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-      with:
-        ref: main
-        fetch-depth: 0
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          ref: main
+          fetch-depth: 0
 
-    - name: Pull latest changes
-      run: git pull origin main
+      - name: Pull latest changes
+        run: git pull origin main
 
-    - name: Install dependencies
-      run: npm install
+      - name: Install dependencies
+        run: npm install
 
-    - name: Build project
-      run: npm run build
+      - name: Build project
+        run: npm run build
 
-    - name: Restart EC2 service
-      env:
-        EC2_HOST: ${{ secrets.EC2_HOST }}
-        EC2_USER: ${{ secrets.EC2_USER }}
-        EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
-      run: |
-        echo "$EC2_SSH_KEY" > private_key.pem
-        chmod 600 private_key.pem
-        ssh -o StrictHostKeyChecking=no -i private_key.pem $EC2_USER@$EC2_HOST 'sudo systemctl restart issuetopr.service'
-        rm private_key.pem
+      - name: Restart EC2 service
+        run: sudo systemctl restart issue-to-pr.service
