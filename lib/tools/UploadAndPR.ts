@@ -56,9 +56,18 @@ class UploadAndPRTool implements Tool<typeof uploadAndPRParameters> {
     // Get the latest contents for each file
 
     const fileContents: Map<string, string> = new Map()
+    const missingFiles: string[] = []
+
     for (const file of files) {
-      const contents = await getFileContent(path.join(this.baseDir, file))
-      fileContents.set(file, contents)
+      try {
+        const contents = await getFileContent(path.join(this.baseDir, file))
+        fileContents.set(file, contents)
+      } catch (error) {
+        console.error(`[DEBUG] Error getting file content: ${error}`)
+        console.warn(`[WARNING] Skipping missing file: ${file}`)
+        missingFiles.push(file)
+        continue
+      }
     }
 
     // First, create branch if it doesn't exist
@@ -85,13 +94,21 @@ class UploadAndPRTool implements Tool<typeof uploadAndPRParameters> {
     // Upload files to Github
     for (const file of files) {
       console.debug(`[DEBUG] Updating file on Github: ${file}`)
-      await updateFileContent({
-        repo: this.repository.name,
-        path: file,
-        content: fileContents.get(file),
-        commitMessage,
-        branch,
-      })
+      try {
+        await updateFileContent({
+          repoFullName: this.repository.full_name,
+          path: file,
+          content: fileContents.get(file),
+          commitMessage,
+          branch,
+        })
+      } catch (error) {
+        console.error(`[ERROR] Failed to update file on Github: ${file}`, error)
+        return JSON.stringify({
+          status: "error",
+          message: `Failed to update file on Github: ${file}. Error: ${error.message || error}`,
+        })
+      }
     }
 
     // Check if PR on branch exists before creating new one
@@ -116,7 +133,12 @@ class UploadAndPRTool implements Tool<typeof uploadAndPRParameters> {
         body: pullRequest.body,
         issueNumber: this.issueNumber,
       })
-      return JSON.stringify(pr)
+
+      // Include missing files in the response payload
+      return JSON.stringify({
+        pullRequest: pr,
+        missingFiles: missingFiles.length > 0 ? missingFiles : null,
+      })
     } catch (error) {
       throw new Error(error)
     }
