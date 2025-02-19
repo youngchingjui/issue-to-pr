@@ -2,7 +2,8 @@ import { Github } from "lucide-react"
 import * as motion from "motion/react-client"
 import Link from "next/link"
 
-import { auth, signIn, signOut } from "@/auth"
+import { auth, signIn } from "@/auth"
+import SignOutButton from "@/components/SignOutButton"
 import { getGithubUser } from "@/lib/github/users"
 import { GitHubUser } from "@/lib/types"
 
@@ -35,21 +36,7 @@ export default async function Header() {
               My Repos
             </motion.button>
           </Link>
-          <form
-            action={async () => {
-              "use server"
-              await signOut()
-            }}
-          >
-            <motion.button
-              type="submit"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="flex items-center px-4 py-2 bg-stone-700 text-stone-100 rounded-md hover:bg-stone-600 transition-colors"
-            >
-              Logout
-            </motion.button>
-          </form>
+          <SignOutButton />
         </div>
       ) : (
         <form
