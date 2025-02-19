@@ -1,6 +1,10 @@
 import { ThinkerAgent } from "@/lib/agents/thinker"
 import { createDirectoryTree } from "@/lib/fs"
-import { createIssueComment, getIssue, updateIssueComment } from "@/lib/github/issues"
+import {
+  createIssueComment,
+  getIssue,
+  updateIssueComment,
+} from "@/lib/github/issues"
 import { langfuse } from "@/lib/langfuse"
 import { updateJobStatus } from "@/lib/redis"
 import { SearchCodeTool } from "@/lib/tools"
@@ -30,9 +34,9 @@ export default async function commentOnIssue(
   const initialComment = await createIssueComment({
     issueNumber,
     repoFullName: repo.full_name,
-    comment: "[Issue To PR] Generating plan...please wait a minute."
-  });
-  const initialCommentId = initialComment.id;
+    comment: "[Issue To PR] Generating plan...please wait a minute.",
+  })
+  const initialCommentId = initialComment.id
 
   updateJobStatus(jobId, "Setting up the local repository")
   // Setup local repository using setupLocalRepository
@@ -65,11 +69,10 @@ export default async function commentOnIssue(
   updateJobStatus(jobId, "Updating initial comment with final response")
   // Update the initial comment with the final response
   await updateIssueComment({
-    issueNumber,
     repoFullName: repo.full_name,
     commentId: initialCommentId,
     comment: response,
-  });
+  })
 
   updateJobStatus(jobId, "Comment updated successfully")
 
@@ -77,5 +80,5 @@ export default async function commentOnIssue(
   updateJobStatus(jobId, "Stream finished")
 
   // Return the comment
-  return { status: "complete", issueComment }
+  return { status: "complete", issueComment: response }
 }
