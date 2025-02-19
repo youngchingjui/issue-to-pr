@@ -1,6 +1,6 @@
 import { ThinkerAgent } from "@/lib/agents/thinker"
 import { createDirectoryTree } from "@/lib/fs"
-import { createIssueComment, getIssue } from "@/lib/github/issues"
+import { createIssueComment, getIssue, updateIssueComment } from "@/lib/github/issues"
 import { langfuse } from "@/lib/langfuse"
 import { updateJobStatus } from "@/lib/redis"
 import { SearchCodeTool } from "@/lib/tools"
@@ -24,6 +24,15 @@ export default async function commentOnIssue(
   })
 
   updateJobStatus(jobId, "Issue retrieved successfully")
+
+  // Post initial comment indicating processing start
+  updateJobStatus(jobId, "Posting initial processing comment")
+  const initialComment = await createIssueComment({
+    issueNumber,
+    repoFullName: repo.full_name,
+    comment: "[Issue To PR] Generating plan...please wait a minute."
+  });
+  const initialCommentId = initialComment.id;
 
   updateJobStatus(jobId, "Setting up the local repository")
   // Setup local repository using setupLocalRepository
@@ -53,15 +62,16 @@ export default async function commentOnIssue(
   const response = await thinker.runWithFunctions()
   span.end()
 
-  updateJobStatus(jobId, "Posting comment to GitHub issue")
-  // Post the comment to the Github issue
-  const issueComment = await createIssueComment({
+  updateJobStatus(jobId, "Updating initial comment with final response")
+  // Update the initial comment with the final response
+  await updateIssueComment({
     issueNumber,
     repoFullName: repo.full_name,
+    commentId: initialCommentId,
     comment: response,
-  })
+  });
 
-  updateJobStatus(jobId, "Comment posted successfully")
+  updateJobStatus(jobId, "Comment updated successfully")
 
   // Send a final message indicating the stream is finished
   updateJobStatus(jobId, "Stream finished")
