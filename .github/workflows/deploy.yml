@@ -1,0 +1,29 @@
+name: Deploy to youngandai-EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Pull latest changes
+        run: git pull origin main
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build project
+        run: npm run build
+
+      - name: Restart EC2 service
+        run: sudo systemctl restart issue-to-pr.service
