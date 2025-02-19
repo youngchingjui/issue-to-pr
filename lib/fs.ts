@@ -71,13 +71,8 @@ export async function getLocalRepoDir(repo_full_name: string) {
 }
 
 export async function getFileContent(filePath: string) {
-  try {
-    const file = await fs.readFile(filePath)
-    return file.toString()
-  } catch (error) {
-    // Return error if path is directory or file does not exist
-    throw new Error(`File not found: ${error}`)
-  }
+  const file = await fs.readFile(filePath)
+  return file.toString()
 }
 
 export async function writeFile(fullPath: string, content: string) {

@@ -31,10 +31,10 @@ class GetFileContentTool implements Tool<typeof getFileContentParameters> {
     const { relativePath } = params
 
     try {
-      return getFileContent(path.join(this.baseDir, relativePath))
+      return await getFileContent(path.join(this.baseDir, relativePath))
     } catch (error) {
       if (error.code === "ENOENT") {
-        return "FileNotFound"
+        return error.message
       }
       console.error("Error getting file content:", error)
       throw error
