@@ -28,5 +28,9 @@ jobs:
       - name: Build project
         run: npm run build
 
+      - name: Copy files to application directory
+        run: |
+          rsync -av --delete ${{ github.workspace }}/ /home/ec2-user/issue-to-pr/
+
       - name: Restart EC2 service
         run: sudo systemctl restart issue-to-pr.service
