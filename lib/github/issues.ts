@@ -73,3 +73,28 @@ export async function getIssueList({
   // Filter out pull requests from the list of issues
   return issues.data.filter((issue) => !issue.pull_request)
 }
+
+export async function updateIssueComment({
+  commentId,
+  repoFullName,
+  comment,
+}: {
+  commentId: number
+  repoFullName: string
+  comment: string
+}): Promise<GitHubIssueComment> {
+  const octokit = await getOctokit()
+  const [owner, repo] = repoFullName.split("/")
+  try {
+    const updatedComment = await octokit.rest.issues.updateComment({
+      owner,
+      repo,
+      comment_id: commentId,
+      body: comment,
+    })
+    return updatedComment.data
+  } catch (error) {
+    console.error(`Failed to update comment: ${commentId}`, error)
+    throw error
+  }
+}
