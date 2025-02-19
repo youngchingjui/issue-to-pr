@@ -19,66 +19,79 @@ export default async function commentOnIssue(
   jobId: string
 ) {
   const trace = langfuse.trace({ name: "commentOnIssue" })
+  let initialCommentId: number | null = null
 
-  updateJobStatus(jobId, "Authenticating and retrieving token")
-  // Get the issue
-  const issue = await getIssue({
-    fullName: repo.full_name,
-    issueNumber,
-  })
+  try {
+    updateJobStatus(jobId, "Authenticating and retrieving token")
+    // Get the issue
+    const issue = await getIssue({
+      fullName: repo.full_name,
+      issueNumber,
+    })
 
-  updateJobStatus(jobId, "Issue retrieved successfully")
+    updateJobStatus(jobId, "Issue retrieved successfully")
 
-  // Post initial comment indicating processing start
-  updateJobStatus(jobId, "Posting initial processing comment")
-  const initialComment = await createIssueComment({
-    issueNumber,
-    repoFullName: repo.full_name,
-    comment: "[Issue To PR] Generating plan...please wait a minute.",
-  })
-  const initialCommentId = initialComment.id
+    // Post initial comment indicating processing start
+    updateJobStatus(jobId, "Posting initial processing comment")
+    const initialComment = await createIssueComment({
+      issueNumber,
+      repoFullName: repo.full_name,
+      comment: "[Issue To PR] Generating plan...please wait a minute.",
+    })
+    initialCommentId = initialComment.id
 
-  updateJobStatus(jobId, "Setting up the local repository")
-  // Setup local repository using setupLocalRepository
-  const dirPath = await setupLocalRepository({
-    repoFullName: repo.full_name,
-    workingBranch: repo.default_branch,
-  })
+    updateJobStatus(jobId, "Setting up the local repository")
+    // Setup local repository using setupLocalRepository
+    const dirPath = await setupLocalRepository({
+      repoFullName: repo.full_name,
+      workingBranch: repo.default_branch,
+    })
 
-  updateJobStatus(jobId, "Repository setup completed")
+    updateJobStatus(jobId, "Repository setup completed")
 
-  const tree = await createDirectoryTree(dirPath)
-  updateJobStatus(jobId, "Directory tree created")
+    const tree = await createDirectoryTree(dirPath)
+    updateJobStatus(jobId, "Directory tree created")
 
-  // Prepare the tools
-  const getFileContentTool = new GetFileContentTool(dirPath)
-  const searchCodeTool = new SearchCodeTool(repo.full_name)
+    // Prepare the tools
+    const getFileContentTool = new GetFileContentTool(dirPath)
+    const searchCodeTool = new SearchCodeTool(repo.full_name)
 
-  // Create the thinker agent
-  const thinker = new ThinkerAgent({ issue, apiKey, tree })
-  const span = trace.span({ name: "generateComment" })
-  thinker.addSpan({ span, generationName: "commentOnIssue" })
-  thinker.addTool(getFileContentTool)
-  thinker.addTool(searchCodeTool)
-  thinker.addJobId(jobId)
+    // Create the thinker agent
+    const thinker = new ThinkerAgent({ issue, apiKey, tree })
+    const span = trace.span({ name: "generateComment" })
+    thinker.addSpan({ span, generationName: "commentOnIssue" })
+    thinker.addTool(getFileContentTool)
+    thinker.addTool(searchCodeTool)
+    thinker.addJobId(jobId)
 
-  updateJobStatus(jobId, "Generating comment")
-  const response = await thinker.runWithFunctions()
-  span.end()
+    updateJobStatus(jobId, "Generating comment")
+    const response = await thinker.runWithFunctions()
+    span.end()
 
-  updateJobStatus(jobId, "Updating initial comment with final response")
-  // Update the initial comment with the final response
-  await updateIssueComment({
-    repoFullName: repo.full_name,
-    commentId: initialCommentId,
-    comment: response,
-  })
+    updateJobStatus(jobId, "Updating initial comment with final response")
+    // Update the initial comment with the final response
+    await updateIssueComment({
+      repoFullName: repo.full_name,
+      commentId: initialCommentId,
+      comment: response,
+    })
 
-  updateJobStatus(jobId, "Comment updated successfully")
+    updateJobStatus(jobId, "Comment updated successfully")
 
-  // Send a final message indicating the stream is finished
-  updateJobStatus(jobId, "Stream finished")
+    // Send a final message indicating the stream is finished
+    updateJobStatus(jobId, "Stream finished")
 
-  // Return the comment
-  return { status: "complete", issueComment: response }
+    // Return the comment
+    return { status: "complete", issueComment: response }
+  } catch (error) {
+    if (initialCommentId) {
+      await updateIssueComment({
+        repoFullName: repo.full_name,
+        commentId: initialCommentId,
+        comment: `[Issue to PR] Failed to generate a plan for this issue: ${error.message}`,
+      })
+    }
+    updateJobStatus(jobId, "Error occurred during processing")
+    throw error
+  }
 }
