@@ -3,11 +3,10 @@ import "./styles/custom.css"
 
 import { Inter } from "next/font/google"
 import { SessionProvider } from "next-auth/react"
-import { useRouter } from "next/router";
 
 import { auth } from "@/auth"
+import NavigationBar from "@/components/NavigationBar"
 import { Toaster } from "@/components/ui/toaster"
-import NavigationBar from "@/components/NavigationBar";
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -23,16 +22,14 @@ export default async function RootLayout({
   children: React.ReactNode
 }) {
   const session = await auth()
-  const router = useRouter();
-  const { username = '', repo = '' } = router.query;
-  
+
   return (
     <html lang="en">
       <body
         className={inter.className}
         style={{ "--custom-amber": "#B45309" } as React.CSSProperties}
       >
-        <NavigationBar username={username as string} repo={repo as string} />
+        <NavigationBar />
         <SessionProvider session={session}>{children}</SessionProvider>
         <Toaster />
       </body>

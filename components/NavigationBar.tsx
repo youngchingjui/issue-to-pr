@@ -1,6 +1,8 @@
+import Image from "next/image"
 import Link from "next/link"
 import React from "react"
 
+import SignOutButton from "@/components/SignOutButton"
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -8,19 +10,28 @@ import {
   NavigationMenuList,
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu"
+import { getGithubUser } from "@/lib/github/users"
 
 const NavigationBar: React.FC<{
   currentPage?: "pullRequests" | "issues"
-  username: string
-  repo: string
-}> = ({ currentPage, username, repo }) => {
+  repo?: string
+}> = async ({ currentPage, repo }) => {
+  const user = await getGithubUser()
+  const username = user.login
+
   return (
     <NavigationMenu>
       <NavigationMenuList>
         <NavigationMenuItem>
           <Link href="/" legacyBehavior passHref>
             <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-              <img src="/public/logo.svg" alt="Logo" className="logo-class" />
+              <Image
+                src="/public/logo.svg"
+                alt="Logo"
+                className="logo-class"
+                width={100}
+                height={100}
+              />
             </NavigationMenuLink>
           </Link>
         </NavigationMenuItem>
@@ -35,34 +46,38 @@ const NavigationBar: React.FC<{
             </NavigationMenuLink>
           </Link>
         </NavigationMenuItem>
-        <NavigationMenuItem>
-          <Link href={`/${username}/${repo}/issues`} legacyBehavior passHref>
-            <NavigationMenuLink
-              className={`${navigationMenuTriggerStyle()} ${
-                currentPage === "issues" ? "active" : ""
-              }`}
+        {repo && (
+          <NavigationMenuItem>
+            <Link href={`/${username}/${repo}/issues`} legacyBehavior passHref>
+              <NavigationMenuLink
+                className={`${navigationMenuTriggerStyle()} ${
+                  currentPage === "issues" ? "active" : ""
+                }`}
+              >
+                Issues
+              </NavigationMenuLink>
+            </Link>
+          </NavigationMenuItem>
+        )}
+        {repo && (
+          <NavigationMenuItem>
+            <Link
+              href={`/${username}/${repo}/pullRequests`}
+              legacyBehavior
+              passHref
             >
-              Issues
-            </NavigationMenuLink>
-          </Link>
-        </NavigationMenuItem>
+              <NavigationMenuLink
+                className={`${navigationMenuTriggerStyle()} ${
+                  currentPage === "pullRequests" ? "active" : ""
+                }`}
+              >
+                Pull Requests
+              </NavigationMenuLink>
+            </Link>
+          </NavigationMenuItem>
+        )}
         <NavigationMenuItem>
-          <Link
-            href={`/${username}/${repo}/pullRequests`}
-            legacyBehavior
-            passHref
-          >
-            <NavigationMenuLink
-              className={`${navigationMenuTriggerStyle()} ${
-                currentPage === "pullRequests" ? "active" : ""
-              }`}
-            >
-              Pull Requests
-            </NavigationMenuLink>
-          </Link>
-        </NavigationMenuItem>
-        <NavigationMenuItem style={{ marginLeft: 'auto' }}>
-          <button className="sign-out-button">Sign Out</button>
+          <SignOutButton />
         </NavigationMenuItem>
       </NavigationMenuList>
     </NavigationMenu>
