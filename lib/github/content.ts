@@ -41,23 +41,23 @@ export async function getFileContent({
 }
 
 export async function updateFileContent({
-  repo,
+  repoFullName,
   path,
   content,
   commitMessage,
   branch,
 }: {
-  repo: string
+  repoFullName: string
   path: string
   content: string
   commitMessage: string
   branch: string
 }) {
   const octokit = await getOctokit()
-  const user = await getGithubUser()
-  const sha = await getFileSha({ repo, path, branch })
+  const [owner, repo] = repoFullName.split("/")
+  const sha = await getFileSha({ repoFullName, path, branch })
   await octokit.rest.repos.createOrUpdateFileContents({
-    owner: user.login,
+    owner,
     repo,
     path,
     message: commitMessage,
@@ -68,19 +68,19 @@ export async function updateFileContent({
 }
 
 export async function getFileSha({
-  repo,
+  repoFullName,
   path,
   branch,
 }: {
-  repo: string
+  repoFullName: string
   path: string
   branch: string
 }): Promise<string | null> {
   const octokit = await getOctokit()
-  const user = await getGithubUser()
+  const [owner, repo] = repoFullName.split("/")
   try {
     const response = await octokit.rest.repos.getContent({
-      owner: user.login,
+      owner,
       repo,
       path,
       ref: branch,
