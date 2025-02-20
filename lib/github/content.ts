@@ -1,8 +1,16 @@
 import getOctokit from "@/lib/github"
-import { GitHubError } from "@/lib/github-old"
+import { getGithubUser } from "@/lib/github/users"
 import { AuthenticatedUserRepository, GitHubRepository } from "@/lib/types"
 
-import { getGithubUser } from "./users"
+export class GitHubError extends Error {
+  constructor(
+    message: string,
+    public status?: number
+  ) {
+    super(message)
+    this.name = "GitHubError"
+  }
+}
 
 // TODO: Since all octokit functions here are using octokit.repos, then
 // This file should be renamed to `repos.tsx` to reflect the resource being called
