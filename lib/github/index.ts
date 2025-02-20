@@ -17,6 +17,7 @@ export default async function getOctokit(): Promise<Octokit> {
   // Try to authenticate using user session
   const session = await auth()
   if (session?.user?.accessToken) {
+    console.log("accessToken", session.user.accessToken)
     return new Octokit({ auth: session.user.accessToken })
   }
 
