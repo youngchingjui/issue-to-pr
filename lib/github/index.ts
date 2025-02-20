@@ -16,21 +16,26 @@ function getPrivateKeyFromFile(): string {
 export default async function getOctokit(): Promise<Octokit> {
   // Try to authenticate using user session
   const session = await auth()
-  if (session?.user?.accessToken) {
-    console.log("accessToken", session.user.accessToken)
-    return new Octokit({ auth: session.user.accessToken })
+  if (session?.token?.access_token) {
+    console.log("access_token", session.token.access_token)
+    return new Octokit({ auth: session.token.access_token })
+  } else {
+    // Fallback to GitHub App authentication
+    const app = new App({
+      appId: process.env.GITHUB_APP_ID,
+      privateKey: getPrivateKeyFromFile(),
+    })
+
+    // Assuming you have the installation ID from the webhook or other source
+    const installationId = getInstallationId()
+
+    if (!installationId) {
+      console.log("No installation ID found")
+      return null
+    }
+
+    return (await app.getInstallationOctokit(
+      Number(installationId)
+    )) as unknown as Octokit // Removes extra properties for pagination and retry capabilities
   }
-
-  // Fallback to GitHub App authentication
-  const app = new App({
-    appId: process.env.GITHUB_APP_ID,
-    privateKey: getPrivateKeyFromFile(),
-  })
-
-  // Assuming you have the installation ID from the webhook or other source
-  const installationId = getInstallationId()
-
-  return (await app.getInstallationOctokit(
-    Number(installationId)
-  )) as unknown as Octokit // Removes extra properties for pagination and retry capabilities
 }

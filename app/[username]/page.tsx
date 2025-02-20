@@ -1,6 +1,3 @@
-import { redirect } from "next/navigation"
-
-import { auth } from "@/auth"
 import RepositoryList from "@/components/RepositoryList"
 import { getUserRepositories } from "@/lib/github/content"
 
@@ -11,17 +8,6 @@ export default async function Repositories({
   params: { username: string }
   searchParams: { page: string }
 }) {
-  const session = await auth()
-
-  if (!session?.user) {
-    redirect("/api/auth/signin")
-  }
-
-  const accessToken = session.user.accessToken
-  if (!accessToken) {
-    redirect("/api/auth/signin")
-  }
-
   const page = Number(searchParams.page) || 1
 
   const { repositories, maxPage } = await getUserRepositories(params.username, {

@@ -17,10 +17,10 @@ export function runWithInstallationId(
   asyncLocalStorage.run({ installationId }, fn)
 }
 
-export function getInstallationId(): string {
+export function getInstallationId(): string | null {
   const store = asyncLocalStorage.getStore()
   if (!store) {
-    throw new Error("Installation ID not found in context")
+    return null
   }
   return store.installationId
 }
@@ -45,7 +45,7 @@ export async function setupLocalRepository({
 
     // TODO: Refactor for server-to-server auth
     const session = await auth()
-    const token = session.user?.accessToken
+    const token = session.token.access_token as string
     // Attach access token to cloneUrl
     const cloneUrlWithToken = getCloneUrlWithAccessToken(repoFullName, token)
 
