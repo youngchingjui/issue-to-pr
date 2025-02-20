@@ -2,7 +2,6 @@ import { Suspense } from "react"
 
 import ApiKeyInput from "@/components/APIKeyInput"
 import IssueTable from "@/components/IssueTable"
-import NavigationBar from "@/components/NavigationBar"
 import { TableSkeleton } from "@/components/TableSkeleton"
 
 interface Props {
@@ -23,7 +22,6 @@ export default async function RepoPage({ params }: Props) {
         </h1>
         <ApiKeyInput />
       </div>
-      <NavigationBar currentPage="issues" username={username} repo={repo} />
       <Suspense fallback={<TableSkeleton />}>
         <IssueTable repoFullName={username + "/" + repo} />
       </Suspense>
