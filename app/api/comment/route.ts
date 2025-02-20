@@ -1,42 +1,57 @@
-// This route calls a workflow that uses an LLM to understand a Github issue,
-// Explore possibilities, understand the codebase,
-// Then generates a post as a comment on the issue.
-// The comment should include the following sections:
-// - Understanding the issue
-// - Possible solutions
-// - Relevant code
-// - Suggested plan
+// This route listens for 'issues' events from GitHub webhooks and triggers a workflow
+// that uses an LLM to understand a Github issue, explore possibilities, understand the codebase,
+// and generate a post as a comment on the issue.
 
-import { NextRequest, NextResponse } from "next/server"
-import { v4 as uuidv4 } from "uuid"
+import { NextRequest, NextResponse } from "next/server";
+import { v4 as uuidv4 } from "uuid";
+import { verifyGitHubWebhook } from "@/lib/github/verifyWebhook";
+import commentOnIssue from "@/lib/workflows/commentOnIssue";
+import { updateJobStatus } from "@/lib/redis";
+import { GitHubRepository } from "@/lib/types";
 
-import { updateJobStatus } from "@/lib/redis"
-import { GitHubRepository } from "@/lib/types"
-import commentOnIssue from "@/lib/workflows/commentOnIssue"
-
-type RequestBody = {
-  issueNumber: number
-  repo: GitHubRepository
-  apiKey: string
-}
+// Secret used for verifying GitHub webhook payload signatures
+const GITHUB_WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET;
 
 export async function POST(request: NextRequest) {
-  const { issueNumber, repo, apiKey }: RequestBody = await request.json()
+  const payload = await request.text();
+  const signature = request.headers.get('x-hub-signature-256');
 
-  // Generate a unique job ID
-  const jobId = uuidv4()
-  await updateJobStatus(jobId, "Starting comment workflow")
+  // Verify webhook signature
+  if (!verifyGitHubWebhook(payload, signature, GITHUB_WEBHOOK_SECRET)) {
+    return new NextResponse('Invalid signature', { status: 401 });
+  }
 
-  // Start the comment workflow as a background job
-  ;(async () => {
-    try {
-      const response = await commentOnIssue(issueNumber, repo, apiKey, jobId)
-      await updateJobStatus(jobId, "Completed: " + JSON.stringify(response))
-    } catch (error) {
-      await updateJobStatus(jobId, "Failed: " + error.message)
-    }
-  })()
+  // Parse the webhook payload
+  const event = request.headers.get("x-github-event");
+  const body = JSON.parse(payload);
 
-  // Immediately return the job ID to the client
-  return NextResponse.json({ jobId })
+  // Handle 'issues' event: specifically when an issue is opened
+  if (event === "issues" && body.action === "opened") {
+    const issueNumber = body.issue.number;
+    const repo: GitHubRepository = {
+      name: body.repository.name,
+      full_name: body.repository.full_name
+    };
+    const apiKey = process.env.GITHUB_API_KEY; // Use a stored API key
+
+    // Generate a unique job ID
+    const jobId = uuidv4();
+    await updateJobStatus(jobId, "Starting comment workflow from webhook");
+
+    // Start the comment workflow
+    (async () => {
+      try {
+        const response = await commentOnIssue(issueNumber, repo, apiKey, jobId);
+        await updateJobStatus(jobId, "Completed: " + JSON.stringify(response));
+      } catch (error) {
+        await updateJobStatus(jobId, "Failed: " + error.message);
+      }
+    })();
+
+    // Respond to GitHub to acknowledge receipt of the event
+    return new NextResponse('Event received', { status: 200 });
+  }
+
+  // Return a 204 No Content for events not being handled
+  return new NextResponse('No actionable event', { status: 204 });
 }
