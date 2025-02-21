@@ -1,4 +1,7 @@
 "use server"
+import "server-only"
+
+import { signOut } from "@/auth"
 
 export async function generateCode(formData: FormData) {
   const content = formData.get("content") as string
@@ -31,3 +34,5 @@ export async function createPR() {
   })
   return response.json()
 }
+
+export { signOut }
