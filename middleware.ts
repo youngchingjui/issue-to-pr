@@ -10,12 +10,15 @@ export default auth((req) => {
     return NextResponse.next()
   }
 
-  // Protect all other /api and /[username] routes
-  if (!req.auth) {
-    if (pathname.startsWith("/")) {
-      const newUrl = new URL("/api/auth/signin", req.nextUrl.origin)
-      return NextResponse.redirect(newUrl)
-    }
+  // Allow access to the main landing page
+  if (pathname === "/") {
+    return NextResponse.next()
+  }
+
+  // Protect dynamic /[username] routes
+  if (!req.auth && pathname.startsWith("/")) {
+    const newUrl = new URL("/", req.nextUrl.origin)
+    return NextResponse.redirect(newUrl)
   }
 
   return NextResponse.next()

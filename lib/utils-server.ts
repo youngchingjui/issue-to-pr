@@ -64,6 +64,7 @@ export async function setupLocalRepository({
 
 export async function refreshTokenWithLock(token: JWT) {
   const lockKey = "token_refresh_lock"
+  const tokenKey = `token_${token.sub}`
   const lockTimeout = 10
   const retryDelay = 100
   const maxRetries = 50
@@ -78,6 +79,14 @@ export async function refreshTokenWithLock(token: JWT) {
     })
     if (lockAcquired) {
       try {
+        // Check if token was already refreshd by another instance
+        const cachedToken = await redis.get(tokenKey)
+        if (cachedToken) {
+          console.log("Using cached token from Redis")
+          return JSON.parse(cachedToken as string)
+        }
+
+        // Refresh token
         console.log("Refreshing token")
         const response = await fetch(
           "https://github.com/login/oauth/access_token",
@@ -111,6 +120,11 @@ export async function refreshTokenWithLock(token: JWT) {
         }
         console.log("token after update", newToken)
         console.log("Refreshed token")
+
+        // Store the refreshed token in Redis with an expiration
+        await redis.set(tokenKey, JSON.stringify(newToken), {
+          ex: newToken.expires_in || 28800,
+        })
         return newToken
       } finally {
         await redis.del(lockKey)
@@ -120,9 +134,22 @@ export async function refreshTokenWithLock(token: JWT) {
       await new Promise((resolve) => setTimeout(resolve, retryDelay))
     }
 
-    console.warn(
-      "Max retries reached, assuming token refreshed by another instance"
-    )
-    return token // Return original token, assume it's updated elsewhere
+    // After waiting, check if token is in Redis
+    const cachedToken = await redis.get(tokenKey)
+    if (cachedToken) {
+      console.log("Using cached token from Redis after waiting")
+      return JSON.parse(cachedToken as string)
+    }
   }
+
+  // Fallback: if max retries reached, check Redis one last time
+  const cachedToken = await redis.get(tokenKey)
+  if (cachedToken) {
+    console.log("Using cached token from Redis after max retries")
+    return JSON.parse(cachedToken as string)
+  }
+
+  throw new Error(
+    "Max retries reached, assuming token refreshed by another instance"
+  )
 }

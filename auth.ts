@@ -1,7 +1,9 @@
+import { NextResponse } from "next/server"
 import NextAuth from "next-auth"
 import { JWT } from "next-auth/jwt"
 import GithubProvider from "next-auth/providers/github"
 
+import { redis } from "@/lib/redis"
 import { refreshTokenWithLock } from "@/lib/utils-server"
 
 declare module "next-auth" {
@@ -25,6 +27,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           newToken.expires_at =
             Math.floor(Date.now() / 1000) + account.expires_in
         }
+
+        // Store initial token in Redis
+        await redis.set(`token_${token.sub}`, JSON.stringify(newToken), {
+          ex: account.expires_in || 28800,
+        })
         return newToken
       }
 
@@ -33,7 +40,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         (token.expires_at as number) < Date.now() / 1000
       ) {
         if (token.provider == "github") {
-          return await refreshTokenWithLock(token)
+          try {
+            return await refreshTokenWithLock(token)
+          } catch (error) {
+            console.error("Error refreshing token. Sign in again", error)
+            return NextResponse.redirect("/")
+          }
         }
         throw new Error("Token expired")
       }
