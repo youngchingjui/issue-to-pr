@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { v4 as uuidv4 } from "uuid"
 
-import { updateJobStatus } from "@/lib/redis"
+import { updateJobStatus } from "@/lib/redis-old"
 import { GitHubRepository } from "@/lib/types"
 import commentOnIssue from "@/lib/workflows/commentOnIssue"
 

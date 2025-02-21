@@ -1,10 +1,14 @@
 // These utils are for server-side code
+import "server-only"
 
 import { AsyncLocalStorage } from "node:async_hooks"
+
+import { JWT } from "next-auth/jwt"
 
 import { auth } from "@/auth"
 import { getLocalRepoDir } from "@/lib/fs"
 import { checkIfGitExists, cleanCheckout, cloneRepo } from "@/lib/git"
+import { redis } from "@/lib/redis"
 import { getCloneUrlWithAccessToken } from "@/lib/utils"
 
 // For storing Github App installation ID in async context
@@ -56,4 +60,69 @@ export async function setupLocalRepository({
   await cleanCheckout(workingBranch, baseDir)
 
   return baseDir
+}
+
+export async function refreshTokenWithLock(token: JWT) {
+  const lockKey = "token_refresh_lock"
+  const lockTimeout = 10
+  const retryDelay = 100
+  const maxRetries = 50
+
+  let attempts = 0
+
+  while (attempts < maxRetries) {
+    // Try to acquire lock
+    const lockAcquired = await redis.set(lockKey, "locked", {
+      ex: lockTimeout, // Expire time
+      nx: true, // Only set if key doesn't exist
+    })
+    if (lockAcquired) {
+      try {
+        console.log("Refreshing token")
+        const response = await fetch(
+          "https://github.com/login/oauth/access_token",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+              Accept: "application/json",
+            },
+            body: new URLSearchParams({
+              client_id: process.env.AUTH_GITHUB_ID,
+              client_secret: process.env.AUTH_GITHUB_SECRET,
+              refresh_token: token.refresh_token as string,
+              grant_type: "refresh_token",
+            }),
+          }
+        )
+        const data = await response.json()
+
+        console.log("token before update", token)
+        console.log("data", data)
+
+        if (data.error == "bad_refresh_token") {
+          console.error("Bad refresh token")
+          throw new Error("Bad refresh token")
+        }
+
+        const newToken = { ...token, ...data }
+        if (data.expires_in) {
+          newToken.expires_at = Math.floor(Date.now() / 1000) + data.expires_in
+        }
+        console.log("token after update", newToken)
+        console.log("Refreshed token")
+        return newToken
+      } finally {
+        await redis.del(lockKey)
+      }
+    } else {
+      attempts++
+      await new Promise((resolve) => setTimeout(resolve, retryDelay))
+    }
+
+    console.warn(
+      "Max retries reached, assuming token refreshed by another instance"
+    )
+    return token // Return original token, assume it's updated elsewhere
+  }
 }

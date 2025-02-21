@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { v4 as uuidv4 } from "uuid"
 
 import { createIssueComment } from "@/lib/github/issues"
-import { updateJobStatus } from "@/lib/redis"
+import { updateJobStatus } from "@/lib/redis-old"
 import { reviewPullRequest } from "@/lib/workflows/reviewPullRequest"
 
 // Type definition for the request body

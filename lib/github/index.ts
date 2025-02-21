@@ -17,7 +17,6 @@ export default async function getOctokit(): Promise<Octokit> {
   // Try to authenticate using user session
   const session = await auth()
   if (session?.token?.access_token) {
-    console.log("access_token", session.token.access_token)
     return new Octokit({ auth: session.token.access_token })
   } else {
     // Fallback to GitHub App authentication

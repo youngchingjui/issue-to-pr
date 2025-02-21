@@ -6,7 +6,7 @@ import {
   updateIssueComment,
 } from "@/lib/github/issues"
 import { langfuse } from "@/lib/langfuse"
-import { updateJobStatus } from "@/lib/redis"
+import { updateJobStatus } from "@/lib/redis-old"
 import { SearchCodeTool } from "@/lib/tools"
 import GetFileContentTool from "@/lib/tools/GetFileContent"
 import { GitHubRepository } from "@/lib/types"

@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from "uuid"
 
 import { getRepoFromString } from "@/lib/github/content"
-import { updateJobStatus } from "@/lib/redis"
+import { updateJobStatus } from "@/lib/redis-old"
 import commentOnIssue from "@/lib/workflows/commentOnIssue"
 
 // Subscribed events for Github App

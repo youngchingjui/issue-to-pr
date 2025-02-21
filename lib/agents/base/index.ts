@@ -7,7 +7,7 @@ import {
 } from "openai/resources/chat/completions"
 import { z } from "zod"
 
-import { updateJobStatus } from "@/lib/redis"
+import { updateJobStatus } from "@/lib/redis-old"
 import { AgentConstructorParams, Tool } from "@/lib/types"
 
 export class Agent {

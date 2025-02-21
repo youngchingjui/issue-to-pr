@@ -1,22 +1,20 @@
-import { createClient } from "redis"
+import { Redis } from "@upstash/redis"
 
-import { jobStatusEmitter } from "@/lib/utils"
+// Singleton Redis client
+class RedisManager {
+  private static instance: Redis | null = null
 
-const redis = createClient({
-  url: process.env.REDIS_URL,
-})
+  private constructor() {}
 
-await redis.connect()
-redis.on("error", (err) => console.log("Redis Client Error", err))
-
-export async function updateJobStatus(jobId: string, status: string) {
-  if (!redis || !redis.isOpen) throw new Error("Redis is not connected")
-  try {
-    await redis.set(jobId, status)
-    await redis.publish("jobStatusUpdate", JSON.stringify({ jobId, status }))
-    jobStatusEmitter.emit("statusUpdate", jobId, status)
-  } catch (err) {
-    console.error("Failed to update job status:", err)
-    throw new Error("Failed to update job status")
+  public static getClient(): Redis {
+    if (!RedisManager.instance) {
+      RedisManager.instance = new Redis({
+        url: process.env.UPSTASH_REDIS_REST_URL,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN,
+      })
+    }
+    return RedisManager.instance
   }
 }
+
+export const redis = RedisManager.getClient()
