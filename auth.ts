@@ -46,7 +46,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             }
           )
           const data = await response.json()
+          console.log("Refreshed token")
+          console.log("token before update", token)
+          console.log("data", data)
           token = { ...token, ...data }
+          console.log("token after update", token)
         }
       }
       return token
