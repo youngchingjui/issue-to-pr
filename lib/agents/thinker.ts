@@ -25,8 +25,7 @@ You have access to the following tools:
 You will need to generate a comment on the issue that includes the following sections:
 - Explanation of the issue
 - Relevant code (files, functions, methods, etc.)
-- Possible solutions
-- Suggested plan
+- Steps to fix the issue
 
 ## General guidance
 - If a codebase already handles a similar feature, check how it works before writing new logic.
