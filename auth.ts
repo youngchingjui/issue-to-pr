@@ -49,8 +49,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           console.log("Refreshed token")
           console.log("token before update", token)
           console.log("data", data)
-          token = { ...token, ...data }
-          console.log("token after update", token)
+
+          if (data.error == "bad_refresh_token") {
+            console.error("Bad refresh token")
+            throw new Error("Bad refresh token")
+          }
+
+          const newToken = { ...token, ...data }
+          if (data.expires_in) {
+            newToken.expires_at =
+              Math.floor(Date.now() / 1000) + data.expires_in
+          }
+          console.log("token after update", newToken)
+          return newToken
         }
       }
       return token
