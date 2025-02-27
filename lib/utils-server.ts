@@ -79,7 +79,7 @@ export async function refreshTokenWithLock(token: JWT) {
     })
     if (lockAcquired) {
       try {
-        // Check if token was already refreshd by another instance
+        // Check if token was already refreshed by another instance
         const cachedToken = await redis.get(tokenKey)
         if (cachedToken) {
           console.log("Using cached token from Redis")
