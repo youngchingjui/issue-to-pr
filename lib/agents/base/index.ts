@@ -1,6 +1,5 @@
 import { LangfuseSpanClient, observeOpenAI } from "langfuse"
 import OpenAI from "openai"
-import { ChatModel } from "openai/resources"
 import {
   ChatCompletionCreateParamsNonStreaming,
   ChatCompletionMessageParam,
@@ -12,17 +11,18 @@ import { AgentConstructorParams, Tool } from "@/lib/types"
 
 export class Agent {
   REQUIRED_TOOLS: string[] = []
-  prompt: string
-  messages: ChatCompletionMessageParam[] = []
   tools: Tool<z.ZodType>[] = []
   llm: OpenAI
-  model: ChatModel = "gpt-4o"
   jobId?: string
+  params: ChatCompletionCreateParamsNonStreaming
 
-  constructor({ model, systemPrompt, apiKey }: AgentConstructorParams) {
-    if (model) {
-      this.model = model
-    }
+  constructor({
+    model,
+    systemPrompt,
+    apiKey,
+    ...rest
+  }: AgentConstructorParams) {
+    this.params = { messages: [], model: model || "gpt-4o", ...rest }
     if (systemPrompt) {
       this.setSystemPrompt(systemPrompt)
     }
@@ -32,19 +32,22 @@ export class Agent {
   }
 
   setSystemPrompt(prompt: string) {
-    // Adds system prompt to the agent
-    // then updates system prompt within the message list
-
-    this.prompt = prompt
-    this.messages = this.messages.filter((message) => message.role !== "system")
-    this.messages.unshift({
+    // Updates the system prompt for the agent
+    this.params.messages = this.params.messages.filter(
+      (message) => message.role !== "system"
+    )
+    this.params.messages.unshift({
       role: "system",
       content: prompt,
     })
   }
 
   addMessage(message: ChatCompletionMessageParam) {
-    this.messages.push(message)
+    this.params.messages.push(message)
+  }
+
+  getMessages() {
+    return this.params.messages
   }
 
   addTool<T extends z.ZodType>(toolConfig: Tool<T>) {
@@ -85,16 +88,11 @@ export class Agent {
       throw new Error("Missing tools, please attach required tools first")
     }
 
-    const params: ChatCompletionCreateParamsNonStreaming = {
-      model: this.model,
-      messages: this.messages,
-    }
-
     if (this.tools.length > 0) {
-      params.tools = this.tools.map((tool) => tool.tool)
+      this.params.tools = this.tools.map((tool) => tool.tool)
     }
 
-    const response = await this.llm.chat.completions.create(params)
+    const response = await this.llm.chat.completions.create(this.params)
     console.log(
       `[DEBUG] response: ${JSON.stringify(response.choices[0].message)}`
     )

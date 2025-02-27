@@ -1,4 +1,4 @@
-import { ThinkerAgent } from "@/lib/agents/thinker"
+import { ContextAgent, ThinkerAgent } from "@/lib/agents"
 import { createDirectoryTree } from "@/lib/fs"
 import {
   createIssueComment,
@@ -52,24 +52,76 @@ export default async function commentOnIssue(
     const tree = await createDirectoryTree(dirPath)
     updateJobStatus(jobId, "Directory tree created")
 
+    updateJobStatus(jobId, "Preparing tools")
     // Prepare the tools
     const getFileContentTool = new GetFileContentTool(dirPath)
     const searchCodeTool = new SearchCodeTool(repo.full_name)
 
-    // Create the thinker agent
-    const thinker = new ThinkerAgent({ issue, apiKey, tree })
-    const span = trace.span({ name: "generateComment" })
-    thinker.addSpan({ span, generationName: "commentOnIssue" })
-    thinker.addTool(getFileContentTool)
-    thinker.addTool(searchCodeTool)
-    thinker.addJobId(jobId)
+    // Setup the context agent
+    updateJobStatus(jobId, "Preparing Context Agent")
+    const contextAgent = new ContextAgent()
+    contextAgent.addApiKey(apiKey)
+    contextAgent.addTool(getFileContentTool)
+    contextAgent.addTool(searchCodeTool)
+    contextAgent.addJobId(jobId)
 
-    updateJobStatus(jobId, "Generating comment")
-    const response = await thinker.runWithFunctions()
-    span.end()
+    // Add initial messages for specific context
+    contextAgent.addMessage({
+      role: "user",
+      content: `
+      Here is the codebase's tree directory:
+      ${tree.join("\n")}
+      `,
+    })
+    contextAgent.addMessage({
+      role: "user",
+      content: `
+      Github issue title: ${issue.title}
+      Github issue description: ${issue.body}
+      `,
+    })
 
-    updateJobStatus(jobId, "Updating initial comment with final response")
+    // Add observability to the context agent
+    const contextSpan = trace.span({ name: "Gather context" })
+    contextAgent.addSpan({
+      span: contextSpan,
+      generationName: "Gather context",
+    })
+
+    // Setup the thinkerAgent agent
+    updateJobStatus(jobId, "Preparing Thinker Agent")
+    const thinkerAgent = new ThinkerAgent()
+    thinkerAgent.addApiKey(apiKey)
+    const planSpan = trace.span({ name: "Generate Plan" })
+    thinkerAgent.addSpan({ span: planSpan, generationName: "Generating plan" })
+    thinkerAgent.addJobId(jobId)
+
+    // Now, run the workflow, starting with the context agent
+    updateJobStatus(jobId, "Running context agent")
+    await contextAgent.runWithFunctions()
+    contextSpan.end()
+    updateJobStatus(jobId, "Context agent completed")
+
+    // After context agent is done, we take all the generated messages from the context agent and add them to the thinkerAgent agent
+    contextAgent.getMessages().forEach((message) => {
+      if (message.role === "system") {
+        // Skip the context agent's system prompt
+        return
+      }
+      thinkerAgent.addMessage(message)
+    })
+
+    updateJobStatus(jobId, "Running thinkerAgent agent")
+    const response = await thinkerAgent.runWithFunctions()
+    planSpan.end()
+
+    updateJobStatus(jobId, "Thinker agent completed")
+
     // Update the initial comment with the final response
+    updateJobStatus(
+      jobId,
+      "Updating initial Github comment with final response"
+    )
     await updateIssueComment({
       repoFullName: repo.full_name,
       commentId: initialCommentId,
