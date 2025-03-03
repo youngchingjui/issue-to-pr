@@ -1,20 +1,9 @@
-import { Github } from "lucide-react"
 import * as motion from "motion/react-client"
+import Link from "next/link"
 
-import { auth, signIn } from "@/auth"
-import { getGithubUser } from "@/lib/github/users"
-import { GitHubUser } from "@/lib/types"
+import { Button } from "@/components/ui/button"
 
 export default async function Hero() {
-  const session = await auth()
-
-  let user: GitHubUser | null = null
-  // Check for session first before getting Github user to avoid NextJS dynamic server error
-  // https://nextjs.org/docs/messages/dynamic-server-error
-  if (session) {
-    user = await getGithubUser()
-  }
-
   return (
     <motion.section
       initial={{ opacity: 0 }}
@@ -25,27 +14,24 @@ export default async function Hero() {
       <h1 className="text-4xl md:text-5xl font-bold mb-6 text-stone-700">
         Automatically Resolve Your GitHub Issues and Create Pull Requests
       </h1>
-      <form
-        action={async () => {
-          "use server"
-          await signIn("github", { redirectTo: "/redirect" })
-        }}
+
+      <Link
+        href="https://github.com/apps/issuetopr-dev"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-block"
+        prefetch={false}
       >
-        <motion.button
-          type="submit"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="flex items-center px-6 py-3 bg-amber-700 text-amber-50 rounded-md hover:bg-amber-600 transition-colors mx-auto text-lg"
+        <Button
+          size="lg"
+          className="text-lg p-6 bg-amber-700 text-white hover:bg-amber-600"
         >
-          <Github className="mr-2" size={24} />
-          {user ? "View my repositories" : "Login with GitHub"}
-        </motion.button>
-      </form>
-      {!user && (
-        <p className="mt-4 text-stone-500">
-          to automatically resolve your GitHub issues
-        </p>
-      )}
+          Install Github App
+        </Button>
+      </Link>
+      <p className="text-stone-500 mt-4">
+        Connect your repository to begin resolving your GitHub issues.
+      </p>
     </motion.section>
   )
 }
