@@ -1,3 +1,4 @@
+import { ExternalLink } from "lucide-react"
 import * as motion from "motion/react-client"
 import Link from "next/link"
 
@@ -27,6 +28,7 @@ export default async function Hero() {
           className="text-lg p-6 bg-amber-700 text-white hover:bg-amber-600"
         >
           Install Github App
+          <ExternalLink className="ml-2 h-5 w-5 inline" />
         </Button>
       </Link>
       <p className="text-stone-500 mt-4">
