@@ -5,7 +5,7 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: "/blog",
+        source: "/blogs",
         headers: [
           {
             key: "Content-Security-Policy",
