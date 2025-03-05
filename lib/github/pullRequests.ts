@@ -1,6 +1,11 @@
 import getOctokit from "@/lib/github"
 import { getGithubUser } from "@/lib/github/users"
-import { IssueComment, PullRequest, PullRequestReview } from "@/lib/types"
+import {
+  IssueComment,
+  PullRequest,
+  PullRequestList,
+  PullRequestReview,
+} from "@/lib/types"
 
 export async function getPullRequestOnBranch({
   repo,
@@ -97,7 +102,7 @@ export async function getPullRequestList({
   repoFullName,
 }: {
   repoFullName: string
-}): Promise<PullRequest[]> {
+}): Promise<PullRequestList> {
   const octokit = await getOctokit()
   const [owner, repo] = repoFullName.split("/")
 
@@ -145,4 +150,23 @@ export async function getPullRequestReviews({
   })
 
   return reviewsResponse.data
+}
+
+export async function getPullRequest({
+  repoFullName,
+  pullNumber,
+}: {
+  repoFullName: string
+  pullNumber: number
+}): Promise<PullRequest> {
+  const octokit = await getOctokit()
+  const [owner, repo] = repoFullName.split("/")
+
+  const response = await octokit.rest.pulls.get({
+    owner,
+    repo,
+    pull_number: pullNumber,
+  })
+
+  return response.data
 }

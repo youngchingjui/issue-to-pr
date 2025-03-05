@@ -11,8 +11,13 @@ export type GitHubIssue = components["schemas"]["issue"]
 export type GitHubIssueComment = components["schemas"]["issue-comment"]
 export type IssueComment =
   RestEndpointMethodTypes["issues"]["listComments"]["response"]["data"][0]
-export type PullRequest =
-  RestEndpointMethodTypes["pulls"]["list"]["response"]["data"][0]
+
+export type PullRequestList =
+  RestEndpointMethodTypes["pulls"]["list"]["response"]["data"]
+export type PullRequestSingle =
+  RestEndpointMethodTypes["pulls"]["get"]["response"]["data"] // has 12 more properties than PullRequestList[0]
+export type PullRequest = PullRequestSingle | PullRequestList[0]
+
 export type PullRequestReview =
   RestEndpointMethodTypes["pulls"]["listReviews"]["response"]["data"][0]
 export type ListForRepoParams =
