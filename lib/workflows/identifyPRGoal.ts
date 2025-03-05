@@ -3,6 +3,7 @@ import { getRepoFromString } from "@/lib/github/content"
 import {
   getPullRequest,
   getPullRequestComments,
+  getPullRequestDiff,
 } from "@/lib/github/pullRequests"
 import { langfuse } from "@/lib/langfuse"
 import { GetIssueTool } from "@/lib/tools"
@@ -37,6 +38,7 @@ export async function identifyPRGoal({
     updateJobStatus(jobId, "Retrieving PR details and comments...")
     const pr = await getPullRequest({ repoFullName, pullNumber })
     const comments = await getPullRequestComments({ repoFullName, pullNumber })
+    const diff = await getPullRequestDiff({ repoFullName, pullNumber })
 
     updateJobStatus(jobId, "Analyzing PR with AI...")
     const agent = new GoalIdentifierAgent({
@@ -54,26 +56,21 @@ export async function identifyPRGoal({
     // Add initial message with PR details
     const initialMessage = {
       role: "user" as const,
-      content: `Please analyze the following pull request to identify its goals and objectives:
+      content: `Here are the details of the pull request to analyze:
 
 Title: ${pr.title}
 Description:
 ${pr.body || "(No description provided)"}
 
+Diff: 
+${diff}
+
 Number of comments: ${comments.length}
 Comments:
 ${comments.map((comment) => `- ${comment.user?.login}: ${comment.body}`).join("\n")}
 
-Please identify:
-1. The primary goal of these changes
-2. Any secondary objectives or side effects
-3. If you find any references to GitHub issues (e.g., "Fixes #123" or "Related to #456"), use the get_issue tool to fetch and analyze those issues
-4. Whether the changes align with any linked issues you find
-5. Any changes that seem unrelated to the main goal
-
-You have access to:
-- The PR's diff through the get_pr_goal tool
-- Issue details through the get_issue tool when you find issue references`,
+Available tools:
+- Use the get_issue tool to fetch details for any referenced GitHub issues (e.g., "Fixes #123" or "Related to #456")`,
     }
 
     agent.addMessage(initialMessage)
