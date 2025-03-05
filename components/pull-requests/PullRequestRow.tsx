@@ -5,8 +5,8 @@ import { ChevronDown, Loader2, PlayCircle } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 
-import AnalyzePRWorkflow from "@/components/AnalyzePRWorkflow"
-import ReviewPRWorkflow from "@/components/ReviewPRWorkflow"
+import AnalyzePRWorkflow from "@/components/pull-requests/workflows/AnalyzePRWorkflow"
+import ReviewPRWorkflow from "@/components/pull-requests/workflows/ReviewPRWorkflow"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -17,7 +17,7 @@ import {
 import { TableCell, TableRow } from "@/components/ui/table"
 import { PullRequest } from "@/lib/types"
 
-export function PullRequestRow({ pr }: { pr: PullRequest }) {
+export default function PullRequestRow({ pr }: { pr: PullRequest }) {
   const [isLoading, setIsLoading] = useState(false)
   const [activeWorkflow, setActiveWorkflow] = useState<string | null>(null)
 

@@ -1,4 +1,4 @@
-import { PullRequestRow } from "@/components/PullRequestRow"
+import PullRequestRow from "@/components/pull-requests/PullRequestRow"
 import {
   Table,
   TableBody,

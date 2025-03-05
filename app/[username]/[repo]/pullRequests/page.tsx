@@ -1,7 +1,7 @@
 import { Suspense } from "react"
 
 import TableSkeleton from "@/components/layout/TableSkeleton"
-import PullRequestTable from "@/components/PullRequestTable"
+import PullRequestTable from "@/components/pull-requests/PullRequestTable"
 
 interface Props {
   params: {
