@@ -1,6 +1,7 @@
 "use client"
 
 import { formatDistanceToNow } from "date-fns"
+import Link from "next/link"
 import { useState } from "react"
 
 import AnalyzePRButton from "@/components/AnalyzePRButton"
@@ -41,7 +42,16 @@ export function PullRequestRow({ pr }: { pr: PullRequest }) {
     <TableRow key={pr.id}>
       <TableCell className="py-4">
         <div className="flex flex-col gap-1">
-          <div className="font-medium text-base">{pr.title}</div>
+          <div className="font-medium text-base">
+            <Link
+              href={`https://github.com/${pr.head.repo.full_name}/pull/${pr.number}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline"
+            >
+              {pr.title}
+            </Link>
+          </div>
           <div className="text-sm text-muted-foreground flex items-center gap-2">
             <span>#{pr.number}</span>
             <span>•</span>
