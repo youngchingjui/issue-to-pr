@@ -39,14 +39,24 @@ export function PullRequestRow({ pr }: { pr: PullRequest }) {
 
   return (
     <TableRow key={pr.id}>
-      <TableCell>#{pr.number}</TableCell>
-      <TableCell>{pr.title}</TableCell>
-      <TableCell>{pr.user.login}</TableCell>
-      <TableCell>{pr.state}</TableCell>
-      <TableCell>
-        {formatDistanceToNow(new Date(pr.updated_at), {
-          addSuffix: true,
-        })}
+      <TableCell className="py-4">
+        <div className="flex flex-col gap-1">
+          <div className="font-medium text-base">{pr.title}</div>
+          <div className="text-sm text-muted-foreground flex items-center gap-2">
+            <span>#{pr.number}</span>
+            <span>•</span>
+            <span>{pr.user.login}</span>
+            <span>•</span>
+            <span>{pr.state}</span>
+            <span>•</span>
+            <span>
+              Updated{" "}
+              {formatDistanceToNow(new Date(pr.updated_at), {
+                addSuffix: true,
+              })}
+            </span>
+          </div>
+        </div>
       </TableCell>
       <TableCell className="text-right">
         <div className="flex justify-end gap-2">

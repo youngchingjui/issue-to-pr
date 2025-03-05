@@ -24,12 +24,8 @@ export default async function PullRequestTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>PR #</TableHead>
-            <TableHead>Title</TableHead>
-            <TableHead>Author</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Updated</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            <TableHead className="w-full">Pull Requests</TableHead>
+            <TableHead className="w-[100px] text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
