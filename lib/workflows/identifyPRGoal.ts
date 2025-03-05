@@ -4,6 +4,7 @@ import {
   getPullRequest,
   getPullRequestComments,
 } from "@/lib/github/pullRequests"
+import { langfuse } from "@/lib/langfuse"
 import { GetIssueTool } from "@/lib/tools"
 import { GitHubIssue } from "@/lib/types"
 
@@ -19,6 +20,12 @@ export async function identifyPRGoal({
   pullNumber,
   apiKey,
 }: IdentifyPRGoalParams): Promise<string> {
+  // Start a trace for this workflow
+  const trace = langfuse.trace({
+    name: "Identify PR Goal",
+  })
+  const span = trace.span({ name: "identify_goal" })
+
   // Get the repository information
   const repo = await getRepoFromString(repoFullName)
 
@@ -37,6 +44,7 @@ export async function identifyPRGoal({
   })
 
   agent.addTool(getIssueTool)
+  agent.addSpan({ span, generationName: "identify_goal" })
 
   // Add initial message with PR details
   const initialMessage = {
@@ -64,7 +72,7 @@ You have access to:
   }
 
   agent.addMessage(initialMessage)
-  return agent.runWithFunctions()
+  return await agent.runWithFunctions()
 }
 
 export default identifyPRGoal
