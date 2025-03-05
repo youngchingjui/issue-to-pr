@@ -1,5 +1,10 @@
 import { GoalIdentifierAgent } from "@/lib/agents"
 import { getRepoFromString } from "@/lib/github/content"
+import {
+  getPullRequest,
+  getPullRequestComments,
+} from "@/lib/github/pullRequests"
+import { GetIssueTool } from "@/lib/tools"
 import { GitHubIssue } from "@/lib/types"
 
 interface IdentifyPRGoalParams {
@@ -13,31 +18,53 @@ export async function identifyPRGoal({
   repoFullName,
   pullNumber,
   apiKey,
-  linkedIssue,
 }: IdentifyPRGoalParams): Promise<string> {
   // Get the repository information
   const repo = await getRepoFromString(repoFullName)
 
+  // Get PR details and comments
+  const pr = await getPullRequest({ repoFullName, pullNumber })
+  const comments = await getPullRequestComments({ repoFullName, pullNumber })
+
   // Create the agent
   const agent = new GoalIdentifierAgent({
-    repo,
-    pullNumber,
     apiKey,
   })
 
-  // Run the agent with an initial message
+  // Add the get_issue tool
+  const getIssueTool = new GetIssueTool({
+    repo,
+  })
+
+  agent.addTool(getIssueTool)
+
+  // Add initial message with PR details
   const initialMessage = {
     role: "user" as const,
-    content: `Please analyze PR #${pullNumber} ${
-      linkedIssue ? `and its linked issue #${linkedIssue.number}` : ""
-    } to identify its goals and objectives.${
-      linkedIssue
-        ? "\n\nMake sure to analyze whether the PR's changes align with the linked issue's requirements."
-        : ""
-    }`,
+    content: `Please analyze the following pull request to identify its goals and objectives:
+
+Title: ${pr.title}
+Description:
+${pr.body || "(No description provided)"}
+
+Number of comments: ${comments.length}
+Comments:
+${comments.map((comment) => `- ${comment.user?.login}: ${comment.body}`).join("\n")}
+
+Please identify:
+1. The primary goal of these changes
+2. Any secondary objectives or side effects
+3. If you find any references to GitHub issues (e.g., "Fixes #123" or "Related to #456"), use the get_issue tool to fetch and analyze those issues
+4. Whether the changes align with any linked issues you find
+5. Any changes that seem unrelated to the main goal
+
+You have access to:
+- The PR's diff through the get_pr_goal tool
+- Issue details through the get_issue tool when you find issue references`,
   }
 
-  return agent.run([initialMessage])
+  agent.addMessage(initialMessage)
+  return agent.runWithFunctions()
 }
 
 export default identifyPRGoal

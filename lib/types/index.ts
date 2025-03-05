@@ -11,8 +11,10 @@ export type GitHubIssue = components["schemas"]["issue"]
 export type GitHubIssueComment = components["schemas"]["issue-comment"]
 export type IssueComment =
   RestEndpointMethodTypes["issues"]["listComments"]["response"]["data"][0]
+export type PullRequestList =
+  RestEndpointMethodTypes["pulls"]["list"]["response"]["data"]
 export type PullRequest =
-  RestEndpointMethodTypes["pulls"]["list"]["response"]["data"][0]
+  RestEndpointMethodTypes["pulls"]["get"]["response"]["data"]
 export type PullRequestReview =
   RestEndpointMethodTypes["pulls"]["listReviews"]["response"]["data"][0]
 export type ListForRepoParams =

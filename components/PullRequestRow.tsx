@@ -4,10 +4,10 @@ import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { toast } from "@/hooks/use-toast"
-import { PullRequest } from "@/lib/types"
+import { PullRequestList } from "@/lib/types"
 import { getApiKeyFromLocalStorage } from "@/lib/utils"
 
-export function PullRequestRow({ pr }: { pr: PullRequest }) {
+export function PullRequestRow({ pr }: { pr: PullRequestList[0] }) {
   const [isLoading, setIsLoading] = useState(false)
 
   const handleReviewPullRequest = async (
