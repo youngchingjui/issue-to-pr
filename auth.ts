@@ -6,6 +6,8 @@ import GithubProvider from "next-auth/providers/github"
 import { redis } from "@/lib/redis"
 import { refreshTokenWithLock } from "@/lib/utils-server"
 
+export const runtime = "nodejs"
+
 declare module "next-auth" {
   interface Session {
     token?: JWT
