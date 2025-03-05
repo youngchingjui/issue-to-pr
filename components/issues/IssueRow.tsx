@@ -4,7 +4,7 @@ import { CheckCircle, Loader2, MessageCircle } from "lucide-react"
 import { useState } from "react"
 import React from "react"
 
-import { CreatePullRequestButton } from "@/components/CreatePullRequestButton"
+import CreatePullRequestButton from "@/components/issues/workflows/CreatePullRequestButton"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -21,7 +21,7 @@ interface IssueRowProps {
   repo: GitHubRepository
 }
 
-export function IssueRow({ issue, repo }: IssueRowProps) {
+export default function IssueRow({ issue, repo }: IssueRowProps) {
   const [expandedIssue, setExpandedIssue] = useState<number | null>(null)
   const [logs, setLogs] = useState<Record<string, Log[]>>({})
   const [sseStatus, setSseStatus] = useState<

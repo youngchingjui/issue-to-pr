@@ -1,6 +1,6 @@
 "use client"
 
-import { CreatePullRequestButton } from "@/components/CreatePullRequestButton"
+import CreatePullRequestButton from "@/components/issues/workflows/CreatePullRequestButton"
 import { GitHubRepository } from "@/lib/types"
 
 export function IssueActionsDropdown({

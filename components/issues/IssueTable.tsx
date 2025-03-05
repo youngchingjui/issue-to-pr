@@ -1,4 +1,4 @@
-import { IssueRow } from "@/components/IssueRow"
+import IssueRow from "@/components/issues/IssueRow"
 import { getRepoFromString } from "@/lib/github/content"
 import { getIssueList } from "@/lib/github/issues"
 

@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button"
 import { toast } from "@/hooks/use-toast"
 import { GitHubRepository } from "@/lib/types"
 import { getApiKeyFromLocalStorage } from "@/lib/utils"
-export function CreatePullRequestButton({
+
+export default function CreatePullRequestButton({
   issueNumber,
   repo,
 }: {
