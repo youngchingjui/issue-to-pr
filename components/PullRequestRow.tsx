@@ -1,9 +1,11 @@
 "use client"
 
+import { formatDistanceToNow } from "date-fns"
 import { useState } from "react"
 
 import AnalyzePRButton from "@/components/AnalyzePRButton"
 import { Button } from "@/components/ui/button"
+import { TableCell, TableRow } from "@/components/ui/table"
 import { toast } from "@/hooks/use-toast"
 import { PullRequest } from "@/lib/types"
 import { getApiKeyFromLocalStorage } from "@/lib/utils"
@@ -34,28 +36,35 @@ export function PullRequestRow({ pr }: { pr: PullRequest }) {
     console.log(response)
     setIsLoading(false)
   }
+
   return (
-    <div key={pr.id} className="flex py-2 px-4 border-b border-gray-300">
-      <div className="shrink-0 text-gray-400 mr-2">{pr.number}</div>
-      <div className="flex-1">{pr.title}</div>
-      <div className="flex-1">{pr.state}</div>
-      <div className="flex-1">
-        <AnalyzePRButton
-          repoFullName={pr.head.repo.full_name}
-          pullNumber={pr.number}
-        />
-      </div>
-      <div className="flex-1">
-        <Button
-          onClick={() =>
-            handleReviewPullRequest(pr.number, pr.head.repo.full_name)
-          }
-          disabled={isLoading}
-          variant="default"
-        >
-          {isLoading ? "Reviewing PR..." : "Review Pull Request"}
-        </Button>
-      </div>
-    </div>
+    <TableRow key={pr.id}>
+      <TableCell>#{pr.number}</TableCell>
+      <TableCell>{pr.title}</TableCell>
+      <TableCell>{pr.user.login}</TableCell>
+      <TableCell>{pr.state}</TableCell>
+      <TableCell>
+        {formatDistanceToNow(new Date(pr.updated_at), {
+          addSuffix: true,
+        })}
+      </TableCell>
+      <TableCell className="text-right">
+        <div className="flex justify-end gap-2">
+          <AnalyzePRButton
+            repoFullName={pr.head.repo.full_name}
+            pullNumber={pr.number}
+          />
+          <Button
+            onClick={() =>
+              handleReviewPullRequest(pr.number, pr.head.repo.full_name)
+            }
+            disabled={isLoading}
+            variant="default"
+          >
+            {isLoading ? "Reviewing PR..." : "Review Pull Request"}
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
   )
 }
