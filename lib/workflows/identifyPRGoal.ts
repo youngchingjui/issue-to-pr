@@ -7,18 +7,21 @@ import {
 import { langfuse } from "@/lib/langfuse"
 import { GetIssueTool } from "@/lib/tools"
 import { GitHubIssue } from "@/lib/types"
+import { updateJobStatus } from "@/lib/utils"
 
 interface IdentifyPRGoalParams {
   repoFullName: string
   pullNumber: number
   apiKey: string
   linkedIssue?: GitHubIssue
+  jobId: string
 }
 
 export async function identifyPRGoal({
   repoFullName,
   pullNumber,
   apiKey,
+  jobId,
 }: IdentifyPRGoalParams): Promise<string> {
   // Start a trace for this workflow
   const trace = langfuse.trace({
@@ -26,30 +29,32 @@ export async function identifyPRGoal({
   })
   const span = trace.span({ name: "identify_goal" })
 
-  // Get the repository information
-  const repo = await getRepoFromString(repoFullName)
+  try {
+    // Add status updates throughout the workflow
+    updateJobStatus(jobId, "Fetching repository information...")
+    const repo = await getRepoFromString(repoFullName)
 
-  // Get PR details and comments
-  const pr = await getPullRequest({ repoFullName, pullNumber })
-  const comments = await getPullRequestComments({ repoFullName, pullNumber })
+    updateJobStatus(jobId, "Retrieving PR details and comments...")
+    const pr = await getPullRequest({ repoFullName, pullNumber })
+    const comments = await getPullRequestComments({ repoFullName, pullNumber })
 
-  // Create the agent
-  const agent = new GoalIdentifierAgent({
-    apiKey,
-  })
+    updateJobStatus(jobId, "Analyzing PR with AI...")
+    const agent = new GoalIdentifierAgent({
+      apiKey,
+    })
 
-  // Add the get_issue tool
-  const getIssueTool = new GetIssueTool({
-    repo,
-  })
+    // Add the get_issue tool
+    const getIssueTool = new GetIssueTool({
+      repo,
+    })
 
-  agent.addTool(getIssueTool)
-  agent.addSpan({ span, generationName: "identify_goal" })
+    agent.addTool(getIssueTool)
+    agent.addSpan({ span, generationName: "identify_goal" })
 
-  // Add initial message with PR details
-  const initialMessage = {
-    role: "user" as const,
-    content: `Please analyze the following pull request to identify its goals and objectives:
+    // Add initial message with PR details
+    const initialMessage = {
+      role: "user" as const,
+      content: `Please analyze the following pull request to identify its goals and objectives:
 
 Title: ${pr.title}
 Description:
@@ -69,10 +74,16 @@ Please identify:
 You have access to:
 - The PR's diff through the get_pr_goal tool
 - Issue details through the get_issue tool when you find issue references`,
-  }
+    }
 
-  agent.addMessage(initialMessage)
-  return await agent.runWithFunctions()
+    agent.addMessage(initialMessage)
+    const result = await agent.runWithFunctions()
+    updateJobStatus(jobId, "Analysis complete")
+    return result
+  } catch (error) {
+    updateJobStatus(jobId, `Error: ${error.message}`)
+    throw error
+  }
 }
 
 export default identifyPRGoal

@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 
+import AnalyzePRButton from "@/components/AnalyzePRButton"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/hooks/use-toast"
 import { PullRequestList } from "@/lib/types"
@@ -38,6 +39,12 @@ export function PullRequestRow({ pr }: { pr: PullRequestList[0] }) {
       <div className="shrink-0 text-gray-400 mr-2">{pr.number}</div>
       <div className="flex-1">{pr.title}</div>
       <div className="flex-1">{pr.state}</div>
+      <div className="flex-1">
+        <AnalyzePRButton
+          repoFullName={pr.head.repo.full_name}
+          pullNumber={pr.number}
+        />
+      </div>
       <div className="flex-1">
         <Button
           onClick={() =>
