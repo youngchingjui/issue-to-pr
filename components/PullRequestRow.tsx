@@ -1,42 +1,59 @@
 "use client"
 
 import { formatDistanceToNow } from "date-fns"
+import { ChevronDown, Loader2, PlayCircle } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 
-import AnalyzePRButton from "@/components/AnalyzePRButton"
+import AnalyzePRWorkflow from "@/components/AnalyzePRWorkflow"
+import ReviewPRWorkflow from "@/components/ReviewPRWorkflow"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { TableCell, TableRow } from "@/components/ui/table"
-import { toast } from "@/hooks/use-toast"
 import { PullRequest } from "@/lib/types"
-import { getApiKeyFromLocalStorage } from "@/lib/utils"
 
 export function PullRequestRow({ pr }: { pr: PullRequest }) {
   const [isLoading, setIsLoading] = useState(false)
+  const [activeWorkflow, setActiveWorkflow] = useState<string | null>(null)
 
-  const handleReviewPullRequest = async (
-    pullNumber: number,
-    repoFullName: string
-  ) => {
-    // Pull API key if recently saved
-    const key = getApiKeyFromLocalStorage()
-    if (!key) {
-      toast({
-        title: "API key not found",
-        description: "Please save an OpenAI API key first.",
-        variant: "destructive",
-      })
-      return
-    }
+  const analyzeWorkflow = AnalyzePRWorkflow({
+    repoFullName: pr.head.repo.full_name,
+    pullNumber: pr.number,
+    onStart: () => {
+      setIsLoading(true)
+      setActiveWorkflow("analyze")
+    },
+    onComplete: () => {
+      setIsLoading(false)
+      setActiveWorkflow(null)
+    },
+    onError: () => {
+      setIsLoading(false)
+      setActiveWorkflow(null)
+    },
+  })
 
-    setIsLoading(true)
-    const response = await fetch("/api/review", {
-      method: "POST",
-      body: JSON.stringify({ pullNumber, repoFullName, apiKey: key }),
-    })
-    console.log(response)
-    setIsLoading(false)
-  }
+  const reviewWorkflow = ReviewPRWorkflow({
+    repoFullName: pr.head.repo.full_name,
+    pullNumber: pr.number,
+    onStart: () => {
+      setIsLoading(true)
+      setActiveWorkflow("review")
+    },
+    onComplete: () => {
+      setIsLoading(false)
+      setActiveWorkflow(null)
+    },
+    onError: () => {
+      setIsLoading(false)
+      setActiveWorkflow(null)
+    },
+  })
 
   return (
     <TableRow key={pr.id}>
@@ -69,21 +86,44 @@ export function PullRequestRow({ pr }: { pr: PullRequest }) {
         </div>
       </TableCell>
       <TableCell className="text-right">
-        <div className="flex justify-end gap-2">
-          <AnalyzePRButton
-            repoFullName={pr.head.repo.full_name}
-            pullNumber={pr.number}
-          />
-          <Button
-            onClick={() =>
-              handleReviewPullRequest(pr.number, pr.head.repo.full_name)
-            }
-            disabled={isLoading}
-            variant="default"
-          >
-            {isLoading ? "Reviewing PR..." : "Review Pull Request"}
-          </Button>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {activeWorkflow === "analyze"
+                    ? "Analyzing..."
+                    : "Reviewing..."}
+                </>
+              ) : (
+                <>
+                  <PlayCircle className="mr-2 h-4 w-4" />
+                  Run Workflow
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-[200px]">
+            <DropdownMenuItem onClick={reviewWorkflow.execute}>
+              <div>
+                <div>Review Pull Request</div>
+                <div className="text-xs text-muted-foreground">
+                  Get an AI-powered review of the changes
+                </div>
+              </div>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={analyzeWorkflow.execute}>
+              <div>
+                <div>Analyze PR Goals</div>
+                <div className="text-xs text-muted-foreground">
+                  Analyze the goals and requirements
+                </div>
+              </div>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </TableCell>
     </TableRow>
   )
