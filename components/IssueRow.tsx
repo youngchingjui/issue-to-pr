@@ -117,7 +117,7 @@ export function IssueRow({ issue, repo }: IssueRowProps) {
       <div className="flex py-2 px-4">
         <div className="flex-1">{issue.title}</div>
         <div className="flex-1">{issue.state}</div>
-        <div className="flex-1">
+        <div className="flex-1 flex-row">
           <Button
             onClick={() => handleAddComment(issue.id)}
             variant="outline"
@@ -128,6 +128,16 @@ export function IssueRow({ issue, repo }: IssueRowProps) {
           >
             <MessageCircle className="mr-2 h-4 w-4" />
             Add GitHub Comment
+          </Button>
+          <Button
+            as="a"
+            href={`https://github.com/${repo.owner}/${repo.name}/issues/${issue.number}`}
+            variant="outline"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ml-2"
+          >
+            Go to issue
           </Button>
         </div>
         <div className="flex-1">
