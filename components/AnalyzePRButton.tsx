@@ -56,6 +56,7 @@ export default function AnalyzePRButton({ repoFullName, pullNumber }: Props) {
     } catch (error) {
       setIsLoading(false)
       setStatus(`Error: ${error.message}`)
+      console.error("Analysis failed: ", error)
     }
   }
 
