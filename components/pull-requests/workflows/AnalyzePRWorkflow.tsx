@@ -1,7 +1,6 @@
 "use client"
 
 import { toast } from "@/hooks/use-toast"
-import { SSEUtils } from "@/lib/utils"
 
 interface Props {
   repoFullName: string
@@ -37,33 +36,12 @@ export default function AnalyzePRWorkflow({
         throw new Error("Failed to start analysis")
       }
 
-      const { jobId } = await response.json()
-      const eventSource = new EventSource(`/api/sse?jobId=${jobId}`)
-
-      eventSource.onmessage = (event) => {
-        const decodedStatus = SSEUtils.decodeStatus(event.data)
-
-        if (decodedStatus === "Stream finished") {
-          eventSource.close()
-          toast({
-            title: "Analysis complete",
-            description:
-              "The pull request analysis has been completed successfully.",
-          })
-          onComplete()
-        }
-      }
-
-      eventSource.onerror = () => {
-        eventSource.close()
-        toast({
-          title: "Connection lost",
-          description:
-            "Lost connection to the analysis service. Please try again.",
-          variant: "destructive",
-        })
-        onError()
-      }
+      toast({
+        title: "Analysis started",
+        description:
+          "The pull request analysis has been started and will complete in a minute.",
+      })
+      onComplete()
     } catch (error) {
       toast({
         title: "Analysis failed",
