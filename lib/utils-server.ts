@@ -63,7 +63,7 @@ export async function setupLocalRepository({
 }
 
 export async function refreshTokenWithLock(token: JWT) {
-  const lockKey = `token_refresh_lock_${token.sub}`
+  const lockKey = `token_refresh_lock_${token.sub}` // Prevents concurrent refreshes for the same user
   const tokenKey = `token_${token.sub}`
   const lockTimeout = 10
   const retryDelay = 100
