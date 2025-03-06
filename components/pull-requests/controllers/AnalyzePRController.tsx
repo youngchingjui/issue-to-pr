@@ -10,7 +10,7 @@ interface Props {
   onError: () => void
 }
 
-export default function AnalyzePRWorkflow({
+export default function AnalyzePRController({
   repoFullName,
   pullNumber,
   onStart,

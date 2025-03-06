@@ -11,7 +11,7 @@ interface Props {
   onError: () => void
 }
 
-export default function ReviewPRWorkflow({
+export default function ReviewPRController({
   repoFullName,
   pullNumber,
   onStart,

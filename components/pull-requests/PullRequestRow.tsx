@@ -3,8 +3,8 @@
 import { useState } from "react"
 
 import DataRow from "@/components/common/DataRow"
-import AnalyzePRWorkflow from "@/components/pull-requests/workflows/AnalyzePRWorkflow"
-import ReviewPRWorkflow from "@/components/pull-requests/workflows/ReviewPRWorkflow"
+import AnalyzePRController from "@/components/pull-requests/controllers/AnalyzePRController"
+import ReviewPRController from "@/components/pull-requests/controllers/ReviewPRController"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { PullRequest } from "@/lib/types"
 
@@ -12,7 +12,7 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
   const [isLoading, setIsLoading] = useState(false)
   const [activeWorkflow, setActiveWorkflow] = useState<string | null>(null)
 
-  const analyzeWorkflow = AnalyzePRWorkflow({
+  const analyzeWorkflow = AnalyzePRController({
     repoFullName: pr.head.repo.full_name,
     pullNumber: pr.number,
     onStart: () => {
@@ -29,7 +29,7 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
     },
   })
 
-  const reviewWorkflow = ReviewPRWorkflow({
+  const reviewWorkflow = ReviewPRController({
     repoFullName: pr.head.repo.full_name,
     pullNumber: pr.number,
     onStart: () => {
