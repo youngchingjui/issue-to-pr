@@ -18,19 +18,12 @@ import {
 import { TableCell, TableRow } from "@/components/ui/table"
 import { GitHubIssue, GitHubRepository } from "@/lib/types"
 
-type Log = {
-  message: string
-  timestamp: string
-}
-
 interface IssueRowProps {
   issue: GitHubIssue
   repo: GitHubRepository
 }
 
 export default function IssueRow({ issue, repo }: IssueRowProps) {
-  const [expandedIssue, setExpandedIssue] = useState<number | null>(null)
-  const [logs, setLogs] = useState<Record<string, Log[]>>({})
   const [isLoading, setIsLoading] = useState(false)
   const [activeWorkflow, setActiveWorkflow] = useState<string | null>(null)
 
@@ -57,8 +50,6 @@ export default function IssueRow({ issue, repo }: IssueRowProps) {
     onStart: () => {
       setIsLoading(true)
       setActiveWorkflow("resolution-plan")
-      setExpandedIssue(issue.id)
-      setLogs({})
     },
     onComplete: () => {
       setIsLoading(false)
@@ -67,18 +58,6 @@ export default function IssueRow({ issue, repo }: IssueRowProps) {
     onError: () => {
       setIsLoading(false)
       setActiveWorkflow(null)
-    },
-    onStatusUpdate: (status: string) => {
-      setLogs((prev) => ({
-        ...prev,
-        [issue.id]: [
-          ...(prev[issue.id] || []),
-          {
-            message: status,
-            timestamp: new Date().toISOString(),
-          },
-        ],
-      }))
     },
   })
 
@@ -154,27 +133,6 @@ export default function IssueRow({ issue, repo }: IssueRowProps) {
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>
-      {expandedIssue === issue.id && logs[issue.id]?.length > 0 && (
-        <div className="absolute left-0 right-0 bg-background border-t p-4 mt-2">
-          <div className="flex flex-col space-y-2 max-h-40 overflow-y-auto">
-            {logs[issue.id].map((log, index) => (
-              <div key={index} className="text-sm">
-                <span className="text-muted-foreground">
-                  {new Date(log.timestamp).toLocaleTimeString()}
-                </span>
-                <span className="ml-2">
-                  {log.message.split("\\n\\n").map((line, i) => (
-                    <React.Fragment key={i}>
-                      {line}
-                      <br />
-                    </React.Fragment>
-                  ))}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </TableRow>
   )
 }

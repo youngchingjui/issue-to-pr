@@ -99,7 +99,7 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
               ) : (
                 <>
                   <PlayCircle className="mr-2 h-4 w-4" />
-                  Run Workflow
+                  Launch Workflow
                   <ChevronDown className="ml-2 h-4 w-4" />
                 </>
               )}

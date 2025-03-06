@@ -10,7 +10,6 @@ interface Props {
   onStart: () => void
   onComplete: () => void
   onError: () => void
-  onStatusUpdate: (status: string) => void
 }
 
 export default function GenerateResolutionPlanController({
@@ -19,7 +18,6 @@ export default function GenerateResolutionPlanController({
   onStart,
   onComplete,
   onError,
-  onStatusUpdate,
 }: Props) {
   const execute = async () => {
     try {
@@ -55,10 +53,8 @@ export default function GenerateResolutionPlanController({
 
       eventSource.onmessage = (event) => {
         const status = SSEUtils.decodeStatus(event.data)
-        onStatusUpdate(status)
 
         if (status === "Stream finished") {
-          onStatusUpdate("GitHub comment created")
           eventSource.close()
           onComplete()
         } else if (
