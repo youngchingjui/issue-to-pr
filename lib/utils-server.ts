@@ -63,7 +63,7 @@ export async function setupLocalRepository({
 }
 
 export async function refreshTokenWithLock(token: JWT) {
-  const lockKey = "token_refresh_lock"
+  const lockKey = `token_refresh_lock_${token.sub}` // Prevents concurrent refreshes for the same user
   const tokenKey = `token_${token.sub}`
   const lockTimeout = 10
   const retryDelay = 100
@@ -77,13 +77,21 @@ export async function refreshTokenWithLock(token: JWT) {
       ex: lockTimeout, // Expire time
       nx: true, // Only set if key doesn't exist
     })
+
     if (lockAcquired) {
       try {
         // Check if token was already refreshed by another instance
         const cachedToken = await redis.get(tokenKey)
         if (cachedToken) {
           console.log("Using cached token from Redis")
-          return JSON.parse(cachedToken as string)
+          try {
+            return typeof cachedToken === "string"
+              ? JSON.parse(cachedToken)
+              : cachedToken
+          } catch (e) {
+            console.error(`Error parsing cached token for key ${tokenKey}:`, e)
+            // If parsing fails, continue with refresh
+          }
         }
 
         // Refresh token
@@ -109,7 +117,7 @@ export async function refreshTokenWithLock(token: JWT) {
         console.log("token before update", token)
         console.log("data", data)
 
-        if (data.error == "bad_refresh_token") {
+        if (data.error === "bad_refresh_token") {
           console.error("Bad refresh token")
           throw new Error("Bad refresh token")
         }
@@ -138,7 +146,14 @@ export async function refreshTokenWithLock(token: JWT) {
     const cachedToken = await redis.get(tokenKey)
     if (cachedToken) {
       console.log("Using cached token from Redis after waiting")
-      return JSON.parse(cachedToken as string)
+      try {
+        return typeof cachedToken === "string"
+          ? JSON.parse(cachedToken)
+          : cachedToken
+      } catch (e) {
+        console.error(`Error parsing cached token for key ${tokenKey} after waiting:`, e)
+        // If parsing fails, continue with retries
+      }
     }
   }
 
@@ -146,7 +161,13 @@ export async function refreshTokenWithLock(token: JWT) {
   const cachedToken = await redis.get(tokenKey)
   if (cachedToken) {
     console.log("Using cached token from Redis after max retries")
-    return JSON.parse(cachedToken as string)
+    try {
+      return typeof cachedToken === "string"
+        ? JSON.parse(cachedToken)
+        : cachedToken
+    } catch (e) {
+      console.error("Error parsing cached token after max retries:", e)
+    }
   }
 
   throw new Error(
