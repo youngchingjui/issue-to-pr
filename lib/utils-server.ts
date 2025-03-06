@@ -151,7 +151,7 @@ export async function refreshTokenWithLock(token: JWT) {
           ? JSON.parse(cachedToken)
           : cachedToken
       } catch (e) {
-        console.error("Error parsing cached token after waiting:", e)
+        console.error(`Error parsing cached token for key ${tokenKey} after waiting:`, e)
         // If parsing fails, continue with retries
       }
     }
