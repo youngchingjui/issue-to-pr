@@ -46,7 +46,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             return await refreshTokenWithLock(token)
           } catch (error) {
             console.error("Error refreshing token. Sign in again", error)
-            return NextResponse.redirect("/")
+            // Use NextURL for proper URL handling
+            const url = new URL(
+              "/",
+              process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
+            )
+            return NextResponse.redirect(url)
           }
         }
         throw new Error("Token expired")
