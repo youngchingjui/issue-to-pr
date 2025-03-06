@@ -1,4 +1,11 @@
 import IssueRow from "@/components/issues/IssueRow"
+import {
+  Table,
+  TableBody,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { getRepoFromString } from "@/lib/github/content"
 import { getIssueList } from "@/lib/github/issues"
 
@@ -19,23 +26,27 @@ export default async function IssueTable({
     }
 
     return (
-      <div className="bg-white border border-gray-300">
-        <div className="flex bg-gray-100 py-2 px-4">
-          <div className="flex-1 font-bold">Issue</div>
-          <div className="flex-1 font-bold">Status</div>
-          <div className="flex-1 font-bold">Comment</div>
-          <div className="flex-1 font-bold">Actions</div>
-        </div>
-        <div>
-          {issues.map((issue) => (
-            <IssueRow key={issue.id} issue={issue} repo={repo} />
-          ))}
-        </div>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-full">Issues</TableHead>
+              <TableHead className="w-[100px]">Status</TableHead>
+              <TableHead className="w-[150px]">Comment</TableHead>
+              <TableHead className="w-[150px] text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {issues.map((issue) => (
+              <IssueRow key={issue.id} issue={issue} repo={repo} />
+            ))}
+          </TableBody>
+        </Table>
       </div>
     )
   } catch (error) {
     return (
-      <p className="text-center py-4 text-red-500">
+      <p className="text-center py-4 text-destructive">
         Error: {(error as Error).message}
       </p>
     )

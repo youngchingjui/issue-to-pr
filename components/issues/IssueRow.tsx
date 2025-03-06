@@ -1,13 +1,20 @@
 "use client"
 
-import { CheckCircle, Loader2, MessageCircle } from "lucide-react"
+import { formatDistanceToNow } from "date-fns"
+import { ChevronDown, Loader2, MessageCircle, PlayCircle } from "lucide-react"
+import Link from "next/link"
 import { useState } from "react"
 import React from "react"
 
 import CreatePullRequestButton from "@/components/issues/workflows/CreatePullRequestButton"
 import { Button } from "@/components/ui/button"
-import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { TableCell, TableRow } from "@/components/ui/table"
 import { GitHubIssue, GitHubRepository } from "@/lib/types"
 import { getApiKeyFromLocalStorage, SSEUtils } from "@/lib/utils"
 
@@ -24,6 +31,7 @@ interface IssueRowProps {
 export default function IssueRow({ issue, repo }: IssueRowProps) {
   const [expandedIssue, setExpandedIssue] = useState<number | null>(null)
   const [logs, setLogs] = useState<Record<string, Log[]>>({})
+  const [isLoading, setIsLoading] = useState(false)
   const [sseStatus, setSseStatus] = useState<
     Record<string, "connecting" | "working" | "closed">
   >({})
@@ -32,12 +40,11 @@ export default function IssueRow({ issue, repo }: IssueRowProps) {
 
   const handleAddComment = async (issueId: number) => {
     setExpandedIssue(issueId)
-    setLogs({}) // Clear previous logs
-
+    setLogs({})
+    setIsLoading(true)
     setSseStatus({ [issueId]: "connecting" })
 
     try {
-      // Initiate POST request to start comment workflow
       const response = await fetch("/api/comment", {
         method: "POST",
         headers: {
@@ -51,8 +58,6 @@ export default function IssueRow({ issue, repo }: IssueRowProps) {
       })
 
       const { jobId } = await response.json()
-
-      // Set up SSE to listen for updates
       const eventSource = new EventSource(`/api/sse?jobId=${jobId}`)
 
       setSseStatus({ [issueId]: "working" })
@@ -83,18 +88,21 @@ export default function IssueRow({ issue, repo }: IssueRowProps) {
             ],
           }))
           eventSource.close()
+          setIsLoading(false)
         } else if (
           status.startsWith("Completed") ||
           status.startsWith("Failed")
         ) {
           setSseStatus((prev) => ({ ...prev, [issueId]: "closed" }))
           eventSource.close()
+          setIsLoading(false)
         }
       }
 
       eventSource.onerror = (event) => {
         console.error("SSE connection failed:", event)
         setSseStatus((prev) => ({ ...prev, [issueId]: "closed" }))
+        setIsLoading(false)
       }
     } catch (error) {
       setLogs((prev) => ({
@@ -109,80 +117,115 @@ export default function IssueRow({ issue, repo }: IssueRowProps) {
       }))
       console.error("Failed to start comment workflow:", error)
       setSseStatus((prev) => ({ ...prev, [issueId]: "closed" }))
+      setIsLoading(false)
     }
   }
 
   return (
-    <div className="flex flex-col border-b">
-      <div className="flex py-2 px-4">
-        <div className="flex-1">{issue.title}</div>
-        <div className="flex-1">{issue.state}</div>
-        <div className="flex-1">
-          <Button
-            onClick={() => handleAddComment(issue.id)}
-            variant="outline"
-            disabled={
-              sseStatus[issue.id] === "connecting" ||
-              sseStatus[issue.id] === "working"
-            }
-          >
-            <MessageCircle className="mr-2 h-4 w-4" />
-            Add GitHub Comment
-          </Button>
+    <TableRow>
+      <TableCell className="py-4">
+        <div className="flex flex-col gap-1">
+          <div className="font-medium text-base">
+            <Link
+              href={`https://github.com/${repo.full_name}/issues/${issue.number}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline"
+            >
+              {issue.title}
+            </Link>
+          </div>
+          <div className="text-sm text-muted-foreground flex items-center gap-2">
+            <span>#{issue.number}</span>
+            <span>•</span>
+            <span>{issue.user.login}</span>
+            <span>•</span>
+            <span>{issue.state}</span>
+            <span>•</span>
+            <span>
+              Updated{" "}
+              {formatDistanceToNow(new Date(issue.updated_at), {
+                addSuffix: true,
+              })}
+            </span>
+          </div>
         </div>
-        <div className="flex-1">
-          <CreatePullRequestButton issueNumber={issue.number} repo={repo} />
-        </div>
-      </div>
-      {expandedIssue === issue.id && (
-        <div className="w-full py-2 px-4">
-          <Collapsible open={true}>
-            <CollapsibleContent>
-              <div className="flex flex-col items-start">
-                <div className="flex items-center space-x-2 mb-2">
-                  {sseStatus[issue.id] === "connecting" && (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />{" "}
-                      <span>Connecting...</span>
-                    </>
-                  )}
-                  {sseStatus[issue.id] === "working" && (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin text-green-500" />{" "}
-                      <span className="text-green-500">Working</span>
-                    </>
-                  )}
-                  {sseStatus[issue.id] === "closed" && (
-                    <>
-                      <CheckCircle className="h-4 w-4 text-green-500" />{" "}
-                      <span className="text-green-500">
-                        GitHub comment created
-                      </span>
-                    </>
-                  )}
+      </TableCell>
+      <TableCell>{issue.state}</TableCell>
+      <TableCell>
+        <Button
+          onClick={() => handleAddComment(issue.id)}
+          variant="outline"
+          size="sm"
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Adding comment...
+            </>
+          ) : (
+            <>
+              <MessageCircle className="mr-2 h-4 w-4" />
+              Add Comment
+            </>
+          )}
+        </Button>
+      </TableCell>
+      <TableCell className="text-right">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Working...
+                </>
+              ) : (
+                <>
+                  <PlayCircle className="mr-2 h-4 w-4" />
+                  Actions
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-[200px]">
+            <DropdownMenuItem onClick={() => handleAddComment(issue.id)}>
+              <div>
+                <div>Add GitHub Comment</div>
+                <div className="text-xs text-muted-foreground">
+                  Add an AI-generated comment
                 </div>
-                <ScrollArea className="h-40 w-full border rounded-md p-4">
-                  {logs[issue.id]?.map((log, index) => (
-                    <div key={index}>
-                      <span className="text-xs text-gray-400">
-                        {new Date(log.timestamp).toLocaleTimeString()}
-                      </span>
-                      <span className="ml-2 text-xs text-gray-400">
-                        {log.message.split("\\n\\n").map((line, i) => (
-                          <React.Fragment key={i}>
-                            {line}
-                            <br />
-                          </React.Fragment>
-                        ))}
-                      </span>
-                    </div>
-                  ))}
-                </ScrollArea>
               </div>
-            </CollapsibleContent>
-          </Collapsible>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <CreatePullRequestButton issueNumber={issue.number} repo={repo} />
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </TableCell>
+      {expandedIssue === issue.id && logs[issue.id]?.length > 0 && (
+        <div className="absolute left-0 right-0 bg-background border-t p-4 mt-2">
+          <div className="flex flex-col space-y-2 max-h-40 overflow-y-auto">
+            {logs[issue.id].map((log, index) => (
+              <div key={index} className="text-sm">
+                <span className="text-muted-foreground">
+                  {new Date(log.timestamp).toLocaleTimeString()}
+                </span>
+                <span className="ml-2">
+                  {log.message.split("\\n\\n").map((line, i) => (
+                    <React.Fragment key={i}>
+                      {line}
+                      <br />
+                    </React.Fragment>
+                  ))}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
-    </div>
+    </TableRow>
   )
 }
