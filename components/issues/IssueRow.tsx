@@ -1,7 +1,7 @@
 "use client"
 
 import { formatDistanceToNow } from "date-fns"
-import { ChevronDown, Loader2, MessageCircle, PlayCircle } from "lucide-react"
+import { ChevronDown, Loader2, PlayCircle } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 import React from "react"
@@ -163,7 +163,7 @@ export default function IssueRow({ issue, repo }: IssueRowProps) {
               ) : (
                 <>
                   <PlayCircle className="mr-2 h-4 w-4" />
-                  Actions
+                  Launch Workflow
                   <ChevronDown className="ml-2 h-4 w-4" />
                 </>
               )}
@@ -172,17 +172,23 @@ export default function IssueRow({ issue, repo }: IssueRowProps) {
           <DropdownMenuContent align="end" className="w-[200px]">
             <DropdownMenuItem onClick={() => handleAddComment(issue.id)}>
               <div>
-                <div className="flex items-center">
-                  <MessageCircle className="mr-2 h-4 w-4" />
-                  Add GitHub Comment
-                </div>
+                <div>Generate Resolution Plan</div>
                 <div className="text-xs text-muted-foreground">
-                  Add an AI-generated comment
+                  Get an AI-powered plan to resolve this issue
                 </div>
               </div>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <CreatePullRequestButton issueNumber={issue.number} repo={repo} />
+            <DropdownMenuItem>
+              <div>
+                <div>Fix Issue and Create PR</div>
+                <div className="text-xs text-muted-foreground">
+                  Automatically fix and create a pull request
+                </div>
+                <CreatePullRequestButton
+                  issueNumber={issue.number}
+                  repo={repo}
+                />
+              </div>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
