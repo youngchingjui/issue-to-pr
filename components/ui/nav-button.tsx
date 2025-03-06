@@ -8,17 +8,6 @@ interface NavButtonProps {
   href: string
 }
 
-/**
- * NavButton component for navigation links with icons
- * Fully responsive across all screen sizes:
- * - Mobile: Shows only icon
- * - Small screens: Shows icon and small text
- * - Medium and larger: Shows icon and normal text
- *
- * @param icon - Lucide icon component to display
- * @param label - Text to display next to the icon
- * @param href - URL to navigate to when clicked
- */
 export default function NavButton({ icon: Icon, label, href }: NavButtonProps) {
   return (
     <Link href={href}>

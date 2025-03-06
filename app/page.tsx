@@ -7,7 +7,7 @@ import Pricing from "@/components/landing-page/Pricing"
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-100 via-amber-50 to-orange-50 text-stone-800">
+    <div className="min-h-screen bg-[#F9FAFB] text-[#0f0f0f]">
       <Header />
       <main>
         <Hero />
