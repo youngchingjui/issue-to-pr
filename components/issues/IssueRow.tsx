@@ -6,7 +6,8 @@ import Link from "next/link"
 import { useState } from "react"
 import React from "react"
 
-import CreatePullRequestButton from "@/components/issues/workflows/CreatePullRequestButton"
+import CreatePRController from "@/components/issues/controllers/CreatePRController"
+import GenerateResolutionPlanController from "@/components/issues/controllers/GenerateResolutionPlanController"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -16,7 +17,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { TableCell, TableRow } from "@/components/ui/table"
 import { GitHubIssue, GitHubRepository } from "@/lib/types"
-import { getApiKeyFromLocalStorage, SSEUtils } from "@/lib/utils"
 
 type Log = {
   message: string
@@ -32,97 +32,58 @@ export default function IssueRow({ issue, repo }: IssueRowProps) {
   const [expandedIssue, setExpandedIssue] = useState<number | null>(null)
   const [logs, setLogs] = useState<Record<string, Log[]>>({})
   const [isLoading, setIsLoading] = useState(false)
-  const [sseStatus, setSseStatus] = useState<
-    Record<string, "connecting" | "working" | "closed">
-  >({})
+  const [activeWorkflow, setActiveWorkflow] = useState<string | null>(null)
 
-  const apiKey = getApiKeyFromLocalStorage()
+  const createPRController = CreatePRController({
+    issueNumber: issue.number,
+    repo,
+    onStart: () => {
+      setIsLoading(true)
+      setActiveWorkflow("create-pr")
+    },
+    onComplete: () => {
+      setIsLoading(false)
+      setActiveWorkflow(null)
+    },
+    onError: () => {
+      setIsLoading(false)
+      setActiveWorkflow(null)
+    },
+  })
 
-  const handleAddComment = async (issueId: number) => {
-    setExpandedIssue(issueId)
-    setLogs({})
-    setIsLoading(true)
-    setSseStatus({ [issueId]: "connecting" })
-
-    try {
-      const response = await fetch("/api/comment", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          issueNumber: issue.number,
-          repo,
-          apiKey,
-        }),
-      })
-
-      const { jobId } = await response.json()
-      const eventSource = new EventSource(`/api/sse?jobId=${jobId}`)
-
-      setSseStatus({ [issueId]: "working" })
-
-      eventSource.onmessage = (event) => {
-        const status = SSEUtils.decodeStatus(event.data)
-        setLogs((prev) => ({
-          ...prev,
-          [issueId]: [
-            ...(prev[issueId] || []),
-            {
-              message: status,
-              timestamp: new Date().toISOString(),
-            },
-          ],
-        }))
-
-        if (status === "Stream finished") {
-          setSseStatus({ [issueId]: "closed" })
-          setLogs((prev) => ({
-            ...prev,
-            [issueId]: [
-              ...(prev[issueId] || []),
-              {
-                message: "GitHub comment created",
-                timestamp: new Date().toISOString(),
-              },
-            ],
-          }))
-          eventSource.close()
-          setIsLoading(false)
-        } else if (
-          status.startsWith("Completed") ||
-          status.startsWith("Failed")
-        ) {
-          setSseStatus((prev) => ({ ...prev, [issueId]: "closed" }))
-          eventSource.close()
-          setIsLoading(false)
-        }
-      }
-
-      eventSource.onerror = (event) => {
-        console.error("SSE connection failed:", event)
-        setSseStatus((prev) => ({ ...prev, [issueId]: "closed" }))
-        setIsLoading(false)
-      }
-    } catch (error) {
+  const generateResolutionPlanController = GenerateResolutionPlanController({
+    issueNumber: issue.number,
+    repo,
+    onStart: () => {
+      setIsLoading(true)
+      setActiveWorkflow("resolution-plan")
+      setExpandedIssue(issue.id)
+      setLogs({})
+    },
+    onComplete: () => {
+      setIsLoading(false)
+      setActiveWorkflow(null)
+    },
+    onError: () => {
+      setIsLoading(false)
+      setActiveWorkflow(null)
+    },
+    onStatusUpdate: (status: string) => {
       setLogs((prev) => ({
         ...prev,
-        [issueId]: [
-          ...(prev[issueId] || []),
+        [issue.id]: [
+          ...(prev[issue.id] || []),
           {
-            message: `Error: ${error.message}`,
+            message: status,
             timestamp: new Date().toISOString(),
           },
         ],
       }))
-      console.error("Failed to start comment workflow:", error)
-      setSseStatus((prev) => ({ ...prev, [issueId]: "closed" }))
-      setIsLoading(false)
-    }
-  }
+    },
+  })
 
   return (
-    <TableRow>
+    <TableRow key={issue.id}>
       <TableCell className="py-4">
         <div className="flex flex-col gap-1">
           <div className="font-medium text-base">
@@ -158,7 +119,9 @@ export default function IssueRow({ issue, repo }: IssueRowProps) {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Working...
+                  {activeWorkflow === "create-pr"
+                    ? "Creating PR..."
+                    : "Generating Plan..."}
                 </>
               ) : (
                 <>
@@ -170,7 +133,9 @@ export default function IssueRow({ issue, repo }: IssueRowProps) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-[200px]">
-            <DropdownMenuItem onClick={() => handleAddComment(issue.id)}>
+            <DropdownMenuItem
+              onClick={generateResolutionPlanController.execute}
+            >
               <div>
                 <div>Generate Resolution Plan</div>
                 <div className="text-xs text-muted-foreground">
@@ -178,16 +143,12 @@ export default function IssueRow({ issue, repo }: IssueRowProps) {
                 </div>
               </div>
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={createPRController.execute}>
               <div>
                 <div>Fix Issue and Create PR</div>
                 <div className="text-xs text-muted-foreground">
                   Automatically fix and create a pull request
                 </div>
-                <CreatePullRequestButton
-                  issueNumber={issue.number}
-                  repo={repo}
-                />
               </div>
             </DropdownMenuItem>
           </DropdownMenuContent>
