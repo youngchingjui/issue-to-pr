@@ -1,7 +1,7 @@
 import Link from "next/link"
 import type React from "react"
 
-import Nav from "@/components/Breadcrumb"
+import Nav from "@/components/layout/Breadcrumb"
 
 export default function UserLayout({
   children,

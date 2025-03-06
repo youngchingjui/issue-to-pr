@@ -1,8 +1,8 @@
 import { Suspense } from "react"
 
-import ApiKeyInput from "@/components/APIKeyInput"
-import IssueTable from "@/components/IssueTable"
-import { TableSkeleton } from "@/components/TableSkeleton"
+import IssueTable from "@/components/issues/IssueTable"
+import TableSkeleton from "@/components/layout/TableSkeleton"
+import ApiKeyInput from "@/components/settings/APIKeyInput"
 
 interface Props {
   params: {
