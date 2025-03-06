@@ -151,27 +151,6 @@ export default function IssueRow({ issue, repo }: IssueRowProps) {
           </div>
         </div>
       </TableCell>
-      <TableCell>{issue.state}</TableCell>
-      <TableCell>
-        <Button
-          onClick={() => handleAddComment(issue.id)}
-          variant="outline"
-          size="sm"
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Adding comment...
-            </>
-          ) : (
-            <>
-              <MessageCircle className="mr-2 h-4 w-4" />
-              Add Comment
-            </>
-          )}
-        </Button>
-      </TableCell>
       <TableCell className="text-right">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -193,7 +172,10 @@ export default function IssueRow({ issue, repo }: IssueRowProps) {
           <DropdownMenuContent align="end" className="w-[200px]">
             <DropdownMenuItem onClick={() => handleAddComment(issue.id)}>
               <div>
-                <div>Add GitHub Comment</div>
+                <div className="flex items-center">
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  Add GitHub Comment
+                </div>
                 <div className="text-xs text-muted-foreground">
                   Add an AI-generated comment
                 </div>

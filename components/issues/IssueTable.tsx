@@ -31,8 +31,6 @@ export default async function IssueTable({
           <TableHeader>
             <TableRow>
               <TableHead className="w-full">Issues</TableHead>
-              <TableHead className="w-[100px]">Status</TableHead>
-              <TableHead className="w-[150px]">Comment</TableHead>
               <TableHead className="w-[150px] text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
