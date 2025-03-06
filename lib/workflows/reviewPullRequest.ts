@@ -38,6 +38,7 @@ export async function reviewPullRequest({
   // - What other files use these functions? Do they need to change?
   // - Digging deep into nested functions, what is the best way to incorporate all these changes? Is it by making changes at every step of the nesting? Or is there a more eloquent way to implement the overall goal (restate the issue).
   // - Are there changes here that don't belong to this PR? Ie they don't address the issue at hand? And should they be separated into a separate PR?
+  // - Identify and classify code sections based on organization quality. Provide feedback on complexity, redundancy, and separation of concerns.
   // The LLM will be given tools to help it answer these questions
   // The final output should be the LLM's assessment of the pull request
 
@@ -115,37 +116,43 @@ export async function reviewPullRequest({
   const formattedComments = comments
     .map(
       (comment, index) =>
-        `Comment ${index + 1} by ${comment.user.login}:\n${comment.body}`
+        `Comment ${index + 1} by ${comment.user.login}:
+${comment.body}`
     )
     .join("\n\n")
   const formattedReviews = reviews
     .map(
       (review, index) =>
-        `Review ${index + 1} by ${review.user.login} (${review.state}):\n${review.body || "No comment provided"}`
+        `Review ${index + 1} by ${review.user.login} (${review.state}):
+${review.body || "No comment provided"}`
     )
     .join("\n\n")
 
   // Provide initial user message with all necessary information
   const message = `
-  ## Pull request diff\n
-  ${finalDiff}\n
+  ## Pull request diff
+  ${finalDiff}
   ${
     issue
       ? `
-  ## Github issue \n
-    ### Title\n
-    ${issue.title}\n
-    ### Description\n
-    ${issue.body}\n
+  ## Github issue 
+    ### Title
+    ${issue.title}
+    ### Description
+    ${issue.body}
   `
       : ""
   }
-  ## Codebase directory\n
-  ${tree.join("\n")}\n
+  ## Codebase directory
+  ${tree.join("\n")}
 
-  ${formattedComments ? `## Comments\n${formattedComments}\n` : ""}
+  ${formattedComments ? `## Comments
+${formattedComments}
+` : ""}
 
-  ${formattedReviews ? `## Reviews\n${formattedReviews}\n` : ""}
+  ${formattedReviews ? `## Reviews
+${formattedReviews}
+` : ""}
   `
 
   reviewer.addMessage({
@@ -162,6 +169,17 @@ export async function reviewPullRequest({
 
   // Run the LLM
   const response = await reviewer.runWithFunctions()
+
+  // Extract and process LLM feedback specific to code organization
+  if (response) {
+    // Example: Extract details related to code complexity and provide structured feedback
+    const organizationIssues = response.analysis?.organization || []
+    organizationIssues.forEach(issue => {
+      console.log("Organization Issue Detected:", issue.description)
+      // Implement logic to handle detected issues, potentially refactor suggestions
+    })
+  }
+
   console.log("Response:", response)
 
   return response
