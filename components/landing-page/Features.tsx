@@ -1,6 +1,9 @@
 import React from "react"
 import TextLg from "../ui/text-lg"
 import FeatureShowcase from "../ui/feature-showcase"
+import { ExternalLink } from "lucide-react"
+import Link from "next/link"
+import ShineButton from "../ui/shine-button"
 
 const Features = () => {
   return (
@@ -42,6 +45,18 @@ const Features = () => {
           },
         ]}
       />
+      <Link
+        href="https://github.com/apps/issuetopr-dev"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-block mt-14"
+        prefetch={false}
+      >
+        <ShineButton className="text-base sm:text-lg px-4 sm:px-5 md:px-6 py-3 bg-green-800 text-white hover:bg-green-800/70">
+          Get Started Today
+          <ExternalLink className="ml-2 h-4 w-4 sm:h-5 sm:w-5 inline" />
+        </ShineButton>
+      </Link>
     </div>
   )
 }

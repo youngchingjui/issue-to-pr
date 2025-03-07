@@ -81,7 +81,7 @@ const FeatureShowcase = ({
   items: { image: string; title: string; description: string }[]
 }) => {
   return (
-    <div className="flex flex-col max-w-6xl w-full gap-12 px-5 lg:px-10">
+    <div className="flex flex-col max-w-[1300px] w-full gap-12 px-5 lg:px-10">
       {items.map((item, i) => {
         return (
           <motion.div
@@ -100,12 +100,12 @@ const FeatureShowcase = ({
             }}
             viewport={{ once: true }}
             key={`feature-item-${i}`}
-            className="grid grid-cols-1 sm:grid-cols-4 md:grid-cols-3 gap-4 md:gap-0 lg:gap-5 sm:hover:gap-[12px] transition-all duration-300 w-full bg-gradient-to-br from-white/5 to-transparent backdrop-blur-sm p-1 overflow-hidden"
+            className="grid grid-cols-1 sm:grid-cols-4 md:grid-cols-4 gap-4 md:gap-4 lg:gap-10 md:hover:gap-5 lg:hover:gap-8 transition-all duration-300 w-full bg-gradient-to-br from-white/5 to-transparent backdrop-blur-sm p-1 overflow-hidden"
           >
             {i % 2 === 0 ? (
               <>
                 <ImageCard image={item.image} />
-                <div className="col-span-2 md:pl-5 lg:pl-10 h-full w-full flex flex-col gap-6 md:py-8 justify-center">
+                <div className="col-span-2 lg:col-span-3 h-full w-full flex flex-col gap-6 md:py-8 justify-center">
                   <Content item={item} />
                 </div>
               </>
@@ -113,7 +113,7 @@ const FeatureShowcase = ({
               <>
                 <div className="hidden md:block col-span-1 w-full h-full" />
                 <ImageCard image={item.image} />
-                <div className="col-span-2 md:col-span-1 md:pl-5 lg:pl-10 h-full w-full flex flex-col gap-6 md:py-8 justify-center">
+                <div className="col-span-2 h-full w-full flex flex-col gap-6 md:py-8 justify-center">
                   <Content item={item} />
                 </div>
               </>
