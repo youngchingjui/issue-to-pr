@@ -27,8 +27,8 @@ export default async function Header() {
 
   // Navigation items data
   const navItems = [
-    { icon: HelpCircle, label: "How to?", href: "/how-to" },
-    { icon: DollarSign, label: "Pricing", href: "/pricing" },
+    { icon: HelpCircle, label: "How to?", href: "#how-to" },
+    { icon: DollarSign, label: "Pricing", href: "#pricing" },
     { icon: BookOpen, label: "Blog", href: "/blog" },
   ]
 

@@ -41,7 +41,10 @@ const Steps = () => {
   const [isHovered, setIsHovered] = useState<number | null>(null)
 
   return (
-    <div className="relative py-20 flex flex-col items-center justify-center bg-white border-t-2 border-black">
+    <div
+      id="how-to"
+      className="relative py-20 flex flex-col items-center justify-center bg-white border-t-2 border-black"
+    >
       <TextLg>
         <span>How it</span>{" "}
         <span>

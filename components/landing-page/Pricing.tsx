@@ -25,6 +25,7 @@ const Pricing = () => {
 
   return (
     <motion.div
+      id="pricing"
       animate={{
         background: [
           "linear-gradient(90deg, transparent 45%, rgba(255,255,255,1), transparent 55%), linear-gradient(0deg, transparent 45%, rgba(255,255,255,1), transparent 55%)",
