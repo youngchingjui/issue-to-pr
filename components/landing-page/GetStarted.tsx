@@ -73,7 +73,7 @@ export default function GetStarted() {
             className="inline-block mt-10 max-w-lg w-full"
             prefetch={false}
           >
-            <ShineButton className="text-base sm:text-lg px-4 sm:px-5 md:px-6 py-3 bg-black text-white hover:bg-black/70 w-full">
+            <ShineButton className="text-base sm:text-lg px-4 sm:px-5 md:px-6 py-3 bg-green-800 text-white hover:bg-green-800/70">
               Download
               <Flame className="ml-2 h-4 w-4 sm:h-5 sm:w-5 inline" />
             </ShineButton>
