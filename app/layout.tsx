@@ -1,16 +1,16 @@
 import "./globals.css"
 import "./styles/custom.css"
 
+import { Github } from "lucide-react"
 import { LayoutDashboard, LogOut } from "lucide-react"
 import { Inter } from "next/font/google"
 import Link from "next/link"
 import { SessionProvider } from "next-auth/react"
 
-import { auth } from "@/auth"
+import { auth, signIn } from "@/auth"
 import { Button } from "@/components/ui/button"
 import { Toaster } from "@/components/ui/toaster"
 import { getGithubUser } from "@/lib/github/users"
-import { GitHubUser } from "@/lib/types"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -68,9 +68,20 @@ export default async function RootLayout({
                     </Button>
                   </>
                 ) : (
-                  <Button variant="default" asChild>
-                    <Link href="/api/auth/signin">Sign In</Link>
-                  </Button>
+                  <form
+                    action={async () => {
+                      "use server"
+                      await signIn("github", { redirectTo: "/redirect" })
+                    }}
+                  >
+                    <Button
+                      type="submit"
+                      className="flex items-center px-4 py-2 bg-stone-700 text-stone-100 rounded-md hover:bg-stone-600 transition-colors"
+                    >
+                      <Github className="mr-2" size={20} />
+                      Login with GitHub
+                    </Button>
+                  </form>
                 )}
               </div>
             </div>
