@@ -1,5 +1,6 @@
 import Details from "@/components/landing-page/Details"
 import Diagram from "@/components/landing-page/Diagram"
+import Features from "@/components/landing-page/Features"
 import Footer from "@/components/landing-page/Footer"
 import Header from "@/components/landing-page/Header"
 import Hero from "@/components/landing-page/Hero"
@@ -13,6 +14,7 @@ export default function LandingPage() {
       <main>
         <GridBackground>
           <Hero />
+          <Features />
           <Details />
           <Diagram />
           <Pricing />
