@@ -27,6 +27,6 @@ export default async function WorkflowRunDetailPage({
     )
   } catch (error) {
     console.error("Error fetching workflow run:", error)
-    throw error
+    notFound()
   }
 }
