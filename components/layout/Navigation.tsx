@@ -1,37 +1,14 @@
-"use client"
-
-import { Github, LayoutDashboard, LogOut } from "lucide-react"
+import { Github, LogOut } from "lucide-react"
 import Link from "next/link"
-import { useParams, usePathname } from "next/navigation"
-import {
-  signIn as nextAuthSignIn,
-  signOut as nextAuthSignOut,
-  useSession,
-} from "next-auth/react"
 
-import Nav from "@/components/layout/Breadcrumb"
+import { auth, signIn } from "@/auth"
+import { signOut } from "@/auth"
 import { Button } from "@/components/ui/button"
 
-export default function Navigation() {
-  const { username, repo } = useParams() as {
-    username: string | null
-    repo: string | null
-  }
-  const pathname = usePathname()
-  const { data: session } = useSession()
+import DynamicNavigation from "./DynamicNavigation"
 
-  const showBreadcrumbs = repo !== null && repo !== undefined
-  const isWorkflowPage = pathname === "/workflow-runs"
-  const isMainDashboard = pathname === `/${username}` || isWorkflowPage
-  const isLandingPage = pathname === "/"
-
-  const handleSignOut = async () => {
-    await nextAuthSignOut({ redirect: true, callbackUrl: "/" })
-  }
-
-  const handleSignIn = async () => {
-    await nextAuthSignIn("github", { redirect: true, callbackUrl: "/redirect" })
-  }
+export default async function Navigation() {
+  const session = await auth()
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -41,63 +18,45 @@ export default function Navigation() {
           <span className="font-bold">Issue to PR</span>
         </Link>
 
-        {/* Landing page links */}
-        {isLandingPage && (
-          <nav className="flex items-center space-x-4">
-            <Link href="/blogs" className="text-sm font-medium">
-              Blogs
-            </Link>
-          </nav>
-        )}
-
-        {/* Breadcrumbs - only show in deep pages */}
-        {showBreadcrumbs && <Nav />}
-
-        {/* Main navigation - only show in main dashboard */}
-        {isMainDashboard && username && (
-          <nav className="flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              className="flex items-center"
-            >
-              <Link href={`/${username}`}>
-                <LayoutDashboard className="h-4 w-4 mr-2" />
-                My repositories
-              </Link>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              className="flex items-center"
-            >
-              <Link href="/workflow-runs">Workflows</Link>
-            </Button>
-          </nav>
-        )}
+        {/* Dynamic navigation parts */}
+        {session?.user && <DynamicNavigation />}
 
         {/* Right side items - always visible */}
         <div className="ml-auto flex items-center space-x-4">
           {session?.user ? (
-            <Button
-              type="button"
-              className="flex items-center px-4 py-2"
-              onClick={handleSignOut}
+            <form
+              action={async () => {
+                "use server"
+                await signOut({ redirectTo: "/" })
+              }}
             >
-              <LogOut className="mr-2" size={20} />
-              Sign out
-            </Button>
+              <Button
+                type="submit"
+                variant="outline"
+                size="sm"
+                className="flex items-center px-4 py-2"
+              >
+                <LogOut className="mr-2" size={20} />
+                Sign out
+              </Button>
+            </form>
           ) : (
-            <Button
-              type="button"
-              className="flex items-center px-4 py-2"
-              onClick={handleSignIn}
+            <form
+              action={async () => {
+                "use server"
+                await signIn("github", { redirectTo: "/redirect" })
+              }}
             >
-              <Github className="mr-2" size={20} />
-              Login with GitHub
-            </Button>
+              <Button
+                type="submit"
+                variant="outline"
+                size="sm"
+                className="flex items-center px-4 py-2"
+              >
+                <Github className="mr-2" size={20} />
+                Login with GitHub
+              </Button>
+            </form>
           )}
         </div>
       </div>
