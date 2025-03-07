@@ -24,7 +24,7 @@ const StackedCards = ({
   }, [images.length])
 
   return (
-    <div className="relative h-[500px] w-[1200px] overflow-visible">
+    <div className="relative h-[200px] sm:h-[260px] md:h-[390px] lg:h-[450px] xl:h-[500px] w-[310px] sm:w-[500px] md:w-[725px] lg:w-[900px] xl:w-[1200px] overflow-visible">
       {images.map((image, i) => {
         const key = `stacked-card-${i}`
         const isTop = topIndex === i
