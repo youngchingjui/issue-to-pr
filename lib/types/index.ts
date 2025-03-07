@@ -4,6 +4,7 @@ import { zodFunction } from "openai/helpers/zod"
 import { ChatModel } from "openai/resources"
 import { z } from "zod"
 
+// Github Types
 export type GitHubRepository = components["schemas"]["full-repository"]
 export type AuthenticatedUserRepository = components["schemas"]["repository"]
 export type GitHubUser = components["schemas"]["simple-user"]
@@ -24,6 +25,7 @@ export type ListForRepoParams =
   RestEndpointMethodTypes["issues"]["listForRepo"]["parameters"]
 export type SearchCodeItem = components["schemas"]["code-search-result-item"]
 
+// Other
 export interface Tool<T extends z.ZodType, U = unknown> {
   tool: ReturnType<typeof zodFunction>
   parameters: T

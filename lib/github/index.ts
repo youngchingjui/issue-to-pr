@@ -18,23 +18,29 @@ export default async function getOctokit(): Promise<Octokit> {
   const session = await auth()
   if (session?.token?.access_token) {
     return new Octokit({ auth: session.token.access_token })
-  } else {
-    // Fallback to GitHub App authentication
-    const app = new App({
-      appId: process.env.GITHUB_APP_ID,
-      privateKey: getPrivateKeyFromFile(),
-    })
-
-    // Assuming you have the installation ID from the webhook or other source
-    const installationId = getInstallationId()
-
-    if (!installationId) {
-      console.log("No installation ID found")
-      return null
-    }
-
-    return (await app.getInstallationOctokit(
-      Number(installationId)
-    )) as unknown as Octokit // Removes extra properties for pagination and retry capabilities
   }
+
+  // Skip GitHub App authentication in development
+  if (process.env.NODE_ENV === "development") {
+    console.log("Skipping GitHub App authentication in development")
+    return null
+  }
+
+  // Fallback to GitHub App authentication in production
+  const app = new App({
+    appId: process.env.GITHUB_APP_ID,
+    privateKey: getPrivateKeyFromFile(),
+  })
+
+  // Assuming you have the installation ID from the webhook or other source
+  const installationId = getInstallationId()
+
+  if (!installationId) {
+    console.log("No installation ID found")
+    return null
+  }
+
+  return (await app.getInstallationOctokit(
+    Number(installationId)
+  )) as unknown as Octokit // Removes extra properties for pagination and retry capabilities
 }
