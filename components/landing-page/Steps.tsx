@@ -43,8 +43,8 @@ const Steps = () => {
   return (
     <div className="relative py-20 flex flex-col items-center justify-center bg-white border-t-2 border-black">
       <TextLg>
-        <span className="block sm:inline">How it</span>{" "}
-        <span className="block sm:inline">
+        <span>How it</span>{" "}
+        <span>
           <span className="italic text-green-800 relative">works?</span>
         </span>
       </TextLg>

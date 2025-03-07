@@ -32,8 +32,8 @@ export default async function Hero() {
         className="max-w-5xl mx-auto relative z-10"
       >
         <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold mb-3 sm:mb-6 md:mb-8 leading-tight">
-          <span className="block sm:inline">Automate Pull Requests</span>{" "}
-          <span className="block sm:inline">
+          <span>Automate Pull Requests</span>{" "}
+          <span>
             with <br />
             <span className="italic text-green-800 relative">
               AI Powered Insights
