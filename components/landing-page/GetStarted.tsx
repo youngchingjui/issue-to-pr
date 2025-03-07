@@ -1,5 +1,8 @@
+"use client"
+
 import { Flame } from "lucide-react"
 import Link from "next/link"
+import { motion } from "framer-motion"
 import ShineButton from "../ui/shine-button"
 import TextLg from "../ui/text-lg"
 import TextSm from "../ui/text-sm"
@@ -9,16 +12,47 @@ export default function GetStarted() {
     <section className="text-center flex flex-col items-center w-full mx-auto">
       <div className="w-full max-w-full mx-auto pb-16 px-4 relative flex flex-col items-center overflow-hidden shadow-lg py-16">
         <div
-          style={{
-            background:
-              "linear-gradient(135deg, #0ea5e9, #10b981, #84cc16, #22d3ee)",
-            backgroundSize: "400% 400%",
-            clipPath: "polygon(0 50%, 100% 35%, 100% 100%, 0 100%)",
-            animation: "gradientFlow 8s ease infinite",
-          }}
           className="absolute top-0 left-0 w-full h-full"
+          style={{
+            background: "linear-gradient(to bottom, #f8fafc, #ffffff)",
+            clipPath: "polygon(0 50%, 100% 35%, 100% 100%, 0 100%)",
+          }}
         />
-        <div className="rounded-xl backdrop-blur-xl bg-white/30 relative z-10 p-10">
+
+        <motion.div
+          animate={{
+            y: [-10, 0, -10],
+            x: [5, 0, 5],
+          }}
+          transition={{
+            duration: 6,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+          className="absolute bottom-0 right-[10%] w-32 h-32 rounded-full bg-green-400/40 backdrop-blur-sm"
+        />
+
+        <motion.div
+          animate={{
+            y: [-10, 0, -10],
+            x: [5, 0, 5],
+          }}
+          transition={{
+            duration: 7,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 1,
+          }}
+          className="absolute bottom-[20%] left-[15%] w-24 h-24 rounded-full bg-amber-400/40 backdrop-blur-sm"
+        />
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="rounded-xl backdrop-blur-xl bg-white/70 relative z-10 p-10 border border-gray-100 shadow-sm"
+        >
           <TextLg className="text-center ">
             Get{" "}
             <span className="text-center italic text-green-800">started!</span>
@@ -44,7 +78,7 @@ export default function GetStarted() {
               <Flame className="ml-2 h-4 w-4 sm:h-5 sm:w-5 inline" />
             </ShineButton>
           </Link>
-        </div>
+        </motion.div>
       </div>
     </section>
   )

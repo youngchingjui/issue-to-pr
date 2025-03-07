@@ -8,11 +8,12 @@ import * as motion from "motion/react-client"
 
 const Features = () => {
   return (
-    <div className="relative py-20">
-      <div className="absolute inset-0 w-full h-full backdrop-blur-sm">
-        {/* Floating elements */}
+    <div className="relative py-20 overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white" />
+
+      <div className="absolute inset-0 w-full h-full">
         <motion.div
-          className="absolute top-20 left-[10%] w-32 h-32 rounded-full bg-green-100"
+          className="absolute top-20 left-[10%] w-32 h-32 rounded-full bg-green-400/50 backdrop-blur-sm"
           animate={{
             y: [0, -15, 0],
             x: [0, 10, 0],
@@ -21,7 +22,7 @@ const Features = () => {
         />
 
         <motion.div
-          className="absolute bottom-40 right-[15%] w-40 h-40 rounded-full bg-green-200"
+          className="absolute bottom-40 right-[15%] w-40 h-40 rounded-full bg-green-400/50 backdrop-blur-sm"
           animate={{
             y: [0, 20, 0],
             x: [0, -15, 0],
@@ -35,7 +36,7 @@ const Features = () => {
         />
 
         <motion.div
-          className="absolute top-1/2 right-1/4 w-24 h-24 rounded-full bg-amber-100"
+          className="absolute top-1/2 right-1/4 w-24 h-24 rounded-full bg-amber-400/60 backdrop-blur-sm"
           animate={{
             y: [0, 10, 0],
             x: [0, -10, 0],
@@ -45,6 +46,34 @@ const Features = () => {
             repeat: Infinity,
             ease: "easeInOut",
             delay: 0.5,
+          }}
+        />
+
+        <motion.div
+          className="absolute top-1/3 left-1/4 w-16 h-16 rounded-full bg-blue-400/40 backdrop-blur-sm"
+          animate={{
+            y: [0, 12, 0],
+            x: [0, 8, 0],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 2,
+          }}
+        />
+
+        <motion.div
+          className="absolute bottom-20 left-[20%] w-20 h-20 rounded-full bg-amber-400/50 backdrop-blur-sm"
+          animate={{
+            y: [0, -10, 0],
+            x: [0, 5, 0],
+          }}
+          transition={{
+            duration: 6.5,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 1.5,
           }}
         />
       </div>

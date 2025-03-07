@@ -8,8 +8,7 @@ import { motion } from "framer-motion"
 
 const ImageCard = ({ image }: { image: string }) => {
   return (
-    <div className="relative overflow-hidden rounded-2xl shadow-lg h-full w-full col-span-1 sm:col-span-2 md:col-span-1 group">
-      <div className="absolute inset-0 bg-gradient-to-tr from-black/10 to-transparent z-10 transition-opacity duration-300 group-hover:opacity-0" />
+    <div className="relative overflow-hidden rounded-2xl h-full w-full col-span-1 sm:col-span-2 md:col-span-1 group border-2 border-black">
       <motion.div
         whileHover={{ scale: 1.05 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
@@ -98,7 +97,7 @@ const FeatureShowcase = ({
             }}
             viewport={{ once: true }}
             key={`feature-item-${i}`}
-            className="grid grid-cols-1 sm:grid-cols-4 md:grid-cols-4 gap-4 md:gap-4 lg:gap-10 md:hover:gap-5 lg:hover:gap-8 transition-all duration-300 w-full bg-gradient-to-br from-white/5 to-transparent backdrop-blur-sm p-1 overflow-hidden"
+            className="grid grid-cols-1 sm:grid-cols-4 md:grid-cols-4 gap-4 md:gap-4 lg:gap-10 md:hover:gap-5 lg:hover:gap-8 transition-all duration-300 w-full bg-gradient-to-br from-white/5 to-transparent p-1 overflow-hidden"
           >
             {i % 2 === 0 ? (
               <>
