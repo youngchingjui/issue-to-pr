@@ -1,16 +1,12 @@
 import "./globals.css"
 import "./styles/custom.css"
 
-import { Github } from "lucide-react"
-import { LayoutDashboard, LogOut } from "lucide-react"
 import { Inter } from "next/font/google"
-import Link from "next/link"
 import { SessionProvider } from "next-auth/react"
 
-import { auth, signIn, signOut } from "@/auth"
-import { Button } from "@/components/ui/button"
+import { auth } from "@/auth"
+import Navigation from "@/components/layout/Navigation"
 import { Toaster } from "@/components/ui/toaster"
-import { getGithubUser } from "@/lib/github/users"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -26,9 +22,7 @@ export default async function RootLayout({
   children: React.ReactNode
 }) {
   const session = await auth()
-  const user = await getGithubUser()
 
-  console.log(user?.login)
   return (
     <html lang="en">
       <body
@@ -36,65 +30,7 @@ export default async function RootLayout({
         style={{ "--custom-amber": "#B45309" } as React.CSSProperties}
       >
         <SessionProvider session={session}>
-          <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="container flex h-14 items-center max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
-              <Link href="/" className="mr-6 flex items-center space-x-2">
-                <span className="font-bold">Issue to PR</span>
-              </Link>
-              <nav className="flex items-center space-x-6">
-                <Link href="/blogs" className="text-sm font-medium">
-                  Blog
-                </Link>
-              </nav>
-              <div className="ml-auto flex items-center space-x-4">
-                {user ? (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      asChild
-                      className="flex items-center"
-                    >
-                      <Link href={`/${user.login}`}>
-                        <LayoutDashboard className="h-4 w-4 mr-2" />
-                        Dashboard
-                      </Link>
-                    </Button>
-                    <form
-                      action={async () => {
-                        "use server"
-                        await signOut()
-                      }}
-                    >
-                      <Button
-                        type="submit"
-                        variant="outline"
-                        className="flex items-center px-4 py-2 rounded-md"
-                      >
-                        <LogOut className="mr-2" size={20} />
-                        Sign out
-                      </Button>
-                    </form>
-                  </>
-                ) : (
-                  <form
-                    action={async () => {
-                      "use server"
-                      await signIn("github", { redirectTo: "/redirect" })
-                    }}
-                  >
-                    <Button
-                      type="submit"
-                      className="flex items-center px-4 py-2 bg-stone-700 text-stone-100 rounded-md hover:bg-stone-600 transition-colors"
-                    >
-                      <Github className="mr-2" size={20} />
-                      Login with GitHub
-                    </Button>
-                  </form>
-                )}
-              </div>
-            </div>
-          </header>
+          <Navigation />
           {children}
           <Toaster />
         </SessionProvider>
