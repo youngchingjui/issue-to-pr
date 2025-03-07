@@ -100,7 +100,7 @@ const FeatureShowcase = ({
             }}
             viewport={{ once: true }}
             key={`feature-item-${i}`}
-            className="grid grid-cols-1 sm:grid-cols-4 md:grid-cols-3 gap-4 md:gap-0 lg:gap-5 sm:hover:gap-[16px] transition-all duration-300 w-full bg-gradient-to-br from-white/5 to-transparent backdrop-blur-sm p-1 overflow-hidden"
+            className="grid grid-cols-1 sm:grid-cols-4 md:grid-cols-3 gap-4 md:gap-0 lg:gap-5 sm:hover:gap-[12px] transition-all duration-300 w-full bg-gradient-to-br from-white/5 to-transparent backdrop-blur-sm p-1 overflow-hidden"
           >
             {i % 2 === 0 ? (
               <>
