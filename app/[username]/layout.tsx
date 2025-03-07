@@ -1,14 +1,16 @@
-import { LogOut } from "lucide-react"
+import { LogOut, Settings, Workflow } from "lucide-react"
 import Link from "next/link"
 import type React from "react"
 
 import Nav from "@/components/layout/Breadcrumb"
 import { Button } from "@/components/ui/button"
 
-export default function UserLayout({
+export default async function UserLayout({
   children,
+  params,
 }: {
   children: React.ReactNode
+  params: { username: string }
 }) {
   return (
     <div className="flex flex-col min-h-screen">
@@ -18,10 +20,27 @@ export default function UserLayout({
             <span className="font-bold">Issue to PR</span>
           </Link>
           <Nav />
+          <nav className="ml-6 flex items-center space-x-4">
+            <Link
+              href="/workflow-runs"
+              className="text-sm font-medium flex items-center"
+            >
+              <Workflow className="h-4 w-4 mr-2" />
+              Workflows
+            </Link>
+          </nav>
           <div className="ml-auto flex items-center space-x-4">
-            <Button variant="ghost" size="icon">
-              <LogOut className="h-4 w-4" />
-              <span className="sr-only">Sign out</span>
+            <Button variant="ghost" size="icon" asChild>
+              <Link href="/settings">
+                <Settings className="h-4 w-4" />
+                <span className="sr-only">Settings</span>
+              </Link>
+            </Button>
+            <Button variant="ghost" size="icon" asChild>
+              <Link href="/api/auth/signout">
+                <LogOut className="h-4 w-4" />
+                <span className="sr-only">Sign out</span>
+              </Link>
             </Button>
           </div>
         </div>
