@@ -6,9 +6,12 @@ import { useParams } from "next/navigation"
 import Nav from "@/components/layout/Breadcrumb"
 import { Button } from "@/components/ui/button"
 
-export default function DynamicNavigation() {
-  const { username, repo } = useParams() as {
-    username: string | null
+export default function DynamicNavigation({
+  username,
+}: {
+  username: string | null
+}) {
+  const { repo } = useParams() as {
     repo: string | null
   }
 

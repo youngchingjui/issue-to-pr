@@ -4,11 +4,13 @@ import Link from "next/link"
 import { auth, signIn } from "@/auth"
 import { signOut } from "@/auth"
 import { Button } from "@/components/ui/button"
+import { getGithubUser } from "@/lib/github/users"
 
 import DynamicNavigation from "./DynamicNavigation"
 
 export default async function Navigation() {
   const session = await auth()
+  const user = await getGithubUser()
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -19,7 +21,7 @@ export default async function Navigation() {
         </Link>
 
         {/* Dynamic navigation parts */}
-        {session?.user && <DynamicNavigation />}
+        {session?.user && <DynamicNavigation username={user.login} />}
 
         {/* Right side items - always visible */}
         <div className="ml-auto flex items-center space-x-4">
