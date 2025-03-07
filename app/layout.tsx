@@ -7,7 +7,7 @@ import { Inter } from "next/font/google"
 import Link from "next/link"
 import { SessionProvider } from "next-auth/react"
 
-import { auth, signIn } from "@/auth"
+import { auth, signIn, signOut } from "@/auth"
 import { Button } from "@/components/ui/button"
 import { Toaster } from "@/components/ui/toaster"
 import { getGithubUser } from "@/lib/github/users"
@@ -60,12 +60,21 @@ export default async function RootLayout({
                         Dashboard
                       </Link>
                     </Button>
-                    <Button variant="ghost" size="icon" asChild>
-                      <Link href="/api/auth/signout">
-                        <LogOut className="h-4 w-4" />
-                        <span className="sr-only">Sign out</span>
-                      </Link>
-                    </Button>
+                    <form
+                      action={async () => {
+                        "use server"
+                        await signOut()
+                      }}
+                    >
+                      <Button
+                        type="submit"
+                        variant="outline"
+                        className="flex items-center px-4 py-2 rounded-md"
+                      >
+                        <LogOut className="mr-2" size={20} />
+                        Sign out
+                      </Button>
+                    </form>
                   </>
                 ) : (
                   <form
