@@ -15,6 +15,19 @@ export default async function Hero() {
       className="relative text-center py-12 sm:py-16 md:py-20 px-4 sm:px-6 md:px-8 flex flex-col items-center overflow-hidden"
     >
       <motion.div
+        animate={{
+          background: [
+            "linear-gradient(100deg, transparent 20%, #dcfae7DD, transparent 70%), linear-gradient(-100deg, transparent 20%, #dcfae7DD, transparent 70%)",
+            "linear-gradient(80deg, transparent 10%, #dcfae7DD, transparent 50%), linear-gradient(-80deg, transparent 10%, #dcfae7DD, transparent 50%)",
+            "linear-gradient(45deg, transparent 10%, #dcfae7DD, transparent 50%), linear-gradient(-45deg, transparent 10%, #dcfae7DD, transparent 50%)",
+          ],
+          transition: {
+            duration: 3,
+          },
+        }}
+        className="w-screen h-screen absolute inset-0 transition-colors"
+      />
+      <motion.div
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.2 }}
