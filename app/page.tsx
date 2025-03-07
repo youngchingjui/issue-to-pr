@@ -17,9 +17,9 @@ export default function LandingPage() {
           <Hero />
           <Features />
           <Steps />
+          <Pricing />
           {/* <Details />
-          <Diagram />
-          <Pricing /> */}
+          <Diagram /> */}
         </GridBackground>
       </main>
       <Footer />
