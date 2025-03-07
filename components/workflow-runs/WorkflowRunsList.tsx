@@ -15,7 +15,7 @@ import {
 import { TraceWithDetails } from "@/lib/types/langfuse"
 
 interface WorkflowRunsListProps {
-  traces: TraceWithDetails
+  traces: TraceWithDetails[]
 }
 
 // TODO: Show additional details, including # of observations, timestamp in friendly way, and connected issue or PR if any
@@ -25,27 +25,29 @@ export default async function WorkflowRunsList({
   traces,
 }: WorkflowRunsListProps) {
   return (
-    <Card>
-      <CardContent className="pt-6">
+    <Card className="max-w-screen-xl mx-auto rounded">
+      <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Started</TableHead>
+              <TableHead className="py-4 text-base font-medium">Name</TableHead>
+              <TableHead className="py-4 text-base font-medium">
+                Started
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {traces.map((trace) => (
               <TableRow key={trace.id}>
-                <TableCell>
+                <TableCell className="py-4">
                   <Link
                     href={`/workflow-runs/${trace.id}`}
-                    className="font-medium hover:underline text-blue-600"
+                    className="text-blue-600 hover:underline font-medium"
                   >
                     {trace.name || trace.id.slice(0, 8)}
                   </Link>
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-4 text-muted-foreground">
                   {formatDistanceToNow(new Date(trace.timestamp), {
                     addSuffix: true,
                   })}

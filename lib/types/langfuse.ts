@@ -26,4 +26,4 @@ export type Observation = components["schemas"]["ObservationsView"] & {
   totalTokens?: number
 }
 
-export type TraceWithDetails = components["schemas"]["TraceWithDetails"][]
+export type TraceWithDetails = components["schemas"]["TraceWithDetails"]

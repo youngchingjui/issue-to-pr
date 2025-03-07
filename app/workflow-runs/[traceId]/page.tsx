@@ -18,12 +18,12 @@ export default async function WorkflowRunDetailPage({
     }
 
     return (
-      <div className="container mx-auto py-8">
-        <h1 className="text-3xl font-bold mb-6">
+      <main className="container mx-auto p-4">
+        <h1 className="text-2xl font-bold mb-4">
           {trace.name || "Workflow Run"}
         </h1>
         <WorkflowRunDetail trace={trace} />
-      </div>
+      </main>
     )
   } catch (error) {
     console.error("Error fetching workflow run:", error)
