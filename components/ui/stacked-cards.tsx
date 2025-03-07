@@ -6,7 +6,7 @@ import { motion } from "framer-motion"
 
 const StackedCards = ({
   images,
-  speed = 3,
+  speed = 2,
 }: {
   images: string[]
   speed?: number
