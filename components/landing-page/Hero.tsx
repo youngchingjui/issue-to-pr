@@ -1,7 +1,6 @@
 import { ExternalLink } from "lucide-react"
 import * as motion from "motion/react-client"
 import Link from "next/link"
-import Image from "next/image"
 
 import ShineButton from "@/components/ui/shine-button"
 import StackedCards from "@/components/ui/stacked-cards"

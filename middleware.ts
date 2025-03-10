@@ -15,8 +15,16 @@ export default auth((req) => {
     return NextResponse.next()
   }
 
-  // Protect dynamic /[username] routes
-  if (!req.auth && pathname.startsWith("/")) {
+  // Allow access to the /blog routes
+  if (pathname.startsWith("/blog")) {
+    return NextResponse.next()
+  }
+
+  // Protect dynamic /[username] and /workflow-runs routes
+  if (
+    !req.auth &&
+    (pathname.startsWith("/") || pathname === "/workflow-runs")
+  ) {
     const newUrl = new URL("/", req.nextUrl.origin)
     return NextResponse.redirect(newUrl)
   }
