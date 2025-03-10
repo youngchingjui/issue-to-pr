@@ -1,9 +1,8 @@
-import { GitBranch, Github, LogOut } from "lucide-react"
+import { GitBranch } from "lucide-react"
 import * as motion from "motion/react-client"
 import Link from "next/link"
 
-import { auth, signIn, signOut } from "@/auth"
-import { Button } from "@/components/ui/button"
+import { auth } from "@/auth"
 import { getGithubUser } from "@/lib/github/users"
 
 import DynamicNavigation from "./DynamicNavigation"
@@ -39,63 +38,10 @@ export default async function Navigation() {
           </Link>
 
           {/* Dynamic Navigation based on route */}
-          {session?.user && <DynamicNavigation username={user!.login} />}
-
-          {/* Sign in/out button */}
-          <div className="ml-auto flex items-center space-x-4">
-            {!session?.user ? (
-              <form
-                action={async () => {
-                  "use server"
-                  await signIn("github", { redirectTo: "/redirect" })
-                }}
-              >
-                <motion.button
-                  type="submit"
-                  whileHover={{ scale: 1.02, translateY: -2 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="flex items-center px-3 py-1.5 bg-gradient-to-br from-stone-800 to-stone-700 text-stone-50 rounded-lg shadow-lg hover:shadow-xl hover:from-stone-700 hover:to-stone-600 group text-sm"
-                >
-                  <Github
-                    className="mr-1.5 sm:mr-2.5 group-hover:text-green-400 transition-colors"
-                    size={16}
-                    aria-hidden="true"
-                  />
-                  <span className="hidden lg:inline">Sign in with GitHub</span>
-                  <span className="lg:hidden">Sign in</span>
-                </motion.button>
-              </form>
-            ) : (
-              <div className="flex items-center gap-4">
-                <Link href={`/${user!.login}`}>
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="flex items-center px-4 py-2"
-                  >
-                    <Github className="mr-2" size={20} />
-                    My Repos
-                  </Button>
-                </Link>
-                <form
-                  action={async () => {
-                    "use server"
-                    await signOut({ redirectTo: "/" })
-                  }}
-                >
-                  <Button
-                    type="submit"
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center px-4 py-2"
-                  >
-                    <LogOut className="mr-2" size={20} />
-                    Sign out
-                  </Button>
-                </form>
-              </div>
-            )}
-          </div>
+          <DynamicNavigation
+            username={user?.login || null}
+            isAuthenticated={!!session?.user}
+          />
         </div>
       </div>
     </motion.header>
