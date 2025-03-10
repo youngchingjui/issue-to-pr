@@ -14,12 +14,12 @@ export default function NavButton({ icon: Icon, label, href }: NavButtonProps) {
       <motion.button
         whileHover={{ scale: 1.05, translateY: -1 }}
         whileTap={{ scale: 0.95 }}
-        className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-2 text-stone-700 hover:text-green-600 transition-colors group"
+        className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 py-2 text-stone-700 hover:text-accent transition-colors group"
         title={label} // Tooltip for mobile users
       >
         <Icon
           size={18}
-          className="group-hover:text-green-600 transition-colors"
+          className="group-hover:text-accent transition-colors"
           aria-hidden="true"
         />
         {/* Hide text on mobile, show on sm and up with responsive text sizes */}

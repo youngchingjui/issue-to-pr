@@ -28,10 +28,10 @@ export default async function Navigation() {
               whileTap={{ scale: 0.97 }}
             >
               <GitBranch
-                className="text-stone-700 group-hover:text-green-600 transition-colors"
+                className="text-stone-700 group-hover:text-accent transition-colors"
                 size={20}
               />
-              <div className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-stone-800 to-green-600 text-sm sm:text-[14px] md:text-lg">
+              <div className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-stone-800 to-accent text-sm sm:text-[14px] md:text-lg">
                 Issue to PR
               </div>
             </motion.div>

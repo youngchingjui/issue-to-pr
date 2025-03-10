@@ -55,7 +55,7 @@ export default function DynamicNavigation({
                 className="flex items-center px-3 py-1.5 bg-gradient-to-br from-stone-800 to-stone-700 text-stone-50 rounded-lg shadow-lg hover:shadow-xl hover:from-stone-700 hover:to-stone-600 group text-sm"
               >
                 <Github
-                  className="mr-1.5 sm:mr-2.5 group-hover:text-green-400 transition-colors"
+                  className="mr-1.5 sm:mr-2.5"
                   size={16}
                   aria-hidden="true"
                 />

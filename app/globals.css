@@ -20,7 +20,7 @@ body {
     --secondary-foreground: 24 9.8% 10%;
     --muted: 60 4.8% 95.9%;
     --muted-foreground: 25 5.3% 44.7%;
-    --accent: 142 84% 24%;
+    --accent: 20.5 90.2% 48.2%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 60 9.1% 97.8%;
@@ -47,7 +47,7 @@ body {
     --secondary-foreground: 60 9.1% 97.8%;
     --muted: 12 6.5% 15.1%;
     --muted-foreground: 24 5.4% 63.9%;
-    --accent: 129 100% 41%;
+    --accent: 33 100% 50%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 60 9.1% 97.8%;
@@ -75,7 +75,11 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(var(--angle), transparent 90%, #11d000 90%);
+  background: linear-gradient(
+    var(--angle),
+    transparent 90%,
+    hsl(var(--accent)) 90%
+  );
   animation: moveGradient 4s linear infinite;
 }
 
