@@ -15,7 +15,7 @@ export default async function Hero() {
       <motion.div
         animate={{
           background: [
-            "radial-gradient(circle, transparent 20%, #FFFFFF, transparent 70%), linear-gradient(-100deg, transparent 20%, #FFFFFF, transparent 70%)",
+            "radial-gradient(circle, transparent 20%, hsl(var(--background)), transparent 70%), linear-gradient(-100deg, transparent 20%, hsl(var(--background)), transparent 70%)",
           ],
           transition: {
             duration: 3,
@@ -33,9 +33,9 @@ export default async function Hero() {
           <span>Automate Pull Requests</span>{" "}
           <span>
             with <br />
-            <span className="italic text-green-800 relative">
+            <span className="italic text-accent relative">
               AI Powered Insights
-              <span className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-green-800/0 via-green-800 to-green-800/0"></span>
+              <span className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-accent/0 via-accent to-accent/0"></span>
             </span>
           </span>
         </h1>
@@ -58,7 +58,7 @@ export default async function Hero() {
           className="inline-block"
           prefetch={false}
         >
-          <ShineButton className="text-base sm:text-lg px-4 sm:px-5 md:px-6 py-3 bg-green-800 text-white hover:bg-green-800/70">
+          <ShineButton className="text-base sm:text-lg px-4 sm:px-5 md:px-6 py-3 bg-accent text-accent-foreground hover:bg-accent/70">
             Install Github App
             <ExternalLink className="ml-2 h-4 w-4 sm:h-5 sm:w-5 inline" />
           </ShineButton>

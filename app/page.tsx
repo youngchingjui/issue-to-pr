@@ -8,7 +8,7 @@ import GridBackground from "@/components/ui/grid-background"
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-[#F9FAFB] text-[#0f0f0f]">
+    <div className="min-h-screen bg-background text-foreground">
       <main>
         <GridBackground>
           <Hero />

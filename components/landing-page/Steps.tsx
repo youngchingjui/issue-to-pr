@@ -42,7 +42,7 @@ const Steps = () => {
       <TextLg>
         <span>How does it</span>{" "}
         <span>
-          <span className="italic text-green-800 relative">work?</span>
+          <span className="italic text-accent relative">work?</span>
         </span>
       </TextLg>
 
@@ -87,7 +87,7 @@ const Steps = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-6 pb-6">
-                <div className="h-2 w-full bg-gradient-to-r from-green-800 to-green-600 rounded-full" />
+                <div className="h-2 w-full bg-gradient-to-r from-accent to-accent/70 rounded-full" />
               </CardContent>
             </Card>
           </motion.div>

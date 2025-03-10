@@ -13,7 +13,7 @@ const Features = () => {
 
       <div className="absolute inset-0 w-full h-full">
         <motion.div
-          className="absolute top-20 left-[10%] w-32 h-32 rounded-full bg-green-400/50 backdrop-blur-sm"
+          className="absolute top-20 left-[10%] w-32 h-32 rounded-full bg-accent/50 backdrop-blur-sm"
           animate={{
             y: [0, -15, 0],
             x: [0, 10, 0],
@@ -22,7 +22,7 @@ const Features = () => {
         />
 
         <motion.div
-          className="absolute bottom-40 right-[15%] w-40 h-40 rounded-full bg-green-400/50 backdrop-blur-sm"
+          className="absolute bottom-40 right-[15%] w-40 h-40 rounded-full bg-accent/50 backdrop-blur-sm"
           animate={{
             y: [0, 20, 0],
             x: [0, -15, 0],
@@ -36,7 +36,7 @@ const Features = () => {
         />
 
         <motion.div
-          className="absolute top-1/2 right-1/4 w-24 h-24 rounded-full bg-amber-400/60 backdrop-blur-sm"
+          className="absolute top-1/2 right-1/4 w-24 h-24 rounded-full bg-secondary/60 backdrop-blur-sm"
           animate={{
             y: [0, 10, 0],
             x: [0, -10, 0],
@@ -50,7 +50,7 @@ const Features = () => {
         />
 
         <motion.div
-          className="absolute top-1/3 left-1/4 w-16 h-16 rounded-full bg-blue-400/40 backdrop-blur-sm"
+          className="absolute top-1/3 left-1/4 w-16 h-16 rounded-full bg-muted/40 backdrop-blur-sm"
           animate={{
             y: [0, 12, 0],
             x: [0, 8, 0],
@@ -64,7 +64,7 @@ const Features = () => {
         />
 
         <motion.div
-          className="absolute bottom-20 left-[20%] w-20 h-20 rounded-full bg-amber-400/50 backdrop-blur-sm"
+          className="absolute bottom-20 left-[20%] w-20 h-20 rounded-full bg-secondary/50 backdrop-blur-sm"
           animate={{
             y: [0, -10, 0],
             x: [0, 5, 0],
@@ -82,7 +82,7 @@ const Features = () => {
         <TextLg>
           <span className="block sm:inline">Why choose</span>{" "}
           <span className="block sm:inline">
-            <span className="italic text-green-800 relative">Issue To PR?</span>
+            <span className="italic text-accent relative">Issue To PR?</span>
           </span>
         </TextLg>
         <div className="flex flex-col max-w-[1300px] w-full gap-12 px-5 lg:px-10">
@@ -125,10 +125,12 @@ const Features = () => {
                 className="w-full bg-gradient-to-br from-white/5 to-transparent p-6 rounded-xl border-2 border-black/10 hover:border-black/20 transition-all duration-300"
               >
                 <div className="flex flex-col gap-4">
-                  <h3 className="text-2xl font-bold text-green-800">
+                  <h3 className="text-2xl font-bold text-accent">
                     {item.title}
                   </h3>
-                  <p className="text-lg text-gray-600">{item.description}</p>
+                  <p className="text-lg text-muted-foreground">
+                    {item.description}
+                  </p>
                 </div>
               </motion.div>
             )
@@ -141,7 +143,7 @@ const Features = () => {
           className="inline-block mt-14"
           prefetch={false}
         >
-          <ShineButton className="text-base sm:text-lg px-4 sm:px-5 md:px-6 py-3 bg-green-800 text-white hover:bg-green-800/70">
+          <ShineButton className="text-base sm:text-lg px-4 sm:px-5 md:px-6 py-3 bg-accent text-accent-foreground hover:bg-accent/70">
             Get Started Today
             <Flame className="ml-2 h-4 w-4 sm:h-5 sm:w-5 inline" />
           </ShineButton>
