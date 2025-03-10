@@ -1,15 +1,16 @@
 "use client"
 
-import React from "react"
-import TextLg from "../ui/text-lg"
-import { Card, CardContent, CardHeader } from "../ui/card"
-import { Check, Flame, ShoppingCart, Sparkles, Star } from "lucide-react"
+import { motion } from "framer-motion"
+import { Check, ShoppingCart } from "lucide-react"
 import Link from "next/link"
+import React from "react"
+
+import { Card, CardContent, CardHeader } from "../ui/card"
+import MovingBorderCard from "../ui/moving-border-card"
 import ShineButton from "../ui/shine-button"
+import TextLg from "../ui/text-lg"
 import TextMd from "../ui/text-md"
 import TextSm from "../ui/text-sm"
-import { motion } from "framer-motion"
-import MovingBorderCard from "../ui/moving-border-card"
 
 const Pricing = () => {
   const features = [
@@ -152,7 +153,8 @@ const Pricing = () => {
         className="relative z-10 mt-12"
       >
         <TextMd className="max-w-lg text-center font-medium">
-          Price goes up with every sale—snag the best deal before it's gone!
+          Price goes up with every sale—snag the best deal before it&apos;s
+          gone!
         </TextMd>
         <div className="flex items-center justify-center mt-3">
           <div className="px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full shadow-sm">

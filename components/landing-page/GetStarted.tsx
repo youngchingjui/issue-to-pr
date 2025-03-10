@@ -1,8 +1,9 @@
 "use client"
 
+import { motion } from "framer-motion"
 import { Flame } from "lucide-react"
 import Link from "next/link"
-import { motion } from "framer-motion"
+
 import ShineButton from "../ui/shine-button"
 import TextLg from "../ui/text-lg"
 import TextSm from "../ui/text-sm"

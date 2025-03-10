@@ -1,7 +1,10 @@
 "use client"
 
+import { motion } from "framer-motion"
+import Image from "next/image"
 import React, { useState } from "react"
-import TextLg from "../ui/text-lg"
+import { twMerge } from "tailwind-merge"
+
 import {
   Card,
   CardContent,
@@ -9,9 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../ui/card"
-import Image from "next/image"
-import { motion } from "framer-motion"
-import { twMerge } from "tailwind-merge"
+import TextLg from "../ui/text-lg"
 
 const steps = [
   {

@@ -1,10 +1,11 @@
-import React from "react"
-import TextLg from "../ui/text-lg"
-import FeatureShowcase from "../ui/feature-showcase"
 import { Flame } from "lucide-react"
-import Link from "next/link"
-import ShineButton from "../ui/shine-button"
 import * as motion from "motion/react-client"
+import Link from "next/link"
+import React from "react"
+
+import FeatureShowcase from "../ui/feature-showcase"
+import ShineButton from "../ui/shine-button"
+import TextLg from "../ui/text-lg"
 
 const Features = () => {
   return (
@@ -82,9 +83,7 @@ const Features = () => {
         <TextLg>
           <span className="block sm:inline">Why choose</span>{" "}
           <span className="block sm:inline">
-            <span className="italic text-green-800 relative">
-              issuetopr.dev?
-            </span>
+            <span className="italic text-green-800 relative">Issue To PR?</span>
           </span>
         </TextLg>
         <FeatureShowcase
