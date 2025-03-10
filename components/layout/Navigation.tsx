@@ -5,7 +5,6 @@ import {
   Github,
   HelpCircle,
   LogOut,
-  Star,
 } from "lucide-react"
 import * as motion from "motion/react-client"
 import Link from "next/link"
@@ -20,9 +19,9 @@ import DynamicNavigation from "./DynamicNavigation"
 
 // Navigation items data
 const navItems = [
-  { icon: HelpCircle, label: "How to?", href: "#how-to" },
-  { icon: DollarSign, label: "Pricing", href: "#pricing" },
-  { icon: BookOpen, label: "Blog", href: "/blog" },
+  { icon: HelpCircle, label: "How to?", href: "/#how-to" },
+  { icon: DollarSign, label: "Pricing", href: "/#pricing" },
+  { icon: BookOpen, label: "Blog", href: "/blogs" },
 ]
 
 export default async function Navigation({
@@ -40,12 +39,12 @@ export default async function Navigation({
       transition={{ duration: 0.5 }}
       className={`sticky top-0 z-50 w-full border-b backdrop-blur ${
         isLandingPage
-          ? "bg-white py-2 sm:py-3 px-3 sm:px-5 md:px-8"
+          ? "bg-white py-3 px-3 sm:px-5 md:px-8"
           : "bg-background/95 supports-[backdrop-filter]:bg-background/60"
       }`}
     >
       <div
-        className={`flex h-14 items-center ${!isLandingPage && "container max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8"}`}
+        className={`flex h-10 items-center ${!isLandingPage && "container max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8"}`}
       >
         {/* Logo - always visible */}
         <Link href="/" className="group">
@@ -83,64 +82,39 @@ export default async function Navigation({
         {/* Right side items */}
         <div className="ml-auto flex items-center space-x-4">
           {isLandingPage ? (
-            <>
-              {/* Star on GitHub - Hidden on mobile */}
-              <motion.button
-                type="submit"
-                whileHover={{ scale: 1.02, translateY: -2 }}
-                whileTap={{ scale: 0.98 }}
-                className="group"
+            user ? (
+              <Link href={`/${user.login}`}>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex items-center px-3 py-1.5 bg-stone-700 text-stone-100 rounded-md hover:bg-stone-600 transition-colors text-sm"
+                >
+                  My Repos
+                </motion.button>
+              </Link>
+            ) : (
+              <form
+                action={async () => {
+                  "use server"
+                  await signIn("github", { redirectTo: "/redirect" })
+                }}
               >
-                <Link
-                  href="https://github.com/youngchingjui/issue-to-pr"
-                  target="_blank"
-                  className="flex items-center px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 bg-gradient-to-br from-stone-800 to-stone-700 text-stone-50 rounded-lg shadow-lg hover:shadow-xl hover:from-stone-700 hover:to-stone-600 text-sm sm:text-base"
+                <motion.button
+                  type="submit"
+                  whileHover={{ scale: 1.02, translateY: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="flex items-center px-3 py-1.5 bg-gradient-to-br from-stone-800 to-stone-700 text-stone-50 rounded-lg shadow-lg hover:shadow-xl hover:from-stone-700 hover:to-stone-600 group text-sm"
                 >
-                  <Star
-                    className="mr-1.5 sm:mr-2.5 group-hover:text-yellow-400 transition-colors"
+                  <Github
+                    className="mr-1.5 sm:mr-2.5 group-hover:text-green-400 transition-colors"
                     size={16}
+                    aria-hidden="true"
                   />
-                  <span className="hidden lg:inline">Star on Github</span>
-                  <span className="lg:hidden">Star</span>
-                </Link>
-              </motion.button>
-
-              {user ? (
-                <Link href={`/${user.login}`}>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="flex items-center px-4 py-2 bg-stone-700 text-stone-100 rounded-md hover:bg-stone-600 transition-colors"
-                  >
-                    My Repos
-                  </motion.button>
-                </Link>
-              ) : (
-                <form
-                  action={async () => {
-                    "use server"
-                    await signIn("github", { redirectTo: "/redirect" })
-                  }}
-                >
-                  <motion.button
-                    type="submit"
-                    whileHover={{ scale: 1.02, translateY: -2 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="flex items-center px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 bg-gradient-to-br from-stone-800 to-stone-700 text-stone-50 rounded-lg shadow-lg hover:shadow-xl hover:from-stone-700 hover:to-stone-600 group text-sm sm:text-base"
-                  >
-                    <Github
-                      className="mr-1.5 sm:mr-2.5 group-hover:text-green-400 transition-colors"
-                      size={16}
-                      aria-hidden="true"
-                    />
-                    <span className="hidden lg:inline">
-                      Sign in with GitHub
-                    </span>
-                    <span className="lg:hidden">Sign in</span>
-                  </motion.button>
-                </form>
-              )}
-            </>
+                  <span className="hidden lg:inline">Sign in with GitHub</span>
+                  <span className="lg:hidden">Sign in</span>
+                </motion.button>
+              </form>
+            )
           ) : // Regular pages show sign in/out button
           session?.user ? (
             <form
