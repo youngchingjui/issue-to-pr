@@ -25,16 +25,16 @@ const steps = [
   {
     image:
       "https://images.unsplash.com/photo-1728993559783-f657d4177c6b?q=80&w=3870&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    title: "Make a Pull Request",
+    title: "Create an Issue or Pull Request",
     description:
-      "Issuetopr.dev will run automatically on all your pull requests.",
+      "Issue To PR will automatically generate plans on new issues and reviews of PRs.",
   },
   {
     image:
       "https://images.unsplash.com/photo-1638392436949-3e584046314a?q=80&w=3870&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    title: "Report",
+    title: "Resolve Issues",
     description:
-      "The multi AI Agent workflow will provide detailed report directly in PR comments.",
+      "Resolve Github Issues by signing in to issuetopr.dev, finding the issue to resolve, and select 'Fix Issue and Create PR'.",
   },
 ]
 
