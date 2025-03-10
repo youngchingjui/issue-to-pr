@@ -16,14 +16,47 @@ function getPrivateKeyFromFile(): string {
 export default async function getOctokit(): Promise<Octokit> {
   // Try to authenticate using user session
   const session = await auth()
+  console.log("Session:", {
+    hasToken: !!session?.token,
+    hasAccessToken: !!session?.token?.access_token,
+    env: process.env.NODE_ENV,
+  })
+
   if (session?.token?.access_token) {
-    return new Octokit({ auth: session.token.access_token })
+    console.log("Creating Octokit client with token info:", {
+      tokenType: session.token.token_type,
+      scope: session.token.scope,
+      expiresAt: session.token.expires_at,
+    })
+
+    const octokit = new Octokit({ auth: session.token.access_token })
+
+    // Test the token's permissions
+    try {
+      const { data: user } = await octokit.rest.users.getAuthenticated()
+      console.log("Authenticated as:", {
+        login: user.login,
+        type: user.type,
+        scopes:
+          typeof session.token.scope === "string"
+            ? session.token.scope.split(" ")
+            : [],
+      })
+    } catch (error) {
+      console.error("Failed to get authenticated user:", error)
+    }
+
+    return octokit
   }
 
   // Skip GitHub App authentication in development
   if (process.env.NODE_ENV === "development") {
-    console.log("Skipping GitHub App authentication in development")
-    return null
+    console.log(
+      "No OAuth token found and skipping GitHub App authentication in development"
+    )
+    throw new Error(
+      "No authentication method available. Please ensure you are logged in."
+    )
   }
 
   // Fallback to GitHub App authentication in production

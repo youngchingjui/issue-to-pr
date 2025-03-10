@@ -1,11 +1,13 @@
 "use client"
 
-import { useSession } from "next-auth/react"
 import { useState } from "react"
 
+import CreatePRController from "@/components/issues/controllers/CreatePRController"
+import GenerateResolutionPlanController from "@/components/issues/controllers/GenerateResolutionPlanController"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { GitHubRepository } from "@/lib/types"
 
 interface GitHubIssue {
   title: string
@@ -20,11 +22,11 @@ interface GitHubIssue {
 }
 
 export default function IssuesPage() {
-  const { data: session } = useSession()
   const [url, setUrl] = useState("")
   const [issueData, setIssueData] = useState<GitHubIssue | null>(null)
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [activeWorkflow, setActiveWorkflow] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -53,6 +55,25 @@ export default function IssuesPage() {
       setError(err instanceof Error ? err.message : "An error occurred")
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  // Extract repository information from GitHub URL
+  const getRepoFromUrl = (url: string): GitHubRepository | null => {
+    try {
+      const urlObj = new URL(url)
+      const [, username, repo] = urlObj.pathname.split("/")
+      // We know the controllers only use these fields, so we can safely cast
+      return {
+        name: repo,
+        full_name: `${username}/${repo}`,
+        default_branch: "main", // assuming main as default
+        owner: {
+          login: username,
+        },
+      } as GitHubRepository
+    } catch (e) {
+      return null
     }
   }
 
@@ -119,6 +140,68 @@ export default function IssuesPage() {
                   View on GitHub
                 </a>
               </p>
+              {issueData.type === "issue" && (
+                <div className="flex gap-4 mt-4">
+                  <Button
+                    onClick={() => {
+                      const repo = getRepoFromUrl(issueData.html_url)
+                      if (!repo) return
+
+                      const controller = GenerateResolutionPlanController({
+                        issueNumber: issueData.number,
+                        repo,
+                        onStart: () => {
+                          setIsLoading(true)
+                          setActiveWorkflow("Generating Plan...")
+                        },
+                        onComplete: () => {
+                          setIsLoading(false)
+                          setActiveWorkflow(null)
+                        },
+                        onError: () => {
+                          setIsLoading(false)
+                          setActiveWorkflow(null)
+                        },
+                      })
+                      controller.execute()
+                    }}
+                    disabled={isLoading}
+                  >
+                    {activeWorkflow === "Generating Plan..."
+                      ? "Generating..."
+                      : "Generate Resolution Plan"}
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      const repo = getRepoFromUrl(issueData.html_url)
+                      if (!repo) return
+
+                      const controller = CreatePRController({
+                        issueNumber: issueData.number,
+                        repo,
+                        onStart: () => {
+                          setIsLoading(true)
+                          setActiveWorkflow("Creating PR...")
+                        },
+                        onComplete: () => {
+                          setIsLoading(false)
+                          setActiveWorkflow(null)
+                        },
+                        onError: () => {
+                          setIsLoading(false)
+                          setActiveWorkflow(null)
+                        },
+                      })
+                      controller.execute()
+                    }}
+                    disabled={isLoading}
+                  >
+                    {activeWorkflow === "Creating PR..."
+                      ? "Creating..."
+                      : "Fix Issue and Create PR"}
+                  </Button>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
