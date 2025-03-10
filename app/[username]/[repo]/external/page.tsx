@@ -1,45 +1,48 @@
-import { Suspense, useState } from 'react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+"use client"
+
+import { useState } from "react"
+
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 
 interface Props {
   params: {
-    username: string;
-    repo: string;
-  };
+    username: string
+    repo: string
+  }
 }
 
 export default function ExternalPage({ params }: Props) {
-  const { username, repo } = params;
-  const [url, setUrl] = useState('');
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { username, repo } = params
+  const [url, setUrl] = useState("")
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const fetchDetails = async () => {
-    setLoading(true);
-    setError(null);
+    setLoading(true)
+    setError(null)
     try {
-      const response = await fetch('/api/github/fetchDetails/route.ts', {
-        method: 'POST',
+      const response = await fetch("/api/github/fetchDetails/route.ts", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ url })
-      });
+        body: JSON.stringify({ url }),
+      })
 
       if (!response.ok) {
-        throw new Error('Failed to fetch details.');
+        throw new Error(response.statusText || "Failed to fetch details.")
       }
 
-      const result = await response.json();
-      setData(result);
+      const result = await response.json()
+      setData(result)
     } catch (ex) {
-      setError((ex as Error).message);
+      setError((ex as Error).message)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
     <main className="container mx-auto p-4">
@@ -55,7 +58,7 @@ export default function ExternalPage({ params }: Props) {
           className="mb-2"
         />
         <Button onClick={fetchDetails} disabled={loading}>
-          {loading ? 'Loading...' : 'Fetch Details'}
+          {loading ? "Loading..." : "Fetch Details"}
         </Button>
       </div>
       {error && <div className="text-red-500">{error}</div>}
@@ -67,5 +70,5 @@ export default function ExternalPage({ params }: Props) {
         </div>
       )}
     </main>
-  );
+  )
 }
