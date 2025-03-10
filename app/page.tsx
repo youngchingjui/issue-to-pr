@@ -1,17 +1,22 @@
-import Details from "@/components/landing-page/Details"
-import Diagram from "@/components/landing-page/Diagram"
+import Features from "@/components/landing-page/Features"
 import Footer from "@/components/landing-page/Footer"
+import GetStarted from "@/components/landing-page/GetStarted"
 import Hero from "@/components/landing-page/Hero"
 import Pricing from "@/components/landing-page/Pricing"
+import Steps from "@/components/landing-page/Steps"
+import GridBackground from "@/components/ui/grid-background"
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-100 via-amber-50 to-orange-50 text-stone-800">
+    <div className="min-h-screen bg-background text-foreground">
       <main>
-        <Hero />
-        <Details />
-        <Diagram />
-        <Pricing />
+        <GridBackground>
+          <Hero />
+          <Features />
+          <Steps />
+          <Pricing />
+          <GetStarted />
+        </GridBackground>
       </main>
       <Footer />
     </div>
