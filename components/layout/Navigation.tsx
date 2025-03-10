@@ -20,7 +20,7 @@ export default async function Navigation() {
       className="sticky top-0 z-50 w-full border-b backdrop-blur bg-background/95 supports-[backdrop-filter]:bg-background/60"
     >
       <div className="container max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex h-10 items-center">
+        <div className="flex h-14 items-center py-2">
           {/* Logo - always visible */}
           <Link href="/" className="group">
             <motion.div
