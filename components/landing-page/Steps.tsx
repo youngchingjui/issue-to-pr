@@ -1,7 +1,6 @@
 "use client"
 
 import { motion } from "framer-motion"
-import Image from "next/image"
 import React, { useState } from "react"
 import { twMerge } from "tailwind-merge"
 
@@ -16,22 +15,16 @@ import TextLg from "../ui/text-lg"
 
 const steps = [
   {
-    image:
-      "https://images.unsplash.com/photo-1731770241468-8337b047749f?q=80&w=3870&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     title: "Get The App",
     description:
       "Once you enable the app on the GitHub App Store, It activates automatically.",
   },
   {
-    image:
-      "https://images.unsplash.com/photo-1728993559783-f657d4177c6b?q=80&w=3870&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     title: "Create an Issue or Pull Request",
     description:
       "Issue To PR will automatically generate plans on new issues and reviews of PRs.",
   },
   {
-    image:
-      "https://images.unsplash.com/photo-1638392436949-3e584046314a?q=80&w=3870&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     title: "Resolve Issues",
     description:
       "Resolve Github Issues by signing in to issuetopr.dev, finding the issue to resolve, and select 'Fix Issue and Create PR'.",
@@ -94,14 +87,7 @@ const Steps = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-6 pb-6">
-                <div className="relative h-64 w-full overflow-hidden rounded-lg">
-                  <Image
-                    src={step.image}
-                    alt={step.title}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
+                <div className="h-2 w-full bg-gradient-to-r from-green-800 to-green-600 rounded-full" />
               </CardContent>
             </Card>
           </motion.div>

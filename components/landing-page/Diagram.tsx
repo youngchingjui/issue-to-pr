@@ -1,7 +1,5 @@
 "use client"
 
-import Image from "next/image"
-
 export default function Diagram() {
   return (
     <section className="py-20 px-4 bg-white bg-opacity-30 backdrop-blur-sm">
@@ -15,15 +13,13 @@ export default function Diagram() {
               Multiple AI agents collaboratively craft the perfect code edit
             </h3>
           </div>
-          <div className="flex items-center justify-center">
-            {/* Replace this with your actual diagram component or image */}
-            <Image
-              src="/diagram.svg"
-              width={1000}
-              height={1000}
-              alt="Diagram"
-              className="w-full h-auto"
-            />
+          <div className="flex items-center justify-center p-6 bg-green-50 rounded-xl border-2 border-green-100">
+            <p className="text-lg text-gray-600">
+              Our advanced multi-agent system works by coordinating specialized
+              AI agents, each focusing on different aspects of code analysis and
+              generation. This collaborative approach ensures high-quality,
+              context-aware code solutions.
+            </p>
           </div>
         </div>
       </div>

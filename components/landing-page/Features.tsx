@@ -3,7 +3,6 @@ import * as motion from "motion/react-client"
 import Link from "next/link"
 import React from "react"
 
-import FeatureShowcase from "../ui/feature-showcase"
 import ShineButton from "../ui/shine-button"
 import TextLg from "../ui/text-lg"
 
@@ -86,40 +85,55 @@ const Features = () => {
             <span className="italic text-green-800 relative">Issue To PR?</span>
           </span>
         </TextLg>
-        <FeatureShowcase
-          items={[
+        <div className="flex flex-col max-w-[1300px] w-full gap-12 px-5 lg:px-10">
+          {[
             {
-              image:
-                "https://images.unsplash.com/photo-1731770241468-8337b047749f?q=80&w=3870&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-
               title: "Catch Bugs Early",
               description:
                 "Spot bugs and errors that might slip through manual reviews.",
             },
             {
-              image:
-                "https://images.unsplash.com/photo-1728993559783-f657d4177c6b?q=80&w=3870&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-
               title: "Improve Code Quality",
               description:
                 "Maintain consistent, high-quality code with AI-driven analysis.",
             },
             {
-              image:
-                "https://images.unsplash.com/photo-1638392436949-3e584046314a?q=80&w=3870&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-
               title: "Reduce Development Time",
               description: "Slash review times to deploy features faster.",
             },
             {
-              image:
-                "https://images.unsplash.com/photo-1726880066148-fdc1ceba7343?q=80&w=3876&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
               title: "Reduce Manual Checks",
               description:
                 "Free your developers from routine checks to focus on innovation.",
             },
-          ]}
-        />
+          ].map((item, i) => {
+            return (
+              <motion.div
+                initial={{
+                  opacity: 0,
+                }}
+                whileInView={{
+                  opacity: 1,
+                  transition: {
+                    duration: 0.6,
+                    ease: "easeOut",
+                    delay: 0.2,
+                  },
+                }}
+                viewport={{ once: true }}
+                key={`feature-item-${i}`}
+                className="w-full bg-gradient-to-br from-white/5 to-transparent p-6 rounded-xl border-2 border-black/10 hover:border-black/20 transition-all duration-300"
+              >
+                <div className="flex flex-col gap-4">
+                  <h3 className="text-2xl font-bold text-green-800">
+                    {item.title}
+                  </h3>
+                  <p className="text-lg text-gray-600">{item.description}</p>
+                </div>
+              </motion.div>
+            )
+          })}
+        </div>
         <Link
           href="https://github.com/apps/issuetopr-dev"
           target="_blank"

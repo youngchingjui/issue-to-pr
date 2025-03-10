@@ -3,7 +3,6 @@ import * as motion from "motion/react-client"
 import Link from "next/link"
 
 import ShineButton from "@/components/ui/shine-button"
-import StackedCards from "@/components/ui/stacked-cards"
 
 export default async function Hero() {
   return (
@@ -65,17 +64,6 @@ export default async function Hero() {
           </ShineButton>
         </Link>
       </motion.div>
-
-      <div className="mt-16 relative z-10">
-        <StackedCards
-          images={[
-            "https://images.unsplash.com/photo-1731770241468-8337b047749f?q=80&w=3870&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-            "https://images.unsplash.com/photo-1728993559783-f657d4177c6b?q=80&w=3870&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-            "https://images.unsplash.com/photo-1638392436949-3e584046314a?q=80&w=3870&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-            "https://images.unsplash.com/photo-1726880066148-fdc1ceba7343?q=80&w=3876&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-          ]}
-        />
-      </div>
     </motion.section>
   )
 }
