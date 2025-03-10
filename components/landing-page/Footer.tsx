@@ -1,5 +1,5 @@
+import { Github, Linkedin, Mail, Twitter } from "lucide-react"
 import Link from "next/link"
-import { Github, Twitter, Linkedin, Mail } from "lucide-react"
 
 const SOCIAL_LINKS = [
   {
@@ -40,7 +40,7 @@ export default function Footer() {
     <footer className="py-8 pt-36 px-4 text-stone-100 bg-black mx-auto flex flex-col items-center">
       <div className="w-full grid md:grid-cols-2 grid-cols-1 gap-8 items-start max-w-[1200px]">
         <div className="flex flex-col gap-2">
-          <h2 className="text-3xl font-bold text-stone-200">issuetopr.dev</h2>
+          <h2 className="text-3xl font-bold text-stone-200">Issue To PR</h2>
           <p className="max-w-md text-stone-200">
             This tool reduces manual effort, letting you focus on coding rather
             than administrative tasks.
@@ -58,7 +58,7 @@ export default function Footer() {
 
       <div className="mt-16 text-center text-stone-200">
         <p>
-          &copy; {new Date().getFullYear()} Issue-to-PR. All rights reserved.
+          &copy; {new Date().getFullYear()} Issue To PR. All rights reserved.
         </p>
       </div>
     </footer>
