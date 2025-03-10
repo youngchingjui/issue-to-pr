@@ -58,7 +58,7 @@ export default async function Navigation({
               size={20}
             />
             <div className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-stone-800 to-green-600 text-sm sm:text-[14px] md:text-lg">
-              Issue-to-PR
+              Issue to PR
             </div>
           </motion.div>
         </Link>
