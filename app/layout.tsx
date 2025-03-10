@@ -2,7 +2,6 @@ import "./globals.css"
 import "./styles/custom.css"
 
 import { Inter } from "next/font/google"
-import { headers } from "next/headers"
 import { SessionProvider } from "next-auth/react"
 
 import { auth } from "@/auth"
@@ -23,9 +22,6 @@ export default async function RootLayout({
   children: React.ReactNode
 }) {
   const session = await auth()
-  const headersList = headers()
-  const pathname = headersList.get("x-pathname") || "/"
-  const isLandingPage = pathname === "/"
 
   return (
     <html lang="en">
@@ -34,7 +30,7 @@ export default async function RootLayout({
         style={{ "--custom-amber": "#B45309" } as React.CSSProperties}
       >
         <SessionProvider session={session}>
-          <Navigation isLandingPage={isLandingPage} />
+          <Navigation />
           {children}
           <Toaster />
         </SessionProvider>
