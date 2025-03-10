@@ -1,6 +1,6 @@
 import { LucideIcon } from "lucide-react"
-import Link from "next/link"
 import * as motion from "motion/react-client"
+import Link from "next/link"
 
 interface NavButtonProps {
   icon: LucideIcon
@@ -23,7 +23,7 @@ export default function NavButton({ icon: Icon, label, href }: NavButtonProps) {
           aria-hidden="true"
         />
         {/* Hide text on mobile, show on sm and up with responsive text sizes */}
-        <span className="hidden sm:inline font-medium text-sm md:text-base">
+        <span className="hidden sm:inline font-medium text-xs md:text-sm">
           {label}
         </span>
       </motion.button>
