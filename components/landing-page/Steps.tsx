@@ -47,9 +47,9 @@ const Steps = () => {
       className="relative py-20 flex flex-col items-center justify-center bg-white border-t-2 border-black"
     >
       <TextLg>
-        <span>How it</span>{" "}
+        <span>How does it</span>{" "}
         <span>
-          <span className="italic text-green-800 relative">works?</span>
+          <span className="italic text-green-800 relative">work?</span>
         </span>
       </TextLg>
 
