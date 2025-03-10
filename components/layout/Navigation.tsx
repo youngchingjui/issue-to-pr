@@ -66,22 +66,34 @@ export default async function Navigation() {
                 </motion.button>
               </form>
             ) : (
-              <form
-                action={async () => {
-                  "use server"
-                  await signOut({ redirectTo: "/" })
-                }}
-              >
-                <Button
-                  type="submit"
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center px-4 py-2"
+              <div className="flex items-center gap-4">
+                <Link href={`/${user!.login}`}>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="flex items-center px-4 py-2"
+                  >
+                    <Github className="mr-2" size={20} />
+                    My Repos
+                  </Button>
+                </Link>
+                <form
+                  action={async () => {
+                    "use server"
+                    await signOut({ redirectTo: "/" })
+                  }}
                 >
-                  <LogOut className="mr-2" size={20} />
-                  Sign out
-                </Button>
-              </form>
+                  <Button
+                    type="submit"
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center px-4 py-2"
+                  >
+                    <LogOut className="mr-2" size={20} />
+                    Sign out
+                  </Button>
+                </form>
+              </div>
             )}
           </div>
         </div>
