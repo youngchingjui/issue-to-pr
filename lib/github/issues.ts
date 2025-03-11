@@ -49,6 +49,9 @@ export async function getIssueComments({
 }): Promise<GitHubIssueComment[]> {
   const octokit = await getOctokit()
   const user = await getGithubUser()
+  if (!user) {
+    throw new Error("Failed to get authenticated user")
+  }
   const comments = await octokit.issues.listComments({
     owner: user.login,
     repo,
