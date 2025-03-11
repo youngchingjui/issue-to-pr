@@ -26,13 +26,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     // Traditional OAuth provider for public repository access
     GithubProvider({
       id: "github-oauth",
-      name: "GitHub (Public Access)",
+      name: "GitHub OAuth",
       clientId: process.env.GITHUB_OAUTH_ID, // Regular OAuth app credentials
       clientSecret: process.env.GITHUB_OAUTH_SECRET,
       authorization: {
         url: "https://github.com/login/oauth/authorize",
         params: {
           scope: "read:user user:email public_repo",
+          redirect_uri: `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/callback/github-oauth`,
         },
       },
     }),
@@ -40,12 +41,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     GithubProvider({
       id: "github-app",
       name: "GitHub App",
-      clientId: process.env.AUTH_GITHUB_ID, // GitHub App credentials
-      clientSecret: process.env.AUTH_GITHUB_SECRET,
+      clientId: process.env.GITHUB_APP_CLIENT_ID, // GitHub App credentials
+      clientSecret: process.env.GITHUB_APP_CLIENT_SECRET,
       authorization: {
         url: "https://github.com/login/oauth/authorize",
         params: {
-          client_id: process.env.AUTH_GITHUB_ID,
+          client_id: process.env.GITHUB_APP_CLIENT_ID,
+          redirect_uri: `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/callback/github-app`,
         },
       },
       userinfo: {

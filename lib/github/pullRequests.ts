@@ -16,7 +16,7 @@ export async function getPullRequestOnBranch({
 }) {
   const octokit = await getOctokit()
   const user = await getGithubUser()
-  const userName = user.login
+  const userName = user?.login
   const pr = await octokit.pulls.list({
     owner: userName,
     repo,
@@ -52,7 +52,7 @@ export async function createPullRequest({
   }
 
   const pullRequest = await octokit.pulls.create({
-    owner: user.login,
+    owner: user?.login,
     repo,
     title,
     body: fullBody,

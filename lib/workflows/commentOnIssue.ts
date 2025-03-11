@@ -1,4 +1,5 @@
 import { ThinkerAgent } from "@/lib/agents/thinker"
+import { AUTH_CONFIG } from "@/lib/auth/config"
 import { createDirectoryTree } from "@/lib/fs"
 import {
   createIssueComment,
@@ -64,23 +65,20 @@ export default async function commentOnIssue(
         status: githubError.status,
         message: githubError.message,
         responseData: githubError.response?.data,
+        authMethod: AUTH_CONFIG.getCurrentProvider(),
         repo: repo.full_name,
         issueNumber,
       })
 
-      // Throw a more specific error based on the status code
       if (githubError.status === 403) {
         const isIntegrationError =
           githubError.response?.data?.message?.includes(
             "not accessible by integration"
           )
-        if (isIntegrationError) {
+        if (isIntegrationError && AUTH_CONFIG.isUsingOAuth()) {
           throw new Error(
-            "Permission denied: Your GitHub token doesn't have the required permissions. " +
-              "Please ensure you have granted the following OAuth scopes:\n" +
-              "- For public repositories: 'public_repo'\n" +
-              "- For private repositories: 'repo'\n" +
-              "You may need to sign out and sign back in to grant these permissions."
+            "Permission denied: You don't have write access to this repository. " +
+              "Please ensure you have the necessary permissions to comment on this issue."
           )
         }
         throw new Error(

@@ -27,7 +27,7 @@ export async function getFileContent({
     const octokit = await getOctokit()
     const user = await getGithubUser()
     const file = await octokit.repos.getContent({
-      owner: user.login,
+      owner: user?.login,
       repo,
       path,
       ref: branch,
@@ -120,7 +120,7 @@ export async function checkBranchExists(
 
   try {
     await octokit.repos.getBranch({
-      owner: user.login,
+      owner: user?.login,
       repo,
       branch,
     })

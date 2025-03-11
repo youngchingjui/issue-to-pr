@@ -9,7 +9,9 @@ import DynamicNavigation from "./DynamicNavigation"
 
 export default async function Navigation() {
   const session = await auth()
-  const user = session?.user ? await getGithubUser() : null
+
+  // Only try to get GitHub user if we have a session
+  const githubUser = session?.user ? await getGithubUser() : null
 
   return (
     <motion.header
@@ -39,7 +41,7 @@ export default async function Navigation() {
 
           {/* Dynamic Navigation based on route */}
           <DynamicNavigation
-            username={user?.login || null}
+            username={githubUser?.login ?? session?.user?.name ?? null}
             isAuthenticated={!!session?.user}
           />
         </div>

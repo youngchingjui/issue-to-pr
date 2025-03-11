@@ -50,7 +50,7 @@ export async function getIssueComments({
   const octokit = await getOctokit()
   const user = await getGithubUser()
   const comments = await octokit.issues.listComments({
-    owner: user.login,
+    owner: user?.login,
     repo,
     issue_number: issueNumber,
   })
