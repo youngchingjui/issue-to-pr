@@ -51,6 +51,9 @@ class UploadAndPRTool implements Tool<typeof uploadAndPRParameters> {
   async handler(params: z.infer<typeof uploadAndPRParameters>) {
     const { files, commitMessage, branch, pullRequest } = params
 
+    // Extract owner and repo
+    const [owner, repo] = this.repository.full_name.split("/")
+
     // By now, the updated code should be saved locally. We'll pull up those updated files
     // TODO: Add a check in case the files are not updated.
     // Get the latest contents for each file
@@ -77,7 +80,7 @@ class UploadAndPRTool implements Tool<typeof uploadAndPRParameters> {
     )
     if (!branchExists) {
       const branchCreationResult = await createBranch(
-        this.repository.name,
+        this.repository.full_name, // Updated to use full_name for consistency
         branch
       )
       if (
@@ -113,7 +116,7 @@ class UploadAndPRTool implements Tool<typeof uploadAndPRParameters> {
 
     // Check if PR on branch exists before creating new one
     const existingPR = await getPullRequestOnBranch({
-      repo: this.repository.name,
+      repositoryFullName: this.repository.full_name, // Updated parameter
       branch,
     })
     if (existingPR) {
@@ -127,7 +130,7 @@ class UploadAndPRTool implements Tool<typeof uploadAndPRParameters> {
     console.debug("[DEBUG] Creating pull request")
     try {
       const pr = await createPullRequest({
-        repo: this.repository.name,
+        repositoryFullName: this.repository.full_name, // Updated parameter
         branch,
         title: pullRequest.title,
         body: pullRequest.body,
