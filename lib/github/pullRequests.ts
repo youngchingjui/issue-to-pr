@@ -1,5 +1,4 @@
 import getOctokit from "@/lib/github"
-import { getGithubUser } from "@/lib/github/users"
 import {
   IssueComment,
   PullRequest,
@@ -8,22 +7,22 @@ import {
 } from "@/lib/types"
 
 export async function getPullRequestOnBranch({
-  repo,
+  repoFullName,
   branch,
 }: {
-  repo: string
+  repoFullName: string
   branch: string
 }) {
   const octokit = await getOctokit()
-  const user = await getGithubUser()
-  if (!user) {
-    throw new Error("Failed to get authenticated user")
+  const [owner, repo] = repoFullName.split("/")
+  if (!owner || !repo) {
+    throw new Error("Invalid repository format. Expected 'owner/repo'")
   }
-  const userName = user.login
+
   const pr = await octokit.pulls.list({
-    owner: userName,
+    owner,
     repo,
-    head: `${userName}:${branch}`,
+    head: `${owner}:${branch}`,
   })
 
   if (pr.data.length > 0) {
@@ -34,22 +33,22 @@ export async function getPullRequestOnBranch({
 }
 
 export async function createPullRequest({
-  repo,
+  repoFullName,
   branch,
   title,
   body,
   issueNumber,
 }: {
-  repo: string
+  repoFullName: string
   branch: string
   title: string
   body: string
   issueNumber?: number
 }) {
   const octokit = await getOctokit()
-  const user = await getGithubUser()
-  if (!user) {
-    throw new Error("Failed to get authenticated user")
+  const [owner, repo] = repoFullName.split("/")
+  if (!owner || !repo) {
+    throw new Error("Invalid repository format. Expected 'owner/repo'")
   }
 
   let fullBody = body
@@ -58,7 +57,7 @@ export async function createPullRequest({
   }
 
   const pullRequest = await octokit.pulls.create({
-    owner: user.login,
+    owner,
     repo,
     title,
     body: fullBody,
