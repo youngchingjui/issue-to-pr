@@ -87,7 +87,7 @@ export class LibrarianAgent {
     const span = this.trace.span({ name: "Get file content" })
     try {
       const content = await getGithubFileContent({
-        repo: this.repository.name,
+        repoFullName: this.repository.full_name,
         path,
         branch: this.branch,
       })
