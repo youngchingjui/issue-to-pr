@@ -7,7 +7,12 @@ import { JWT } from "next-auth/jwt"
 
 import { auth } from "@/auth"
 import { getLocalRepoDir } from "@/lib/fs"
-import { checkIfGitExists, cleanCheckout, cloneRepo } from "@/lib/git"
+import {
+  cleanCheckout,
+  cleanupRepo,
+  cloneRepo,
+  ensureValidRepo,
+} from "@/lib/git"
 import { redis } from "@/lib/redis"
 import { getCloneUrlWithAccessToken } from "@/lib/utils"
 
@@ -35,31 +40,49 @@ export async function setupLocalRepository({
 }: {
   repoFullName: string
   workingBranch?: string
-}) {
+}): Promise<string> {
   // Get or create a local directory to work off of
   const baseDir = await getLocalRepoDir(repoFullName)
 
-  // Check if .git and codebase exist in tempDir
-  console.debug(`[DEBUG] Checking if .git and codebase exist in ${baseDir}`)
-  const gitExists = await checkIfGitExists(baseDir)
-
-  if (!gitExists) {
-    // Clone the repo
-    console.debug(`[DEBUG] Cloning repo: ${repoFullName}`)
-
+  try {
     // TODO: Refactor for server-to-server auth
     const session = await auth()
     const token = session.token.access_token as string
     // Attach access token to cloneUrl
     const cloneUrlWithToken = getCloneUrlWithAccessToken(repoFullName, token)
 
-    await cloneRepo(cloneUrlWithToken, baseDir)
+    // Check repository state and repair if needed
+    await ensureValidRepo(baseDir, cloneUrlWithToken)
+
+    // Try clean checkout with retries
+    let retries = 3
+    while (retries > 0) {
+      try {
+        await cleanCheckout(workingBranch, baseDir)
+        break
+      } catch (error) {
+        retries--
+        if (retries === 0) {
+          console.error(
+            `[ERROR] Failed to clean checkout after retries: ${error.message}`
+          )
+          throw error
+        }
+        console.warn(
+          `[WARNING] Clean checkout failed, retrying... (${retries} attempts left)`
+        )
+        await cleanupRepo(baseDir)
+        await cloneRepo(cloneUrlWithToken, baseDir)
+      }
+    }
+
+    return baseDir
+  } catch (error) {
+    console.error(`[ERROR] Failed to setup repository: ${error.message}`)
+    // Clean up on failure
+    await cleanupRepo(baseDir)
+    throw error
   }
-
-  // And git pull to latest
-  await cleanCheckout(workingBranch, baseDir)
-
-  return baseDir
 }
 
 export async function refreshTokenWithLock(token: JWT) {
@@ -151,7 +174,10 @@ export async function refreshTokenWithLock(token: JWT) {
           ? JSON.parse(cachedToken)
           : cachedToken
       } catch (e) {
-        console.error(`Error parsing cached token for key ${tokenKey} after waiting:`, e)
+        console.error(
+          `Error parsing cached token for key ${tokenKey} after waiting:`,
+          e
+        )
         // If parsing fails, continue with retries
       }
     }
