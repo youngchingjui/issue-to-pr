@@ -77,7 +77,7 @@ class UploadAndPRTool implements Tool<typeof uploadAndPRParameters> {
     )
     if (!branchExists) {
       const branchCreationResult = await createBranch(
-        this.repository.name,
+        this.repository.full_name,
         branch
       )
       if (
@@ -113,7 +113,7 @@ class UploadAndPRTool implements Tool<typeof uploadAndPRParameters> {
 
     // Check if PR on branch exists before creating new one
     const existingPR = await getPullRequestOnBranch({
-      repo: this.repository.name,
+      repoFullName: this.repository.full_name,
       branch,
     })
     if (existingPR) {
@@ -127,7 +127,7 @@ class UploadAndPRTool implements Tool<typeof uploadAndPRParameters> {
     console.debug("[DEBUG] Creating pull request")
     try {
       const pr = await createPullRequest({
-        repo: this.repository.name,
+        repoFullName: this.repository.full_name,
         branch,
         title: pullRequest.title,
         body: pullRequest.body,

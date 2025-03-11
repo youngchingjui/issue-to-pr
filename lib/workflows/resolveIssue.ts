@@ -39,7 +39,7 @@ export const resolveIssue = async (
 
   // Retrieve all the comments on the issue
   const comments = await getIssueComments({
-    repo: repository.name,
+    repoFullName: repository.full_name,
     issueNumber: issue.number,
   })
 
