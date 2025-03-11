@@ -21,6 +21,9 @@ export async function createBranch(
 ): Promise<BranchCreationResult> {
   const octokit = await getOctokit()
   const user = await getGithubUser()
+  if (!user) {
+    throw new Error("Failed to get authenticated user")
+  }
 
   try {
     // Get the latest commit SHA of the base branch

@@ -26,6 +26,9 @@ export async function getFileContent({
   try {
     const octokit = await getOctokit()
     const user = await getGithubUser()
+    if (!user) {
+      throw new Error("Failed to get authenticated user")
+    }
     const file = await octokit.repos.getContent({
       owner: user.login,
       repo,
@@ -64,6 +67,10 @@ export async function updateFileContent({
   const octokit = await getOctokit()
   const [owner, repo] = repoFullName.split("/")
   const sha = await getFileSha({ repoFullName, path, branch })
+  const user = await getGithubUser()
+  if (!user) {
+    throw new Error("Failed to get authenticated user")
+  }
   await octokit.rest.repos.createOrUpdateFileContents({
     owner,
     repo,

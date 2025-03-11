@@ -16,6 +16,9 @@ export async function getPullRequestOnBranch({
 }) {
   const octokit = await getOctokit()
   const user = await getGithubUser()
+  if (!user) {
+    throw new Error("Failed to get authenticated user")
+  }
   const userName = user.login
   const pr = await octokit.pulls.list({
     owner: userName,
@@ -45,6 +48,9 @@ export async function createPullRequest({
 }) {
   const octokit = await getOctokit()
   const user = await getGithubUser()
+  if (!user) {
+    throw new Error("Failed to get authenticated user")
+  }
 
   let fullBody = body
   if (issueNumber !== undefined) {
