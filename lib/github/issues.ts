@@ -41,19 +41,16 @@ export async function createIssueComment({
 }
 
 export async function getIssueComments({
-  repo,
+  repoFullName,
   issueNumber,
 }: {
-  repo: string
+  repoFullName: string
   issueNumber: number
 }): Promise<GitHubIssueComment[]> {
   const octokit = await getOctokit()
-  const user = await getGithubUser()
-  if (!user) {
-    throw new Error("Failed to get authenticated user")
-  }
+  const [owner, repo] = repoFullName.split("/")
   const comments = await octokit.issues.listComments({
-    owner: user.login,
+    owner,
     repo,
     issue_number: issueNumber,
   })
