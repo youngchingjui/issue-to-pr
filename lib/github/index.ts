@@ -13,7 +13,7 @@ function getPrivateKeyFromFile(): string {
   return fs.readFileSync(privateKeyPath, "utf8")
 }
 
-export default async function getOctokit(): Promise<Octokit> {
+export default async function getOctokit(): Promise<Octokit | null> {
   // Try to authenticate using user session
   const session = await auth()
   if (session?.token?.access_token) {

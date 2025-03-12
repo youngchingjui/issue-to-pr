@@ -139,12 +139,23 @@ export async function refreshTokenWithLock(token: JWT) {
         if (cachedToken) {
           console.log("Using cached token from Redis")
           try {
-            return typeof cachedToken === "string"
-              ? JSON.parse(cachedToken)
-              : cachedToken
+            const parsedToken =
+              typeof cachedToken === "string"
+                ? JSON.parse(cachedToken)
+                : cachedToken
+
+            // Validate the cached token
+            if (parsedToken.error || !parsedToken.access_token) {
+              console.log("Invalid cached token, removing from Redis")
+              await redis.del(tokenKey)
+              throw new Error("Invalid cached token")
+            }
+
+            return parsedToken
           } catch (e) {
             console.error(`Error parsing cached token for key ${tokenKey}:`, e)
-            // If parsing fails, continue with refresh
+            // If parsing fails or token is invalid, remove it and continue with refresh
+            await redis.del(tokenKey)
           }
         }
 
@@ -166,14 +177,21 @@ export async function refreshTokenWithLock(token: JWT) {
             }),
           }
         )
+
+        if (!response.ok) {
+          throw new Error(`Token refresh failed with status ${response.status}`)
+        }
+
         const data = await response.json()
 
         console.log("token before update", token)
         console.log("data", data)
 
-        if (data.error === "bad_refresh_token") {
-          console.error("Bad refresh token")
-          throw new Error("Bad refresh token")
+        if (data.error) {
+          console.error("Token refresh error:", data.error)
+          // Clean up invalid token from Redis
+          await redis.del(tokenKey)
+          throw new Error(data.error)
         }
 
         const newToken = { ...token, ...data }
@@ -188,8 +206,10 @@ export async function refreshTokenWithLock(token: JWT) {
           ex: newToken.expires_in || 28800,
         })
         return newToken
-      } finally {
+      } catch (error) {
+        // Clean up the lock and rethrow
         await redis.del(lockKey)
+        throw error
       }
     } else {
       attempts++
@@ -201,33 +221,30 @@ export async function refreshTokenWithLock(token: JWT) {
     if (cachedToken) {
       console.log("Using cached token from Redis after waiting")
       try {
-        return typeof cachedToken === "string"
-          ? JSON.parse(cachedToken)
-          : cachedToken
+        const parsedToken =
+          typeof cachedToken === "string"
+            ? JSON.parse(cachedToken)
+            : cachedToken
+
+        // Validate the cached token
+        if (parsedToken.error || !parsedToken.access_token) {
+          console.log("Invalid cached token after waiting, removing from Redis")
+          await redis.del(tokenKey)
+          throw new Error("Invalid cached token")
+        }
+
+        return parsedToken
       } catch (e) {
         console.error(
           `Error parsing cached token for key ${tokenKey} after waiting:`,
           e
         )
-        // If parsing fails, continue with retries
+        // If parsing fails or token is invalid, remove it
+        await redis.del(tokenKey)
+        throw e
       }
     }
   }
 
-  // Fallback: if max retries reached, check Redis one last time
-  const cachedToken = await redis.get(tokenKey)
-  if (cachedToken) {
-    console.log("Using cached token from Redis after max retries")
-    try {
-      return typeof cachedToken === "string"
-        ? JSON.parse(cachedToken)
-        : cachedToken
-    } catch (e) {
-      console.error("Error parsing cached token after max retries:", e)
-    }
-  }
-
-  throw new Error(
-    "Max retries reached, assuming token refreshed by another instance"
-  )
+  throw new Error("Max retries reached while refreshing token")
 }

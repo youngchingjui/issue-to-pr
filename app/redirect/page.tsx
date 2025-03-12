@@ -1,15 +1,13 @@
 import { redirect } from "next/navigation"
 
-import { getGithubUser } from "@/lib/github/users"
+import { requireAuth } from "@/lib/auth/handle-auth-errors"
+import { getGithubUserWithError } from "@/lib/github/users"
 
 // Use this page to redirect after login to user's /[username] page
 // Easier to implement than middleware, for now
 export default async function Redirect() {
-  const user = await getGithubUser()
-
-  if (!user) {
-    redirect("/")
-  }
+  const result = await getGithubUserWithError()
+  const user = await requireAuth(result, "/")
 
   redirect(`/${user.login}`)
 }

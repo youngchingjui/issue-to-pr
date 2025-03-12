@@ -5,6 +5,7 @@ import { Inter } from "next/font/google"
 import { SessionProvider } from "next-auth/react"
 
 import { auth } from "@/auth"
+import AuthErrorBoundary from "@/components/error-boundary/AuthErrorBoundary"
 import Navigation from "@/components/layout/Navigation"
 import { Toaster } from "@/components/ui/toaster"
 
@@ -30,9 +31,11 @@ export default async function RootLayout({
         style={{ "--custom-amber": "#B45309" } as React.CSSProperties}
       >
         <SessionProvider session={session}>
-          <Navigation />
-          {children}
-          <Toaster />
+          <AuthErrorBoundary>
+            <Navigation />
+            {children}
+            <Toaster />
+          </AuthErrorBoundary>
         </SessionProvider>
       </body>
     </html>
