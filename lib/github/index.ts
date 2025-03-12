@@ -13,38 +13,20 @@ function getPrivateKeyFromFile(): string {
   return fs.readFileSync(privateKeyPath, "utf8")
 }
 
-export default async function getOctokit(): Promise<Octokit> {
+/**
+ * Creates an authenticated Octokit client using one of two authentication methods:
+ * 1. User Authentication: Tries to use the user's session token first
+ * 2. GitHub App Authentication: Falls back to using GitHub App credentials (private key + app ID)
+ *    if user authentication fails
+ *
+ * Returns either an authenticated Octokit instance or null if both auth methods fail
+ */
+export default async function getOctokit(): Promise<Octokit | null> {
   // Try to authenticate using user session
   const session = await auth()
-  console.log("Session:", {
-    hasToken: !!session?.token,
-    hasAccessToken: !!session?.token?.access_token,
-    env: process.env.NODE_ENV,
-  })
 
   if (session?.token?.access_token) {
-    console.log("Creating Octokit client with token info:", {
-      tokenType: session.token.token_type,
-      scope: session.token.scope,
-      expiresAt: session.token.expires_at,
-    })
-
     const octokit = new Octokit({ auth: session.token.access_token })
-
-    // Test the token's permissions
-    try {
-      const { data: user } = await octokit.rest.users.getAuthenticated()
-      console.log("Authenticated as:", {
-        login: user.login,
-        type: user.type,
-        scopes:
-          typeof session.token.scope === "string"
-            ? session.token.scope.split(" ")
-            : [],
-      })
-    } catch (error) {
-      console.error("Failed to get authenticated user:", error)
-    }
 
     return octokit
   }
