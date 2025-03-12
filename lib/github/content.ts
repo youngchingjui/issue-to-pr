@@ -1,5 +1,4 @@
 import getOctokit from "@/lib/github"
-import { getGithubUser } from "@/lib/github/users"
 import { AuthenticatedUserRepository, GitHubRepository } from "@/lib/types"
 
 export class GitHubError extends Error {
@@ -15,19 +14,22 @@ export class GitHubError extends Error {
 // TODO: Since all octokit functions here are using octokit.repos, then
 // This file should be renamed to `repos.tsx` to reflect the resource being called
 export async function getFileContent({
-  repo,
+  repoFullName,
   path,
   branch,
 }: {
-  repo: string
+  repoFullName: string
   path: string
   branch: string
 }) {
   try {
     const octokit = await getOctokit()
-    const user = await getGithubUser()
+    const [owner, repo] = repoFullName.split("/")
+    if (!owner || !repo) {
+      throw new Error("Invalid repository format. Expected 'owner/repo'")
+    }
     const file = await octokit.repos.getContent({
-      owner: user?.login,
+      owner,
       repo,
       path,
       ref: branch,
@@ -64,6 +66,7 @@ export async function updateFileContent({
   const octokit = await getOctokit()
   const [owner, repo] = repoFullName.split("/")
   const sha = await getFileSha({ repoFullName, path, branch })
+
   await octokit.rest.repos.createOrUpdateFileContents({
     owner,
     repo,
@@ -112,15 +115,18 @@ export async function getFileSha({
 }
 
 export async function checkBranchExists(
-  repo: string,
+  repoFullName: string,
   branch: string
 ): Promise<boolean> {
   const octokit = await getOctokit()
-  const user = await getGithubUser()
+  const [owner, repo] = repoFullName.split("/")
+  if (!owner || !repo) {
+    throw new Error("Invalid repository format. Expected 'owner/repo'")
+  }
 
   try {
     await octokit.repos.getBranch({
-      owner: user?.login,
+      owner,
       repo,
       branch,
     })

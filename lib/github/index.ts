@@ -49,31 +49,25 @@ export default async function getOctokit(): Promise<Octokit> {
     return octokit
   }
 
-  // Skip GitHub App authentication in development
-  if (process.env.NODE_ENV === "development") {
-    console.log(
-      "No OAuth token found and skipping GitHub App authentication in development"
-    )
-    throw new Error(
-      "No authentication method available. Please ensure you are logged in."
-    )
-  }
+  // Fallback to GitHub App authentication
+  try {
+    const privateKey = getPrivateKeyFromFile()
+    const app = new App({
+      appId: process.env.GITHUB_APP_ID,
+      privateKey,
+    })
 
-  // Fallback to GitHub App authentication in production
-  const app = new App({
-    appId: process.env.GITHUB_APP_ID,
-    privateKey: getPrivateKeyFromFile(),
-  })
+    // Assuming you have the installation ID from the webhook or other source
+    const installationId = getInstallationId()
+    if (!installationId) {
+      return null
+    }
 
-  // Assuming you have the installation ID from the webhook or other source
-  const installationId = getInstallationId()
-
-  if (!installationId) {
-    console.log("No installation ID found")
+    return (await app.getInstallationOctokit(
+      Number(installationId)
+    )) as unknown as Octokit // Removes extra properties for pagination and retry capabilities
+  } catch (error) {
+    console.error("[ERROR] Failed to setup GitHub App authentication:", error)
     return null
   }
-
-  return (await app.getInstallationOctokit(
-    Number(installationId)
-  )) as unknown as Octokit // Removes extra properties for pagination and retry capabilities
 }

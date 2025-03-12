@@ -1,5 +1,4 @@
 import getOctokit from "@/lib/github"
-import { getGithubUser } from "@/lib/github/users"
 
 export enum BranchCreationStatus {
   Success,
@@ -15,24 +14,27 @@ type BranchCreationResult = {
 }
 
 export async function createBranch(
-  repo: string,
+  fullRepo: string,
   branch: string,
   baseBranch: string = "main"
 ): Promise<BranchCreationResult> {
   const octokit = await getOctokit()
-  const user = await getGithubUser()
+  const [owner, repo] = fullRepo.split("/")
+  if (!owner || !repo) {
+    throw new Error("Invalid repository format. Expected 'owner/repo'")
+  }
 
   try {
     // Get the latest commit SHA of the base branch
     const { data: baseBranchData } = await octokit.repos.getBranch({
-      owner: user?.login,
+      owner,
       repo,
       branch: baseBranch,
     })
 
     // Create a new branch
     await octokit.git.createRef({
-      owner: user?.login,
+      owner,
       repo,
       ref: `refs/heads/${branch}`,
       sha: baseBranchData.commit.sha,

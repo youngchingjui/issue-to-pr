@@ -91,7 +91,6 @@ async function executeGitCommand(
       if (stderr) {
         console.warn(`[WARNING] Command produced stderr: ${stderr}`)
       }
-      console.debug(`[DEBUG] Command output: ${stdout}`)
       return resolve(stdout)
     })
   })
@@ -102,11 +101,6 @@ export async function checkoutBranchQuietly(
   dir: string
 ): Promise<string> {
   const command = `git checkout -q ${branchName}`
-  return executeGitCommand(command, dir)
-}
-
-export async function resetHard(dir: string): Promise<string> {
-  const command = `git reset --hard`
   return executeGitCommand(command, dir)
 }
 
@@ -130,11 +124,20 @@ export async function resetToOrigin(
 
 export async function cleanCheckout(branchName: string, dir: string) {
   try {
-    await checkoutBranchQuietly(branchName, dir)
-    await resetHard(dir)
+    // First clean any untracked files
     await cleanUntrackedFiles(dir)
+
+    // Fetch latest changes
     await fetchLatest(dir)
+
+    // Force clean the index before reset
+    await executeGitCommand("git rm --cached -r .", dir)
+
+    // Reset to origin
     await resetToOrigin(branchName, dir)
+
+    // Checkout the branch
+    await checkoutBranchQuietly(branchName, dir)
   } catch (error) {
     console.error(`[ERROR] Failed during clean checkout: ${error.message}`)
     throw error
@@ -174,4 +177,47 @@ export async function getDiff(dir: string): Promise<string> {
       return resolve(stdout)
     })
   })
+}
+
+export async function checkRepoIntegrity(dir: string): Promise<boolean> {
+  try {
+    // Run git fsck to check repository integrity
+    await executeGitCommand("git fsck", dir)
+    return true
+  } catch (error) {
+    console.error(`[ERROR] Repository integrity check failed: ${error.message}`)
+    return false
+  }
+}
+
+export async function cleanupRepo(dir: string): Promise<void> {
+  try {
+    // Remove the .git directory to force a fresh clone
+    await fs.rm(path.join(dir, ".git"), { recursive: true, force: true })
+    // Also remove any tracked files that might be corrupted
+    await fs.rm(dir, { recursive: true, force: true })
+  } catch (error) {
+    console.error(`[ERROR] Failed to cleanup repository: ${error.message}`)
+    throw error
+  }
+}
+
+export async function ensureValidRepo(
+  dir: string,
+  cloneUrl: string
+): Promise<void> {
+  const gitExists = await checkIfGitExists(dir)
+  if (!gitExists) {
+    await cloneRepo(cloneUrl, dir)
+    return
+  }
+
+  const isValid = await checkRepoIntegrity(dir)
+  if (!isValid) {
+    console.warn(
+      "[WARNING] Repository corruption detected, cleaning up and re-cloning"
+    )
+    await cleanupRepo(dir)
+    await cloneRepo(cloneUrl, dir)
+  }
 }

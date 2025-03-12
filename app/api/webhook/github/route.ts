@@ -24,14 +24,20 @@ export async function POST(req: NextRequest) {
     const secret = process.env.GITHUB_WEBHOOK_SECRET
 
     if (!secret) {
+      console.error("[ERROR] GITHUB_WEBHOOK_SECRET not configured")
       return new Response("Webhook secret not configured", { status: 500 })
     }
 
     if (!verifySignature(signature, payload, secret)) {
+      console.error("[ERROR] Invalid webhook signature")
       return new Response("Invalid signature", { status: 401 })
     }
 
     const installationId = payload["installation"]["id"]
+    if (!installationId) {
+      console.error("[ERROR] No installation ID found in webhook payload")
+      return new Response("No installation ID found", { status: 400 })
+    }
 
     // Route the payload to the appropriate handler
     runWithInstallationId(installationId, async () => {
@@ -44,7 +50,7 @@ export async function POST(req: NextRequest) {
     // Respond with a success status
     return new Response("Webhook received", { status: 200 })
   } catch (error) {
-    console.error("Error handling webhook:", error)
+    console.error("[ERROR] Error handling webhook:", error)
     return new Response("Error", { status: 500 })
   }
 }
