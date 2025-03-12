@@ -73,6 +73,7 @@ export default function IssuesPage() {
         },
       } as GitHubRepository
     } catch (e) {
+      console.error("Error fetching repository information:", e)
       return null
     }
   }
