@@ -60,13 +60,6 @@ export async function getLocalRepoDir(repo_full_name: string) {
     throw error
   }
 
-  // Verify if the directory was created
-  const dirExists = await fs
-    .stat(dirPath)
-    .then(() => true)
-    .catch(() => false)
-  console.debug(`[DEBUG] Directory exists after creation attempt: ${dirExists}`)
-
   return dirPath
 }
 

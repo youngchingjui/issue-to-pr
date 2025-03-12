@@ -13,6 +13,7 @@ import {
   cloneRepo,
   ensureValidRepo,
 } from "@/lib/git"
+import getOctokit from "@/lib/github"
 import { redis } from "@/lib/redis"
 import { getCloneUrlWithAccessToken } from "@/lib/utils"
 
@@ -45,14 +46,44 @@ export async function setupLocalRepository({
   const baseDir = await getLocalRepoDir(repoFullName)
 
   try {
-    // TODO: Refactor for server-to-server auth
+    let cloneUrl: string
+
+    // First try user session authentication
     const session = await auth()
-    const token = session.token.access_token as string
-    // Attach access token to cloneUrl
-    const cloneUrlWithToken = getCloneUrlWithAccessToken(repoFullName, token)
+    if (session?.token?.access_token) {
+      cloneUrl = getCloneUrlWithAccessToken(
+        repoFullName,
+        session.token.access_token as string
+      )
+    } else {
+      // Fallback to GitHub App authentication
+      const octokit = await getOctokit()
+      if (!octokit) {
+        throw new Error("Failed to get authenticated Octokit instance")
+      }
+
+      // Get the repository details to get the clone URL
+      const [owner, repo] = repoFullName.split("/")
+      const { data: repoData } = await octokit.rest.repos.get({
+        owner,
+        repo,
+      })
+
+      cloneUrl = repoData.clone_url as string
+
+      // If we have an installation ID, modify the clone URL to use the installation token
+      const installationId = getInstallationId()
+      if (installationId) {
+        const token = (await octokit.auth({
+          type: "installation",
+          installationId: Number(installationId),
+        })) as { token: string }
+        cloneUrl = getCloneUrlWithAccessToken(repoFullName, token.token)
+      }
+    }
 
     // Check repository state and repair if needed
-    await ensureValidRepo(baseDir, cloneUrlWithToken)
+    await ensureValidRepo(baseDir, cloneUrl)
 
     // Try clean checkout with retries
     let retries = 3
@@ -72,7 +103,7 @@ export async function setupLocalRepository({
           `[WARNING] Clean checkout failed, retrying... (${retries} attempts left)`
         )
         await cleanupRepo(baseDir)
-        await cloneRepo(cloneUrlWithToken, baseDir)
+        await cloneRepo(cloneUrl, baseDir)
       }
     }
 
