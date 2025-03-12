@@ -91,7 +91,6 @@ async function executeGitCommand(
       if (stderr) {
         console.warn(`[WARNING] Command produced stderr: ${stderr}`)
       }
-      console.debug(`[DEBUG] Command output: ${stdout}`)
       return resolve(stdout)
     })
   })
