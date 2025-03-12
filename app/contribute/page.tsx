@@ -79,7 +79,9 @@ export default function IssuesPage() {
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-8">GitHub Issue/PR Viewer</h1>
+      <h1 className="text-3xl font-bold mb-8">
+        Contribute to Public Repositories
+      </h1>
 
       <form onSubmit={handleSubmit} className="mb-8">
         <div className="flex gap-4">
