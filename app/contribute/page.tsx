@@ -1,32 +1,52 @@
 "use client"
 
 import { useState } from "react"
+import { z } from "zod"
 
-import CreatePRController from "@/components/issues/controllers/CreatePRController"
-import GenerateResolutionPlanController from "@/components/issues/controllers/GenerateResolutionPlanController"
+import GitHubItemDetails from "@/components/contribute/GitHubItemDetails"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { GitHubRepository } from "@/lib/types"
+import {
+  FetchGitHubItemRequestSchema,
+  GitHubURLSchema,
+} from "@/lib/schemas/api"
+import { GitHubItem, WorkflowType } from "@/lib/types/github"
 
-interface GitHubIssue {
-  title: string
-  number: number
-  html_url: string
-  state: string
-  created_at: string
-  type?: "issue" | "pull"
-  user: {
-    login: string
-  }
+interface ErrorResponse {
+  error: string
+  details?: z.ZodError["errors"] | string
 }
 
-export default function IssuesPage() {
+export default function ContributePage() {
   const [url, setUrl] = useState("")
-  const [issueData, setIssueData] = useState<GitHubIssue | null>(null)
+  const [issueData, setIssueData] = useState<GitHubItem | null>(null)
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [activeWorkflow, setActiveWorkflow] = useState<string | null>(null)
+  const [activeWorkflow, setActiveWorkflow] = useState<WorkflowType | null>(
+    null
+  )
+
+  // Validate URL as user types
+  const validateUrl = (value: string) => {
+    setUrl(value)
+    if (!value) {
+      setError("")
+      return
+    }
+
+    try {
+      GitHubURLSchema.parse(value)
+      setError("")
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        // Only show validation error if user has stopped typing for a moment
+        const debounceValidation = setTimeout(() => {
+          setError(err.errors[0].message)
+        }, 500)
+        return () => clearTimeout(debounceValidation)
+      }
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -35,46 +55,46 @@ export default function IssuesPage() {
     setIsLoading(true)
 
     try {
+      // Parse the URL on the client side
+      const { type, number, fullName } = GitHubURLSchema.parse(url)
+      const requestBody = FetchGitHubItemRequestSchema.parse({
+        type,
+        number,
+        fullName,
+      })
+
       const response = await fetch("/api/github/fetch", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify(requestBody),
       })
 
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to fetch data")
+        const errorData = data as ErrorResponse
+        if (response.status === 400 && errorData.details) {
+          // Handle validation errors from the server
+          const details = Array.isArray(errorData.details)
+            ? errorData.details[0].message // Zod error
+            : errorData.details // JSON parse error
+          throw new Error(`${errorData.error}: ${details}`)
+        }
+        throw new Error(errorData.error || "Failed to fetch data")
       }
 
       setIssueData(data)
     } catch (err) {
       console.error("Error fetching data:", err)
-      setError(err instanceof Error ? err.message : "An error occurred")
+      if (err instanceof z.ZodError) {
+        setError(err.errors[0].message)
+      } else {
+        setError(err instanceof Error ? err.message : "An error occurred")
+      }
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  // Extract repository information from GitHub URL
-  const getRepoFromUrl = (url: string): GitHubRepository | null => {
-    try {
-      const urlObj = new URL(url)
-      const [, username, repo] = urlObj.pathname.split("/")
-      // We know the controllers only use these fields, so we can safely cast
-      return {
-        name: repo,
-        full_name: `${username}/${repo}`,
-        default_branch: "main", // assuming main as default
-        owner: {
-          login: username,
-        },
-      } as GitHubRepository
-    } catch (e) {
-      console.error("Error fetching repository information:", e)
-      return null
     }
   }
 
@@ -86,128 +106,41 @@ export default function IssuesPage() {
 
       <form onSubmit={handleSubmit} className="mb-8">
         <div className="flex gap-4">
-          <Input
-            type="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="Enter GitHub Issue or PR URL"
-            className="flex-1"
-            required
-          />
-          <Button type="submit" disabled={isLoading}>
+          <div className="flex-1">
+            <Input
+              type="url"
+              value={url}
+              onChange={(e) => validateUrl(e.target.value)}
+              placeholder="Enter GitHub Issue or PR URL (e.g., https://github.com/owner/repo/issues/123)"
+              className={error ? "border-red-500" : ""}
+              required
+            />
+            {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
+          </div>
+          <Button type="submit" disabled={isLoading || !!error}>
             {isLoading ? "Loading..." : "Fetch Details"}
           </Button>
         </div>
       </form>
 
-      {error && <div className="text-red-500 mb-4">{error}</div>}
-
       {issueData && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <span
-                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  issueData.type === "issue"
-                    ? "bg-purple-100 text-purple-800"
-                    : "bg-blue-100 text-blue-800"
-                }`}
-              >
-                {issueData.type === "issue" ? "Issue" : "Pull Request"}
-              </span>
-              <CardTitle>{issueData.title}</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <p>
-                <strong>Number:</strong> #{issueData.number}
-              </p>
-              <p>
-                <strong>State:</strong> {issueData.state}
-              </p>
-              <p>
-                <strong>Created by:</strong> {issueData.user.login}
-              </p>
-              <p>
-                <strong>Created at:</strong>{" "}
-                {new Date(issueData.created_at).toLocaleDateString()}
-              </p>
-              <p>
-                <a
-                  href={issueData.html_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-500 hover:underline"
-                >
-                  View on GitHub
-                </a>
-              </p>
-              {issueData.type === "issue" && (
-                <div className="flex gap-4 mt-4">
-                  <Button
-                    onClick={() => {
-                      const repo = getRepoFromUrl(issueData.html_url)
-                      if (!repo) return
-
-                      const controller = GenerateResolutionPlanController({
-                        issueNumber: issueData.number,
-                        repo,
-                        onStart: () => {
-                          setIsLoading(true)
-                          setActiveWorkflow("Generating Plan...")
-                        },
-                        onComplete: () => {
-                          setIsLoading(false)
-                          setActiveWorkflow(null)
-                        },
-                        onError: () => {
-                          setIsLoading(false)
-                          setActiveWorkflow(null)
-                        },
-                      })
-                      controller.execute()
-                    }}
-                    disabled={isLoading}
-                  >
-                    {activeWorkflow === "Generating Plan..."
-                      ? "Generating..."
-                      : "Generate Resolution Plan"}
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      const repo = getRepoFromUrl(issueData.html_url)
-                      if (!repo) return
-
-                      const controller = CreatePRController({
-                        issueNumber: issueData.number,
-                        repo,
-                        onStart: () => {
-                          setIsLoading(true)
-                          setActiveWorkflow("Creating PR...")
-                        },
-                        onComplete: () => {
-                          setIsLoading(false)
-                          setActiveWorkflow(null)
-                        },
-                        onError: () => {
-                          setIsLoading(false)
-                          setActiveWorkflow(null)
-                        },
-                      })
-                      controller.execute()
-                    }}
-                    disabled={isLoading}
-                  >
-                    {activeWorkflow === "Creating PR..."
-                      ? "Creating..."
-                      : "Fix Issue and Create PR"}
-                  </Button>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <GitHubItemDetails
+          item={issueData}
+          isLoading={isLoading}
+          activeWorkflow={activeWorkflow}
+          onWorkflowStart={(workflow) => {
+            setIsLoading(true)
+            setActiveWorkflow(workflow)
+          }}
+          onWorkflowComplete={() => {
+            setIsLoading(false)
+            setActiveWorkflow(null)
+          }}
+          onWorkflowError={() => {
+            setIsLoading(false)
+            setActiveWorkflow(null)
+          }}
+        />
       )}
     </div>
   )

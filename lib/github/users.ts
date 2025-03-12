@@ -1,5 +1,5 @@
 import getOctokit from "@/lib/github"
-import { GitHubUser } from "@/lib/types"
+import { GitHubUser } from "@/lib/types/github"
 
 export async function getGithubUser(): Promise<GitHubUser | null> {
   try {

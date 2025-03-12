@@ -1,5 +1,8 @@
 import getOctokit from "@/lib/github"
-import { AuthenticatedUserRepository, GitHubRepository } from "@/lib/types"
+import {
+  AuthenticatedUserRepository,
+  GitHubRepository,
+} from "@/lib/types/github"
 
 export class GitHubError extends Error {
   constructor(

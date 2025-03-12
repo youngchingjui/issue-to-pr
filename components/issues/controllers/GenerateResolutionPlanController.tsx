@@ -1,12 +1,12 @@
 "use client"
 
 import { toast } from "@/hooks/use-toast"
-import { GitHubRepository } from "@/lib/types"
+import { CommentRequestSchema } from "@/lib/schemas/api"
 import { getApiKeyFromLocalStorage, SSEUtils } from "@/lib/utils"
 
 interface Props {
   issueNumber: number
-  repo: GitHubRepository
+  repoFullName: string
   onStart: () => void
   onComplete: () => void
   onError: () => void
@@ -14,7 +14,7 @@ interface Props {
 
 export default function GenerateResolutionPlanController({
   issueNumber,
-  repo,
+  repoFullName,
   onStart,
   onComplete,
   onError,
@@ -32,16 +32,17 @@ export default function GenerateResolutionPlanController({
       }
 
       onStart()
+      const requestBody = CommentRequestSchema.parse({
+        issueNumber,
+        repoFullName,
+        apiKey,
+      })
       const response = await fetch("/api/comment", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          issueNumber,
-          repo,
-          apiKey,
-        }),
+        body: JSON.stringify(requestBody),
       })
 
       if (!response.ok) {

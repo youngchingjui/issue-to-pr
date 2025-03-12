@@ -1,12 +1,12 @@
 "use client"
 
 import { toast } from "@/hooks/use-toast"
-import { GitHubRepository } from "@/lib/types"
+import { ResolveRequestSchema } from "@/lib/schemas/api"
 import { getApiKeyFromLocalStorage } from "@/lib/utils"
 
 interface Props {
   issueNumber: number
-  repo: GitHubRepository
+  repoFullName: string
   onStart: () => void
   onComplete: () => void
   onError: () => void
@@ -14,15 +14,15 @@ interface Props {
 
 export default function CreatePRController({
   issueNumber,
-  repo,
+  repoFullName,
   onStart,
   onComplete,
   onError,
 }: Props) {
   const execute = async () => {
     try {
-      const key = getApiKeyFromLocalStorage()
-      if (!key) {
+      const apiKey = getApiKeyFromLocalStorage()
+      if (!apiKey) {
         toast({
           title: "API key not found",
           description: "Please save an OpenAI API key first.",
@@ -32,12 +32,17 @@ export default function CreatePRController({
       }
 
       onStart()
+      const requestBody = ResolveRequestSchema.parse({
+        issueNumber,
+        repoFullName,
+        apiKey,
+      })
       const response = await fetch("/api/resolve", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ issueNumber, repo, apiKey: key }),
+        body: JSON.stringify(requestBody),
       })
 
       if (!response.ok) {

@@ -10,7 +10,7 @@ import { langfuse } from "@/lib/langfuse"
 import { updateJobStatus } from "@/lib/redis-old"
 import { SearchCodeTool } from "@/lib/tools"
 import GetFileContentTool from "@/lib/tools/GetFileContent"
-import { GitHubRepository } from "@/lib/types"
+import { GitHubRepository } from "@/lib/types/github"
 import { setupLocalRepository } from "@/lib/utils-server"
 
 interface GitHubError extends Error {
