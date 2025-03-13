@@ -6,7 +6,7 @@ import DataRow from "@/components/common/DataRow"
 import AnalyzePRController from "@/components/pull-requests/controllers/AnalyzePRController"
 import ReviewPRController from "@/components/pull-requests/controllers/ReviewPRController"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import { PullRequest } from "@/lib/types"
+import { PullRequest } from "@/lib/types/github"
 
 export default function PullRequestRow({ pr }: { pr: PullRequest }) {
   const [isLoading, setIsLoading] = useState(false)

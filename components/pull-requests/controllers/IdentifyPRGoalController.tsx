@@ -11,7 +11,7 @@ interface Props {
   onError: () => void
 }
 
-export default function ReviewPRController({
+export default function IdentifyPRGoalController({
   repoFullName,
   pullNumber,
   onStart,
@@ -31,24 +31,24 @@ export default function ReviewPRController({
       }
 
       onStart()
-      const response = await fetch("/api/review", {
+      const response = await fetch("/api/analyze-pr", {
         method: "POST",
         body: JSON.stringify({ pullNumber, repoFullName, apiKey: key }),
       })
 
       if (!response.ok) {
-        throw new Error("Failed to review pull request")
+        throw new Error("Failed to analyze pull request")
       }
 
       toast({
-        title: "Review started",
-        description: "The pull request review is being processed.",
+        title: "Analysis started",
+        description: "The pull request analysis is being processed.",
       })
 
       onComplete()
     } catch (error) {
       toast({
-        title: "Review failed",
+        title: "Analysis failed",
         description:
           error instanceof Error
             ? error.message
@@ -56,7 +56,7 @@ export default function ReviewPRController({
         variant: "destructive",
       })
       onError()
-      console.error("Review failed: ", error)
+      console.error("Analysis failed: ", error)
     }
   }
 

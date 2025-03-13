@@ -2,7 +2,7 @@
 
 import { createClient } from "redis"
 
-import { jobStatusEmitter } from "@/lib/utils"
+import { jobStatusEmitter } from "@/lib/utils/utils-common"
 
 const redis = createClient({
   url: process.env.REDIS_URL,

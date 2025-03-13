@@ -6,7 +6,7 @@ import {
   PaginationItem,
   PaginationLink,
 } from "@/components/ui/pagination"
-import { AuthenticatedUserRepository } from "@/lib/types"
+import { AuthenticatedUserRepository } from "@/lib/types/github"
 
 type RepositoryListProps = {
   repositories: AuthenticatedUserRepository[]

@@ -2,8 +2,8 @@
 
 import { useState } from "react"
 
-import { Button } from "./ui/button"
-import { Textarea } from "./ui/textarea"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
 
 export default function TestButton() {
   const [branchName, setBranchName] = useState("main")

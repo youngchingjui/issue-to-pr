@@ -1,5 +1,9 @@
 import { Agent } from "@/lib/agents/base"
-import { GitHubIssue, GitHubIssueComment, GitHubRepository } from "@/lib/types"
+import {
+  GitHubIssue,
+  GitHubIssueComment,
+  GitHubRepository,
+} from "@/lib/types/github"
 
 export class CoordinatorAgent extends Agent {
   repo: GitHubRepository

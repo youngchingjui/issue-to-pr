@@ -1,63 +1,53 @@
 import { NextRequest, NextResponse } from "next/server"
 import { v4 as uuidv4 } from "uuid"
+import { z } from "zod"
 
+import { getRepoFromString } from "@/lib/github/content"
 import { getIssue } from "@/lib/github/issues"
-import { GitHubRepository } from "@/lib/types"
+import { updateJobStatus } from "@/lib/redis-old"
+import { ResolveRequestSchema } from "@/lib/schemas/api"
 import { resolveIssue } from "@/lib/workflows/resolveIssue"
 
-// TypeScript type for request body
-interface RequestBody {
-  issueNumber: number
-  repo: GitHubRepository
-  apiKey: string
-}
-
 export async function POST(request: NextRequest) {
-  const { issueNumber, repo, apiKey }: RequestBody = await request.json()
-
   try {
-    console.debug("[DEBUG] Starting POST request handler")
-
-    if (typeof issueNumber !== "number") {
-      console.debug("[DEBUG] Invalid issue number provided:", issueNumber)
-      return NextResponse.json(
-        { error: "Invalid issueNumber provided." },
-        { status: 400 }
-      )
-    }
+    const body = await request.json()
+    const { issueNumber, repoFullName, apiKey } =
+      ResolveRequestSchema.parse(body)
 
     // Generate a unique job ID
     const jobId = uuidv4()
-    console.debug(`[DEBUG] Generated job ID: ${jobId}`)
+    await updateJobStatus(jobId, "Starting resolve workflow")
 
-    // Start the issue resolution in a new asynchronous task
+    // Start the resolve workflow as a background job
     ;(async () => {
       try {
-        console.debug(`[DEBUG] Fetching issue #${issueNumber}`)
+        // Get full repository details and issue
+        const fullRepo = await getRepoFromString(repoFullName)
         const issue = await getIssue({
-          fullName: repo.full_name,
+          fullName: repoFullName,
           issueNumber,
         })
-
-        // Enter resolve issue workflow asynchronously
-        await resolveIssue(issue, repo, apiKey)
-
-        console.debug(
-          `[DEBUG] Workflow for job ID ${jobId} completed successfully`
-        )
+        const response = await resolveIssue(issue, fullRepo, apiKey)
+        await updateJobStatus(jobId, "Completed: " + JSON.stringify(response))
       } catch (error) {
-        console.error(`[ERROR] Workflow failed for job ID ${jobId}:`, error)
+        await updateJobStatus(jobId, "Failed: " + error.message)
       }
     })()
 
-    return NextResponse.json(
-      { message: "Workflow started successfully.", jobId },
-      { status: 202 }
-    )
+    // Immediately return the job ID to the client
+    return NextResponse.json({ jobId })
   } catch (error) {
-    console.error("[ERROR] Fatal error in POST handler:", error)
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        {
+          error: "Invalid request data",
+          details: error.errors,
+        },
+        { status: 400 }
+      )
+    }
     return NextResponse.json(
-      { error: "Failed to initiate workflow." },
+      { error: "Internal server error" },
       { status: 500 }
     )
   }

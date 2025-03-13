@@ -4,33 +4,88 @@ import { JWT } from "next-auth/jwt"
 import GithubProvider from "next-auth/providers/github"
 
 import { redis } from "@/lib/redis"
-import { refreshTokenWithLock } from "@/lib/utils-server"
+import { refreshTokenWithLock } from "@/lib/utils/auth-utils"
 
 export const runtime = "nodejs"
 
 declare module "next-auth" {
   interface Session {
     token?: JWT
+    authMethod?: "oauth" | "github-app"
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    authMethod?: "oauth" | "github-app"
   }
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
+    // Traditional OAuth provider for public repository access
     GithubProvider({
-      clientId: process.env.AUTH_GITHUB_ID,
-      clientSecret: process.env.AUTH_GITHUB_SECRET,
+      id: "github-oauth",
+      name: "GitHub OAuth",
+      clientId: process.env.GITHUB_OAUTH_ID, // Regular OAuth app credentials
+      clientSecret: process.env.GITHUB_OAUTH_SECRET,
+      authorization: {
+        url: "https://github.com/login/oauth/authorize",
+        params: {
+          scope: "read:user user:email repo",
+          redirect_uri: `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/callback/github-oauth`,
+        },
+      },
+    }),
+    // GitHub App provider for installed repositories
+    GithubProvider({
+      id: "github-app",
+      name: "GitHub App",
+      clientId: process.env.GITHUB_APP_CLIENT_ID, // GitHub App credentials
+      clientSecret: process.env.GITHUB_APP_CLIENT_SECRET,
+      authorization: {
+        url: "https://github.com/login/oauth/authorize",
+        params: {
+          client_id: process.env.GITHUB_APP_CLIENT_ID,
+          redirect_uri: `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/callback/github-app`,
+        },
+      },
+      userinfo: {
+        url: "https://api.github.com/user",
+        params: { installation_id: process.env.GITHUB_APP_INSTALLATION_ID },
+      },
+      profile(profile) {
+        return {
+          id: profile.id.toString(),
+          name: profile.name || profile.login,
+          email: profile.email,
+          image: profile.avatar_url,
+        }
+      },
     }),
   ],
   callbacks: {
     async jwt({ token, account }) {
       if (account) {
-        const newToken = { ...token, ...account }
+        console.log("Auth info:", {
+          provider: account.provider,
+          type: account.type,
+          tokenType: account.token_type,
+          accessToken: !!account.access_token,
+          scope: account.scope,
+        })
+        const newToken = {
+          ...token,
+          ...account,
+          // Store which auth method was used
+          authMethod:
+            account.provider === "github-oauth" ? "oauth" : "github-app",
+        }
         if (account.expires_in) {
           newToken.expires_at =
             Math.floor(Date.now() / 1000) + account.expires_in
         }
 
-        // Store initial token in Redis
         await redis.set(`token_${token.sub}`, JSON.stringify(newToken), {
           ex: account.expires_in || 28800,
         })
@@ -60,6 +115,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     async session({ session, token }) {
       session.token = token
+      // Add auth method to session for frontend usage
+      session.authMethod = token.authMethod
       return session
     },
   },

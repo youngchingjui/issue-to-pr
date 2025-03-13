@@ -3,7 +3,7 @@ import { z } from "zod"
 
 import { getIssue } from "@/lib/github/issues"
 import { Tool } from "@/lib/types"
-import { GitHubRepository } from "@/lib/types"
+import { GitHubRepository } from "@/lib/types/github"
 
 const getIssueParameters = z.object({
   issueNumber: z.number(),

@@ -93,19 +93,37 @@ export default function DynamicNavigation({
     )
   }
 
-  return (
-    <>
-      {/* Breadcrumbs - only show in deep pages */}
-      {showBreadcrumbs && <Nav />}
+  if (isAuthenticated) {
+    return (
+      <>
+        {/* Breadcrumbs - only show in deep pages */}
+        {showBreadcrumbs && <Nav />}
 
-      <nav className="flex items-center space-x-4 ml-auto">
-        <Button variant="ghost" size="sm" asChild className="flex items-center">
-          <Link href="/workflow-runs">Workflows</Link>
-        </Button>
-        <Button variant="ghost" size="sm" asChild className="flex items-center">
-          <Link href={`/${username}`}>Repositories</Link>
-        </Button>
-        {isAuthenticated && (
+        <nav className="flex items-center space-x-4 ml-auto">
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="flex items-center"
+          >
+            <Link href="/workflow-runs">Workflows</Link>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="flex items-center"
+          >
+            <Link href={`/${username}`}>Repositories</Link>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="flex items-center"
+          >
+            <Link href="/contribute">Contribute</Link>
+          </Button>
           <form action={signOutAndRedirect}>
             <Button
               type="submit"
@@ -117,8 +135,8 @@ export default function DynamicNavigation({
               Sign out
             </Button>
           </form>
-        )}
-      </nav>
-    </>
-  )
+        </nav>
+      </>
+    )
+  }
 }

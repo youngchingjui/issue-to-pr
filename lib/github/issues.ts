@@ -1,6 +1,9 @@
-import { GitHubIssue, GitHubIssueComment, ListForRepoParams } from "@/lib/types"
-
-import getOctokit from "."
+import getOctokit from "@/lib/github"
+import {
+  GitHubIssue,
+  GitHubIssueComment,
+  ListForRepoParams,
+} from "@/lib/types/github"
 
 export async function getIssue({
   fullName,

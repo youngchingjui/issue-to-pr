@@ -7,20 +7,20 @@ import DataRow from "@/components/common/DataRow"
 import CreatePRController from "@/components/issues/controllers/CreatePRController"
 import GenerateResolutionPlanController from "@/components/issues/controllers/GenerateResolutionPlanController"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import { GitHubIssue, GitHubRepository } from "@/lib/types"
+import { GitHubIssue } from "@/lib/types/github"
 
 interface IssueRowProps {
   issue: GitHubIssue
-  repo: GitHubRepository
+  repoFullName: string
 }
 
-export default function IssueRow({ issue, repo }: IssueRowProps) {
+export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [activeWorkflow, setActiveWorkflow] = useState<string | null>(null)
 
   const createPRController = CreatePRController({
     issueNumber: issue.number,
-    repo,
+    repoFullName,
     onStart: () => {
       setIsLoading(true)
       setActiveWorkflow("Creating PR...")
@@ -37,7 +37,7 @@ export default function IssueRow({ issue, repo }: IssueRowProps) {
 
   const generateResolutionPlanController = GenerateResolutionPlanController({
     issueNumber: issue.number,
-    repo,
+    repoFullName,
     onStart: () => {
       setIsLoading(true)
       setActiveWorkflow("Generating Plan...")
@@ -56,7 +56,7 @@ export default function IssueRow({ issue, repo }: IssueRowProps) {
     <DataRow
       title={issue.title}
       number={issue.number}
-      url={`https://github.com/${repo.full_name}/issues/${issue.number}`}
+      url={`https://github.com/${repoFullName}/issues/${issue.number}`}
       user={issue.user.login}
       state={issue.state}
       updatedAt={issue.updated_at}

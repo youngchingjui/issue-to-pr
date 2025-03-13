@@ -1,6 +1,5 @@
 import DataTable from "@/components/common/DataTable"
 import IssueRow from "@/components/issues/IssueRow"
-import { getRepoFromString } from "@/lib/github/content"
 import { getIssueList } from "@/lib/github/issues"
 
 export default async function IssueTable({
@@ -13,14 +12,13 @@ export default async function IssueTable({
       repoFullName,
       per_page: 100,
     })
-    const repo = await getRepoFromString(repoFullName)
 
     return (
       <DataTable
         title="Issues"
         items={issues}
         renderRow={(issue) => (
-          <IssueRow key={issue.id} issue={issue} repo={repo} />
+          <IssueRow key={issue.id} issue={issue} repoFullName={repoFullName} />
         )}
         emptyMessage="No open issues found."
       />
