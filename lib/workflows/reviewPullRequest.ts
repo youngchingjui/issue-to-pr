@@ -8,7 +8,7 @@ import {
 import { langfuse } from "@/lib/langfuse"
 import { SearchCodeTool } from "@/lib/tools"
 import { GetFileContentTool } from "@/lib/tools"
-import { GitHubIssue } from "@/lib/types"
+import { GitHubIssue } from "@/lib/types/github"
 
 import { getRepoFromString } from "../github/content"
 import { setupLocalRepository } from "../utils-server"

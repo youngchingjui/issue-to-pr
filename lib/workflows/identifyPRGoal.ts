@@ -7,7 +7,7 @@ import {
 } from "@/lib/github/pullRequests"
 import { langfuse } from "@/lib/langfuse"
 import { GetIssueTool } from "@/lib/tools"
-import { GitHubIssue } from "@/lib/types"
+import { GitHubIssue } from "@/lib/types/github"
 import { updateJobStatus } from "@/lib/utils"
 
 interface IdentifyPRGoalParams {

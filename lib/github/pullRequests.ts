@@ -4,7 +4,7 @@ import {
   PullRequest,
   PullRequestList,
   PullRequestReview,
-} from "@/lib/types"
+} from "@/lib/types/github"
 
 export async function getPullRequestOnBranch({
   repoFullName,
