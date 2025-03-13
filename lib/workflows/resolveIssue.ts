@@ -14,8 +14,8 @@ import {
   SearchCodeTool,
   UploadAndPRTool,
 } from "@/lib/tools"
-import { GitHubIssue, GitHubRepository } from "@/lib/types"
-import { setupLocalRepository } from "@/lib/utils-server"
+import { GitHubIssue, GitHubRepository } from "@/lib/types/github"
+import { setupLocalRepository } from "@/lib/utils/utils-server"
 
 export const resolveIssue = async (
   issue: GitHubIssue,

@@ -1,7 +1,7 @@
 "use client"
 
 import { toast } from "@/hooks/use-toast"
-import { getApiKeyFromLocalStorage } from "@/lib/utils"
+import { getApiKeyFromLocalStorage } from "@/lib/utils/utils-common"
 
 interface Props {
   repoFullName: string

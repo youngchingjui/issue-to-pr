@@ -3,7 +3,7 @@ import { z } from "zod"
 
 import { getDiff } from "@/lib/git"
 import { Tool } from "@/lib/types"
-import { GitHubIssue, GitHubRepository } from "@/lib/types"
+import { GitHubIssue, GitHubRepository } from "@/lib/types/github"
 import { reviewPullRequest } from "@/lib/workflows/reviewPullRequest"
 
 const reviewPullRequestParameters = z.object({})

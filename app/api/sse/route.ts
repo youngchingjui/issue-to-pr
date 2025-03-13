@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "redis"
 
-import { SSEUtils } from "@/lib/utils"
+import { SSEUtils } from "@/lib/utils/utils-common"
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)

@@ -2,7 +2,7 @@
 
 import { toast } from "@/hooks/use-toast"
 import { ResolveRequestSchema } from "@/lib/schemas/api"
-import { getApiKeyFromLocalStorage } from "@/lib/utils"
+import { getApiKeyFromLocalStorage } from "@/lib/utils/utils-common"
 
 interface Props {
   issueNumber: number

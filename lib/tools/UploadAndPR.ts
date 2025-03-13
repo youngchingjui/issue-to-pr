@@ -9,7 +9,8 @@ import {
   createPullRequest,
   getPullRequestOnBranch,
 } from "@/lib/github/pullRequests"
-import { GitHubRepository, Tool } from "@/lib/types"
+import { Tool } from "@/lib/types"
+import { GitHubRepository } from "@/lib/types/github"
 
 const uploadAndPRParameters = z.object({
   files: z

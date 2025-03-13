@@ -6,10 +6,10 @@ import {
   PaginationItem,
   PaginationLink,
 } from "@/components/ui/pagination"
-import { GitHubRepository } from "@/lib/types/github"
+import { AuthenticatedUserRepository } from "@/lib/types/github"
 
 type RepositoryListProps = {
-  repositories: GitHubRepository[]
+  repositories: AuthenticatedUserRepository[]
   currentPage: number
   maxPage: number
   username: string

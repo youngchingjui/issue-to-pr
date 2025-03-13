@@ -8,7 +8,7 @@ import {
 import { langfuse } from "@/lib/langfuse"
 import { GetIssueTool } from "@/lib/tools"
 import { GitHubIssue } from "@/lib/types/github"
-import { updateJobStatus } from "@/lib/utils"
+import { updateJobStatus } from "@/lib/utils/utils-common"
 
 interface IdentifyPRGoalParams {
   repoFullName: string

@@ -9,8 +9,8 @@ import { createDirectoryTree } from "@/lib/fs"
 import { getFileContent as getGithubFileContent } from "@/lib/github/content"
 import { librarianAgentPrompt } from "@/lib/prompts"
 import GetFileContentTool from "@/lib/tools/GetFileContent"
-import { GitHubRepository } from "@/lib/types"
-import { setupLocalRepository } from "@/lib/utils-server"
+import { GitHubRepository } from "@/lib/types/github"
+import { setupLocalRepository } from "@/lib/utils/utils-server"
 
 export class LibrarianAgent {
   private trace?: LangfuseTraceClient

@@ -1,5 +1,5 @@
 import getOctokit from "@/lib/github"
-import { SearchCodeItem } from "@/lib/types"
+import { SearchCodeItem } from "@/lib/types/github"
 
 export async function searchCode({
   repoFullName,

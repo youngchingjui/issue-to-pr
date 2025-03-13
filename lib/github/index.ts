@@ -3,7 +3,7 @@ import * as fs from "fs"
 import { App } from "octokit"
 
 import { auth } from "@/auth"
-import { getInstallationId } from "@/lib/utils-server"
+import { getInstallationId } from "@/lib/utils/utils-server"
 
 function getPrivateKeyFromFile(): string {
   const privateKeyPath = process.env.GITHUB_APP_PRIVATE_KEY_PATH

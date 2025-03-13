@@ -11,12 +11,7 @@ export async function getGithubUser(): Promise<GitHubUser | null> {
 
     const { data: user } = await octokit.users.getAuthenticated()
     return user
-  } catch (error) {
-    // Log the error but don't expose it to the caller
-    console.error("Failed to fetch GitHub user:", {
-      error,
-      message: error instanceof Error ? error.message : "Unknown error",
-    })
+  } catch (_) {
     return null
   }
 }

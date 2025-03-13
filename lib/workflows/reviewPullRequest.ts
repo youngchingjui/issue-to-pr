@@ -1,5 +1,6 @@
 import { ReviewerAgent } from "@/lib/agents/reviewer"
 import { createDirectoryTree } from "@/lib/fs"
+import { getRepoFromString } from "@/lib/github/content"
 import {
   getPullRequestComments,
   getPullRequestDiff,
@@ -9,9 +10,7 @@ import { langfuse } from "@/lib/langfuse"
 import { SearchCodeTool } from "@/lib/tools"
 import { GetFileContentTool } from "@/lib/tools"
 import { GitHubIssue } from "@/lib/types/github"
-
-import { getRepoFromString } from "../github/content"
-import { setupLocalRepository } from "../utils-server"
+import { setupLocalRepository } from "@/lib/utils/utils-server"
 
 interface ReviewPullRequestParams {
   repoFullName: string

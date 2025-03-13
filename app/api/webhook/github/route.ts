@@ -1,7 +1,7 @@
 import crypto from "crypto"
 import { NextRequest } from "next/server"
 
-import { runWithInstallationId } from "@/lib/utils-server"
+import { runWithInstallationId } from "@/lib/utils/utils-server"
 import { routeWebhookHandler } from "@/lib/webhook"
 
 async function verifySignature(
