@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 
+// Mark this route as dynamic
+export const dynamic = "force-dynamic"
+export const runtime = "edge"
+
 export async function GET(request: NextRequest) {
   return new NextResponse(
     new ReadableStream({
