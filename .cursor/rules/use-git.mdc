@@ -1,0 +1,12 @@
+---
+description: Managing branches, Github Issues and Pull Requests, separating out bug fixes
+globs: 
+alwaysApply: false
+---
+Whenever working on a new update, be sure to synchronize information both locally with .git and the Issues and PRs on Github.
+
+Identify if there are any existing issues on Github that are related. If so, checkout that issue to work on.
+
+Be sure any new branches are made from the latest `main` branch.
+
+Don't make pull requests until I explicitly ask to.

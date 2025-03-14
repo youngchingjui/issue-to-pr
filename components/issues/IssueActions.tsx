@@ -2,6 +2,7 @@ import CreatePRController from "@/components/issues/controllers/CreatePRControll
 import GenerateResolutionPlanController from "@/components/issues/controllers/GenerateResolutionPlanController"
 import { Button } from "@/components/ui/button"
 import { GitHubIssue, WorkflowType } from "@/lib/types/github"
+import { extractRepoFullNameFromIssue } from "@/lib/utils/utils-common"
 
 interface IssueActionsProps {
   issue: GitHubIssue
@@ -20,13 +21,23 @@ export default function IssueActions({
   onWorkflowComplete,
   onWorkflowError,
 }: IssueActionsProps) {
+  const repoFullName = extractRepoFullNameFromIssue(issue)
+
+  if (!repoFullName) {
+    console.error(
+      "Could not determine repository information for issue:",
+      issue
+    )
+    return null
+  }
+
   return (
     <div className="flex gap-4 mt-4">
       <Button
         onClick={() => {
           const controller = GenerateResolutionPlanController({
             issueNumber: issue.number,
-            repoFullName: issue.repository.full_name,
+            repoFullName,
             onStart: () => {
               onWorkflowStart("Generating Plan...")
             },
@@ -45,7 +56,7 @@ export default function IssueActions({
         onClick={() => {
           const controller = CreatePRController({
             issueNumber: issue.number,
-            repoFullName: issue.repository.full_name,
+            repoFullName,
             onStart: () => {
               onWorkflowStart("Creating PR...")
             },

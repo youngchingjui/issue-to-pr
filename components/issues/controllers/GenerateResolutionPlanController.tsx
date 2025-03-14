@@ -6,9 +6,38 @@ import {
   StreamingDrawer,
   type StreamingDrawerControls,
 } from "@/components/streaming/StreamingDrawer"
+import type { WorkflowStage } from "@/components/ui/workflow-progress"
 import { toast } from "@/hooks/use-toast"
 import { CommentRequestSchema } from "@/lib/schemas/api"
 import { getApiKeyFromLocalStorage, SSEUtils } from "@/lib/utils/utils-common"
+
+// Define workflow stages
+const WORKFLOW_STAGES: WorkflowStage[] = [
+  {
+    id: "setup",
+    title: "Setup",
+    description: "Preparing environment and validating inputs",
+    status: "pending",
+  },
+  {
+    id: "analysis",
+    title: "Analysis",
+    description: "Analyzing issue and context",
+    status: "pending",
+  },
+  {
+    id: "planning",
+    title: "Planning",
+    description: "Generating resolution plan",
+    status: "pending",
+  },
+  {
+    id: "completion",
+    title: "Completion",
+    description: "Finalizing and saving results",
+    status: "pending",
+  },
+]
 
 interface Props {
   issueNumber: number
@@ -43,7 +72,10 @@ export default function GenerateResolutionPlanController({
   onComplete,
   onError,
   mockMode = false,
-}: Props) {
+}: Props): {
+  execute: () => Promise<void>
+  drawer: React.ReactNode
+} {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const drawerControls = useRef<StreamingDrawerControls>()
 
@@ -51,18 +83,52 @@ export default function GenerateResolutionPlanController({
     drawerControls.current = controls
   }, [])
 
+  const updateStage = (stageId: string, status: WorkflowStage["status"]) => {
+    if (!drawerControls.current) return
+
+    const now = new Date()
+    drawerControls.current.updateStageStatus(stageId, {
+      status,
+      ...(status === "in-progress" ? { startTime: now } : {}),
+      ...(status === "complete" || status === "error" ? { endTime: now } : {}),
+    })
+  }
+
+  const initializeStages = () => {
+    if (!drawerControls.current) return
+    drawerControls.current.updateStages(WORKFLOW_STAGES)
+  }
+
   const mockExecution = async () => {
     if (!drawerControls.current) return
 
     const controls = drawerControls.current
     controls.clearMessages()
     controls.setLoading(true)
+    initializeStages()
 
-    // Simulate streaming messages with delays
-    for (const message of MOCK_MESSAGES) {
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      controls.addMessage(message)
-    }
+    // Update stages and stream messages with delays
+    updateStage("setup", "in-progress")
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+    controls.addMessage(MOCK_MESSAGES[0])
+    updateStage("setup", "complete")
+
+    updateStage("analysis", "in-progress")
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+    controls.addMessage(MOCK_MESSAGES[1])
+    controls.addMessage(MOCK_MESSAGES[2])
+    updateStage("analysis", "complete")
+
+    updateStage("planning", "in-progress")
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+    controls.addMessage(MOCK_MESSAGES[3])
+    controls.addMessage(MOCK_MESSAGES[4])
+    updateStage("planning", "complete")
+
+    updateStage("completion", "in-progress")
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+    controls.addMessage(MOCK_MESSAGES[5])
+    updateStage("completion", "complete")
 
     controls.setLoading(false)
     onComplete()
@@ -80,9 +146,8 @@ export default function GenerateResolutionPlanController({
       const apiKey = getApiKeyFromLocalStorage()
       if (!apiKey) {
         toast({
-          title: "API key not found",
-          description: "Please save an OpenAI API key first.",
-          variant: "destructive",
+          title: "API Key Required",
+          description: "Please set your API key in the settings.",
         })
         return
       }
@@ -93,6 +158,8 @@ export default function GenerateResolutionPlanController({
       if (drawerControls.current) {
         drawerControls.current.clearMessages()
         drawerControls.current.setLoading(true)
+        initializeStages()
+        updateStage("setup", "in-progress")
         drawerControls.current.addMessage({
           type: "system",
           content: "Starting resolution plan generation...",
@@ -104,6 +171,7 @@ export default function GenerateResolutionPlanController({
         repoFullName,
         apiKey,
       })
+
       const response = await fetch("/api/comment", {
         method: "POST",
         headers: {
@@ -113,16 +181,30 @@ export default function GenerateResolutionPlanController({
       })
 
       if (!response.ok) {
-        throw new Error("Failed to start resolution plan generation")
+        const data = await response.json()
+        throw new Error(
+          data.error || "Failed to start resolution plan generation"
+        )
       }
 
       const { jobId } = await response.json()
+
       const eventSource = new EventSource(`/api/sse?jobId=${jobId}`)
+
+      updateStage("setup", "complete")
+      updateStage("analysis", "in-progress")
 
       eventSource.onmessage = (event) => {
         const status = SSEUtils.decodeStatus(event.data)
 
         if (drawerControls.current) {
+          if (status.toLowerCase().includes("analyzing")) {
+            updateStage("analysis", "in-progress")
+          } else if (status.toLowerCase().includes("planning")) {
+            updateStage("analysis", "complete")
+            updateStage("planning", "in-progress")
+          }
+
           drawerControls.current.addMessage({
             type: status.startsWith("Error:") ? "error" : "llm",
             content: status,
@@ -133,6 +215,8 @@ export default function GenerateResolutionPlanController({
           eventSource.close()
           if (drawerControls.current) {
             drawerControls.current.setLoading(false)
+            updateStage("planning", "complete")
+            updateStage("completion", "complete")
           }
           onComplete()
         } else if (
@@ -142,6 +226,11 @@ export default function GenerateResolutionPlanController({
           eventSource.close()
           if (drawerControls.current) {
             drawerControls.current.setLoading(false)
+            updateStage("planning", "complete")
+            updateStage(
+              "completion",
+              status.startsWith("Failed") ? "error" : "complete"
+            )
           }
           onComplete()
         }
@@ -155,6 +244,12 @@ export default function GenerateResolutionPlanController({
           drawerControls.current.addMessage({
             type: "error",
             content: "Connection failed. Please try again.",
+          })
+          // Mark all incomplete stages as error
+          WORKFLOW_STAGES.forEach((stage) => {
+            if (stage.status !== "complete") {
+              updateStage(stage.id, "error")
+            }
           })
         }
         onError()
@@ -174,6 +269,12 @@ export default function GenerateResolutionPlanController({
               ? error.message
               : "An unexpected error occurred",
         })
+        // Mark all incomplete stages as error
+        WORKFLOW_STAGES.forEach((stage) => {
+          if (stage.status !== "complete") {
+            updateStage(stage.id, "error")
+          }
+        })
       }
 
       toast({
@@ -181,11 +282,10 @@ export default function GenerateResolutionPlanController({
         description:
           error instanceof Error
             ? error.message
-            : "An unexpected error occurred",
-        variant: "destructive",
+            : "An unexpected error occurred while generating the resolution plan.",
       })
+
       onError()
-      console.error("Resolution plan generation failed:", error)
     }
   }
 

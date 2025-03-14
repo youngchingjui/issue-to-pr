@@ -3,6 +3,7 @@ import { EventEmitter } from "events"
 import { twMerge } from "tailwind-merge"
 
 import { LOCAL_STORAGE_KEY } from "@/lib/globals"
+import { GitHubIssue } from "@/lib/types/github"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -43,4 +44,28 @@ export const SSEUtils = {
   decodeStatus(encodedStatus: string): string {
     return encodedStatus.replace(/\\n/g, "\n")
   },
+}
+
+/**
+ * Extracts the repository full name from a GitHub issue
+ * @param issue - GitHub issue object
+ * @returns The repository full name (e.g. owner/repo) or null if it cannot be determined
+ */
+export function extractRepoFullNameFromIssue(
+  issue: GitHubIssue
+): string | null {
+  // First try to get from repository object directly
+  if (issue.repository?.full_name) {
+    return issue.repository.full_name
+  }
+
+  // Fallback to parsing from repository_url
+  if (issue.repository_url) {
+    const match = issue.repository_url.match(
+      /github\.com\/repos\/([^/]+\/[^/]+)/
+    )
+    return match ? match[1] : null
+  }
+
+  return null
 }
