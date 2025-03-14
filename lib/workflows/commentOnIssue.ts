@@ -7,11 +7,44 @@ import {
   updateIssueComment,
 } from "@/lib/github/issues"
 import { langfuse } from "@/lib/langfuse"
-import { updateJobStatus } from "@/lib/redis-old"
+import { WorkflowEmitter, WorkflowStage } from "@/lib/services/WorkflowEmitter"
 import { SearchCodeTool } from "@/lib/tools"
 import GetFileContentTool from "@/lib/tools/GetFileContent"
 import { GitHubRepository } from "@/lib/types/github"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
+
+const COMMENT_WORKFLOW_STAGES: WorkflowStage[] = [
+  {
+    id: "auth",
+    name: "Authentication",
+    description: "Authenticating and retrieving token",
+  },
+  {
+    id: "issue_retrieval",
+    name: "Issue Retrieval",
+    description: "Retrieving issue details",
+  },
+  {
+    id: "initial_comment",
+    name: "Initial Comment",
+    description: "Posting initial processing comment",
+  },
+  {
+    id: "repo_setup",
+    name: "Repository Setup",
+    description: "Setting up local repository",
+  },
+  {
+    id: "analysis",
+    name: "Analysis",
+    description: "Analyzing issue and generating response",
+  },
+  {
+    id: "comment_update",
+    name: "Comment Update",
+    description: "Updating comment with final response",
+  },
+]
 
 interface GitHubError extends Error {
   status?: number
@@ -31,9 +64,15 @@ export default async function commentOnIssue(
   const trace = langfuse.trace({ name: "commentOnIssue" })
   let initialCommentId: number | null = null
 
+  // Initialize workflow
+  await WorkflowEmitter.initWorkflow(jobId, COMMENT_WORKFLOW_STAGES)
+
   try {
-    updateJobStatus(jobId, "Authenticating and retrieving token")
+    // Authentication stage
+    await WorkflowEmitter.startStage(jobId, "auth")
+
     // Get the issue
+    await WorkflowEmitter.startStage(jobId, "issue_retrieval")
     const issue = await getIssue({
       fullName: repo.full_name,
       issueNumber,
@@ -47,11 +86,10 @@ export default async function commentOnIssue(
         `Failed to get issue #${issueNumber}: ${error.response?.data?.message || error.message}`
       )
     })
+    await WorkflowEmitter.completeStage(jobId, "issue_retrieval")
 
-    updateJobStatus(jobId, "Issue retrieved successfully")
-
-    // Post initial comment indicating processing start
-    updateJobStatus(jobId, "Posting initial processing comment")
+    // Post initial comment
+    await WorkflowEmitter.startStage(jobId, "initial_comment")
     try {
       const initialComment = await createIssueComment({
         issueNumber,
@@ -59,6 +97,7 @@ export default async function commentOnIssue(
         comment: "[Issue To PR] Generating plan...please wait a minute.",
       })
       initialCommentId = initialComment.id
+      await WorkflowEmitter.completeStage(jobId, "initial_comment")
     } catch (error) {
       const githubError = error as GitHubError
       console.error("Failed to create initial comment:", {
@@ -94,8 +133,8 @@ export default async function commentOnIssue(
       )
     }
 
-    updateJobStatus(jobId, "Setting up the local repository")
-    // Setup local repository using setupLocalRepository
+    // Setup repository
+    await WorkflowEmitter.startStage(jobId, "repo_setup")
     const dirPath = await setupLocalRepository({
       repoFullName: repo.full_name,
       workingBranch: repo.default_branch,
@@ -106,11 +145,12 @@ export default async function commentOnIssue(
       })
       throw new Error(`Failed to setup local repository: ${error.message}`)
     })
-
-    updateJobStatus(jobId, "Repository setup completed")
+    await WorkflowEmitter.completeStage(jobId, "repo_setup")
 
     const tree = await createDirectoryTree(dirPath)
-    updateJobStatus(jobId, "Directory tree created")
+
+    // Analysis stage
+    await WorkflowEmitter.startStage(jobId, "analysis")
 
     // Prepare the tools
     const getFileContentTool = new GetFileContentTool(dirPath)
@@ -124,12 +164,28 @@ export default async function commentOnIssue(
     thinker.addTool(searchCodeTool)
     thinker.addJobId(jobId)
 
-    updateJobStatus(jobId, "Generating comment")
-    const response = await thinker.runWithFunctions()
+    // Track analysis progress
+    let analysisProgress = 0
+    const progressInterval = setInterval(async () => {
+      if (analysisProgress < 90) {
+        analysisProgress += 10
+        await WorkflowEmitter.updateStageProgress(
+          jobId,
+          "analysis",
+          analysisProgress
+        )
+      }
+    }, 2000)
+
+    // Use streaming version
+    const response = await thinker.runWithFunctionsStream()
+    clearInterval(progressInterval)
+    await WorkflowEmitter.updateStageProgress(jobId, "analysis", 100)
+    await WorkflowEmitter.completeStage(jobId, "analysis")
     span.end()
 
-    updateJobStatus(jobId, "Updating initial comment with final response")
-    // Update the initial comment with the final response
+    // Update comment
+    await WorkflowEmitter.startStage(jobId, "comment_update")
     if (initialCommentId) {
       await updateIssueComment({
         repoFullName: repo.full_name,
@@ -144,11 +200,7 @@ export default async function commentOnIssue(
         throw new Error(`Failed to update comment: ${error.message}`)
       })
     }
-
-    updateJobStatus(jobId, "Comment updated successfully")
-
-    // Send a final message indicating the stream is finished
-    updateJobStatus(jobId, "Stream finished")
+    await WorkflowEmitter.completeStage(jobId, "comment_update")
 
     // Return the comment
     return { status: "complete", issueComment: response }
@@ -182,7 +234,13 @@ export default async function commentOnIssue(
       }
     }
 
-    updateJobStatus(jobId, `Error: ${errorMessage}`)
-    throw githubError // Re-throw the error to be handled by the caller
+    // Mark current stage as failed
+    const currentStage = (await WorkflowEmitter.getWorkflowState(jobId))
+      ?.currentStageId
+    if (currentStage) {
+      await WorkflowEmitter.completeStage(jobId, currentStage, errorMessage)
+    }
+
+    throw githubError
   }
 }
