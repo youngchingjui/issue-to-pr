@@ -1,6 +1,11 @@
 {
   "plugins": ["simple-import-sort"],
-  "extends": ["next/core-web-vitals", "next/typescript", "prettier"],
+  "extends": [
+    "next/core-web-vitals",
+    "next/typescript",
+    "prettier",
+    "plugin:react-hooks/recommended-legacy"
+  ],
   "rules": {
     "@typescript-eslint/no-unused-vars": [
       "warn",
