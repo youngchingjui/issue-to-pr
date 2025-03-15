@@ -1,16 +1,22 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Check, ShoppingCart } from "lucide-react"
+import { Check, HelpCircle, ShoppingCart } from "lucide-react"
 import Link from "next/link"
 import React from "react"
 
-import { Card, CardContent, CardHeader } from "../ui/card"
-import MovingBorderCard from "../ui/moving-border-card"
-import ShineButton from "../ui/shine-button"
-import TextLg from "../ui/text-lg"
-import TextMd from "../ui/text-md"
-import TextSm from "../ui/text-sm"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import MovingBorderCard from "@/components/ui/moving-border-card"
+import ShineButton from "@/components/ui/shine-button"
+import TextLg from "@/components/ui/text-lg"
+import TextMd from "@/components/ui/text-md"
+import TextSm from "@/components/ui/text-sm"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 const Pricing = () => {
   const features = [
@@ -101,6 +107,30 @@ const Pricing = () => {
               </Link>
             </div>
             <CardContent className="p-6 sm:p-8">
+              <div className="flex items-center justify-center mb-4">
+                <p className="text-muted-foreground text-center">
+                  Up to 5 resolved issues per month
+                </p>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button className="ml-1.5 inline-flex items-center justify-center">
+                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>
+                        A &quot;resolved issue&quot; is counted when Issue to PR
+                        generates a solution that is merged to production
+                        (usually &apos;main&apos; branch). Additional manual
+                        updates to the same branch still count as one resolved
+                        issue. If a PR is not merged to main, it won&apos;t
+                        count against your limit.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <p className="text-muted-foreground mb-4 text-center">
                 Everything you need to improve your code quality:
               </p>
