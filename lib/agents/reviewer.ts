@@ -26,7 +26,7 @@ You have access to the following tools:
 You will need to generate an assessment of the PR or git diff that addresses the following questions:
 - Which functions do these changes impact?
 - What other files use these functions? Do they need to change?
-- Digging deep into nested functions, what is the best way to incorporate all these changes? Is it by making changes at every step of the nesting? Or is there a more eloquent way to implement the overall goal (restate the issue).
+- Digging deep into nested functions, what is the best way to incorporate all these changes? Is it by making changes at every step of the nesting? Or is there a more eloquent way to implement the overall goal (restate the issue)?
 - Are there changes here that don't belong to this PR? Ie they don't address the issue at hand? And should they be separated into a separate PR?
 
 ## General guidance
@@ -36,6 +36,7 @@ You will need to generate an assessment of the PR or git diff that addresses the
 - If a function calls other functions, trace the entire execution flow before making changes.
 - Fetch and review downstream function definitions that may modify key behavior.
 - Open specific files to get a full understanding of the problem in the code
+- Evaluate code organization, considering high complexity, lack of separation of concerns, and code redundancy.
 
 ## Output
 Your output should be an assessment of the PR or git diff that addresses the questions above. Please output in markdown.
