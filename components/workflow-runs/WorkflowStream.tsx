@@ -8,8 +8,12 @@ interface WorkflowStreamProps {
   workflowId: string
 }
 
+type CombinedEvent = WorkflowEvent & {
+  chunks: WorkflowEvent[]
+}
+
 export default function WorkflowStream({ workflowId }: WorkflowStreamProps) {
-  const [events, setEvents] = useState<WorkflowEvent[]>([])
+  const [events, setEvents] = useState<CombinedEvent[]>([])
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -18,7 +22,37 @@ export default function WorkflowStream({ workflowId }: WorkflowStreamProps) {
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data) as WorkflowEvent
-        setEvents((prev) => [...prev, data])
+        setEvents((prev) => {
+          const lastEvent = prev[prev.length - 1]
+
+          // If this is a new message type or there's no previous event, create a new event
+          if (!lastEvent || lastEvent.type !== data.type) {
+            return [...prev, { ...data, chunks: [data] }]
+          }
+
+          // Otherwise, combine with the last event
+          const updatedEvents = [...prev]
+          const updatedLastEvent = { ...lastEvent }
+          updatedLastEvent.chunks = [...updatedLastEvent.chunks, data]
+
+          // Combine the content for LLM responses
+          if (
+            data.type === "llm_response" &&
+            updatedLastEvent.type === "llm_response"
+          ) {
+            updatedLastEvent.data = {
+              content: updatedLastEvent.chunks
+                .filter(
+                  (chunk): chunk is typeof data => chunk.type === "llm_response"
+                )
+                .map((chunk) => chunk.data.content)
+                .join(""),
+            }
+          }
+
+          updatedEvents[updatedEvents.length - 1] = updatedLastEvent
+          return updatedEvents
+        })
       } catch (error) {
         console.error("Failed to parse event data:", error)
       }
@@ -35,7 +69,7 @@ export default function WorkflowStream({ workflowId }: WorkflowStreamProps) {
     }
   }, [workflowId])
 
-  const renderEventContent = (event: WorkflowEvent) => {
+  const renderEventContent = (event: CombinedEvent) => {
     switch (event.type) {
       case "llm_response":
         return (
