@@ -6,12 +6,11 @@ import {
   ChatCompletionCreateParamsStreaming,
   ChatCompletionMessageParam,
   ChatCompletionMessageToolCall,
-  ChatCompletionToolMessageParam,
 } from "openai/resources/chat/completions"
 import { z } from "zod"
 
 import { updateJobStatus } from "@/lib/redis-old"
-import { LLMOutput, WorkflowEmitter } from "@/lib/services/WorkflowEmitter"
+import WorkflowEventEmitter from "@/lib/services/EventEmitter"
 import { AgentConstructorParams, Tool } from "@/lib/types"
 
 interface ToolCallInProgress extends ChatCompletionMessageToolCall {
@@ -182,14 +181,12 @@ export class Agent {
 
         // If we have a jobId, emit the content update
         if (this.jobId) {
-          const llmOutput: LLMOutput = {
-            content: delta.content,
-            timestamp: new Date(),
-          }
-          await WorkflowEmitter.setStageMetadata(this.jobId, "analysis", {
-            metadata: {
-              llm_output: llmOutput,
+          WorkflowEventEmitter.emit(this.jobId, {
+            type: "llm_response",
+            data: {
+              content: delta.content,
             },
+            timestamp: new Date(),
           })
         }
       }
@@ -220,6 +217,22 @@ export class Agent {
             })
           }
         }
+
+        // Emit tool call event
+        if (this.jobId) {
+          WorkflowEventEmitter.emit(this.jobId, {
+            type: "tool_call",
+            data: {
+              toolCalls: currentToolCalls.map((tc) => ({
+                function: {
+                  name: tc.function.name,
+                  arguments: tc.function.arguments,
+                },
+              })),
+            },
+            timestamp: new Date(),
+          })
+        }
       }
     }
 
@@ -238,21 +251,49 @@ export class Agent {
           (t) => t.tool.function.name === toolCall.function.name
         )
         if (tool) {
-          const validationResult = tool.parameters.safeParse(
-            JSON.parse(toolCall.function.arguments)
-          )
-          if (!validationResult.success) {
-            console.error(
-              `Validation failed for tool ${toolCall.function.name}: ${validationResult.error.message}`
+          try {
+            const validationResult = tool.parameters.safeParse(
+              JSON.parse(toolCall.function.arguments)
             )
-            continue
+            if (validationResult.success) {
+              const toolResponse = await tool.handler(validationResult.data)
+
+              if (this.jobId) {
+                WorkflowEventEmitter.emit(this.jobId, {
+                  type: "tool_response",
+                  data: {
+                    toolName: toolCall.function.name,
+                    response: toolResponse,
+                  },
+                  timestamp: new Date(),
+                })
+              }
+
+              this.addMessage({
+                role: "tool",
+                content: toolResponse,
+                tool_call_id: toolCall.id,
+              })
+            } else {
+              if (this.jobId) {
+                WorkflowEventEmitter.emit(this.jobId, {
+                  type: "error",
+                  data: new Error(
+                    `Validation failed for tool ${toolCall.function.name}: ${validationResult.error.message}`
+                  ),
+                  timestamp: new Date(),
+                })
+              }
+            }
+          } catch (error) {
+            if (this.jobId) {
+              WorkflowEventEmitter.emit(this.jobId, {
+                type: "error",
+                data: error instanceof Error ? error : new Error(String(error)),
+                timestamp: new Date(),
+              })
+            }
           }
-          const toolResponse = await tool.handler(validationResult.data)
-          this.addMessage({
-            role: "tool",
-            content: toolResponse,
-            tool_call_id: toolCall.id,
-          })
         } else {
           console.error(`Tool ${toolCall.function.name} not found`)
         }
@@ -260,6 +301,16 @@ export class Agent {
       return await this.runWithFunctionsStream()
     }
 
-    return currentMessage.content
+    if (this.jobId) {
+      WorkflowEventEmitter.emit(this.jobId, {
+        type: "complete",
+        data: {
+          content: fullContent,
+        },
+        timestamp: new Date(),
+      })
+    }
+
+    return fullContent
   }
 }
