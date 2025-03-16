@@ -88,6 +88,11 @@ const Features = () => {
         <div className="flex flex-col max-w-[1300px] w-full gap-12 px-5 lg:px-10">
           {[
             {
+              title: "Built for Complex Codebases",
+              description:
+                "Unlike tools that build from scratch, Issue To PR excels at improving existing, complex codebases - making it perfect for established projects.",
+            },
+            {
               title: "Catch Bugs Early",
               description:
                 "Spot bugs and errors that might slip through manual reviews.",
