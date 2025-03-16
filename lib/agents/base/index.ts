@@ -3,12 +3,19 @@ import OpenAI from "openai"
 import { ChatModel } from "openai/resources"
 import {
   ChatCompletionCreateParamsNonStreaming,
+  ChatCompletionCreateParamsStreaming,
   ChatCompletionMessageParam,
+  ChatCompletionMessageToolCall,
 } from "openai/resources/chat/completions"
 import { z } from "zod"
 
 import { updateJobStatus } from "@/lib/redis-old"
+import WorkflowEventEmitter from "@/lib/services/EventEmitter"
 import { AgentConstructorParams, Tool } from "@/lib/types"
+
+interface ToolCallInProgress extends ChatCompletionMessageToolCall {
+  index: number
+}
 
 export class Agent {
   REQUIRED_TOOLS: string[] = []
@@ -137,5 +144,173 @@ export class Agent {
     } else {
       return response.choices[0].message.content
     }
+  }
+
+  async runWithFunctionsStream(): Promise<string> {
+    const hasTools = this.checkTools()
+    if (!hasTools) {
+      throw new Error("Missing tools, please attach required tools first")
+    }
+
+    const params: ChatCompletionCreateParamsStreaming = {
+      model: this.model,
+      messages: this.messages,
+      stream: true,
+    }
+
+    if (this.tools.length > 0) {
+      params.tools = this.tools.map((tool) => tool.tool)
+    }
+
+    const response = await this.llm.chat.completions.create(params)
+    let fullContent = ""
+    const currentToolCalls: ToolCallInProgress[] = []
+    const currentMessage = {
+      role: "assistant" as const,
+      content: "",
+      tool_calls: [],
+    }
+
+    for await (const chunk of response) {
+      const delta = chunk.choices[0]?.delta
+
+      // Handle content updates
+      if (delta?.content) {
+        currentMessage.content += delta.content
+        fullContent += delta.content
+
+        // If we have a jobId, emit the content update
+        if (this.jobId) {
+          WorkflowEventEmitter.emit(this.jobId, {
+            type: "llm_response",
+            data: {
+              content: delta.content,
+            },
+            timestamp: new Date(),
+          })
+        }
+      }
+
+      // Handle tool calls
+      if (delta?.tool_calls) {
+        for (const toolCall of delta.tool_calls) {
+          const existingToolCall = currentToolCalls.find(
+            (t) => t.index === toolCall.index
+          )
+
+          if (existingToolCall) {
+            if (toolCall.function?.name) {
+              existingToolCall.function.name = toolCall.function.name
+            }
+            if (toolCall.function?.arguments) {
+              existingToolCall.function.arguments += toolCall.function.arguments
+            }
+          } else {
+            currentToolCalls.push({
+              id: toolCall.id || "",
+              index: toolCall.index || 0,
+              type: "function",
+              function: {
+                name: toolCall.function?.name || "",
+                arguments: toolCall.function?.arguments || "",
+              },
+            })
+          }
+        }
+
+        // Emit tool call event
+        if (this.jobId) {
+          WorkflowEventEmitter.emit(this.jobId, {
+            type: "tool_call",
+            data: {
+              toolCalls: currentToolCalls.map((tc) => ({
+                function: {
+                  name: tc.function.name,
+                  arguments: tc.function.arguments,
+                },
+              })),
+            },
+            timestamp: new Date(),
+          })
+        }
+      }
+    }
+
+    // Update the final message with tool calls if any
+    if (currentToolCalls.length > 0) {
+      currentMessage.tool_calls = currentToolCalls
+    }
+
+    // Add the complete message to our history
+    this.addMessage(currentMessage)
+
+    // Handle tool calls if any
+    if (currentToolCalls.length > 0) {
+      for (const toolCall of currentToolCalls) {
+        const tool = this.tools.find(
+          (t) => t.tool.function.name === toolCall.function.name
+        )
+        if (tool) {
+          try {
+            const validationResult = tool.parameters.safeParse(
+              JSON.parse(toolCall.function.arguments)
+            )
+            if (validationResult.success) {
+              const toolResponse = await tool.handler(validationResult.data)
+
+              if (this.jobId) {
+                WorkflowEventEmitter.emit(this.jobId, {
+                  type: "tool_response",
+                  data: {
+                    toolName: toolCall.function.name,
+                    response: toolResponse,
+                  },
+                  timestamp: new Date(),
+                })
+              }
+
+              this.addMessage({
+                role: "tool",
+                content: toolResponse,
+                tool_call_id: toolCall.id,
+              })
+            } else {
+              if (this.jobId) {
+                WorkflowEventEmitter.emit(this.jobId, {
+                  type: "error",
+                  data: new Error(
+                    `Validation failed for tool ${toolCall.function.name}: ${validationResult.error.message}`
+                  ),
+                  timestamp: new Date(),
+                })
+              }
+            }
+          } catch (error) {
+            if (this.jobId) {
+              WorkflowEventEmitter.emit(this.jobId, {
+                type: "error",
+                data: error instanceof Error ? error : new Error(String(error)),
+                timestamp: new Date(),
+              })
+            }
+          }
+        } else {
+          console.error(`Tool ${toolCall.function.name} not found`)
+        }
+      }
+      return await this.runWithFunctionsStream()
+    }
+
+    if (this.jobId) {
+      WorkflowEventEmitter.emit(this.jobId, {
+        type: "complete",
+        data: {
+          content: fullContent,
+        },
+        timestamp: new Date(),
+      })
+    }
+
+    return fullContent
   }
 }
