@@ -7,6 +7,7 @@ import {
   updateIssueComment,
 } from "@/lib/github/issues"
 import { langfuse } from "@/lib/langfuse"
+import { updateJobStatus } from "@/lib/redis-old"
 import { SearchCodeTool } from "@/lib/tools"
 import GetFileContentTool from "@/lib/tools/GetFileContent"
 import { GitHubRepository } from "@/lib/types/github"
@@ -31,6 +32,7 @@ export default async function commentOnIssue(
   let initialCommentId: number | null = null
 
   try {
+    updateJobStatus(jobId, "Authenticating and retrieving token")
     // Get the issue
     const issue = await getIssue({
       fullName: repo.full_name,
@@ -46,7 +48,10 @@ export default async function commentOnIssue(
       )
     })
 
-    // Post initial comment
+    updateJobStatus(jobId, "Issue retrieved successfully")
+
+    // Post initial comment indicating processing start
+    updateJobStatus(jobId, "Posting initial processing comment")
     try {
       const initialComment = await createIssueComment({
         issueNumber,
@@ -89,7 +94,8 @@ export default async function commentOnIssue(
       )
     }
 
-    // Setup repository
+    updateJobStatus(jobId, "Setting up the local repository")
+    // Setup local repository using setupLocalRepository
     const dirPath = await setupLocalRepository({
       repoFullName: repo.full_name,
       workingBranch: repo.default_branch,
@@ -101,7 +107,10 @@ export default async function commentOnIssue(
       throw new Error(`Failed to setup local repository: ${error.message}`)
     })
 
+    updateJobStatus(jobId, "Repository setup completed")
+
     const tree = await createDirectoryTree(dirPath)
+    updateJobStatus(jobId, "Directory tree created")
 
     // Prepare the tools
     const getFileContentTool = new GetFileContentTool(dirPath)
@@ -115,11 +124,12 @@ export default async function commentOnIssue(
     thinker.addTool(searchCodeTool)
     thinker.addJobId(jobId)
 
-    // Use streaming version
-    const response = await thinker.runWithFunctionsStream()
+    updateJobStatus(jobId, "Generating comment")
+    const response = await thinker.runWithFunctions()
     span.end()
 
-    // Update comment
+    updateJobStatus(jobId, "Updating initial comment with final response")
+    // Update the initial comment with the final response
     if (initialCommentId) {
       await updateIssueComment({
         repoFullName: repo.full_name,
@@ -134,6 +144,11 @@ export default async function commentOnIssue(
         throw new Error(`Failed to update comment: ${error.message}`)
       })
     }
+
+    updateJobStatus(jobId, "Comment updated successfully")
+
+    // Send a final message indicating the stream is finished
+    updateJobStatus(jobId, "Stream finished")
 
     // Return the comment
     return { status: "complete", issueComment: response }
@@ -167,6 +182,7 @@ export default async function commentOnIssue(
       }
     }
 
-    throw githubError
+    updateJobStatus(jobId, `Error: ${errorMessage}`)
+    throw githubError // Re-throw the error to be handled by the caller
   }
 }
