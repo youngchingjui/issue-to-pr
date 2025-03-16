@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 
-import WorkflowStream from "@/app/components/WorkflowStream"
+import WorkflowStream from "@/components/workflow-runs/WorkflowStream"
 
 export default function WorkflowTest() {
   const [workflowId, setWorkflowId] = useState<string>("")
