@@ -9,6 +9,8 @@ import {
 } from "openai/resources/chat/completions"
 import { z } from "zod"
 
+import { testConfig } from "@/lib/config/test"
+import { MockLLM } from "@/lib/mocks/MockLLM"
 import { updateJobStatus } from "@/lib/redis-old"
 import WorkflowEventEmitter from "@/lib/services/EventEmitter"
 import { AgentConstructorParams, Tool } from "@/lib/types"
@@ -22,8 +24,8 @@ export class Agent {
   prompt: string
   messages: ChatCompletionMessageParam[] = []
   tools: Tool<z.ZodType>[] = []
-  llm: OpenAI
-  model: ChatModel = "gpt-4o"
+  llm: OpenAI | MockLLM
+  model: ChatModel = "gpt-4"
   jobId?: string
 
   constructor({ model, systemPrompt, apiKey }: AgentConstructorParams) {
@@ -33,8 +35,14 @@ export class Agent {
     if (systemPrompt) {
       this.setSystemPrompt(systemPrompt)
     }
-    if (apiKey) {
-      this.addApiKey(apiKey)
+
+    // Initialize LLM based on configuration
+    if (testConfig.useMockLLM) {
+      this.llm = new MockLLM()
+    } else if (apiKey) {
+      this.llm = new OpenAI({ apiKey })
+    } else {
+      throw new Error("Either apiKey or mockLLM must be provided")
     }
   }
 

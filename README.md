@@ -78,3 +78,80 @@ Ensure you have the necessary environment variables set up. You may need to crea
 AUTH_GITHUB_ID=your_github_client_id
 AUTH_GITHUB_SECRET=your_github_client_secret
 ```
+
+## Features
+
+- Automatically creates pull requests from issues
+- Uses AI to understand issue requirements and generate code
+- Supports multiple programming languages and frameworks
+- Configurable workflows and templates
+
+## Development
+
+### Prerequisites
+
+- Node.js 18+
+- pnpm
+- GitHub App credentials
+
+### Setup
+
+1. Clone the repository
+2. Install dependencies:
+
+```bash
+pnpm install
+```
+
+3. Copy `.env.example` to `.env.local` and fill in the required values
+4. Start the development server:
+
+```bash
+pnpm dev
+```
+
+### Testing
+
+The project includes a comprehensive testing infrastructure that allows you to test workflows without making real API calls.
+
+#### Mock Services
+
+You can enable mock services using environment variables:
+
+```bash
+# .env.local or .env.test
+USE_MOCK_LLM=true    # Use mock LLM instead of real OpenAI API
+USE_MOCK_GITHUB=true # Use mock GitHub client instead of real GitHub API
+```
+
+This allows you to:
+
+- Test workflows without incurring OpenAI API costs
+- Test GitHub operations without affecting real repositories
+- Get faster feedback during development
+
+See [test-utils/README.md](test-utils/README.md) for detailed documentation on using the testing infrastructure.
+
+#### Running Tests
+
+```bash
+# Run all tests
+pnpm test
+
+# Run tests in watch mode
+pnpm test:watch
+
+# Run tests with coverage
+pnpm test:coverage
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+## License
+
+MIT
