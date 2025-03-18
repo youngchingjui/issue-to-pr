@@ -18,6 +18,10 @@ export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [activeWorkflow, setActiveWorkflow] = useState<string | null>(null)
 
+  const [owner, repo] = repoFullName.split("/")
+  const localUrl = `/${owner}/${repo}/issues/${issue.number}`
+  const githubUrl = `https://github.com/${repoFullName}/issues/${issue.number}`
+
   const createPRController = CreatePRController({
     issueNumber: issue.number,
     repoFullName,
@@ -56,12 +60,13 @@ export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
     <DataRow
       title={issue.title}
       number={issue.number}
-      url={`https://github.com/${repoFullName}/issues/${issue.number}`}
+      url={localUrl}
       user={issue.user.login}
       state={issue.state}
       updatedAt={issue.updated_at}
       isLoading={isLoading}
       activeWorkflow={activeWorkflow}
+      githubUrl={githubUrl}
     >
       <DropdownMenuItem onClick={generateResolutionPlanController.execute}>
         <div>

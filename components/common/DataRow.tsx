@@ -1,7 +1,7 @@
 "use client"
 
 import { formatDistanceToNow } from "date-fns"
-import { ChevronDown, Loader2, PlayCircle } from "lucide-react"
+import { ChevronDown, ExternalLink, Loader2, PlayCircle } from "lucide-react"
 import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
@@ -16,6 +16,7 @@ interface DataRowProps {
   title: string
   number: number
   url: string
+  githubUrl: string
   user: string
   state: string
   updatedAt: string
@@ -28,6 +29,7 @@ export default function DataRow({
   title,
   number,
   url,
+  githubUrl,
   user,
   state,
   updatedAt,
@@ -39,14 +41,17 @@ export default function DataRow({
     <TableRow>
       <TableCell className="py-4">
         <div className="flex flex-col gap-1">
-          <div className="font-medium text-base">
+          <div className="font-medium text-base flex items-center gap-2">
+            <Link href={url} className="hover:underline">
+              {title}
+            </Link>
             <Link
-              href={url}
+              href={githubUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:underline"
+              className="text-muted-foreground hover:text-foreground"
             >
-              {title}
+              <ExternalLink className="h-4 w-4" />
             </Link>
           </div>
           <div className="text-sm text-muted-foreground flex items-center gap-2">
