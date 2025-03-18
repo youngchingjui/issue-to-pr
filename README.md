@@ -7,7 +7,11 @@
 Before you begin, ensure you have the following installed:
 
 - Node.js (version 14 or later)
-- npm or yarn
+- pnpm (required) - We use pnpm for its significant advantages:
+  - Much faster installation than npm
+  - Efficient disk space usage through content-addressable storage
+  - Strict dependency management preventing phantom dependencies
+  - Dramatically improved CI/CD build times
 - Redis server
 
 ### Setting Up Redis
@@ -26,6 +30,7 @@ Before you begin, ensure you have the following installed:
      ```bash
      sudo apt update
      sudo apt install redis-server
+
      ```
 
    - **Windows**: Use WSL or download a precompiled binary from [Microsoft's Redis page](https://github.com/microsoftarchive/redis/releases).
@@ -52,23 +57,25 @@ Before you begin, ensure you have the following installed:
    cd <repository-directory>
    ```
 
-2. **Install Dependencies**:
+2. **Install pnpm** (if not already installed):
 
    ```bash
-   npm install
-   # or
-   yarn install
+   npm install -g pnpm
    ```
 
-3. **Run the Development Server**:
+3. **Install Dependencies**:
 
    ```bash
-   npm run dev
-   # or
-   yarn dev
+   pnpm install
    ```
 
-4. **Open the Application**: Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+4. **Run the Development Server**:
+
+   ```bash
+   pnpm dev
+   ```
+
+5. **Open the Application**: Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 ### Environment Variables
 
