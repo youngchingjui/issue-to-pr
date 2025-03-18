@@ -12,24 +12,47 @@ export const GitHubURLSchema = z
     message: "URL must be from github.com",
   })
   .refine(
-    (url) => /github\.com\/([^\/]+)\/([^\/]+)\/(issues|pull)\/(\d+)/.test(url),
+    (url) => {
+      // Match regular GitHub URLs
+      const githubPattern =
+        /github\.com\/([^\/]+)\/([^\/]+)\/(issues|pull)\/(\d+)/
+      // Match GitHub API URLs
+      const apiPattern = /api\.github\.com\/repos\/([^\/]+)\/([^\/]+)/
+      return githubPattern.test(url) || apiPattern.test(url)
+    },
     {
       message:
-        "URL must be a valid GitHub issue or pull request (e.g., https://github.com/owner/repo/issues/123)",
+        "URL must be a valid GitHub issue/PR (e.g., github.com/owner/repo/issues/123) or API URL (e.g., api.github.com/repos/owner/repo)",
     }
   )
   .transform((url) => {
-    const match = url.match(
+    // Try regular GitHub URL pattern first
+    const githubMatch = url.match(
       /github\.com\/([^\/]+)\/([^\/]+)\/(issues|pull)\/(\d+)/
-    )!
-    const [, owner, repo, type, number] = match
-    return {
-      owner,
-      repo,
-      type: type === "issues" ? "issue" : "pull",
-      number: parseInt(number, 10),
-      fullName: `${owner}/${repo}`,
+    )
+    if (githubMatch) {
+      const [, owner, repo, type, number] = githubMatch
+      return {
+        owner,
+        repo,
+        type: type === "issues" ? "issue" : "pull",
+        number: parseInt(number, 10),
+        fullName: `${owner}/${repo}`,
+      }
     }
+
+    // Try API URL pattern
+    const apiMatch = url.match(/api\.github\.com\/repos\/([^\/]+)\/([^\/]+)/)
+    if (apiMatch) {
+      const [, owner, repo] = apiMatch
+      return {
+        owner,
+        repo,
+        fullName: `${owner}/${repo}`,
+      }
+    }
+
+    throw new Error("Invalid GitHub URL format")
   })
 
 export const FetchGitHubItemRequestSchema = z.object({
