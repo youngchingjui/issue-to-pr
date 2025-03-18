@@ -7,7 +7,11 @@
 Before you begin, ensure you have the following installed:
 
 - Node.js (version 14 or later)
-- pnpm (recommended) or npm
+- pnpm (required) - We use pnpm for its significant advantages:
+  - Much faster installation than npm
+  - Efficient disk space usage through content-addressable storage
+  - Strict dependency management preventing phantom dependencies
+  - Dramatically improved CI/CD build times
 - Redis server
 
 ### Setting Up Redis

@@ -18,6 +18,11 @@ jobs:
         run: git pull origin main
         working-directory: /home/ec2-user/issue-to-pr/
 
+      # Clean node_modules to ensure a fresh install and prevent potential conflicts
+      # This helps avoid issues with:
+      # 1. Stale or corrupted dependencies
+      # 2. Version mismatches between package.json and existing modules
+      # 3. Platform-specific builds that need to be regenerated
       - name: Clean node_modules
         run: rm -rf node_modules
         working-directory: /home/ec2-user/issue-to-pr/
