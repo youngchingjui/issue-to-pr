@@ -62,6 +62,9 @@ importers:
       langfuse:
         specifier: ^3.32.0
         version: 3.36.0
+      langfuse-core:
+        specifier: ^3.37.0
+        version: 3.37.0
       lucide-react:
         specifier: ^0.460.0
         version: 0.460.0(react@18.3.1)
@@ -2984,8 +2987,8 @@ packages:
     resolution: {integrity: sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==}
     engines: {node: '>=6'}
 
-  langfuse-core@3.36.0:
-    resolution: {integrity: sha512-qxaWxy5E4oIyCYPwiRKXNfMP9vwRZnHiHLPDqAssVzcRp8bTG6NGR+9yfP7Yc8bjNxB364FRtm3MtdMhn6I3iQ==}
+  langfuse-core@3.37.0:
+    resolution: {integrity: sha512-7ZOFJ51u4dOeCpsQ8otNuNYeMb7xsExVQcOIBOByPFKjjd1mjf/03xF907F44dRzgf7n1U8ZYa0XgMSRgxKNoA==}
     engines: {node: '>=18'}
 
   langfuse@3.36.0:
@@ -7803,13 +7806,13 @@ snapshots:
 
   kleur@3.0.3: {}
 
-  langfuse-core@3.36.0:
+  langfuse-core@3.37.0:
     dependencies:
       mustache: 4.2.0
 
   langfuse@3.36.0:
     dependencies:
-      langfuse-core: 3.36.0
+      langfuse-core: 3.37.0
 
   language-subtag-registry@0.3.23: {}
 
