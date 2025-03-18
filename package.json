@@ -13,6 +13,7 @@
     "test:coverage": "jest --coverage --config jest.config.ts"
   },
   "dependencies": {
+    "@octokit/openapi-types": "^24.0.0",
     "@octokit/rest": "^21.0.2",
     "@radix-ui/react-accordion": "^1.2.3",
     "@radix-ui/react-collapsible": "^1.1.2",
