@@ -24,6 +24,10 @@ export default function WorkflowRunDetail({ trace }: WorkflowRunDetailProps) {
     ? observations.find((o) => o.id === selectedObservation)
     : null
 
+  if (!currentObservation) {
+    return <div>No observation selected</div>
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center space-x-4">
