@@ -20,8 +20,6 @@ export default function GitHubItemDetails({
   onWorkflowComplete,
   onWorkflowError,
 }: GitHubItemDetailsProps) {
-  if (!item.repository.full_name) return null
-
   return (
     <Card>
       <CardHeader>
@@ -46,9 +44,11 @@ export default function GitHubItemDetails({
           <p>
             <strong>State:</strong> {item.state}
           </p>
-          <p>
-            <strong>Created by:</strong> {item.user.login}
-          </p>
+          {item.user && (
+            <p>
+              <strong>Created by:</strong> {item.user.login}
+            </p>
+          )}
           <p>
             <strong>Created at:</strong>{" "}
             {new Date(item.created_at).toLocaleDateString()}
