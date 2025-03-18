@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@octokit/openapi-types':
+        specifier: ^24.0.0
+        version: 24.0.0
       '@octokit/rest':
         specifier: ^21.0.2
         version: 21.1.1
@@ -62,6 +65,9 @@ importers:
       langfuse:
         specifier: ^3.32.0
         version: 3.36.0
+      langfuse-core:
+        specifier: ^3.37.0
+        version: 3.37.0
       lucide-react:
         specifier: ^0.460.0
         version: 0.460.0(react@18.3.1)
@@ -705,6 +711,9 @@ packages:
 
   '@octokit/openapi-types@23.0.1':
     resolution: {integrity: sha512-izFjMJ1sir0jn0ldEKhZ7xegCTj/ObmEDlEfpFrx4k/JyZSMRHbO3/rBwgE7f3m2DHt+RrNGIVw4wSmwnm3t/g==}
+
+  '@octokit/openapi-types@24.0.0':
+    resolution: {integrity: sha512-os8hmzrBPC3PDzXq93/9vBcxMvb90yw2SF76ANon+eP1HzVyd+TshkAkMX6bIm3bY5T3uXieQFDibcc35vM9mQ==}
 
   '@octokit/openapi-webhooks-types@10.1.1':
     resolution: {integrity: sha512-qBfqQVIDQaCFeGCofXieJDwvXcGgDn17+UwZ6WW6lfEvGYGreLFzTiaz9xjet9Us4zDf8iasoW3ixUj/R5lMhA==}
@@ -2984,8 +2993,8 @@ packages:
     resolution: {integrity: sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==}
     engines: {node: '>=6'}
 
-  langfuse-core@3.36.0:
-    resolution: {integrity: sha512-qxaWxy5E4oIyCYPwiRKXNfMP9vwRZnHiHLPDqAssVzcRp8bTG6NGR+9yfP7Yc8bjNxB364FRtm3MtdMhn6I3iQ==}
+  langfuse-core@3.37.0:
+    resolution: {integrity: sha512-7ZOFJ51u4dOeCpsQ8otNuNYeMb7xsExVQcOIBOByPFKjjd1mjf/03xF907F44dRzgf7n1U8ZYa0XgMSRgxKNoA==}
     engines: {node: '>=18'}
 
   langfuse@3.36.0:
@@ -5074,6 +5083,8 @@ snapshots:
       '@octokit/types': 13.8.0
 
   '@octokit/openapi-types@23.0.1': {}
+
+  '@octokit/openapi-types@24.0.0': {}
 
   '@octokit/openapi-webhooks-types@10.1.1': {}
 
@@ -7803,13 +7814,13 @@ snapshots:
 
   kleur@3.0.3: {}
 
-  langfuse-core@3.36.0:
+  langfuse-core@3.37.0:
     dependencies:
       mustache: 4.2.0
 
   langfuse@3.36.0:
     dependencies:
-      langfuse-core: 3.36.0
+      langfuse-core: 3.37.0
 
   language-subtag-registry@0.3.23: {}
 
