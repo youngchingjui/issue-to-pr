@@ -7,7 +7,7 @@
 Before you begin, ensure you have the following installed:
 
 - Node.js (version 14 or later)
-- npm or yarn
+- pnpm
 - Redis server
 
 ### Setting Up Redis
@@ -55,17 +55,13 @@ Before you begin, ensure you have the following installed:
 2. **Install Dependencies**:
 
    ```bash
-   npm install
-   # or
-   yarn install
+   pnpm install
    ```
 
 3. **Run the Development Server**:
 
    ```bash
-   npm run dev
-   # or
-   yarn dev
+   pnpm run dev
    ```
 
 4. **Open the Application**: Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
