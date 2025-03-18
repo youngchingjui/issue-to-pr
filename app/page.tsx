@@ -1,3 +1,4 @@
+import ContributePublic from "@/components/landing-page/ContributePublic"
 import Features from "@/components/landing-page/Features"
 import Footer from "@/components/landing-page/Footer"
 import GetStarted from "@/components/landing-page/GetStarted"
@@ -13,6 +14,7 @@ export default function LandingPage() {
         <GridBackground>
           <Hero />
           <Features />
+          <ContributePublic />
           <Steps />
           <Pricing />
           <GetStarted />
