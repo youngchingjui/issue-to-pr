@@ -34,6 +34,11 @@ export default async function getOctokit(): Promise<Octokit | null> {
   // Fallback to GitHub App authentication
   try {
     const privateKey = getPrivateKeyFromFile()
+
+    if (!process.env.GITHUB_APP_ID) {
+      throw new Error("GITHUB_APP_ID is not set")
+    }
+
     const app = new App({
       appId: process.env.GITHUB_APP_ID,
       privateKey,

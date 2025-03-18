@@ -19,6 +19,10 @@ export async function getPullRequestOnBranch({
     throw new Error("Invalid repository format. Expected 'owner/repo'")
   }
 
+  if (!octokit) {
+    throw new Error("No octokit found")
+  }
+
   const pr = await octokit.pulls.list({
     owner,
     repo,
@@ -46,6 +50,10 @@ export async function createPullRequest({
   issueNumber?: number
 }) {
   const octokit = await getOctokit()
+  if (!octokit) {
+    throw new Error("No octokit found")
+  }
+
   const [owner, repo] = repoFullName.split("/")
   if (!owner || !repo) {
     throw new Error("Invalid repository format. Expected 'owner/repo'")
@@ -77,6 +85,9 @@ export async function getPullRequestDiff({
 }): Promise<string> {
   try {
     const octokit = await getOctokit()
+    if (!octokit) {
+      throw new Error("No octokit found")
+    }
 
     const [owner, repo] = repoFullName.split("/")
 
@@ -109,6 +120,10 @@ export async function getPullRequestList({
   repoFullName: string
 }): Promise<PullRequestList> {
   const octokit = await getOctokit()
+  if (!octokit) {
+    throw new Error("No octokit found")
+  }
+
   const [owner, repo] = repoFullName.split("/")
 
   const pullRequests = await octokit.rest.pulls.list({
@@ -129,6 +144,10 @@ export async function getPullRequestComments({
   const octokit = await getOctokit()
   const [owner, repo] = repoFullName.split("/")
 
+  if (!octokit) {
+    throw new Error("No octokit found")
+  }
+
   const commentsResponse = await octokit.issues.listComments({
     owner,
     repo,
@@ -148,6 +167,10 @@ export async function getPullRequestReviews({
   const octokit = await getOctokit()
   const [owner, repo] = repoFullName.split("/")
 
+  if (!octokit) {
+    throw new Error("No octokit found")
+  }
+
   const reviewsResponse = await octokit.pulls.listReviews({
     owner,
     repo,
@@ -166,6 +189,10 @@ export async function getPullRequest({
 }): Promise<PullRequest> {
   const octokit = await getOctokit()
   const [owner, repo] = repoFullName.split("/")
+
+  if (!octokit) {
+    throw new Error("No octokit found")
+  }
 
   const response = await octokit.rest.pulls.get({
     owner,

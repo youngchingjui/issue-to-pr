@@ -16,7 +16,7 @@ interface DataRowProps {
   title: string
   number: number
   url: string
-  user: string
+  user?: string
   state: string
   updatedAt: string
   children: React.ReactNode // For dropdown menu items
@@ -51,8 +51,12 @@ export default function DataRow({
           </div>
           <div className="text-sm text-muted-foreground flex items-center gap-2">
             <span>#{number}</span>
-            <span>•</span>
-            <span>{user}</span>
+            {user && (
+              <>
+                <span>•</span>
+                <span>{user}</span>
+              </>
+            )}
             <span>•</span>
             <span>{state}</span>
             <span>•</span>

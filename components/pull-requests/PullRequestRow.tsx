@@ -51,7 +51,7 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
       title={pr.title}
       number={pr.number}
       url={`https://github.com/${pr.head.repo.full_name}/pull/${pr.number}`}
-      user={pr.user.login}
+      user={pr.user?.login}
       state={pr.state}
       updatedAt={pr.updated_at}
       isLoading={isLoading}

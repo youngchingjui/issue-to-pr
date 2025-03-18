@@ -24,6 +24,10 @@ export async function createBranch(
     throw new Error("Invalid repository format. Expected 'owner/repo'")
   }
 
+  if (!octokit) {
+    throw new Error("No octokit found")
+  }
+
   try {
     // Get the latest commit SHA of the base branch
     const { data: baseBranchData } = await octokit.repos.getBranch({

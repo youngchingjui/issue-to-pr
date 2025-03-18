@@ -142,7 +142,7 @@ export class Agent {
       }
       return await this.runWithFunctions()
     } else {
-      return response.choices[0].message.content
+      return response.choices[0].message.content || ""
     }
   }
 
@@ -165,7 +165,7 @@ export class Agent {
     const response = await this.llm.chat.completions.create(params)
     let fullContent = ""
     const currentToolCalls: ToolCallInProgress[] = []
-    const currentMessage = {
+    const currentMessage: ChatCompletionMessageParam = {
       role: "assistant" as const,
       content: "",
       tool_calls: [],

@@ -27,7 +27,7 @@ export async function updateToLatest(dir: string): Promise<string> {
 
 export async function checkIfLocalBranchExists(
   branchName: string,
-  cwd: string = null
+  cwd: string | undefined = undefined
 ): Promise<boolean> {
   // Lists all local branches and greps given branchName
   const command = `git branch | grep ${branchName}`
@@ -48,7 +48,7 @@ export async function checkIfLocalBranchExists(
 
 export async function createBranch(
   branchName: string,
-  cwd: string = null
+  cwd: string | undefined = undefined
 ): Promise<string> {
   const command = `git checkout -b ${branchName}`
   return new Promise((resolve, reject) => {
@@ -63,7 +63,7 @@ export async function createBranch(
 
 export async function pushBranch(
   branchName: string,
-  cwd: string = null
+  cwd: string | undefined = undefined
 ): Promise<string> {
   const command = `git push origin ${branchName}`
   return new Promise((resolve, reject) => {
@@ -146,7 +146,7 @@ export async function cleanCheckout(branchName: string, dir: string) {
 
 export async function cloneRepo(
   cloneUrl: string,
-  dir: string = null
+  dir: string | undefined = undefined
 ): Promise<string> {
   const command = `git clone ${cloneUrl}${dir ? ` ${dir}` : ""}`
   return new Promise((resolve, reject) => {

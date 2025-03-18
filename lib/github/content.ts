@@ -27,6 +27,9 @@ export async function getFileContent({
 }) {
   try {
     const octokit = await getOctokit()
+    if (!octokit) {
+      throw new Error("No octokit found")
+    }
     const [owner, repo] = repoFullName.split("/")
     if (!owner || !repo) {
       throw new Error("Invalid repository format. Expected 'owner/repo'")
@@ -67,6 +70,9 @@ export async function updateFileContent({
   branch: string
 }) {
   const octokit = await getOctokit()
+  if (!octokit) {
+    throw new Error("No octokit found")
+  }
   const [owner, repo] = repoFullName.split("/")
   const sha = await getFileSha({ repoFullName, path, branch })
 
@@ -92,6 +98,9 @@ export async function getFileSha({
 }): Promise<string | null> {
   const octokit = await getOctokit()
   const [owner, repo] = repoFullName.split("/")
+  if (!octokit) {
+    throw new Error("No octokit found")
+  }
   try {
     const response = await octokit.rest.repos.getContent({
       owner,
@@ -122,6 +131,9 @@ export async function checkBranchExists(
   branch: string
 ): Promise<boolean> {
   const octokit = await getOctokit()
+  if (!octokit) {
+    throw new Error("No octokit found")
+  }
   const [owner, repo] = repoFullName.split("/")
   if (!owner || !repo) {
     throw new Error("Invalid repository format. Expected 'owner/repo'")
@@ -148,6 +160,9 @@ export async function getRepoFromString(
   // fullName should be in format like `owner/repo`
   const [owner, repo] = fullName.split("/")
   const octokit = await getOctokit()
+  if (!octokit) {
+    throw new Error("No octokit found")
+  }
   const { data: repoData } = await octokit.rest.repos.get({
     owner,
     repo,
@@ -169,7 +184,9 @@ export async function getUserRepositories(
   maxPage: number
 }> {
   const octokit = await getOctokit()
-
+  if (!octokit) {
+    throw new Error("No octokit found")
+  }
   const response = await octokit.repos.listForAuthenticatedUser({
     username,
     ...options,

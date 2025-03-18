@@ -8,6 +8,7 @@ import CreatePRController from "@/components/issues/controllers/CreatePRControll
 import GenerateResolutionPlanController from "@/components/issues/controllers/GenerateResolutionPlanController"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { GitHubIssue } from "@/lib/types/github"
+import { getRepoFullNameFromIssue } from "@/lib/utils/utils-common"
 
 interface IssueRowProps {
   issue: GitHubIssue
@@ -52,12 +53,14 @@ export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
     },
   })
 
+  const data = getRepoFullNameFromIssue(issue)
+
   return (
     <DataRow
       title={issue.title}
       number={issue.number}
       url={`https://github.com/${repoFullName}/issues/${issue.number}`}
-      user={issue.user.login}
+      user={issue.user?.login}
       state={issue.state}
       updatedAt={issue.updated_at}
       isLoading={isLoading}

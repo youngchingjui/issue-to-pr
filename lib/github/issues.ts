@@ -13,6 +13,9 @@ export async function getIssue({
   issueNumber: number
 }): Promise<GitHubIssue> {
   const octokit = await getOctokit()
+  if (!octokit) {
+    throw new Error("No octokit found")
+  }
   const [owner, repo] = fullName.split("/")
   const issue = await octokit.rest.issues.get({
     owner,
@@ -33,6 +36,9 @@ export async function createIssueComment({
 }): Promise<GitHubIssueComment> {
   const octokit = await getOctokit()
   const [owner, repo] = repoFullName.split("/")
+  if (!octokit) {
+    throw new Error("No octokit found")
+  }
   const issue = await octokit.rest.issues.createComment({
     owner,
     repo,
@@ -54,6 +60,9 @@ export async function getIssueComments({
   if (!owner || !repo) {
     throw new Error("Invalid repository format. Expected 'owner/repo'")
   }
+  if (!octokit) {
+    throw new Error("No octokit found")
+  }
   const comments = await octokit.issues.listComments({
     owner,
     repo,
@@ -70,6 +79,11 @@ export async function getIssueList({
 } & Omit<ListForRepoParams, "owner" | "repo">): Promise<GitHubIssue[]> {
   const octokit = await getOctokit()
   const [owner, repo] = repoFullName.split("/")
+
+  if (!octokit) {
+    throw new Error("No octokit found")
+  }
+
   const issues = await octokit.issues.listForRepo({
     owner,
     repo,
@@ -90,6 +104,9 @@ export async function updateIssueComment({
 }): Promise<GitHubIssueComment> {
   const octokit = await getOctokit()
   const [owner, repo] = repoFullName.split("/")
+  if (!octokit) {
+    throw new Error("No octokit found")
+  }
   try {
     const updatedComment = await octokit.rest.issues.updateComment({
       owner,

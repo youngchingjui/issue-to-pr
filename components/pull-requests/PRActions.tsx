@@ -2,6 +2,7 @@ import IdentifyPRGoalController from "@/components/pull-requests/controllers/Ide
 import ReviewPRController from "@/components/pull-requests/controllers/ReviewPRController"
 import { Button } from "@/components/ui/button"
 import { GitHubIssue, WorkflowType } from "@/lib/types/github"
+import { getRepoFullNameFromIssue } from "@/lib/utils/utils-common"
 
 interface PRActionsProps {
   pr: GitHubIssue
@@ -20,12 +21,13 @@ export default function PRActions({
   onWorkflowComplete,
   onWorkflowError,
 }: PRActionsProps) {
+  const repoFullName = getRepoFullNameFromIssue(pr)
   return (
     <div className="flex gap-4 mt-4">
       <Button
         onClick={() => {
           const controller = ReviewPRController({
-            repoFullName: pr.repository.full_name,
+            repoFullName,
             pullNumber: pr.number,
             onStart: () => {
               onWorkflowStart("Reviewing PR...")
@@ -44,7 +46,7 @@ export default function PRActions({
       <Button
         onClick={() => {
           const controller = IdentifyPRGoalController({
-            repoFullName: pr.repository.full_name,
+            repoFullName,
             pullNumber: pr.number,
             onStart: () => {
               onWorkflowStart("Identifying Goal...")

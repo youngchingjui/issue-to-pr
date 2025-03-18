@@ -1,4 +1,8 @@
-import { LangfuseTraceClient, observeOpenAI } from "langfuse"
+import {
+  LangfuseSpanClient,
+  LangfuseTraceClient,
+  observeOpenAI,
+} from "langfuse"
 import OpenAI from "openai"
 import {
   ChatCompletionMessageParam,
@@ -84,7 +88,10 @@ export class LibrarianAgent {
     if (!this.repository) {
       throw new Error("Repository is required to get file content")
     }
-    const span = this.trace.span({ name: "Get file content" })
+    let span: LangfuseSpanClient | null = null
+    if (this.trace) {
+      span = this.trace.span({ name: "Get file content" })
+    }
     try {
       const content = await getGithubFileContent({
         repoFullName: this.repository.full_name,
@@ -103,7 +110,9 @@ export class LibrarianAgent {
       console.error("Error getting file content:", error)
       throw error
     } finally {
-      span.end()
+      if (span) {
+        span.end()
+      }
     }
   }
 

@@ -9,6 +9,9 @@ export async function searchCode({
   query: string
 }): Promise<SearchCodeItem[]> {
   const octokit = await getOctokit()
+  if (!octokit) {
+    throw new Error("No octokit found")
+  }
   const response = await octokit.rest.search.code({
     q: `${query} repo:${repoFullName}`,
   })

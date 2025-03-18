@@ -68,7 +68,11 @@ describe("GET /api/stream/ping", () => {
     })
 
     // Get the reader
-    const reader = response.body.getReader()
+    const reader = response.body?.getReader()
+
+    if (!reader) {
+      throw new Error("Reader is undefined")
+    }
 
     // Read initial ping
     const { value: initialValue } = await reader.read()
@@ -106,7 +110,11 @@ describe("GET /api/stream/ping", () => {
     })
 
     // Get the reader
-    const reader = response.body.getReader()
+    const reader = response.body?.getReader()
+
+    if (!reader) {
+      throw new Error("Reader is undefined")
+    }
 
     // Read initial ping
     await reader.read()
