@@ -4,13 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "test": "jest --config jest.config.ts",
-    "test:watch": "jest --watch --config jest.config.ts",
-    "test:coverage": "jest --coverage --config jest.config.ts"
+    "dev": "pnpm next dev",
+    "build": "pnpm next build",
+    "start": "pnpm next start",
+    "lint": "pnpm next lint",
+    "test": "pnpm jest --config jest.config.ts",
+    "test:watch": "pnpm jest --watch --config jest.config.ts",
+    "test:coverage": "pnpm jest --coverage --config jest.config.ts"
   },
   "dependencies": {
     "@octokit/openapi-types": "^24.0.0",
