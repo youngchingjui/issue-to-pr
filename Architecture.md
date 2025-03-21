@@ -8,26 +8,28 @@ This document outlines the architecture for implementing real-time streaming res
 
 ### 1. Backend Components
 
-#### WorkflowEventEmitter Service (Node.js Runtime)
+#### Redis Event Coordinator (All Runtimes)
 
-- Singleton service that manages event subscriptions and emissions
-- Core methods:
-  - `emit(workflowId: string, event: WorkflowEvent): boolean`
-  - `subscribe(workflowId: string, callback: (event: WorkflowEvent) => void): void`
-  - `unsubscribe(workflowId: string, callback: (event: WorkflowEvent) => void): void`
-- Maintains Map of workflowId to subscriber callbacks
-- Implements memory management for cleaning up completed workflows
+- Uses existing RedisManager singleton for connection management
+- Key structure:
+  - `workflow:{id}:events` - List of events for a workflow
+  - `workflow:{id}:subscribers` - Set of active subscribers
+  - `workflow:{id}:metadata` - Workflow metadata (status, created_at, etc.)
+- Methods:
+  ```typescript
+  async function publishEvent(workflowId: string, event: WorkflowEvent) {
+    // Push to Redis list and notify subscribers
+    await redis.lpush(`workflow:${workflowId}:events`, JSON.stringify(event))
+  }
+  ```
 
-#### Server-Sent Events (SSE) Endpoint (Edge Runtime)
+#### SSE Endpoint (Edge Runtime)
 
-- Endpoint: `/api/workflows/:workflowId/events`
-- Implements Edge runtime for real-time streaming
-- Creates and manages ReadableStream for event streaming
-- Headers:
-  - Content-Type: text/event-stream
-  - Cache-Control: no-cache
-  - Connection: keep-alive
-- Handles connection lifecycle and cleanup
+- Uses TransformStream for efficient event delivery
+- Connects to Redis to:
+  1. Register as subscriber
+  2. Poll for new events
+  3. Clean up on disconnect
 
 #### commentOnIssue Workflow (Node.js Runtime)
 
@@ -191,4 +193,61 @@ function CommentPage() {
     />
   );
 }
+```
+
+### LLM Token Streaming
+
+#### Event Types
+
+```typescript
+interface TokenEvent extends BaseEvent {
+  type: "token"
+  data: {
+    content: string
+    isComplete: boolean
+    metadata?: {
+      finishReason?: string
+      usage?: TokenUsage
+    }
+  }
+}
+```
+
+#### Token Processing
+
+- TransformStream handles token chunking and formatting
+- Redis stores complete history for replay/recovery
+- Edge runtime manages backpressure and client connections
+
+## Runtime Considerations
+
+### Edge Runtime (SSE Endpoint)
+
+- Handles client connections via TransformStream
+- Polls Redis for new events
+- Manages connection lifecycle
+- No in-memory state
+
+### Node.js Runtime (Workflow Processing)
+
+- Handles LLM interactions
+- Publishes events to Redis
+- Manages workflow business logic
+- Can access full Node.js APIs
+
+### Redis (State Coordination)
+
+- Single source of truth for events
+- Coordinates between runtimes
+- Handles subscriber management
+- Provides event persistence
+
+```
+
+- Edge runtime manages backpressure and client connections
+
+```
+
+```
+
 ```

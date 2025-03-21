@@ -6,8 +6,6 @@ This plan outlines the steps needed to implement real-time streaming responses f
 
 ## Staged Implementation
 
-To break down this complex implementation into manageable, testable pieces, we will follow these stages:
-
 ### Stage 1: Basic Frontend Streaming (1-2 days) ✅
 
 **Goal**: Create simplest possible streaming UI with mock data
@@ -40,84 +38,211 @@ To break down this complex implementation into manageable, testable pieces, we w
 - Verify start/stop functionality ✅
 - Test basic error scenarios ✅
 
-### Stage 2: Basic Backend + Real SSE (2-3 days)
+### Stage 2: Redis Event Structure (2 days)
 
-**Goal**: Replace mocks with real streaming infrastructure
-
-**Components**:
-
-1. Basic WorkflowEventEmitter
-   - Simple event emission
-   - Basic subscription management
-2. SSE endpoint
-   - Basic streaming setup
-   - Simple mock workflow that emits counting numbers or "Hello World"
-3. Enhanced StreamHandler
-   - Real SSE connection
-   - Connection status display
-   - Reconnection handling
-
-**Testing**:
-
-- Verify real-time streaming works
-- Test connection drops/reconnects
-- Verify cleanup on unmount
-
-### Stage 3: Interactive Features (2-3 days)
-
-**Goal**: Add user interaction and richer events
+**Goal**: Set up Redis key structure and basic methods
 
 **Components**:
 
-1. Enhanced StreamHandler
-   - Pause/Resume controls
-   - Progress indicator
-   - Feedback buttons
-   - Different message types (progress, error, complete)
-2. Enhanced WorkflowEventEmitter
-   - Multiple event types
-   - State management
-   - Error recovery
-3. Interactive demo workflow
-   - Accepts user input
-   - Responds to feedback
-   - Shows progress
+1. Redis Event Types and Interfaces
+   - Define event storage schema:
+     ```typescript
+     interface RedisWorkflowEvent {
+       id: string
+       timestamp: number
+       type: "llm_response" | "error" | "complete" | "token"
+       data: string // JSON stringified event data
+     }
+     ```
+   - Create TypeScript interfaces
+   - Add serialization helpers
+2. Basic Redis Methods
+   - Event publishing:
+     ```typescript
+     async function publishEvent(workflowId: string, event: WorkflowEvent) {
+       const key = `workflow:${workflowId}:events`
+       await redis.lpush(key, JSON.stringify(event))
+       await redis.expire(key, 24 * 60 * 60) // 24 hour TTL
+     }
+     ```
+   - Event retrieval
+   - Basic cleanup
+3. Demo page with mock data
+   - Use dummy Redis responses
+   - Test serialization/deserialization
 
 **Testing**:
 
-- Verify all interactive features
-- Test different event types
-- Verify state management
+- Verify event storage format
+- Test TTL functionality
+- Validate serialization
+
+### Stage 3: SSE with TransformStream (2 days)
+
+**Goal**: Implement SSE endpoint with proper streaming
+
+**Components**:
+
+1. Basic SSE Endpoint
+   ```typescript
+   const stream = new TransformStream({
+     transform(event, controller) {
+       controller.enqueue(`data: ${JSON.stringify(event)}\n\n`)
+     },
+   })
+   ```
+2. Enhanced StreamHandler
+   - Connect to SSE endpoint
+   - Handle connection lifecycle
+   - Basic error display
+3. Demo with mock events
+   - Hardcoded event sequence
+   - Simulated delays
+
+**Testing**:
+
+- Test stream formatting
+- Verify connection handling
 - Test error scenarios
 
-### Stage 4: Full Integration (3-4 days)
+### Stage 4: Redis Integration (2-3 days)
 
-**Goal**: Complete production implementation
+**Goal**: Connect Redis and SSE systems
 
 **Components**:
 
-1. GitHub Integration
-   - Real commentOnIssue workflow
-   - GitHub API integration
-   - Full error handling
-2. Production UI
-   - Professional styling
-   - Complete interactive features
-   - Error boundaries
-3. Production Features
-   - Authentication
-   - Rate limiting
-   - Security measures
-   - Performance optimization
+1. Redis Event Polling
+   ```typescript
+   async function* pollEvents(workflowId: string) {
+     while (true) {
+       const events = await redis.lrange(`workflow:${workflowId}:events`, 0, -1)
+       for (const event of events) {
+         yield JSON.parse(event)
+       }
+       await new Promise((resolve) => setTimeout(resolve, 100))
+     }
+   }
+   ```
+2. Subscriber Management
+   - Track active connections in Redis
+   - Clean up disconnected clients
+3. Demo with real Redis
+   - Manual event publishing
+   - Multiple client testing
+
+**Testing**:
+
+- Test polling efficiency
+- Verify cleanup
+- Load test with multiple clients
+
+### Stage 5: LLM Token Streaming (2-3 days)
+
+**Goal**: Add support for LLM token streaming
+
+**Components**:
+
+1. Token Event Types
+   ```typescript
+   interface TokenEvent extends BaseEvent {
+     type: "token"
+     data: {
+       content: string
+       isComplete: boolean
+       metadata?: TokenMetadata
+     }
+   }
+   ```
+2. Token Processing
+   - Implement chunking
+   - Handle partial responses
+3. Demo with simulated LLM
+   - Mock token generation
+   - Test different scenarios
+
+**Testing**:
+
+- Test token chunking
+- Verify metadata handling
+- Test completion detection
+
+### Stage 6: Error Handling & Recovery (2 days)
+
+**Goal**: Implement robust error handling
+
+**Components**:
+
+1. Error Types
+   ```typescript
+   interface ErrorEvent extends BaseEvent {
+     type: "error"
+     data: {
+       message: string
+       code: string
+       recoverable: boolean
+       retryCount?: number
+     }
+   }
+   ```
+2. Recovery Mechanisms
+   - Implement reconnection logic
+   - Add event replay capability
+3. Error Demo Page
+   - Test various failure scenarios
+   - Show recovery process
+
+**Testing**:
+
+- Test reconnection flows
+- Verify event replay
+- Validate error handling
+
+### Stage 7: Production Integration (2-3 days)
+
+**Goal**: Connect all systems with real LLM
+
+**Components**:
+
+1. LLM Integration
+   - Connect to OpenAI streaming
+   - Handle real token streams
+2. Full Workflow
+   - Complete error handling
+   - Production logging
+3. Load Testing
+   - Multiple concurrent users
+   - Performance monitoring
 
 **Testing**:
 
 - End-to-end workflow tests
-- Performance testing
-- Security testing
+- Concurrent user testing
+- Error scenario validation
+
+### Stage 8: Optimization & Cleanup (2 days)
+
+**Goal**: Optimize performance and resource usage
+
+**Components**:
+
+1. Performance Optimization
+   - Redis key cleanup
+   - Connection pooling
+   - Event batching
+2. Monitoring
+   - Add metrics collection
+   - Set up alerts
+3. Documentation
+   - Update architecture docs
+   - Add monitoring guides
+
+**Testing**:
+
+- Performance benchmarks
+- Memory usage analysis
 - Load testing
 
-Each stage builds on the previous one and provides a working demo that showcases the new functionality. We can use mock data and simplified implementations in early stages to get quick feedback and validation before adding complexity.
+Total Estimated Time: 14-17 days
 
 ## Current Codebase Analysis
 
