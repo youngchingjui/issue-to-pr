@@ -30,11 +30,11 @@ export default async function Hero() {
         className="max-w-5xl mx-auto relative z-10"
       >
         <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold mb-3 sm:mb-6 md:mb-8 leading-tight">
-          <span>Automate Pull Requests</span>{" "}
+          <span>Resolve Github Issues</span>{" "}
           <span>
-            with <br />
+            in <br />
             <span className="italic text-accent relative">
-              AI Powered Insights
+              one click
               <span className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-accent/0 via-accent to-accent/0"></span>
             </span>
           </span>
