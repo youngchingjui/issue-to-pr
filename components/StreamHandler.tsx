@@ -1,8 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { memo, useEffect, useState } from "react"
 
-import { Button } from "./ui/button"
+import { Button } from "@/components/ui/button"
+import { BaseStreamEvent } from "@/lib/types/events"
 
 interface StreamHandlerProps {
   workflowId: string
@@ -11,18 +12,7 @@ interface StreamHandlerProps {
   className?: string
 }
 
-// Mock data for testing
-const mockStreamData = [
-  "Analyzing issue content...",
-  "Identifying key points...",
-  "Generating response...",
-  "Here is a detailed response to your issue:",
-  "Thank you for raising this concern.",
-  "We will look into this matter carefully.",
-  "Please let us know if you need any clarification.",
-]
-
-export function StreamHandler({
+function StreamHandlerComponent({
   workflowId,
   onComplete,
   onError,
@@ -30,38 +20,85 @@ export function StreamHandler({
 }: StreamHandlerProps) {
   const [isStreaming, setIsStreaming] = useState(false)
   const [content, setContent] = useState<string>("")
-  const [currentIndex, setCurrentIndex] = useState(0)
+  const [retryCount, setRetryCount] = useState(0)
+  const maxRetries = 3
+  const retryDelay = 1000 // 1 second
 
   useEffect(() => {
-    let intervalId: NodeJS.Timeout
+    let source: EventSource | null = null
+    let retryTimeout: NodeJS.Timeout | null = null
 
-    if (isStreaming && currentIndex < mockStreamData.length) {
-      intervalId = setInterval(() => {
-        setContent((prev) => {
-          const newContent =
-            prev + (prev ? "\n" : "") + mockStreamData[currentIndex]
-          if (currentIndex === mockStreamData.length - 1 && onComplete) {
-            onComplete(newContent)
-          }
-          return newContent
-        })
-        setCurrentIndex((prev) => prev + 1)
-      }, 1000) // Stream a new line every second
+    const setupEventSource = () => {
+      if (source) {
+        source.close()
+      }
+
+      source = new EventSource(`/api/workflow/${workflowId}`)
+
+      source.onmessage = (e) => {
+        try {
+          const event: BaseStreamEvent = JSON.parse(e.data)
+          setContent((prev) => {
+            const newContent = prev + (prev ? "\n" : "") + event.data
+            return newContent
+          })
+        } catch (err) {
+          console.error("Error parsing event:", err)
+          onError?.(err as Error)
+        }
+      }
+
+      source.onerror = (err) => {
+        console.error("SSE Error:", err)
+        source?.close()
+
+        if (isStreaming && retryCount < maxRetries) {
+          console.log(
+            `Retrying connection (${retryCount + 1}/${maxRetries})...`
+          )
+          retryTimeout = setTimeout(
+            () => {
+              setRetryCount((prev) => prev + 1)
+              setupEventSource()
+            },
+            retryDelay * Math.pow(2, retryCount)
+          ) // Exponential backoff
+        } else if (retryCount >= maxRetries) {
+          onError?.(new Error("Max retry attempts reached"))
+          setIsStreaming(false)
+        }
+      }
+
+      source.onopen = () => {
+        console.log("SSE connection opened")
+        setRetryCount(0) // Reset retry count on successful connection
+      }
+    }
+
+    if (isStreaming) {
+      setupEventSource()
     }
 
     return () => {
-      if (intervalId) {
-        clearInterval(intervalId)
+      if (source) {
+        source.close()
+        // Cleanup workflow resources
+        fetch(`/api/workflow/${workflowId}`, { method: "DELETE" }).catch(
+          console.error
+        )
+      }
+      if (retryTimeout) {
+        clearTimeout(retryTimeout)
       }
     }
-  }, [isStreaming, currentIndex, onComplete])
+  }, [isStreaming, workflowId, onError, retryCount])
 
   const handleStartStop = () => {
     if (isStreaming) {
       setIsStreaming(false)
     } else {
       setContent("")
-      setCurrentIndex(0)
+      setRetryCount(0) // Reset retry count when manually starting
       setIsStreaming(true)
     }
   }
@@ -85,3 +122,5 @@ export function StreamHandler({
     </div>
   )
 }
+
+export const StreamHandler = memo(StreamHandlerComponent)
