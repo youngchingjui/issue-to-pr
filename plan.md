@@ -38,44 +38,47 @@ This plan outlines the steps needed to implement real-time streaming responses f
 - Verify start/stop functionality ✅
 - Test basic error scenarios ✅
 
-### Stage 2: Redis Event Structure (2 days)
+### Stage 2: Redis Event Structure (1-2 days)
 
-**Goal**: Set up Redis key structure and basic methods
+**Goal**: Set up Redis Pub/Sub and event structure
 
 **Components**:
 
-1. Redis Event Types and Interfaces
-   - Define event storage schema:
-     ```typescript
-     interface RedisWorkflowEvent {
-       id: string
-       timestamp: number
-       type: "llm_response" | "error" | "complete" | "token"
-       data: string // JSON stringified event data
-     }
-     ```
-   - Create TypeScript interfaces
-   - Add serialization helpers
-2. Basic Redis Methods
-   - Event publishing:
-     ```typescript
-     async function publishEvent(workflowId: string, event: WorkflowEvent) {
-       const key = `workflow:${workflowId}:events`
-       await redis.lpush(key, JSON.stringify(event))
-       await redis.expire(key, 24 * 60 * 60) // 24 hour TTL
-     }
-     ```
-   - Event retrieval
-   - Basic cleanup
-3. Demo page with mock data
-   - Use dummy Redis responses
-   - Test serialization/deserialization
+1. Enhanced Redis Service
+
+   ```typescript
+   interface RedisStreamService {
+     // Real-time event publishing
+     publishEvent(workflowId: string, event: WorkflowEvent): Promise<void>
+     // Subscribe to real-time events
+     subscribeToEvents(workflowId: string): Promise<RedisSubscriber>
+     // Get event history
+     getEventHistory(workflowId: string): Promise<WorkflowEvent[]>
+   }
+   ```
+
+2. Migration from redis-old.ts
+
+   - Preserve existing job status functionality
+   - Add streaming capabilities
+   - Maintain backward compatibility
+
+3. Event Types
+   ```typescript
+   interface WorkflowEvent {
+     id: string
+     timestamp: number
+     type: "llm_response" | "error" | "complete" | "token"
+     data: string
+   }
+   ```
 
 **Testing**:
 
-- Verify event storage format
-- Test TTL functionality
-- Validate serialization
+- Verify Pub/Sub functionality
+- Test history retrieval
+- Validate event format
+- Measure latency
 
 ### Stage 3: SSE with TransformStream (2 days)
 
@@ -271,18 +274,13 @@ Total Estimated Time: 14-17 days
 
 ### 1. Backend Implementation
 
-#### 1.1 WorkflowEventEmitter Service ✅
+#### 1.1 Enhanced Redis Service
 
-**File:** `lib/services/EventEmitter.ts`
-
-- [x] Complete implementation of WorkflowEventEmitter class
-- [x] Add event subscription management
-- [x] Implement memory cleanup for completed workflows
-- [x] Add event emission methods
-- [x] Add TypeScript interfaces for events
-- [x] Add workflow state tracking
-- [x] Add automatic cleanup for stale workflows
-- [x] Implement error handling with recoverable/non-recoverable states
+- Location: `lib/services/redis-stream.ts`
+- Migrate from redis-old.ts
+- Add Pub/Sub support
+- Add event history
+- Add proper cleanup
 
 #### 1.2 Server-Sent Events (SSE) Endpoint 🔄
 

@@ -8,28 +8,42 @@ This document outlines the architecture for implementing real-time streaming res
 
 ### 1. Backend Components
 
-#### Redis Event Coordinator (All Runtimes)
+#### Redis Event Coordinator (Node.js Runtime)
 
-- Uses existing RedisManager singleton for connection management
+- Uses existing Redis implementation from redis-old.ts, enhanced for streaming
+- Pub/Sub based real-time event delivery
 - Key structure:
-  - `workflow:{id}:events` - List of events for a workflow
-  - `workflow:{id}:subscribers` - Set of active subscribers
-  - `workflow:{id}:metadata` - Workflow metadata (status, created_at, etc.)
-- Methods:
   ```typescript
+  // Event channels
+  `workflow:${id}` - Pub/Sub channel for real-time events
+  `workflow:${id}:history` - List of historical events
+  `workflow:${id}:metadata` - Workflow metadata
+  ```
+- Methods:
+
+  ```typescript
+  // Publisher (Node.js Runtime)
   async function publishEvent(workflowId: string, event: WorkflowEvent) {
-    // Push to Redis list and notify subscribers
-    await redis.lpush(`workflow:${workflowId}:events`, JSON.stringify(event))
+    await redis.publish(`workflow:${workflowId}`, JSON.stringify(event))
+    await redis.lpush(`workflow:${workflowId}:history`, JSON.stringify(event))
+  }
+
+  // Subscriber (Edge Runtime)
+  async function subscribeToEvents(workflowId: string) {
+    const subscriber = redis.duplicate()
+    await subscriber.subscribe(`workflow:${workflowId}`)
+    return subscriber
   }
   ```
 
 #### SSE Endpoint (Edge Runtime)
 
 - Uses TransformStream for efficient event delivery
-- Connects to Redis to:
-  1. Register as subscriber
-  2. Poll for new events
-  3. Clean up on disconnect
+- Connects to Redis Pub/Sub for real-time events
+- Handles both:
+  1. Initial history replay from Redis lists
+  2. Real-time events from Pub/Sub
+- No OpenAI SDK dependency (Edge compatible)
 
 #### commentOnIssue Workflow (Node.js Runtime)
 
@@ -224,16 +238,16 @@ interface TokenEvent extends BaseEvent {
 ### Edge Runtime (SSE Endpoint)
 
 - Handles client connections via TransformStream
-- Polls Redis for new events
-- Manages connection lifecycle
-- No in-memory state
+- Subscribes to Redis Pub/Sub for real-time updates
+- Serves events to clients with minimal latency
+- No heavy dependencies
 
 ### Node.js Runtime (Workflow Processing)
 
-- Handles LLM interactions
-- Publishes events to Redis
+- Handles LLM interactions via OpenAI SDK
 - Manages workflow business logic
-- Can access full Node.js APIs
+- Publishes events through Redis Pub/Sub
+- Maintains event history
 
 ### Redis (State Coordination)
 
@@ -243,8 +257,6 @@ interface TokenEvent extends BaseEvent {
 - Provides event persistence
 
 ```
-
-- Edge runtime manages backpressure and client connections
 
 ```
 
