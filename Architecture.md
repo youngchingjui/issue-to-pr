@@ -8,79 +8,178 @@ This document outlines the architecture for implementing real-time streaming res
 
 ### 1. Backend Components
 
-#### Event Emitter Service
+#### WorkflowEventEmitter Service (Node.js Runtime)
 
-- Utilizes `WorkflowEventEmitter` to emit events during the comment generation process
-- Events include processing status, LLM responses, and error states
-- Each event contains:
-  - type: The event type (llm_response, error, complete)
-  - data: The content payload
-  - timestamp: When the event occurred
+- Singleton service that manages event subscriptions and emissions
+- Core methods:
+  - `emit(workflowId: string, event: WorkflowEvent): boolean`
+  - `subscribe(workflowId: string, callback: (event: WorkflowEvent) => void): void`
+  - `unsubscribe(workflowId: string, callback: (event: WorkflowEvent) => void): void`
+- Maintains Map of workflowId to subscriber callbacks
+- Implements memory management for cleaning up completed workflows
 
-#### Server-Sent Events (SSE) Endpoint
+#### Server-Sent Events (SSE) Endpoint (Edge Runtime)
 
 - Endpoint: `/api/workflows/:workflowId/events`
-- Establishes a persistent connection with the client
-- Streams events in real-time using SSE protocol
-- Maintains connection until workflow completion or error
+- Implements Edge runtime for real-time streaming
+- Creates and manages ReadableStream for event streaming
+- Headers:
+  - Content-Type: text/event-stream
+  - Cache-Control: no-cache
+  - Connection: keep-alive
+- Handles connection lifecycle and cleanup
+
+#### commentOnIssue Workflow (Node.js Runtime)
+
+- Handles the core business logic
+- Emits events through WorkflowEventEmitter
+- Manages workflow lifecycle:
+  - Initialization
+  - Progress updates
+  - Error handling
+  - Completion
+- Returns structured WorkflowResult
 
 ### 2. Frontend Components
 
-#### EventSource Client
+#### StreamHandler React Component
 
-- Establishes SSE connection with the backend
-- Listens for incoming events
-- Handles connection management and reconnection
+- Props:
+  ```typescript
+  interface StreamHandlerProps {
+    workflowId: string
+    onComplete?: (content: string) => void
+    onError?: (error: Error) => void
+    className?: string
+  }
+  ```
+- Manages EventSource connection lifecycle
+- Handles different event types (llm_response, error, complete)
+- Updates UI state based on streaming content
+- Provides error handling and completion callbacks
 
-#### Stream Handler Component
-
-- Manages the state of incoming stream data
-- Updates UI in real-time as new tokens arrive
-- Handles different event types appropriately
-
-### 3. Data Flow
-
-1. Client initiates comment generation request
-2. Server starts `commentOnIssue` workflow
-3. `WorkflowEventEmitter` emits events during processing
-4. SSE endpoint streams events to connected clients
-5. Frontend components update UI based on received events
-
-## Implementation Details
-
-### Event Types
+### 3. Type Definitions
 
 ```typescript
 interface WorkflowEvent {
   type: "llm_response" | "error" | "complete"
   data: {
     content: string
+    [key: string]: any // Additional metadata
   }
   timestamp: Date
 }
+
+interface WorkflowOptions {
+  maxRetries?: number
+  timeout?: number
+  onProgress?: (progress: number) => void
+}
+
+interface WorkflowResult {
+  success: boolean
+  content: string
+  error?: Error
+  metadata?: Record<string, any>
+}
 ```
 
-### Connection Management
+### 4. Data Flow
 
-- Frontend maintains EventSource connection
-- Implements reconnection logic for dropped connections
-- Handles cleanup on component unmount
+```mermaid
+sequenceDiagram
+    participant Client as React Client
+    participant SSE as SSE Endpoint (Edge)
+    participant Workflow as commentOnIssue Workflow
+    participant Emitter as WorkflowEventEmitter
 
-### Error Handling
+    Client->>Workflow: 1. Start comment generation
+    activate Workflow
+    Workflow->>Emitter: 2. Create workflow instance
+    Client->>SSE: 3. Connect to SSE endpoint
+    activate SSE
+    SSE->>Emitter: 4. Subscribe to events
 
-- Backend emits error events for failed operations
-- Frontend displays appropriate error messages
-- Connection retry mechanism for temporary failures
+    loop Event Generation
+        Workflow->>Emitter: 5. Emit event
+        Emitter->>SSE: 6. Forward event
+        SSE->>Client: 7. Stream to client
+    end
 
-## Security Considerations
+    Workflow->>Emitter: 8. Emit completion
+    Emitter->>SSE: 9. Forward completion
+    SSE->>Client: 10. Stream completion
+    deactivate Workflow
+    SSE->>Emitter: 11. Unsubscribe
+    Client->>SSE: 12. Close connection
+    deactivate SSE
+```
+
+## NextJS Runtime Considerations
+
+### Edge Runtime Components
+
+- SSE endpoint (`app/api/workflows/[workflowId]/events/route.ts`)
+  - Lightweight, stateless handling of SSE connections
+  - Optimized for real-time streaming
+  - Limited to Edge-compatible APIs
+
+### Node.js Runtime Components
+
+- WorkflowEventEmitter service
+  - Full access to Node.js EventEmitter functionality
+  - Maintains subscriber state
+- commentOnIssue workflow
+  - Complex processing capabilities
+  - Access to full Node.js APIs and dependencies
+
+## Implementation Guidelines
+
+### 1. Error Handling
+
+- Proper error propagation through event system
+- Automatic cleanup of resources on error
+- Clear error messaging to client
+
+### 2. Memory Management
+
+- Cleanup of completed workflow subscribers
+- Proper closing of SSE connections
+- Garbage collection of unused workflow instances
+
+### 3. Security Considerations
 
 - Authenticate SSE connections
 - Validate workflowId to prevent unauthorized access
 - Rate limiting for connection attempts
 - Timeout mechanisms for stale connections
 
-## Performance Considerations
+### 4. Performance Optimization
 
 - Connection pooling for multiple clients
-- Memory management for long-running streams
-- Cleanup of completed workflow resources
+- Efficient event propagation
+- Proper cleanup of completed workflow resources
+
+## Usage Example
+
+```typescript
+// In your React component:
+function CommentPage() {
+  const handleComplete = (content: string) => {
+    console.log('Comment generation completed:', content);
+  };
+
+  const handleError = (error: Error) => {
+    console.error('Error:', error);
+  };
+
+  return (
+    <StreamHandler
+      workflowId="some-workflow-id"
+      onComplete={handleComplete}
+      onError={handleError}
+      className="prose"
+    />
+  );
+}
+```
