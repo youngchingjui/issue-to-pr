@@ -64,12 +64,25 @@ This plan outlines the steps needed to implement real-time streaming responses f
    - Maintain backward compatibility
 
 3. Event Types
+
    ```typescript
-   interface WorkflowEvent {
-     id: string
-     timestamp: number
-     type: "llm_response" | "error" | "complete" | "token"
-     data: string
+   // Base type for all stream events
+   interface BaseStreamEvent {
+     type: string // Extensible event type
+     data: unknown // Flexible payload type
+   }
+
+   // Lightweight event for LLM tokens
+   interface TokenEvent extends BaseStreamEvent {
+     type: "token"
+     data: string // Just the token content
+   }
+
+   // For events requiring more structure
+   interface StructuredEvent extends BaseStreamEvent {
+     id?: string // Optional ID for events that need reference
+     timestamp?: number // Only when timing is relevant
+     metadata?: Record<string, unknown> // Optional metadata when needed
    }
    ```
 
@@ -245,7 +258,44 @@ This plan outlines the steps needed to implement real-time streaming responses f
 - Memory usage analysis
 - Load testing
 
-Total Estimated Time: 14-17 days
+### Stage 9: Long-term Storage (Optional)
+
+**Goal**: Implement permanent storage for workflow history
+
+**Components**:
+
+1. Postgres Integration
+
+   - Design workflow history schema
+   - Implement data migration from Redis
+   - Set up cleanup jobs
+
+2. Storage Service
+
+   ```typescript
+   interface WorkflowStorageService {
+     // Store completed workflow data
+     storeWorkflow(workflowId: string): Promise<void>
+     // Retrieve historical workflow data
+     getWorkflow(workflowId: string): Promise<WorkflowHistory>
+     // Clean up Redis after successful storage
+     cleanupRedisHistory(workflowId: string): Promise<void>
+   }
+   ```
+
+3. Migration Strategy
+   - Keep Redis for active workflows
+   - Move completed workflows to Postgres
+   - Implement TTL for Redis data
+
+**Testing**:
+
+- Verify data persistence
+- Test cleanup jobs
+- Validate data integrity
+- Performance testing
+
+Note: This stage is optional and can be implemented when long-term storage becomes a requirement.
 
 ## Current Codebase Analysis
 

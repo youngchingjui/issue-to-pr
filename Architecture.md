@@ -16,7 +16,7 @@ This document outlines the architecture for implementing real-time streaming res
   ```typescript
   // Event channels
   `workflow:${id}` - Pub/Sub channel for real-time events
-  `workflow:${id}:history` - List of historical events
+  `workflow:${id}:history` - List of events for race condition handling
   `workflow:${id}:metadata` - Workflow metadata
   ```
 - Methods:
@@ -24,8 +24,10 @@ This document outlines the architecture for implementing real-time streaming res
   ```typescript
   // Publisher (Node.js Runtime)
   async function publishEvent(workflowId: string, event: WorkflowEvent) {
-    await redis.publish(`workflow:${workflowId}`, JSON.stringify(event))
+    // Store in history first to handle race conditions
     await redis.lpush(`workflow:${workflowId}:history`, JSON.stringify(event))
+    // Then publish for real-time subscribers
+    await redis.publish(`workflow:${workflowId}`, JSON.stringify(event))
   }
 
   // Subscriber (Edge Runtime)
@@ -36,13 +38,15 @@ This document outlines the architecture for implementing real-time streaming res
   }
   ```
 
+Note: History storage in Redis is crucial for handling race conditions. Since the workflow starts generating events immediately after creation, but the client might take some time to establish the SSE connection, we need to store events temporarily. This ensures no events are lost between workflow start and client connection. History can be cleared after workflow completion or after persistence to long-term storage (e.g., Postgres in the future).
+
 #### SSE Endpoint (Edge Runtime)
 
 - Uses TransformStream for efficient event delivery
 - Connects to Redis Pub/Sub for real-time events
 - Handles both:
-  1. Initial history replay from Redis lists
-  2. Real-time events from Pub/Sub
+  1. Initial history replay from Redis lists (catches up on missed events)
+  2. Real-time events from Pub/Sub (for new events)
 - No OpenAI SDK dependency (Edge compatible)
 
 #### commentOnIssue Workflow (Node.js Runtime)
@@ -86,26 +90,23 @@ This document outlines the architecture for implementing real-time streaming res
 ### 3. Type Definitions
 
 ```typescript
-interface WorkflowEvent {
-  type: "llm_response" | "error" | "complete"
-  data: {
-    content: string
-    [key: string]: any // Additional metadata
-  }
-  timestamp: Date
+// Base type for all stream events
+interface BaseStreamEvent {
+  type: string // Extensible event type
+  data: unknown // Flexible payload type
 }
 
-interface WorkflowOptions {
-  maxRetries?: number
-  timeout?: number
-  onProgress?: (progress: number) => void
+// Lightweight event for LLM tokens
+interface TokenEvent extends BaseStreamEvent {
+  type: "token"
+  data: string // Just the token content
 }
 
-interface WorkflowResult {
-  success: boolean
-  content: string
-  error?: Error
-  metadata?: Record<string, any>
+// For events requiring more structure
+interface StructuredEvent extends BaseStreamEvent {
+  id?: string // Optional ID for events that need reference
+  timestamp?: number // Only when timing is relevant
+  metadata?: Record<string, unknown> // Optional metadata when needed
 }
 ```
 
@@ -116,27 +117,28 @@ sequenceDiagram
     participant Client as React Client
     participant SSE as SSE Endpoint (Edge)
     participant Workflow as commentOnIssue Workflow
-    participant Emitter as WorkflowEventEmitter
+    participant Redis as Redis Stream
 
     Client->>Workflow: 1. Start comment generation
     activate Workflow
-    Workflow->>Emitter: 2. Create workflow instance
-    Client->>SSE: 3. Connect to SSE endpoint
+
+    Client->>SSE: 2. Connect to SSE endpoint
     activate SSE
-    SSE->>Emitter: 4. Subscribe to events
 
     loop Event Generation
-        Workflow->>Emitter: 5. Emit event
-        Emitter->>SSE: 6. Forward event
-        SSE->>Client: 7. Stream to client
+        Workflow->>Redis: 3. Publish event
+        Redis->>SSE: 4. Forward event
+        SSE->>Client: 5. Stream to client
+        Note over SSE,Client: TokenEvents for LLM tokens
+        Note over SSE,Client: StructuredEvents for other data
     end
 
-    Workflow->>Emitter: 8. Emit completion
-    Emitter->>SSE: 9. Forward completion
-    SSE->>Client: 10. Stream completion
+    Workflow->>Redis: 6. Publish completion
+    Redis->>SSE: 7. Forward completion
+    SSE->>Client: 8. Stream completion
     deactivate Workflow
-    SSE->>Emitter: 11. Unsubscribe
-    Client->>SSE: 12. Close connection
+
+    Client->>SSE: 9. Close connection
     deactivate SSE
 ```
 
