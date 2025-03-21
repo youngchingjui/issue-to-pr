@@ -66,6 +66,7 @@ class WorkflowEventEmitter {
     workflowId: string,
     callback: (event: WorkflowEvent) => void
   ) {
+    console.log("Subscribing to workflow:", workflowId)
     this.emitter.on(workflowId, callback)
   }
 

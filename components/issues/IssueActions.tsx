@@ -11,6 +11,7 @@ interface IssueActionsProps {
   onWorkflowStart: (workflow: WorkflowType) => void
   onWorkflowComplete: () => void
   onWorkflowError: () => void
+  onWorkflowId: (workflowId: string) => void
 }
 
 export default function IssueActions({
@@ -20,6 +21,7 @@ export default function IssueActions({
   onWorkflowStart,
   onWorkflowComplete,
   onWorkflowError,
+  onWorkflowId,
 }: IssueActionsProps) {
   const repoFullName = getRepoFullNameFromIssue(issue)
 
@@ -35,6 +37,7 @@ export default function IssueActions({
             },
             onComplete: onWorkflowComplete,
             onError: onWorkflowError,
+            onWorkflowId,
           })
           controller.execute()
         }}

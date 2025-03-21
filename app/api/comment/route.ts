@@ -12,7 +12,6 @@ import { v4 as uuidv4 } from "uuid"
 import { z } from "zod"
 
 import { getRepoFromString } from "@/lib/github/content"
-import { updateJobStatus } from "@/lib/redis-old"
 import { CommentRequestSchema } from "@/lib/schemas/api"
 import commentOnIssue from "@/lib/workflows/commentOnIssue"
 
@@ -22,29 +21,22 @@ export async function POST(request: NextRequest) {
     const { issueNumber, repoFullName, apiKey } =
       CommentRequestSchema.parse(body)
 
-    // Generate a unique job ID
-    const jobId = uuidv4()
-    await updateJobStatus(jobId, "Starting comment workflow")
+    // Generate a unique workflow ID
+    const workflowId = uuidv4()
 
     // Start the comment workflow as a background job
     ;(async () => {
       try {
         // Get full repository details
         const fullRepo = await getRepoFromString(repoFullName)
-        const response = await commentOnIssue(
-          issueNumber,
-          fullRepo,
-          apiKey,
-          jobId
-        )
-        await updateJobStatus(jobId, "Completed: " + JSON.stringify(response))
+        await commentOnIssue(issueNumber, fullRepo, apiKey, workflowId)
       } catch (error) {
-        await updateJobStatus(jobId, "Failed: " + error.message)
+        console.error("Error in comment workflow:", error)
       }
     })()
 
-    // Immediately return the job ID to the client
-    return NextResponse.json({ jobId })
+    // Immediately return the workflow ID to the client
+    return NextResponse.json({ workflowId })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

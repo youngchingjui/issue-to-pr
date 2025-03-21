@@ -43,17 +43,11 @@ export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
       setIsLoading(true)
       setActiveWorkflow("Generating Plan...")
     },
-    onComplete: () => {
-      setIsLoading(false)
-      setActiveWorkflow(null)
-    },
     onError: () => {
       setIsLoading(false)
       setActiveWorkflow(null)
     },
   })
-
-  const data = getRepoFullNameFromIssue(issue)
 
   return (
     <DataRow

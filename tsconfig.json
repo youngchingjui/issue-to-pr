@@ -18,6 +18,7 @@
     "esModuleInterop": true,
     "moduleResolution": "node",
     "resolveJsonModule": true,
+    "strictNullChecks": true,
     "isolatedModules": true,
     "jsx": "preserve",
     "noUnusedLocals": false,

@@ -7,7 +7,7 @@ import {
   updateIssueComment,
 } from "@/lib/github/issues"
 import { langfuse } from "@/lib/langfuse"
-import { updateJobStatus } from "@/lib/redis-old"
+import WorkflowEventEmitter from "@/lib/services/EventEmitter"
 import { SearchCodeTool } from "@/lib/tools"
 import GetFileContentTool from "@/lib/tools/GetFileContent"
 import { GitHubRepository } from "@/lib/types/github"
@@ -26,13 +26,18 @@ export default async function commentOnIssue(
   issueNumber: number,
   repo: GitHubRepository,
   apiKey: string,
-  jobId: string
+  workflowId: string
 ) {
   const trace = langfuse.trace({ name: "commentOnIssue" })
   let initialCommentId: number | null = null
 
   try {
-    updateJobStatus(jobId, "Authenticating and retrieving token")
+    WorkflowEventEmitter.emit(workflowId, {
+      type: "llm_response",
+      data: { content: "Authenticating and retrieving token..." },
+      timestamp: new Date(),
+    })
+
     // Get the issue
     const issue = await getIssue({
       fullName: repo.full_name,
@@ -48,10 +53,19 @@ export default async function commentOnIssue(
       )
     })
 
-    updateJobStatus(jobId, "Issue retrieved successfully")
+    WorkflowEventEmitter.emit(workflowId, {
+      type: "llm_response",
+      data: { content: "Issue retrieved successfully" },
+      timestamp: new Date(),
+    })
 
     // Post initial comment indicating processing start
-    updateJobStatus(jobId, "Posting initial processing comment")
+    WorkflowEventEmitter.emit(workflowId, {
+      type: "llm_response",
+      data: { content: "Posting initial processing comment..." },
+      timestamp: new Date(),
+    })
+
     try {
       const initialComment = await createIssueComment({
         issueNumber,
@@ -94,7 +108,12 @@ export default async function commentOnIssue(
       )
     }
 
-    updateJobStatus(jobId, "Setting up the local repository")
+    WorkflowEventEmitter.emit(workflowId, {
+      type: "llm_response",
+      data: { content: "Setting up the local repository..." },
+      timestamp: new Date(),
+    })
+
     // Setup local repository using setupLocalRepository
     const dirPath = await setupLocalRepository({
       repoFullName: repo.full_name,
@@ -107,10 +126,18 @@ export default async function commentOnIssue(
       throw new Error(`Failed to setup local repository: ${error.message}`)
     })
 
-    updateJobStatus(jobId, "Repository setup completed")
+    WorkflowEventEmitter.emit(workflowId, {
+      type: "llm_response",
+      data: { content: "Repository setup completed" },
+      timestamp: new Date(),
+    })
 
     const tree = await createDirectoryTree(dirPath)
-    updateJobStatus(jobId, "Directory tree created")
+    WorkflowEventEmitter.emit(workflowId, {
+      type: "llm_response",
+      data: { content: "Directory tree created" },
+      timestamp: new Date(),
+    })
 
     // Prepare the tools
     const getFileContentTool = new GetFileContentTool(dirPath)
@@ -122,13 +149,23 @@ export default async function commentOnIssue(
     thinker.addSpan({ span, generationName: "commentOnIssue" })
     thinker.addTool(getFileContentTool)
     thinker.addTool(searchCodeTool)
-    thinker.addJobId(jobId)
+    thinker.addJobId(workflowId)
 
-    updateJobStatus(jobId, "Generating comment")
-    const response = await thinker.runWithFunctions()
+    WorkflowEventEmitter.emit(workflowId, {
+      type: "llm_response",
+      data: { content: "Generating comment..." },
+      timestamp: new Date(),
+    })
+
+    const response = await thinker.runWithFunctionsStream()
     span.end()
 
-    updateJobStatus(jobId, "Updating initial comment with final response")
+    WorkflowEventEmitter.emit(workflowId, {
+      type: "llm_response",
+      data: { content: "Updating initial comment with final response..." },
+      timestamp: new Date(),
+    })
+
     // Update the initial comment with the final response
     if (initialCommentId) {
       await updateIssueComment({
@@ -145,10 +182,18 @@ export default async function commentOnIssue(
       })
     }
 
-    updateJobStatus(jobId, "Comment updated successfully")
+    WorkflowEventEmitter.emit(workflowId, {
+      type: "llm_response",
+      data: { content: "Comment updated successfully" },
+      timestamp: new Date(),
+    })
 
-    // Send a final message indicating the stream is finished
-    updateJobStatus(jobId, "Stream finished")
+    // Send a complete event
+    WorkflowEventEmitter.emit(workflowId, {
+      type: "complete",
+      data: { content: response },
+      timestamp: new Date(),
+    })
 
     // Return the comment
     return { status: "complete", issueComment: response }
@@ -158,7 +203,7 @@ export default async function commentOnIssue(
       error: githubError,
       issueNumber,
       repo: repo.full_name,
-      jobId,
+      workflowId,
     })
 
     const errorMessage =
@@ -182,7 +227,13 @@ export default async function commentOnIssue(
       }
     }
 
-    updateJobStatus(jobId, `Error: ${errorMessage}`)
+    // Emit error event
+    WorkflowEventEmitter.emit(workflowId, {
+      type: "error",
+      data: { content: errorMessage },
+      timestamp: new Date(),
+    })
+
     throw githubError // Re-throw the error to be handled by the caller
   }
 }

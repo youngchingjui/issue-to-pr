@@ -61,4 +61,9 @@ You will need to generate a comment on the issue that includes the following sec
         `\nHere is the codebase's tree directory:\n${tree.join("\n")}`
     )
   }
+
+  // Override runWithFunctions to use streaming by default
+  async runWithFunctions(): Promise<string> {
+    return this.runWithFunctionsStream()
+  }
 }

@@ -15,6 +15,7 @@ export async function GET(
     const stream = new ReadableStream({
       start(controller) {
         const onEvent = (event: WorkflowEvent) => {
+          console.log("Emitting event:", event)
           controller.enqueue(`data: ${JSON.stringify(event)}\n\n`)
         }
 
