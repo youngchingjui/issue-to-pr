@@ -93,6 +93,106 @@ This plan outlines the steps needed to implement real-time streaming responses f
 - Validate event format
 - Measure latency
 
+#### Demo Implementation
+
+1. Update `app/demo/page.tsx` to create a simple Redis streaming demo:
+
+   ```typescript
+   interface DemoProps {
+     workflowId: string;
+     events: BaseStreamEvent[];
+     onPublish: (event: BaseStreamEvent) => Promise<void>;
+   }
+
+   function Demo() {
+     const workflowId = "demo-workflow-123"
+     const [events, setEvents] = useState<BaseStreamEvent[]>([])
+     const [message, setMessage] = useState("")
+
+     // Connect to Redis stream on mount
+     useEffect(() => {
+       const setupRedis = async () => {
+         await redisStreamService.connect()
+         const subscriber = await redisStreamService.subscribeToEvents(workflowId)
+
+         subscriber.on("message", (channel, message) => {
+           const event = JSON.parse(message)
+           setEvents(prev => [...prev, event])
+         })
+
+         // Load existing history
+         const history = await redisStreamService.getEventHistory(workflowId)
+         setEvents(history)
+
+         return () => {
+           subscriber.disconnect()
+           redisStreamService.cleanup(workflowId)
+         }
+       }
+
+       setupRedis()
+     }, [])
+
+     const handlePublish = async () => {
+       const event: BaseStreamEvent = {
+         type: "token",
+         data: message
+       }
+       await redisStreamService.publishEvent(workflowId, event)
+       setMessage("")
+     }
+
+     return (
+       <div className="p-4">
+         <h1>Redis Stream Demo</h1>
+         <div className="my-4">
+           <input
+             value={message}
+             onChange={e => setMessage(e.target.value)}
+             className="border p-2"
+           />
+           <button
+             onClick={handlePublish}
+             className="ml-2 bg-blue-500 text-white p-2"
+           >
+             Publish Event
+           </button>
+         </div>
+         <div className="border p-4">
+           <h2>Events:</h2>
+           {events.map((event, i) => (
+             <div key={i} className="my-2">
+               <strong>{event.type}:</strong> {JSON.stringify(event.data)}
+             </div>
+           ))}
+         </div>
+       </div>
+     )
+   }
+   ```
+
+2. Test Cases to Verify:
+
+   - Real-time event publishing and subscription
+   - Event history retrieval
+   - Proper cleanup on unmount
+   - Error handling
+   - Multiple browser tab support (same workflowId)
+
+3. Demo Features:
+   - Manual event publishing
+   - Real-time updates across tabs
+   - Event history persistence
+   - Basic error handling
+   - Clean UI for visualization
+
+This demo will help us:
+
+1. Verify the Redis service works end-to-end
+2. Provide a testing ground for different event types
+3. Ensure proper cleanup and error handling
+4. Serve as a reference implementation for future components
+
 ### Stage 3: SSE with TransformStream (2 days)
 
 **Goal**: Implement SSE endpoint with proper streaming
