@@ -4,9 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "predev": "./scripts/start-services.sh",
     "dev": "next dev",
-    "build": "next build",
+    "prestart": "./scripts/start-services.sh",
     "start": "next start",
+    "build": "next build",
     "lint": "next lint",
     "test": "jest --config jest.config.ts",
     "test:watch": "jest --watch --config jest.config.ts",
