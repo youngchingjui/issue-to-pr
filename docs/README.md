@@ -1,0 +1,31 @@
+# Issue-to-PR Documentation
+
+## Overview
+
+Issue-to-PR is a Next.js application that automates GitHub issue resolution using AI. This documentation provides comprehensive information about the application's architecture, features, and implementation details.
+
+## Documentation Structure
+
+- `/api` - API documentation and endpoints
+- `/components` - React component documentation
+- `/guides` - User and developer guides
+- `/setup` - Installation and configuration
+- `/assets` - Images and diagrams
+
+## Quick Links
+
+- [Getting Started](setup/getting-started.md)
+- [Architecture Overview](guides/architecture.md)
+- [Authentication Guide](guides/authentication.md)
+- [AI Integration](guides/ai-integration.md)
+- [API Reference](api/README.md)
+
+## Core Features
+
+1. GitHub Authentication (OAuth & App)
+2. Repository & Issue Management
+3. AI-Powered Code Generation
+4. Automated PR Creation
+5. Pull Request Review
+
+For detailed information about each feature, please refer to the respective documentation sections.

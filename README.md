@@ -1,6 +1,15 @@
 # Issue To PR
 
-## Getting Started
+## Documentation
+
+For detailed documentation, please visit:
+
+- [Getting Started Guide](docs/setup/getting-started.md)
+- [Architecture Overview](docs/guides/architecture.md)
+- [API Documentation](docs/api/README.md)
+- [Component Documentation](docs/components/README.md)
+
+## Quick Start
 
 ### Prerequisites
 
@@ -14,74 +23,41 @@ Before you begin, ensure you have the following installed:
   - Dramatically improved CI/CD build times
 - Redis server
 
-### Setting Up Redis
-
-1. **Install Redis**: Follow the instructions for your operating system to install Redis.
-
-   - **macOS**: Use Homebrew
-
-     ```bash
-     brew update
-     brew install redis
-     ```
-
-   - **Ubuntu**: Use the package manager
-
-     ```bash
-     sudo apt update
-     sudo apt install redis-server
-
-     ```
-
-   - **Windows**: Use WSL or download a precompiled binary from [Microsoft's Redis page](https://github.com/microsoftarchive/redis/releases).
-
-2. **Start Redis Server**: Run the Redis server with the default configuration.
-
-   ```bash
-   redis-server
-   ```
-
-3. **Test Redis**: Use the Redis CLI to ensure Redis is running.
-   ```bash
-   redis-cli
-   ping
-   ```
-   You should receive a `PONG` response.
-
-### Running the Development Server
-
-1. **Clone the Repository**:
-
-   ```bash
-   git clone <repository-url>
-   cd <repository-directory>
-   ```
-
-2. **Install pnpm** (if not already installed):
-
-   ```bash
-   npm install -g pnpm
-   ```
-
-3. **Install Dependencies**:
-
-   ```bash
-   pnpm install
-   ```
-
-4. **Run the Development Server**:
-
-   ```bash
-   pnpm dev
-   ```
-
-5. **Open the Application**: Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+For detailed setup instructions, see our [Getting Started Guide](docs/setup/getting-started.md).
 
 ### Environment Variables
 
-Ensure you have the necessary environment variables set up. You may need to create a `.env.local` file in the root of your project with the following variables:
+Create a `.env.local` file in the root of your project. See [Configuration Guide](docs/setup/getting-started.md#configuration) for all available options.
 
-```
+Basic configuration:
+
+```env
 AUTH_GITHUB_ID=your_github_client_id
 AUTH_GITHUB_SECRET=your_github_client_secret
 ```
+
+### Development Quick Start
+
+```bash
+# Install dependencies
+pnpm install
+
+# Start development server
+pnpm dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+## Features
+
+- GitHub Authentication (OAuth & App)
+- Repository & Issue Management
+- AI-Powered Code Generation
+- Automated PR Creation
+- Pull Request Review
+
+For detailed feature documentation, see our [User Guide](docs/guides/user-guide.md).
+
+## Contributing
+
+Please read our [Contributing Guide](docs/guides/contributing.md) for details on our code of conduct and development process.

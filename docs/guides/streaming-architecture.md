@@ -284,6 +284,19 @@ interface TokenEvent extends BaseEvent {
 - Handles subscriber management
 - Provides event persistence
 
+## Related Documentation
+
+- [Redis Setup](../setup/redis-setup.md)
+- [API Endpoints](../api/sse.md)
+- [Database Architecture](database-architecture.md)
+- [AI Integration](ai-integration.md)
+
+For implementation details:
+
+- [Event Types](../api/events.md)
+- [Client Components](../components/streaming-components.md)
+- [Error Handling](error-handling.md)
+
 ```
 
 ```
