@@ -5,7 +5,7 @@ import WorkflowRunsList from "@/components/workflow-runs/WorkflowRunsList"
 import { langfuse } from "@/lib/langfuse"
 
 export default async function WorkflowRunsPage() {
-  const { data: traces, meta } = await langfuse.fetchTraces()
+  const { data: traces } = await langfuse.fetchTraces()
 
   // TODO: add pagination, using `meta` info
   return (
