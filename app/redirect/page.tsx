@@ -4,6 +4,8 @@ import { getGithubUser } from "@/lib/github/users"
 
 // Use this page to redirect after login to user's /[username] page
 // Easier to implement than middleware, for now
+export const dynamic = "force-dynamic"
+
 export default async function Redirect() {
   const user = await getGithubUser()
 
