@@ -40,9 +40,9 @@ export default async function Hero() {
           </span>
         </h1>
         <p className="text-stone-600 text-sm sm:text-base md:text-lg mb-8 sm:mb-10 max-w-3xl mx-auto px-2 sm:px-4 md:px-5 w-full text-center leading-relaxed">
-          Streamline your development process with Issue To PR, a GitHub App
-          that uses advanced multi-agent AI workflows to automatically resolve
-          issues and create Pull Requests.
+          No more writing prompts for AI. Issue To PR automatically extracts all
+          the context it needs from your GitHub issues and codebase to create
+          Pull Requests that solve your problems.
         </p>
       </motion.div>
 

@@ -88,6 +88,11 @@ const Features = () => {
         <div className="flex flex-col max-w-[1300px] w-full gap-12 px-5 lg:px-10">
           {[
             {
+              title: "Zero Prompt Engineering",
+              description:
+                "Say goodbye to writing AI prompts. All the necessary context is already in your GitHub issues, codebase, and online resources - we'll handle the rest.",
+            },
+            {
               title: "Built for Complex Codebases",
               description:
                 "Unlike tools that build from scratch, Issue To PR excels at improving existing, complex codebases - making it perfect for established projects.",
