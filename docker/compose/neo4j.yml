@@ -1,13 +1,11 @@
-version: "3.8"
-
 services:
   neo4j:
-    image: neo4j:5.19
+    image: neo4j:5.26.3
     ports:
       - "7474:7474" # HTTP
       - "7687:7687" # Bolt
     environment:
-      - NEO4J_AUTH=neo4j/password
+      - NEO4J_AUTH=${NEO4J_USER}/${NEO4J_PASSWORD}
       - NEO4J_ACCEPT_LICENSE_AGREEMENT=yes
     volumes:
       - neo4j_data:/data
