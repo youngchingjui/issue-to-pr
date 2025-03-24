@@ -6,8 +6,8 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useToast } from "@/hooks/use-toast"
 import { LOCAL_STORAGE_KEY } from "@/lib/globals"
+import { useToast } from "@/lib/hooks/use-toast"
 
 const ApiKeyInput = () => {
   const [apiKey, setApiKey] = useState("")

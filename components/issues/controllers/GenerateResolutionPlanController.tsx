@@ -1,6 +1,6 @@
 "use client"
 
-import { toast } from "@/hooks/use-toast"
+import { toast } from "@/lib/hooks/use-toast"
 import { CommentRequestSchema } from "@/lib/schemas/api"
 import { getApiKeyFromLocalStorage, SSEUtils } from "@/lib/utils/utils-common"
 
