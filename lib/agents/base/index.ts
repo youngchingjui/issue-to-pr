@@ -278,9 +278,13 @@ export class Agent {
               if (this.jobId) {
                 WorkflowEventEmitter.emit(this.jobId, {
                   type: "error",
-                  data: new Error(
-                    `Validation failed for tool ${toolCall.function.name}: ${validationResult.error.message}`
-                  ),
+                  data: {
+                    error: new Error(
+                      `Validation failed for tool ${toolCall.function.name}: ${validationResult.error.message}`
+                    ),
+                    retryCount: 0,
+                    recoverable: true,
+                  },
                   timestamp: new Date(),
                 })
               }
@@ -289,7 +293,12 @@ export class Agent {
             if (this.jobId) {
               WorkflowEventEmitter.emit(this.jobId, {
                 type: "error",
-                data: error instanceof Error ? error : new Error(String(error)),
+                data: {
+                  error:
+                    error instanceof Error ? error : new Error(String(error)),
+                  retryCount: 0,
+                  recoverable: true,
+                },
                 timestamp: new Date(),
               })
             }
