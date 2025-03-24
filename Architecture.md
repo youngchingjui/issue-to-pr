@@ -114,31 +114,57 @@ interface StructuredEvent extends BaseStreamEvent {
 
 ```mermaid
 sequenceDiagram
-    participant Client as React Client
-    participant SSE as SSE Endpoint (Edge)
-    participant Workflow as commentOnIssue Workflow
-    participant Redis as Redis Stream
+    box Browser Runtime
+        participant Client as React Client
+    end
+
+    box Edge Runtime
+        participant SSE as SSE Endpoint
+    end
+
+    box Node.js Runtime
+        participant Workflow as commentOnIssue Workflow
+    end
+
+    box Redis<br>redis://localhost:6379
+        participant Redis as workflow:${id}
+        participant History as workflow:${id}:history
+    end
 
     Client->>Workflow: 1. Start comment generation
     activate Workflow
+    Workflow->>Redis: 2. Initialize workflow state
 
-    Client->>SSE: 2. Connect to SSE endpoint
+    Client->>SSE: 3. Connect to SSE endpoint
     activate SSE
 
+    SSE->>History: 4. Fetch missed events
+    History-->>SSE: 5. Return event history
+    SSE->>Client: 6. Replay missed events
+
     loop Event Generation
-        Workflow->>Redis: 3. Publish event
-        Redis->>SSE: 4. Forward event
-        SSE->>Client: 5. Stream to client
-        Note over SSE,Client: TokenEvents for LLM tokens
-        Note over SSE,Client: StructuredEvents for other data
+        Workflow->>Redis: 7a. Publish event
+        Workflow->>History: 7b. Store event
+        Redis->>SSE: 8. Forward event
+        SSE->>Client: 9. Stream to client
+        Note over SSE,Client: Types: TokenEvent, StructuredEvent, ErrorEvent
     end
 
-    Workflow->>Redis: 6. Publish completion
-    Redis->>SSE: 7. Forward completion
-    SSE->>Client: 8. Stream completion
+    alt Error Occurs
+        Workflow->>Redis: E1. Publish error event
+        Redis->>SSE: E2. Forward error
+        SSE->>Client: E3. Handle error
+        Note over Client: Display error & retry options
+    end
+
+    Workflow->>Redis: 10. Publish completion
+    Workflow->>History: 11. Mark workflow complete
+    Redis->>SSE: 12. Forward completion
+    SSE->>Client: 13. Stream completion
     deactivate Workflow
 
-    Client->>SSE: 9. Close connection
+    Client->>SSE: 14. Close connection
+    SSE->>Redis: 15. Cleanup resources
     deactivate SSE
 ```
 
