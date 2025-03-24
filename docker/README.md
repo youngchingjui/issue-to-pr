@@ -27,7 +27,6 @@ The `scripts/start-services.sh` script automatically loads the appropriate envir
 
 - `NEO4J_USER`: Neo4j database username
 - `NEO4J_PASSWORD`: Neo4j database password
-- `NEO4J_URI`: Neo4j connection URI (e.g., "bolt://localhost:7687")
 
 These variables are used both by the application and by Docker Compose to configure the Neo4j container.
 
