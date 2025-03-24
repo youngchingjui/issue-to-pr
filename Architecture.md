@@ -172,7 +172,7 @@ sequenceDiagram
 
 ### Edge Runtime Components
 
-- SSE endpoint (`app/api/workflows/[workflowId]/events/route.ts`)
+- SSE endpoint (`app/api/workflow/[workflowId]/route.ts`)
   - Lightweight, stateless handling of SSE connections
   - Optimized for real-time streaming
   - Limited to Edge-compatible APIs

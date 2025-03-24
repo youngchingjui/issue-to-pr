@@ -436,7 +436,7 @@ Note: This stage is optional and can be implemented when long-term storage becom
 
 #### 1.2 Server-Sent Events (SSE) Endpoint 🔄
 
-**File:** `app/api/workflows/[workflowId]/events/route.ts`
+**File:** `app/api/workflow/[workflowId]/route.ts`
 
 - [ ] Create new Edge runtime endpoint
 - [ ] Implement SSE connection handling
