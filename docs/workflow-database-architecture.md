@@ -7,6 +7,7 @@ This document outlines the architecture for storing and managing workflow action
 ## System Requirements
 
 ### Core Requirements
+
 1. Store workflow actions/events/messages in a persistent database
 2. Support hierarchical relationships between nodes
 3. Enable cross-branch monitoring and awareness
@@ -16,6 +17,7 @@ This document outlines the architecture for storing and managing workflow action
 7. Real-time updates and streaming
 
 ### Performance Requirements
+
 1. Fast traversal of node relationships
 2. Efficient querying of workflow history
 3. Real-time event propagation
@@ -29,12 +31,14 @@ After evaluating different database options, we've chosen Neo4j as our primary s
 ### Why Neo4j?
 
 1. **Native Graph Structure**
+
    - Perfect for parent-child relationships
    - Efficient traversal queries
    - Natural representation of workflow branches
    - Built-in support for relationship types
 
 2. **Query Performance**
+
    ```cypher
    // Example: Find all paths to root
    MATCH path = (n:Node {id: $nodeId})-[:PARENT_OF*]->(root:Node)
@@ -43,6 +47,7 @@ After evaluating different database options, we've chosen Neo4j as our primary s
    ```
 
 3. **Cross-Branch Monitoring**
+
    ```cypher
    // Example: Find nodes monitoring other branches
    MATCH (monitor:Node)-[:MONITORS]->(target:Node)
@@ -58,6 +63,7 @@ After evaluating different database options, we've chosen Neo4j as our primary s
 ## Data Model
 
 ### Node Types
+
 ```cypher
 CREATE (:WorkflowNode {
     id: string,              // UUID
@@ -72,6 +78,7 @@ CREATE (:WorkflowNode {
 ```
 
 ### Relationships
+
 ```cypher
 // Basic relationships
 (:Node)-[:PARENT_OF]->(:Node)           // Hierarchical structure
@@ -83,30 +90,35 @@ CREATE (:WorkflowNode {
 ## Implementation Stages
 
 ### Stage 1: Basic Event Storage
+
 - Setup Neo4j database
 - Implement basic node creation
 - Maintain parent-child relationships
 - Basic event querying
 
 ### Stage 2: Decision Points
+
 - Add support for decision nodes
 - Implement option tracking
 - Store chosen paths
 - Basic branching support
 
 ### Stage 3: Cross-Branch Awareness
+
 - Implement monitoring relationships
 - Add branch summarization
 - Support cross-branch decisions
 - Branch visualization
 
 ### Stage 4: Advanced Features
+
 - Real-time updates via Redis + Neo4j
 - Workflow replay capability
 - Analytics and metrics
 - Advanced visualization
 
 ### Stage 5: Integration
+
 - Full system integration
 - Performance optimization
 - Search and filtering
@@ -115,26 +127,29 @@ CREATE (:WorkflowNode {
 ## Integration with Existing System
 
 ### Event Flow
+
 1. Event generated in workflow
 2. Stored in Redis for real-time updates
 3. Persisted to Neo4j for long-term storage
 4. UI updated via existing SSE mechanism
 
 ### Code Example
+
 ```typescript
 interface WorkflowEvent {
-  id: string;
-  workflowId: string;
-  type: string;
-  content: string;
-  metadata?: Record<string, any>;
-  parentId?: string;
+  id: string
+  workflowId: string
+  type: string
+  content: string
+  metadata?: Record<string, any>
+  parentId?: string
 }
 
 class WorkflowEventEmitter {
   async emit(event: WorkflowEvent) {
     // Store in Neo4j
-    await neo4j.run(`
+    await neo4j.run(
+      `
       MATCH (parent:Node {id: $parentId})
       CREATE (n:Node {
         id: $id,
@@ -145,8 +160,10 @@ class WorkflowEventEmitter {
         timestamp: datetime()
       })
       CREATE (parent)-[:PARENT_OF]->(n)
-    `, event)
-    
+    `,
+      event
+    )
+
     // Emit through Redis for real-time updates
     await redis.publish(`workflow:${event.workflowId}`, JSON.stringify(event))
   }
@@ -158,6 +175,7 @@ class WorkflowEventEmitter {
 ### Common Queries
 
 1. **Get Full Workflow Path**
+
 ```cypher
 MATCH path = (start:Node {id: $nodeId})-[:PARENT_OF*]->(root:Node)
 WHERE NOT (root)-[:PARENT_OF]->()
@@ -165,6 +183,7 @@ RETURN path
 ```
 
 2. **Find Decision Points**
+
 ```cypher
 MATCH (n:Node {workflow_id: $workflowId, type: 'decision'})
 OPTIONAL MATCH (n)-[:OPTION_OF]->(option)
@@ -173,6 +192,7 @@ RETURN n, collect(option) as options, chosen
 ```
 
 3. **Get Branch Summary**
+
 ```cypher
 MATCH (n:Node {branch_id: $branchId})
 WITH n
@@ -183,11 +203,13 @@ RETURN collect(n.content) as branch_content
 ## Security Considerations
 
 1. **Access Control**
+
    - Node-level permissions
    - Branch-level visibility
    - User role restrictions
 
 2. **Data Retention**
+
    - Workflow history cleanup
    - Branch pruning
    - Archival strategy
