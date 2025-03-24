@@ -8,7 +8,6 @@ import CreatePRController from "@/components/issues/controllers/CreatePRControll
 import GenerateResolutionPlanController from "@/components/issues/controllers/GenerateResolutionPlanController"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { GitHubIssue } from "@/lib/types/github"
-import { getRepoFullNameFromIssue } from "@/lib/utils/utils-common"
 
 interface IssueRowProps {
   issue: GitHubIssue
@@ -52,8 +51,6 @@ export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
       setActiveWorkflow(null)
     },
   })
-
-  const data = getRepoFullNameFromIssue(issue)
 
   return (
     <DataRow

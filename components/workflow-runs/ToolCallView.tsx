@@ -14,6 +14,7 @@ export default function ToolCallView({ toolCall }: ToolCallViewProps) {
       const args = JSON.parse(toolCall.function.arguments || "{}")
       return JSON.stringify(args, null, 2)
     } catch (e) {
+      console.error(e)
       return toolCall.function.arguments || ""
     }
   }, [toolCall.function.arguments])

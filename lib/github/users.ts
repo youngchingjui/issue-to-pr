@@ -11,7 +11,8 @@ export async function getGithubUser(): Promise<GitHubUser | null> {
 
     const { data: user } = await octokit.users.getAuthenticated()
     return user
-  } catch (_) {
+  } catch (e) {
+    console.error(e)
     return null
   }
 }

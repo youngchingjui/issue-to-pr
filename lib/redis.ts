@@ -41,6 +41,7 @@ class RedisManager {
           return RedisManager.instance
         } catch (error) {
           // Connection is dead, clear it and try to reconnect
+          console.error(error)
           RedisManager.instance = null
           console.error("Redis connection lost, will attempt to reconnect")
         }
