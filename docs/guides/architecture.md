@@ -19,6 +19,7 @@ For a detailed overview of the project's directory structure and organization, p
 - TailwindCSS for styling
 - Shadcn/ui components
 - Server-Sent Events (SSE) for real-time updates
+- Graph visualization libraries for workflow display
 
 ### Backend
 
@@ -26,6 +27,7 @@ For a detailed overview of the project's directory structure and organization, p
 - Octokit for GitHub API integration
 - OpenAI API for code generation
 - Redis for state management and event streaming
+- Neo4j for workflow graph storage and querying
 
 ### Authentication
 
@@ -45,12 +47,25 @@ For a detailed overview of the project's directory structure and organization, p
   - Job status tracking
   - Workflow coordination
 
+### Neo4j Infrastructure
+
+- Graph database for workflow storage
+- Real-time relationship tracking
+- Complex workflow querying
+- Performance optimization for large graphs
+- Key functionalities:
+  - Workflow step tracking
+  - Agent decision storage
+  - Relationship management
+  - Analytics data storage
+
 ### AI Infrastructure
 
 - OpenAI API integration
 - Multiple specialized AI agents
 - Langfuse for observability
 - Real-time streaming responses
+- Agent workflow tracking and visualization
 
 ### GitHub Integration
 
@@ -67,6 +82,7 @@ For a detailed overview of the project's directory structure and organization, p
 - [Streaming Architecture](streaming-architecture.md)
 - [API Documentation](../api/README.md)
 - [Development Plan](development-plan.md)
+- [Workflow Visualization](user-stories/workflow-visualization.md)
 
 For setup instructions, see:
 
