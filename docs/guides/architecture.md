@@ -5,7 +5,8 @@
 1. [System Overview](#system-overview)
 2. [Technology Stack](#technology-stack)
 3. [Component Interactions](#component-interactions)
-4. [Detailed Documentation](#detailed-documentation)
+4. [Observability](#observability)
+5. [Detailed Documentation](#detailed-documentation)
 
 ## System Overview
 
@@ -31,11 +32,18 @@ Our system is a GitHub-integrated workflow automation platform that converts iss
 - OpenAI API
 - Redis
 - Neo4j
+- Langfuse (AI Observability)
 
 ### Authentication
 
 - NextAuth.js
 - GitHub OAuth & App integration
+
+### Observability
+
+- Langfuse for AI operation monitoring
+- Performance metrics tracking
+- Cost and usage analytics
 
 ## Component Interactions
 
@@ -48,7 +56,25 @@ graph TD
     B -->|Workflow Storage| F[Neo4j]
     D -->|Decisions| E
     D -->|Code Changes| C
+    D -->|Monitoring| G[Langfuse]
 ```
+
+## Observability
+
+The system uses Langfuse for comprehensive AI operation monitoring:
+
+1. **Performance Tracking**
+
+   - Latency monitoring
+   - Token usage metrics
+   - Success/failure rates
+
+2. **Cost Management**
+   - Usage analytics
+   - Cost allocation
+   - Optimization insights
+
+For detailed information, see our [Observability Guide](observability.md)
 
 ## Detailed Documentation
 
@@ -57,6 +83,7 @@ graph TD
 - [Authentication System](authentication.md)
 - [AI Integration Details](ai-integration.md)
 - [API Documentation](../api/README.md)
+- [Observability Guide](observability.md)
 
 ### Data Architecture
 
