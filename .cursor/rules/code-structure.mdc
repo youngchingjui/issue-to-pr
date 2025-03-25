@@ -1,0 +1,21 @@
+---
+description: Finding existing files or creating new files
+globs: 
+alwaysApply: false
+---
+ # Code Structure Reference
+
+When searching for existing files or determining where to create new files:
+
+1. **Refer to `/docs/code-structure.md`** for:
+   - Understanding the project's directory structure
+   - Finding the appropriate location for new files
+   - Locating existing functionality
+   - Following code organization patterns
+
+2. **Before creating new files:**
+   - Check `/docs/code-structure.md` to understand the correct directory
+   - Search existing directories as documented in the structure
+   - Verify similar functionality doesn't already exist
+
+This will help maintain consistency and prevent duplicate implementations.

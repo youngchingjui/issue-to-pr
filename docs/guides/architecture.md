@@ -2,26 +2,14 @@
 
 ## Table of Contents
 
-1. [Application Structure](#application-structure)
+1. [Code Structure](#code-structure)
 2. [Key Technologies](#key-technologies)
 3. [Infrastructure Components](#infrastructure-components)
 4. [Related Documentation](#related-documentation)
 
-## Application Structure
+## Code Structure
 
-The application follows a modern Next.js App Router structure:
-
-```
-/app            # Pages and API routes
-/components     # Reusable React components
-/lib           # Core business logic
-  /agents      # AI agent implementations
-  /github      # GitHub API integration
-  /services    # Service implementations
-  /workflows   # Complex business logic
-/public        # Static assets
-/docs          # Documentation
-```
+For a detailed overview of the project's directory structure and organization, please refer to [`/docs/code-structure.md`](../code-structure.md).
 
 ## Key Technologies
 
