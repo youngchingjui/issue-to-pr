@@ -27,23 +27,37 @@ sequenceDiagram
     Workflow->>Redis: 3. Set initial state
     Workflow->>Neo4j: 4. Create workflow node
 
-    Client->>SSE: 5. Connect to SSE endpoint
+    note over Workflow,Redis: Events can be generated immediately after init
+
+    loop Initial Event Generation
+        Workflow->>Redis: 5a. Publish initial events
+        Workflow->>History: 5b. Store in history
+    end
+
+    Client->>SSE: 6. Connect to SSE endpoint
     activate SSE
 
-    SSE->>History: 6. Fetch missed events
-    History-->>SSE: 7. Return event history
-    SSE->>Client: 8. Replay missed events
+    note over SSE,History: Event buffering during connection setup
+
+    SSE->>Redis: 7. Subscribe to events
+    Redis-->>SSE: 8. Current events
+
+    SSE->>History: 9. Fetch missed events
+    History-->>SSE: 10. Return event history
+    SSE->>Client: 11. Replay missed events
 
     loop Event Generation
-        Workflow->>Redis: 9a. Publish event
-        Workflow->>History: 9b. Store in history
-        Redis->>SSE: 10. Forward event
-        SSE->>Client: 11. Stream to client
+        Workflow->>Redis: 12a. Publish event
+        Workflow->>History: 12b. Store in history
+        Redis->>SSE: 13. Forward event
+        SSE->>Client: 14. Stream to client
 
         par Background Persistence
-            Background->>Redis: 12a. Read from queue
-            Background->>Neo4j: 12b. Persist event
-            Background->>Redis: 12c. Update status
+            note over Background,Neo4j: Parallel processing with persistence guarantees
+            Background->>Redis: 15a. Read from queue
+            Background->>Neo4j: 15b. Persist event
+            Background->>Redis: 15c. Update status
+            note over Background: Error handling in background jobs
         end
     end
 
@@ -54,14 +68,14 @@ sequenceDiagram
         SSE->>Client: E4. Handle error
     end
 
-    Workflow->>Redis: 13. Mark complete
-    Workflow->>Neo4j: 14. Update final state
-    Redis->>SSE: 15. Send completion
-    SSE->>Client: 16. Close stream
+    Workflow->>Redis: 16. Mark complete
+    Workflow->>Neo4j: 17. Update final state
+    Redis->>SSE: 18. Send completion
+    SSE->>Client: 19. Close stream
     deactivate Workflow
 
-    Client->>SSE: 17. Close connection
-    SSE->>Redis: 18. Cleanup resources
+    Client->>SSE: 20. Close connection
+    SSE->>Redis: 21. Cleanup resources
     deactivate SSE
 
     note over Neo4j: Persistent Graph Storage

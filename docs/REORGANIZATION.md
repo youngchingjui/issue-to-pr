@@ -84,7 +84,7 @@ This document outlines the step-by-step plan to reorganize the documentation str
   - Add clear section headers
   - Ensure consistent terminology
   - Add descriptive component explanations
-- [ ] 3. Improve data flow diagram timing:
+- [x] 3. Improve data flow diagram timing:
   - Show events can be generated right after workflow init
   - Move "Fetch missed events" after some events are generated
   - Clarify event history replay sequence
