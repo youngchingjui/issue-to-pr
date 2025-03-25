@@ -1,3 +1,4 @@
+import { Node, Record as Neo4jRecord } from "neo4j-driver"
 import { v4 as uuidv4 } from "uuid"
 
 import { Neo4jClient } from "@/lib/neo4j/client"
@@ -19,11 +20,80 @@ export interface WorkflowEvent {
   metadata?: Record<string, unknown>
 }
 
+export interface WorkflowWithEvents {
+  id: string
+  events: WorkflowEvent[]
+  status: "active" | "completed" | "error"
+  lastEventTimestamp: Date | null
+}
+
 export class WorkflowPersistenceService {
   private neo4j: Neo4jClient
 
   constructor() {
     this.neo4j = Neo4jClient.getInstance()
+  }
+
+  static async getWorkflows(): Promise<WorkflowWithEvents[]> {
+    const client = Neo4jClient.getInstance()
+    const session = await client.getSession()
+    try {
+      const result = await session.run(
+        `
+        MATCH (w:Workflow)
+        OPTIONAL MATCH (w)-[:BELONGS_TO_WORKFLOW]->(e:Event)
+        WITH w, collect(e) as events
+        RETURN w.id as id, events
+        ORDER BY w.created_at DESC
+        `
+      )
+
+      return await Promise.all(
+        result.records.map(async (record: Neo4jRecord) => {
+          const workflowId = record.get("id")
+          const events = record.get("events") as Node[]
+
+          // Convert Neo4j events to WorkflowEvent[]
+          const workflowEvents: WorkflowEvent[] = events
+            .filter((e) => e !== null)
+            .map((e) => ({
+              id: e.properties.id as string,
+              type: e.properties.type as WorkflowEventType,
+              workflowId,
+              data: JSON.parse(e.properties.data as string),
+              metadata: e.properties.metadata
+                ? JSON.parse(e.properties.metadata as string)
+                : undefined,
+              timestamp: new Date(e.properties.timestamp as string),
+            }))
+            .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
+
+          // Determine workflow status and last event timestamp
+          let status: "active" | "completed" | "error" = "active"
+          let lastEventTimestamp: Date | null = null
+
+          if (workflowEvents.length > 0) {
+            const lastEvent = workflowEvents[workflowEvents.length - 1]
+            lastEventTimestamp = lastEvent.timestamp
+
+            if (lastEvent.type === "complete") {
+              status = "completed"
+            } else if (lastEvent.type === "error") {
+              status = "error"
+            }
+          }
+
+          return {
+            id: workflowId,
+            events: workflowEvents,
+            status,
+            lastEventTimestamp,
+          }
+        })
+      )
+    } finally {
+      await session.close()
+    }
   }
 
   async saveEvent(event: Omit<WorkflowEvent, "id">) {
