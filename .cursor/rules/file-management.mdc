@@ -1,0 +1,9 @@
+---
+description: moving files
+globs: 
+alwaysApply: false
+---
+### File Operations
+- Use `git mv` for file moves/renames to preserve history
+- Be sure the folder you're moving to exists before making the move
+- Do not use delete/create operations for file moves

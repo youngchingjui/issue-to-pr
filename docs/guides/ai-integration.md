@@ -122,11 +122,11 @@ eventSource.onmessage = (event) => {
 
 - [API Endpoints](../api/ai.md)
 - [Streaming Architecture](streaming-architecture.md)
-- [Development Plan](development-plan.md)
+- [Implementation Stages](../setup/implementation-stages.md)
 - [Component Integration](../components/ai-components.md)
 
 For implementation examples:
 
-- [Issue Analysis Flow](development-plan.md#issue-analysis)
-- [PR Review Process](development-plan.md#pr-review)
-- [Code Generation](development-plan.md#code-generation)
+- [Issue Analysis Flow](../setup/implementation-stages.md#issue-analysis)
+- [PR Review Process](../setup/implementation-stages.md#pr-review)
+- [Code Generation](../setup/implementation-stages.md#code-generation)
