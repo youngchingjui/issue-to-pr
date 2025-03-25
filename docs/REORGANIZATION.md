@@ -54,7 +54,7 @@ This document outlines the step-by-step plan to reorganize the documentation str
 
 ### Step 4: User Stories and Technical Specs
 
-- [ ] 1. Review `user-stories/workflow-visualization.md`:
+- [x] 1. Review `user-stories/workflow-visualization.md`:
   - Keep user requirements and acceptance criteria
   - Move technical implementation details to appropriate guides
   - Update cross-references
@@ -95,65 +95,88 @@ This document outlines the step-by-step plan to reorganize the documentation str
   - Add notes about persistence guarantees
   - Show error handling in background jobs
 
-## Phase 3: Content Cleanup
+## Phase 3: Public/Internal Documentation Separation
 
-### Step 1: Cross-Reference Updates
+### Step 1: Create Internal Documentation Structure
 
-- [ ] 1. Update all internal links in:
-  - README.md files
-  - Guide documents
-  - Setup instructions
-  - API documentation
+- [ ] 1. Create new internal documentation directory:
+  ```
+  internal/
+  ├── README.md
+  ├── planning/
+  │   ├── implementation/
+  │   └── architecture/
+  ├── decisions/
+  └── roadmap/
+  ```
+- [ ] 2. Create internal README.md:
+  - Add explanation of internal vs public docs
+  - Document folder structure
+  - Add guidelines for internal documentation
 
-### Step 2: Conflict Resolution
+### Step 2: Move Implementation Documents
 
-- [ ] 1. Resolve technology conflicts:
-  - Clarify Redis vs Neo4j responsibilities
-  - Document real-time update strategy (SSE vs WebSocket)
-  - Update implementation stages to match across all docs
+- [ ] 1. Move implementation-related files:
+  - Move `setup/implementation-stages.md` → `internal/planning/implementation/stages.md`
+  - Move `guides/workflow-visualization-implementation.md` → `internal/planning/implementation/workflow-visualization.md`
+  - Update all cross-references to these files
 
-### Step 3: Content Validation
+### Step 3: Clean Up Public Docs
 
-- [ ] 1. Review all documents for:
-  - Accurate cross-references
-  - Consistent terminology
-  - Up-to-date information
-  - Proper formatting
+- [ ] 1. Review and update `/docs` content:
+  - Remove any internal planning details
+  - Keep only end-user focused content
+  - Update language to be more user-friendly
+  - Remove technical implementation details
 
-## Phase 4: Documentation Improvements
+### Step 4: Update Cross References
 
-### Step 1: Navigation Enhancement
+- [ ] 1. Fix broken links:
+  - Search for references to moved files
+  - Update all internal document links
+  - Verify no public docs link to internal docs
+  - Update import paths in code if needed
 
-- [ ] 1. Update main README.md:
-  - Clear navigation structure
-  - Updated links to new locations
-  - Quick start guide
-  - High-level project overview
+### Step 5: Documentation Guidelines
 
-### Step 2: Style Consistency
+- [ ] 1. Create documentation guidelines:
+  - Create `internal/README.md` with internal docs guidelines
+  - Create `docs/CONTRIBUTING.md` with public docs guidelines
+  - Document the separation between public/internal
+  - Add examples of what belongs where
 
-- [ ] 1. Apply consistent formatting:
-  - Markdown styling
-  - Code block formatting
-  - Header hierarchy
-  - Link formatting
+### Step 6: Migration Verification
+
+- [ ] 1. Verify documentation structure:
+  - Check all files are in correct locations
+  - Verify all links work
+  - Ensure no implementation details in public docs
+  - Confirm all cross-references are updated
+
+### Step 7: Update Development Workflow
+
+- [ ] 1. Update development process:
+  - Add documentation guidelines to PR template
+  - Create checklist for doc updates
+  - Add verification step for doc location
+  - Update relevant CI/CD checks
 
 ## Success Criteria
 
-1. No duplicate information across documents
-2. Clear separation of concerns
-3. Accurate cross-references
-4. Consistent terminology
-5. Logical information hierarchy
-6. Easy navigation between documents
+1. Clear separation between public and internal documentation
+2. All implementation details moved to internal folder
+3. Public docs focus solely on end-user needs
+4. No broken cross-references
+5. Clear guidelines for future documentation
+6. Development process updated to maintain separation
 
 ## Notes
 
-- Complete each phase before moving to the next
+- Complete each step sequentially
 - Update this document as changes are made
 - Mark tasks as completed using [x]
 - Add new tasks as needed during implementation
 
 ## Finally
 
-- [ ] At the end of this document, if every item is checked off, then delete this document.
+- [ ] At the end of this document, if every item is checked off, then move this file to a "completed" folder, or something similar.

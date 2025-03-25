@@ -2,6 +2,8 @@
 
 This document outlines the user stories for the workflow visualization feature, which allows users to understand and interact with the LLM agent workflows in the system.
 
+> For technical implementation details, please see [Workflow Visualization Implementation Guide](../../guides/workflow-visualization-implementation.md)
+
 ## Core User Stories
 
 ### 1. Viewing Workflow History
@@ -89,19 +91,3 @@ Acceptance Criteria:
 - Capability to redirect workflow paths
 - Clear indication of manual interventions in the visualization
 - Audit trail of user interventions
-
-## Technical Considerations
-
-- Integration with Neo4j for storing and querying workflow data
-- Real-time updates using WebSocket connections
-- Scalable visualization for complex workflows
-- Performance optimization for large workflow graphs
-- Security considerations for workflow data access
-
-## Next Steps
-
-1. Implement basic workflow visualization with Neo4j integration
-2. Add real-time update capabilities
-3. Develop the relationship exploration interface
-4. Create analytics dashboard
-5. Build intervention capabilities
