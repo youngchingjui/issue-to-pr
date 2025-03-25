@@ -18,7 +18,7 @@ This document outlines the step-by-step plan to reorganize the documentation str
   ├── components/
   └── code-structure.md
   ```
-- [ ] 2. Create new directories if needed:
+- [x] 2. Create new directories if needed:
   - `docs/guides/databases/`
 
 ## Phase 2: Content Reorganization
