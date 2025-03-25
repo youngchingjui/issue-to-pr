@@ -2,43 +2,33 @@
 
 ## Overview
 
-This document outlines the implementation plan for tracking workflow events, with a clear separation between real-time streaming and persistent storage concerns.
+This document outlines the implementation plan for tracking workflow events, with a clear separation between persistent storage and real-time streaming concerns. The implementation will be phased, focusing first on robust persistence of workflow events, followed by streaming capabilities in later phases.
 
-## Stage 1: Service Separation
+## Stage 1: Core Persistence Layer
 
-### Step 1: Create StreamingService
+### Step 1: Neo4j Schema Setup
 
 ```typescript
-// lib/services/StreamingService.ts
+// lib/services/WorkflowPersistenceService.ts
 
-export class StreamingService {
-  private emitter = new EventEmitter()
-  private workflowStates = new Map<string, WorkflowState>()
-  private readonly WORKFLOW_TIMEOUT = 1000 * 60 * 30 // 30 minutes
-
-  constructor() {
-    this.startCleanupInterval()
-  }
-
-  async emit(workflowId: string, token: StreamToken) {
-    this.initWorkflow(workflowId)
-    this.updateWorkflowActivity(workflowId)
-    this.emitter.emit(workflowId, token)
-  }
-
-  subscribe(workflowId: string, callback: (token: StreamToken) => void) {
-    this.initWorkflow(workflowId)
-    this.emitter.on(workflowId, callback)
-  }
-
-  // ... cleanup and workflow state management
-}
-
-interface StreamToken {
-  type: "token" | "chunk"
-  content: string
+interface WorkflowEvent {
+  id: string
+  type:
+    | "workflow_start"
+    | "llm_complete"
+    | "tool_call"
+    | "tool_response"
+    | "error"
+    | "complete"
+  workflowId: string
+  data: any
   timestamp: Date
+  metadata?: Record<string, any>
 }
+
+// Neo4j Schema:
+// - Event nodes with properties matching WorkflowEvent interface
+// - Relationships: NEXT_EVENT, BELONGS_TO_WORKFLOW, TRIGGERED_BY
 ```
 
 ### Step 2: Create WorkflowPersistenceService
@@ -66,18 +56,14 @@ export class WorkflowPersistenceService {
   async getWorkflowEvents(workflowId: string): Promise<WorkflowEvent[]> {
     // Retrieve complete workflow history
   }
-}
 
-interface WorkflowEvent {
-  type: "llm_complete" | "tool_call" | "tool_response" | "error" | "complete"
-  workflowId: string
-  data: any
-  timestamp: Date
-  metadata?: Record<string, any>
+  async getWorkflowState(workflowId: string): Promise<WorkflowState> {
+    // Get current workflow state
+  }
 }
 ```
 
-## Stage 2: Integration with Agent
+## Stage 2: Agent Integration
 
 ### Step 1: Update Agent Class
 
@@ -85,27 +71,14 @@ interface WorkflowEvent {
 // lib/agents/base/index.ts
 
 export class Agent {
-  private streamingService: StreamingService
   private persistenceService: WorkflowPersistenceService
 
   constructor() {
-    this.streamingService = new StreamingService()
     this.persistenceService = new WorkflowPersistenceService()
   }
 
-  async runWithFunctionsStream() {
-    // Handle streaming for UI updates
-    for await (const chunk of response) {
-      if (chunk.choices[0]?.delta?.content) {
-        this.streamingService.emit(this.jobId, {
-          type: "token",
-          content: chunk.choices[0].delta.content,
-          timestamp: new Date(),
-        })
-      }
-    }
-
-    // Persist complete message
+  async runWithFunctions() {
+    // Track complete messages
     await this.persistenceService.saveEvent({
       type: "llm_complete",
       workflowId: this.jobId,
@@ -153,14 +126,105 @@ export default async function commentOnIssue(params) {
 }
 ```
 
-## Stage 3: Testing & Verification
+## Stage 3: Testing & Monitoring
 
 ### Step 1: Unit Tests
 
-Create separate test suites for each service:
+Create test suite for persistence service:
+
+- `__tests__/services/persistence.test.ts`
+
+Test cases:
+
+1. PersistenceService
+   - Event storage
+   - Workflow history
+   - Relationship management
+   - Error handling
+   - State transitions
+
+### Step 2: Integration Tests
+
+Test the persistence layer:
+
+1. Complete workflow tracking
+2. Error scenarios
+3. Data integrity
+4. Query performance
+5. Relationship accuracy
+
+## Stage 4: Monitoring & Maintenance
+
+### Step 1: Add Monitoring
+
+PersistenceService metrics:
+
+- Event storage latency
+- Query performance
+- Storage growth
+- Relationship depth
+- Error rates
+
+### Step 2: Maintenance Tasks
+
+PersistenceService:
+
+- Data archival
+- Index optimization
+- Query performance tuning
+- Backup procedures
+
+## Stage 5: Streaming Implementation (Future Phase)
+
+### Step 1: Create StreamingService
+
+```typescript
+// lib/services/StreamingService.ts
+
+export class StreamingService {
+  private emitter = new EventEmitter()
+  private workflowStates = new Map<string, WorkflowState>()
+  private readonly WORKFLOW_TIMEOUT = 1000 * 60 * 30 // 30 minutes
+
+  constructor() {
+    this.startCleanupInterval()
+  }
+
+  async emit(workflowId: string, token: StreamToken) {
+    this.initWorkflow(workflowId)
+    this.updateWorkflowActivity(workflowId)
+    this.emitter.emit(workflowId, token)
+  }
+
+  subscribe(workflowId: string, callback: (token: StreamToken) => void) {
+    this.initWorkflow(workflowId)
+    this.emitter.on(workflowId, callback)
+  }
+
+  // ... cleanup and workflow state management
+}
+
+interface StreamToken {
+  type: "token" | "chunk"
+  content: string
+  timestamp: Date
+}
+```
+
+### Step 2: Streaming Integration
+
+Update Agent and workflows to support streaming:
+
+1. Add streaming capability to Agent class
+2. Implement real-time UI updates
+3. Add WebSocket support
+4. Implement caching layer if needed
+
+### Step 3: Streaming Tests
+
+Create streaming test suite:
 
 - `__tests__/services/streaming.test.ts`
-- `__tests__/services/persistence.test.ts`
 
 Test cases:
 
@@ -168,61 +232,33 @@ Test cases:
    - Token emission
    - Subscription management
    - Cleanup behavior
-2. PersistenceService
-   - Event storage
-   - Workflow history
-   - Relationship management
+   - Performance under load
 
-### Step 2: Integration Tests
+### Step 4: Streaming Monitoring
 
-Test the services working together:
+StreamingService metrics:
 
-1. Verify streaming doesn't affect persistence
-2. Check persistence of complete events
-3. Validate workflow visualization data
-4. Test error scenarios
-
-## Stage 4: Monitoring & Maintenance
-
-### Step 1: Add Separate Monitoring
-
-1. StreamingService metrics:
-
-   - Token emission rate
-   - Active subscribers
-   - Memory usage
-   - Cleanup effectiveness
-
-2. PersistenceService metrics:
-   - Event storage latency
-   - Query performance
-   - Storage growth
-   - Relationship depth
-
-### Step 2: Maintenance Tasks
-
-1. StreamingService:
-
-   - Memory usage optimization
-   - Subscription cleanup
-   - Connection management
-
-2. PersistenceService:
-   - Data archival
-   - Index optimization
-   - Query performance tuning
+- Token emission rate
+- Active subscribers
+- Memory usage
+- Cleanup effectiveness
+- WebSocket performance
 
 ## Success Criteria
 
-1. Clear separation of concerns
-2. Real-time updates work smoothly
-3. Complete events properly persisted
-4. No performance degradation
-5. Clean visualization data
+1. Complete event persistence
+2. Accurate workflow history
+3. Efficient querying
+4. Proper error handling
+5. Clean data relationships
+6. (Future) Real-time updates
+7. (Future) Streaming performance
 
 ## Next Steps
 
-1. Implement UI components
-2. Add data analysis tools
-3. Create monitoring dashboards
-4. Optimize performance
+1. Implement persistence layer
+2. Set up monitoring
+3. Create test infrastructure
+4. (Future) Add streaming capability
+5. (Future) Implement UI components
+6. (Future) Add real-time visualization
