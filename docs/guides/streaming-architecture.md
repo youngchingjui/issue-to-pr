@@ -112,61 +112,16 @@ interface StructuredEvent extends BaseStreamEvent {
 
 ### 4. Data Flow
 
-```mermaid
-sequenceDiagram
-    box Browser Runtime
-        participant Client as React Client
-    end
+For a detailed view of how data flows through our system, including both real-time streaming and persistent storage, please refer to our unified [Data Flow Diagram](../assets/data-flow-diagram.md).
 
-    box Edge Runtime
-        participant SSE as SSE Endpoint
-    end
+The diagram shows the complete lifecycle of an event, from generation through real-time streaming via Redis to persistent storage in Neo4j, including:
 
-    box Node.js Runtime
-        participant Workflow as commentOnIssue Workflow
-    end
-
-    box Redis<br>redis://localhost:6379
-        participant Redis as workflow:${id}
-        participant History as workflow:${id}:history
-    end
-
-    Client->>Workflow: 1. Start comment generation
-    activate Workflow
-    Workflow->>Redis: 2. Initialize workflow state
-
-    Client->>SSE: 3. Connect to SSE endpoint
-    activate SSE
-
-    SSE->>History: 4. Fetch missed events
-    History-->>SSE: 5. Return event history
-    SSE->>Client: 6. Replay missed events
-
-    loop Event Generation
-        Workflow->>Redis: 7a. Publish event
-        Workflow->>History: 7b. Store event
-        Redis->>SSE: 8. Forward event
-        SSE->>Client: 9. Stream to client
-        Note over SSE,Client: Types: TokenEvent, StructuredEvent, ErrorEvent
-    end
-
-    alt Error Occurs
-        Workflow->>Redis: E1. Publish error event
-        Redis->>SSE: E2. Forward error
-        SSE->>Client: E3. Handle error
-        Note over Client: Display error & retry options
-    end
-
-    Workflow->>Redis: 10. Publish completion
-    Workflow->>History: 11. Mark workflow complete
-    Redis->>SSE: 12. Forward completion
-    SSE->>Client: 13. Stream completion
-    deactivate Workflow
-
-    Client->>SSE: 14. Close connection
-    SSE->>Redis: 15. Cleanup resources
-    deactivate SSE
-```
+- Initial workflow setup
+- SSE connection establishment
+- Real-time event streaming
+- Background persistence
+- Error handling
+- Completion and cleanup
 
 ## NextJS Runtime Considerations
 

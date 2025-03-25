@@ -1,90 +1,75 @@
-# Architecture Overview
+# System Architecture Overview
 
 ## Table of Contents
 
-1. [Code Structure](#code-structure)
-2. [Key Technologies](#key-technologies)
-3. [Infrastructure Components](#infrastructure-components)
-4. [Related Documentation](#related-documentation)
+1. [System Overview](#system-overview)
+2. [Technology Stack](#technology-stack)
+3. [Component Interactions](#component-interactions)
+4. [Detailed Documentation](#detailed-documentation)
 
-## Code Structure
+## System Overview
 
-For a detailed overview of the project's directory structure and organization, please refer to [`/docs/code-structure.md`](../code-structure.md).
+Our system is a GitHub-integrated workflow automation platform that converts issues into pull requests using AI assistance. The system consists of four main components:
 
-## Key Technologies
+1. **Web Interface**: A Next.js application providing real-time workflow visualization and control
+2. **API Layer**: Handles GitHub integration and coordinates workflow processes
+3. **AI Engine**: Manages multiple specialized AI agents for code generation and decision making
+4. **Data Storage**: Dual database system for different data requirements
 
-### Frontend
+## Technology Stack
+
+### Frontend Technologies
 
 - Next.js 14 (App Router)
-- TailwindCSS for styling
-- Shadcn/ui components
-- Server-Sent Events (SSE) for real-time updates
-- Graph visualization libraries for workflow display
+- TailwindCSS + Shadcn/ui
+- Real-time updates via SSE
 
-### Backend
+### Backend Technologies
 
 - Next.js API routes
-- Octokit for GitHub API integration
-- OpenAI API for code generation
-- Redis for state management and event streaming
-- Neo4j for workflow graph storage and querying
+- GitHub API integration
+- OpenAI API
+- Redis
+- Neo4j
 
 ### Authentication
 
-- NextAuth.js with dual GitHub providers
-- Redis-based token management
-- GitHub App integration
+- NextAuth.js
+- GitHub OAuth & App integration
 
-## Infrastructure Components
+## Component Interactions
 
-### Redis Infrastructure
+```mermaid
+graph TD
+    A[Web Interface] -->|Real-time Updates| B[API Layer]
+    B -->|Authentication| C[GitHub]
+    B -->|Code Generation| D[AI Engine]
+    B -->|State Management| E[Redis]
+    B -->|Workflow Storage| F[Neo4j]
+    D -->|Decisions| E
+    D -->|Code Changes| C
+```
 
-- Production: Upstash Redis
-- Development: Local Redis instance
-- Key functionalities:
-  - Token management and refresh
-  - Event streaming
-  - Job status tracking
-  - Workflow coordination
+## Detailed Documentation
 
-### Neo4j Infrastructure
+### Core Components
 
-- Graph database for workflow storage
-- Real-time relationship tracking
-- Complex workflow querying
-- Performance optimization for large graphs
-- Key functionalities:
-  - Workflow step tracking
-  - Agent decision storage
-  - Relationship management
-  - Analytics data storage
-
-### AI Infrastructure
-
-- OpenAI API integration
-- Multiple specialized AI agents
-- Langfuse for observability
-- Real-time streaming responses
-- Agent workflow tracking and visualization
-
-### GitHub Integration
-
-- Dual authentication support (OAuth & App)
-- Enhanced API access management
-- Automated PR workflows
-- Webhook integration
-
-## Related Documentation
-
-- [Authentication Details](authentication.md)
-- [AI Integration](ai-integration.md)
-- [Database Architecture](database-architecture.md)
-- [Streaming Architecture](streaming-architecture.md)
+- [Authentication System](authentication.md)
+- [AI Integration Details](ai-integration.md)
 - [API Documentation](../api/README.md)
-- [Development Plan](development-plan.md)
-- [Workflow Visualization](user-stories/workflow-visualization.md)
 
-For setup instructions, see:
+### Data Architecture
 
+- [Database Architecture](guides/databases/neo4j-architecture.md)
+- [Redis Architecture](guides/databases/redis-architecture.md)
+- [Data Flow Patterns](guides/databases/data-flow.md)
+
+### Development
+
+- [Implementation Stages](../setup/implementation-stages.md)
 - [Getting Started Guide](../setup/getting-started.md)
 - [Contributing Guide](contributing.md)
+
+### User Documentation
+
+- [Workflow Visualization](user-stories/workflow-visualization.md)
