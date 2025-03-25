@@ -187,7 +187,6 @@ For detailed information, see our [Observability Guide](observability.md)
 
 ### Development
 
-- [Implementation Stages](../setup/implementation-stages.md)
 - [Getting Started Guide](../setup/getting-started.md)
 - [Contributing Guide](contributing.md)
 

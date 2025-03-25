@@ -2,8 +2,6 @@
 
 This document outlines the user stories for the workflow visualization feature, which allows users to understand and interact with the LLM agent workflows in the system.
 
-> For technical implementation details, please see [Workflow Visualization Implementation Guide](../../guides/workflow-visualization-implementation.md)
-
 ## Core User Stories
 
 ### 1. Viewing Workflow History
