@@ -1,74 +1,195 @@
-# Architecture Overview
+# System Architecture Overview
 
 ## Table of Contents
 
-1. [Code Structure](#code-structure)
-2. [Key Technologies](#key-technologies)
-3. [Infrastructure Components](#infrastructure-components)
-4. [Related Documentation](#related-documentation)
+1. [System Overview](#system-overview)
+2. [Technology Stack](#technology-stack)
+3. [Component Interactions](#component-interactions)
+4. [Observability](#observability)
+5. [Detailed Documentation](#detailed-documentation)
 
-## Code Structure
+## System Overview
 
-For a detailed overview of the project's directory structure and organization, please refer to [`/docs/code-structure.md`](../code-structure.md).
+Our system is a GitHub-integrated workflow automation platform that converts issues into pull requests using AI assistance. The system consists of four main components:
 
-## Key Technologies
+1. **Web Interface**: A Next.js application providing real-time workflow visualization and control
+2. **API Layer**: Handles GitHub integration and coordinates workflow processes
+3. **AI Engine**: Manages multiple specialized AI agents for code generation and decision making
+4. **Data Storage**: Dual database system for different data requirements
 
-### Frontend
+## Technology Stack
+
+### Frontend Technologies
 
 - Next.js 14 (App Router)
-- TailwindCSS for styling
-- Shadcn/ui components
-- Server-Sent Events (SSE) for real-time updates
+- TailwindCSS + Shadcn/ui
+- Real-time updates via SSE
 
-### Backend
+### Backend Technologies
 
 - Next.js API routes
-- Octokit for GitHub API integration
-- OpenAI API for code generation
-- Redis for state management and event streaming
+- GitHub API integration
+- OpenAI API
+- Redis
+- Neo4j
+- Langfuse (AI Observability)
 
 ### Authentication
 
-- NextAuth.js with dual GitHub providers
-- Redis-based token management
-- GitHub App integration
+- NextAuth.js
+- GitHub OAuth & App integration
 
-## Infrastructure Components
+### Observability
 
-### Redis Infrastructure
+- Langfuse for AI operation monitoring
+- Performance metrics tracking
+- Cost and usage analytics
 
-- Production: Upstash Redis
-- Development: Local Redis instance
-- Key functionalities:
-  - Token management and refresh
-  - Event streaming
-  - Job status tracking
-  - Workflow coordination
+## Component Interactions
 
-### AI Infrastructure
+```mermaid
+graph TD
+    A[Web Interface] -->|Real-time Updates| B[API Layer]
+    B -->|Authentication| C[GitHub]
+    B -->|Code Generation| D[AI Engine]
+    B -->|State Management| E[Redis]
+    B -->|Workflow Storage| F[Neo4j]
+    D -->|Decisions| E
+    D -->|Code Changes| C
+    D -->|Monitoring| G[Langfuse]
+```
 
-- OpenAI API integration
-- Multiple specialized AI agents
-- Langfuse for observability
-- Real-time streaming responses
+### Component Descriptions
 
-### GitHub Integration
+#### Web Interface
 
-- Dual authentication support (OAuth & App)
-- Enhanced API access management
-- Automated PR workflows
-- Webhook integration
+- **Purpose**: Provides real-time workflow visualization and control interface
+- **Key Features**:
+  - Real-time status updates via Server-Sent Events (SSE)
+  - Interactive workflow controls
+  - User authentication and authorization
+  - Dashboard for monitoring and analytics
 
-## Related Documentation
+#### API Layer
 
-- [Authentication Details](authentication.md)
-- [AI Integration](ai-integration.md)
-- [Database Architecture](database-architecture.md)
-- [Streaming Architecture](streaming-architecture.md)
+- **Purpose**: Central coordination point for all system operations
+- **Responsibilities**:
+  - GitHub API integration management
+  - Authentication and session handling
+  - Workflow state coordination
+  - Real-time event broadcasting
+  - Database operations orchestration
+
+#### GitHub Integration
+
+- **Purpose**: Handles all interactions with GitHub's platform
+- **Operations**:
+  - OAuth authentication
+  - Issue and PR management
+  - Code repository operations
+  - Webhook event processing
+  - Comment and review management
+
+#### AI Engine
+
+- **Purpose**: Manages AI-driven code generation and decision making
+- **Capabilities**:
+  - Code analysis and generation
+  - PR creation and updates
+  - Technical decision making
+  - Code review suggestions
+  - Documentation generation
+
+#### Redis (State Management)
+
+- **Purpose**: Handles real-time state and caching
+- **Usage**:
+  - Workflow state caching
+  - Real-time event queuing
+  - Session management
+  - Rate limiting
+  - Temporary data storage
+
+#### Neo4j (Workflow Storage)
+
+- **Purpose**: Persistent storage for workflow data and relationships
+- **Data Stored**:
+  - Workflow histories
+  - Relationship mappings
+  - Long-term analytics data
+  - User preferences and settings
+  - System configuration
+
+#### Langfuse (Observability)
+
+- **Purpose**: Monitors and analyzes AI operations
+- **Features**:
+  - Performance tracking
+  - Cost monitoring
+  - Usage analytics
+  - Error tracking
+  - Optimization insights
+
+### Key Interaction Patterns
+
+1. **Real-time Updates Flow**
+
+   - User action triggers event in Web Interface
+   - API Layer processes event and updates state in Redis
+   - Changes are propagated to relevant components
+   - Web Interface receives updates via SSE
+
+2. **Code Generation Flow**
+
+   - API Layer receives request for code generation
+   - AI Engine analyzes requirements
+   - Generated code is submitted to GitHub
+   - Status updates are stored in Redis
+   - Long-term data is persisted to Neo4j
+
+3. **Monitoring Flow**
+   - AI operations are tracked by Langfuse
+   - Performance metrics are collected
+   - Analytics are made available via dashboard
+   - Optimization suggestions are generated
+
+## Observability
+
+The system uses Langfuse for comprehensive AI operation monitoring:
+
+1. **Performance Tracking**
+
+   - Latency monitoring
+   - Token usage metrics
+   - Success/failure rates
+
+2. **Cost Management**
+   - Usage analytics
+   - Cost allocation
+   - Optimization insights
+
+For detailed information, see our [Observability Guide](observability.md)
+
+## Detailed Documentation
+
+### Core Components
+
+- [Authentication System](authentication.md)
+- [AI Integration Details](ai-integration.md)
 - [API Documentation](../api/README.md)
-- [Development Plan](development-plan.md)
+- [Observability Guide](observability.md)
 
-For setup instructions, see:
+### Data Architecture
+
+- [Database Architecture](guides/databases/neo4j-architecture.md)
+- [Redis Architecture](guides/databases/redis-architecture.md)
+- [Data Flow Patterns](guides/databases/data-flow.md)
+
+### Development
 
 - [Getting Started Guide](../setup/getting-started.md)
 - [Contributing Guide](contributing.md)
+
+### User Documentation
+
+- [Workflow Visualization](user-stories/workflow-visualization.md)

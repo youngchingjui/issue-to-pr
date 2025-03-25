@@ -9,8 +9,11 @@ Issue-to-PR is a Next.js application that automates GitHub issue resolution usin
 - `/api` - API documentation and endpoints
 - `/components` - React component documentation
 - `/guides` - User and developer guides
+  - `/user-stories` - Feature-specific user stories and requirements
 - `/setup` - Installation and configuration
-- `/assets` - Images and diagrams
+- `/assets` - Diagrams and images ONLY (no documentation text)
+  - Store only `.svg`, `.png`, `.jpg` files
+  - For Mermaid diagrams, include them directly in markdown files using ```mermaid code blocks
 
 ## Quick Links
 
@@ -19,6 +22,7 @@ Issue-to-PR is a Next.js application that automates GitHub issue resolution usin
 - [Authentication Guide](guides/authentication.md)
 - [AI Integration](guides/ai-integration.md)
 - [API Reference](api/README.md)
+- [Workflow Visualization](guides/user-stories/workflow-visualization.md)
 
 ## Core Features
 
@@ -27,5 +31,19 @@ Issue-to-PR is a Next.js application that automates GitHub issue resolution usin
 3. AI-Powered Code Generation
 4. Automated PR Creation
 5. Pull Request Review
+6. Workflow Visualization & Monitoring
 
 For detailed information about each feature, please refer to the respective documentation sections.
+
+## Feature Documentation
+
+### Workflow Visualization
+
+The application includes a powerful workflow visualization system that allows users to:
+
+- Track and monitor AI agent activities in real-time
+- Understand agent decision-making processes
+- Explore relationships between different workflow steps
+- Analyze workflow patterns and performance
+
+For detailed requirements and user stories, see [Workflow Visualization](guides/user-stories/workflow-visualization.md).
