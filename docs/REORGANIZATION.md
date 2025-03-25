@@ -76,14 +76,14 @@ This document outlines the step-by-step plan to reorganize the documentation str
 
 ### Step 6: Diagram Migration
 
-- [ ] 1. Create component diagram in assets:
-  - Create `assets/component-interactions.md`
-  - Move mermaid diagram from architecture.md
-  - Add more detailed component descriptions
+- [x] 1. Keep Mermaid diagrams inline:
+  - ✓ Mermaid diagrams must be written directly in markdown files using ```mermaid code blocks
+  - ✓ Updated architecture.md with inline component diagram
+  - ✓ Updated README.md to clarify Mermaid diagram usage
 - [ ] 2. Update architecture.md:
-  - Replace inline diagram with reference
-  - Add link to detailed diagram
+  - Add clear section headers
   - Ensure consistent terminology
+  - Add descriptive component explanations
 - [ ] 3. Improve data flow diagram timing:
   - Show events can be generated right after workflow init
   - Move "Fetch missed events" after some events are generated
@@ -94,6 +94,8 @@ This document outlines the step-by-step plan to reorganize the documentation str
   - Explain relationship between Redis queue and Neo4j storage
   - Add notes about persistence guarantees
   - Show error handling in background jobs
+
+Note: The `/assets` directory should only contain static image files (`.svg`, `.png`, `.jpg`). All Mermaid diagrams should be written directly in the relevant markdown files.
 
 ## Phase 3: Public/Internal Documentation Separation
 

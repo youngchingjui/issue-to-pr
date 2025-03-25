@@ -59,6 +59,100 @@ graph TD
     D -->|Monitoring| G[Langfuse]
 ```
 
+### Component Descriptions
+
+#### Web Interface
+
+- **Purpose**: Provides real-time workflow visualization and control interface
+- **Key Features**:
+  - Real-time status updates via Server-Sent Events (SSE)
+  - Interactive workflow controls
+  - User authentication and authorization
+  - Dashboard for monitoring and analytics
+
+#### API Layer
+
+- **Purpose**: Central coordination point for all system operations
+- **Responsibilities**:
+  - GitHub API integration management
+  - Authentication and session handling
+  - Workflow state coordination
+  - Real-time event broadcasting
+  - Database operations orchestration
+
+#### GitHub Integration
+
+- **Purpose**: Handles all interactions with GitHub's platform
+- **Operations**:
+  - OAuth authentication
+  - Issue and PR management
+  - Code repository operations
+  - Webhook event processing
+  - Comment and review management
+
+#### AI Engine
+
+- **Purpose**: Manages AI-driven code generation and decision making
+- **Capabilities**:
+  - Code analysis and generation
+  - PR creation and updates
+  - Technical decision making
+  - Code review suggestions
+  - Documentation generation
+
+#### Redis (State Management)
+
+- **Purpose**: Handles real-time state and caching
+- **Usage**:
+  - Workflow state caching
+  - Real-time event queuing
+  - Session management
+  - Rate limiting
+  - Temporary data storage
+
+#### Neo4j (Workflow Storage)
+
+- **Purpose**: Persistent storage for workflow data and relationships
+- **Data Stored**:
+  - Workflow histories
+  - Relationship mappings
+  - Long-term analytics data
+  - User preferences and settings
+  - System configuration
+
+#### Langfuse (Observability)
+
+- **Purpose**: Monitors and analyzes AI operations
+- **Features**:
+  - Performance tracking
+  - Cost monitoring
+  - Usage analytics
+  - Error tracking
+  - Optimization insights
+
+### Key Interaction Patterns
+
+1. **Real-time Updates Flow**
+
+   - User action triggers event in Web Interface
+   - API Layer processes event and updates state in Redis
+   - Changes are propagated to relevant components
+   - Web Interface receives updates via SSE
+
+2. **Code Generation Flow**
+
+   - API Layer receives request for code generation
+   - AI Engine analyzes requirements
+   - Generated code is submitted to GitHub
+   - Status updates are stored in Redis
+   - Long-term data is persisted to Neo4j
+
+3. **Monitoring Flow**
+   - AI operations are tracked by Langfuse
+   - Performance metrics are collected
+   - Analytics are made available via dashboard
+   - Optimization suggestions are generated
+
 ## Observability
 
 The system uses Langfuse for comprehensive AI operation monitoring:
