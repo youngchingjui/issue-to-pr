@@ -13,17 +13,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { getStatusVariant, getTraceStatus } from "@/lib/langfuse/helpers"
 import { WorkflowEvent } from "@/lib/services/WorkflowPersistenceService"
-import { TraceWithDetails } from "@/lib/types/langfuse"
 
 interface WorkflowRunsListProps {
-  traces: TraceWithDetails[]
-  neoWorkflows?: {
+  workflows?: {
     id: string
     events: WorkflowEvent[]
     status: "active" | "completed" | "error"
-    lastEventTimestamp: Date | null
+    lastEventTimestamp?: Date | null
   }[]
 }
 
@@ -31,38 +28,8 @@ interface WorkflowRunsListProps {
 // TODO: If in dev mode, add link to page on langfuse using process.env.LANGFUSE_BASEURL. example htmlPath: '/project/cm5eseyx20eoqcj50zgvcmed8/traces/fef4790b-d195-48b4-88c3-9e8045c500de'
 
 export default async function WorkflowRunsList({
-  traces,
-  neoWorkflows = [],
+  workflows = [],
 }: WorkflowRunsListProps) {
-  // Combine and sort both types of workflows
-  type CombinedWorkflow = {
-    id: string
-    name: string | null
-    source: "langfuse" | "graph"
-    status: "active" | "completed" | "error"
-    timestamp: Date
-    href: string
-  }
-
-  const combinedWorkflows: CombinedWorkflow[] = [
-    ...traces.map((trace) => ({
-      id: trace.id,
-      name: trace.name || null,
-      source: "langfuse" as const,
-      status: getTraceStatus(trace),
-      timestamp: new Date(trace.timestamp),
-      href: `/workflow-runs/${trace.id}`,
-    })),
-    ...neoWorkflows.map((workflow) => ({
-      id: workflow.id,
-      name: workflow.events[0]?.data?.name?.toString() || null,
-      source: "graph" as const,
-      status: workflow.status,
-      timestamp: workflow.lastEventTimestamp || new Date(0), // Use epoch if no timestamp
-      href: `/workflow-runs/${workflow.id}`,
-    })),
-  ].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()) // Sort by most recent first
-
   return (
     <Card className="max-w-screen-xl mx-auto rounded">
       <CardContent>
@@ -70,9 +37,6 @@ export default async function WorkflowRunsList({
           <TableHeader>
             <TableRow>
               <TableHead className="py-4 text-base font-medium">Name</TableHead>
-              <TableHead className="py-4 text-base font-medium">
-                Source
-              </TableHead>
               <TableHead className="py-4 text-base font-medium">
                 Status
               </TableHead>
@@ -82,34 +46,36 @@ export default async function WorkflowRunsList({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {combinedWorkflows.map((workflow) => (
+            {workflows.map((workflow) => (
               <TableRow key={workflow.id}>
                 <TableCell className="py-4">
                   <Link
-                    href={workflow.href}
+                    href={`/workflow-runs/${workflow.id}`}
                     className="text-blue-600 hover:underline font-medium"
                   >
-                    {workflow.name || workflow.id.slice(0, 8)}
+                    {workflow.events[0]?.data?.name?.toString() ||
+                      workflow.id.slice(0, 8)}
                   </Link>
                 </TableCell>
                 <TableCell>
                   <Badge
                     variant={
-                      workflow.source === "langfuse" ? "secondary" : "outline"
+                      workflow.status === "completed"
+                        ? "default"
+                        : workflow.status === "error"
+                          ? "destructive"
+                          : "secondary"
                     }
                   >
-                    {workflow.source === "langfuse" ? "Langfuse" : "Graph"}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={getStatusVariant(workflow.status)}>
                     {workflow.status}
                   </Badge>
                 </TableCell>
                 <TableCell className="py-4 text-muted-foreground">
-                  {formatDistanceToNow(workflow.timestamp, {
-                    addSuffix: true,
-                  })}
+                  {workflow.lastEventTimestamp
+                    ? formatDistanceToNow(workflow.lastEventTimestamp, {
+                        addSuffix: true,
+                      })
+                    : "N/A"}
                 </TableCell>
               </TableRow>
             ))}

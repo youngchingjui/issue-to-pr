@@ -5,6 +5,11 @@ alwaysApply: false
 ---
 ## Git Management Rules
 
+### File Operations
+- Always use `git mv` instead of regular `mv` when moving or renaming files
+- This ensures Git properly tracks file history
+- Example: `git mv old_file.txt new_file.txt`
+
 ### Commits
 - Do not make commits directly through the AI assistant
 - Let the user handle all git operations (commits, pushes, etc.)

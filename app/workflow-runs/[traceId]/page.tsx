@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation"
 
 import WorkflowRunDetail from "@/components/workflow-runs/WorkflowRunDetail"
-import { langfuse } from "@/lib/langfuse"
+import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceService"
 
 export default async function WorkflowRunDetailPage({
   params,
@@ -10,23 +10,22 @@ export default async function WorkflowRunDetailPage({
 }) {
   const { traceId } = params
 
-  try {
-    const { data: trace } = await langfuse.fetchTrace(traceId)
+  const workflowEvents = await new WorkflowPersistenceService()
+    .getWorkflowEvents(traceId)
+    .catch(() => null)
 
-    if (!trace) {
-      notFound()
-    }
-
+  // If we found a workflow
+  if (workflowEvents && workflowEvents.length > 0) {
     return (
       <main className="container mx-auto p-4">
         <h1 className="text-2xl font-bold mb-4">
-          {trace.name || "Workflow Run"}
+          {workflowEvents[0]?.data?.name?.toString() || "Workflow Run"}
         </h1>
-        <WorkflowRunDetail trace={trace} />
+        <WorkflowRunDetail events={workflowEvents} />
       </main>
     )
-  } catch (error) {
-    console.error("Error fetching workflow run:", error)
-    notFound()
   }
+
+  // If no workflow was found
+  notFound()
 }

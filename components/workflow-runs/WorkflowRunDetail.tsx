@@ -1,31 +1,29 @@
 "use client"
 
 import { formatDistanceToNow } from "date-fns"
-import { GetLangfuseTraceResponse } from "langfuse-core"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import ObservationView from "@/components/workflow-runs/ObservationView"
+import { Card } from "@/components/ui/card"
+import { WorkflowEvent } from "@/lib/services/WorkflowPersistenceService"
 
 interface WorkflowRunDetailProps {
-  trace: GetLangfuseTraceResponse
+  events: WorkflowEvent[]
 }
 
-export default function WorkflowRunDetail({ trace }: WorkflowRunDetailProps) {
-  const { observations } = trace
-
-  const [selectedObservation, setSelectedObservation] = useState<string | null>(
-    observations.length > 0 ? observations[0].id : null
+export default function WorkflowRunDetail({ events }: WorkflowRunDetailProps) {
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(
+    events.length > 0 ? events[0].id : null
   )
 
-  const currentObservation = selectedObservation
-    ? observations.find((o) => o.id === selectedObservation)
+  const currentEvent = selectedEventId
+    ? events.find((e) => e.id === selectedEventId)
     : null
 
-  if (!currentObservation) {
-    return <div>No observation selected</div>
+  if (!currentEvent) {
+    return <div>No events found</div>
   }
 
   return (
@@ -38,11 +36,11 @@ export default function WorkflowRunDetail({ trace }: WorkflowRunDetailProps) {
         </Link>
         <div>
           <h2 className="text-lg font-semibold">
-            {trace.name || "Workflow Run"}
+            {events[0]?.data?.name?.toString() || "Workflow Run"}
           </h2>
           <p className="text-sm text-muted-foreground">
             Started{" "}
-            {formatDistanceToNow(new Date(trace.timestamp), {
+            {formatDistanceToNow(events[0].timestamp, {
               addSuffix: true,
             })}
           </p>
@@ -51,23 +49,21 @@ export default function WorkflowRunDetail({ trace }: WorkflowRunDetailProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-1 space-y-4">
-          <div className="text-sm font-medium">Observations</div>
+          <div className="text-sm font-medium">Events</div>
           <div className="space-y-2">
-            {observations.map((observation) => (
+            {events.map((event) => (
               <Button
-                key={observation.id}
-                variant={
-                  selectedObservation === observation.id ? "default" : "outline"
-                }
+                key={event.id}
+                variant={selectedEventId === event.id ? "default" : "outline"}
                 className="w-full justify-start text-left h-auto py-3"
-                onClick={() => setSelectedObservation(observation.id)}
+                onClick={() => setSelectedEventId(event.id)}
               >
                 <div>
-                  <div className="font-medium">
-                    {observation.name || "Observation"}
+                  <div className="font-medium capitalize">
+                    {event.type.replace(/_/g, " ")}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(observation.startTime), {
+                    {formatDistanceToNow(event.timestamp, {
                       addSuffix: true,
                     })}
                   </div>
@@ -78,11 +74,43 @@ export default function WorkflowRunDetail({ trace }: WorkflowRunDetailProps) {
         </div>
 
         <div className="md:col-span-2">
-          {currentObservation ? (
-            <ObservationView observation={currentObservation} />
+          {currentEvent ? (
+            <Card className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Event Type</h3>
+                  <p className="text-sm capitalize">
+                    {currentEvent.type.replace(/_/g, " ")}
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Data</h3>
+                  <pre className="text-sm bg-muted p-4 rounded-md overflow-auto">
+                    {JSON.stringify(currentEvent.data, null, 2)}
+                  </pre>
+                </div>
+
+                {currentEvent.metadata && (
+                  <div>
+                    <h3 className="text-sm font-medium mb-2">Metadata</h3>
+                    <pre className="text-sm bg-muted p-4 rounded-md overflow-auto">
+                      {JSON.stringify(currentEvent.metadata, null, 2)}
+                    </pre>
+                  </div>
+                )}
+
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Timestamp</h3>
+                  <p className="text-sm">
+                    {currentEvent.timestamp.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            </Card>
           ) : (
             <div className="text-center p-12 text-muted-foreground">
-              Select an observation to view details
+              Select an event to view details
             </div>
           )}
         </div>
