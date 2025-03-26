@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
           fullName: repoFullName,
           issueNumber,
         })
-        const response = await resolveIssue(issue, fullRepo, apiKey)
+        const response = await resolveIssue(issue, fullRepo, apiKey, jobId)
         await updateJobStatus(jobId, "Completed: " + JSON.stringify(response))
       } catch (error) {
         await updateJobStatus(jobId, "Failed: " + error.message)
