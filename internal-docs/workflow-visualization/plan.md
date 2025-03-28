@@ -58,6 +58,41 @@ Directory structure has been implemented:
   - [ ] Implement live updates for active workflows
   - [ ] Show loading states for pending events
 
+##### UI Improvements
+
+- [ ] Fix Event Card Content Display
+
+  - [ ] Prevent content overflow from pill container
+  - [ ] Ensure consistent card sizing
+  - [ ] Add proper text truncation with ellipsis
+
+- [ ] Enhance Tool Call Event Display
+
+  - [ ] Show parameter details in event card
+  - [ ] Add proper parameter formatting
+  - [ ] Implement collapsible parameter sections if needed
+
+- [ ] Simplify Status Events
+  - [ ] Convert workflow start/complete events to simple status messages
+  - [ ] Remove card UI for status messages
+  - [ ] Make status messages non-interactive
+  - [ ] Add visual distinction for status messages vs interactive events
+
+##### Data Structure Improvements
+
+- [ ] Update Neo4j Data Model
+
+  - [ ] Audit current data structure
+  - [ ] Define correct relationships between events
+  - [ ] Update schema to support proper event hierarchy
+  - [ ] Add proper indexing for efficient queries
+
+- [ ] Event Type Refinements
+  - [ ] Properly categorize status events vs interactive events
+  - [ ] Define clear event type hierarchy
+  - [ ] Add proper metadata fields for each event type
+  - [ ] Ensure consistent data format across event types
+
 #### Phase 1: UI/UX Improvements (Week 1)
 
 - [x] Event Type-Specific Enhancements

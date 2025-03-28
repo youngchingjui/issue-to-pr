@@ -58,28 +58,72 @@ So that I can access detailed information when needed
 
 - workflow_start
   - Minimal visual presence
-  - Clear background styling
-  - Initialization details
+  - Simple status message format
+  - No interactive elements
+  - Light styling to indicate workflow initiation
 - llm_response
   - Prominent display
   - Collapsible content
   - Preview with full content expansion
+  - Proper content truncation
 - tool_call
   - Tool name display
-  - Parameter preview
+  - Formatted parameter preview in card
+  - Collapsible parameter details
   - Execution status
+  - Clear parameter hierarchy
 - tool_response
   - Result preview
   - Response type indication
   - Error handling
+  - Proper content boundaries
 - error
   - High visibility styling
   - Error details
   - Recovery options
+  - Clear error context
 - complete
+  - Simple status message format
+  - Non-interactive display
   - Success indication
-  - Final state display
-  - Summary information
+  - Light styling for completion state
+
+#### Event Type Classification
+
+- Status Events
+
+  - workflow_start
+  - complete
+  - Simple, non-interactive display
+  - Clear visual distinction from interactive events
+  - Minimal styling
+  - Focus on status communication
+
+- Interactive Events
+  - llm_response
+  - tool_call
+  - tool_response
+  - error
+  - Rich content display
+  - Expandable details
+  - Clear interaction affordances
+  - Proper content boundaries
+
+#### Data Structure Requirements
+
+- Event Hierarchy
+
+  - Clear parent-child relationships
+  - Proper event sequencing
+  - Accurate timestamp tracking
+  - Event type categorization
+
+- Neo4j Schema
+  - Optimized relationship modeling
+  - Proper indexing strategy
+  - Event metadata storage
+  - Query performance optimization
+  - Data integrity constraints
 
 #### Relationship Visualization
 
