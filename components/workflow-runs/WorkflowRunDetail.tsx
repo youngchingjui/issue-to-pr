@@ -6,121 +6,63 @@ import Link from "next/link"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
 import { WorkflowEvent } from "@/lib/services/WorkflowPersistenceService"
+
+import {
+  DefaultEvent,
+  ErrorEvent,
+  LLMResponseEvent,
+  ToolCallEvent,
+  ToolResponseEvent,
+} from "./events"
 
 interface WorkflowRunDetailProps {
   events: WorkflowEvent[]
 }
 
-function truncateText(text: string, maxLength: number = 150) {
-  if (text.length <= maxLength) return text
-  return text.slice(0, maxLength) + "..."
-}
-
-function EventContent({ event }: { event: WorkflowEvent }) {
+function EventContent({
+  event,
+  isSelected,
+  onClick,
+}: {
+  event: WorkflowEvent
+  isSelected: boolean
+  onClick: () => void
+}) {
   switch (event.type) {
-    case "llm_response": {
-      const data = event.data as { content?: string }
+    case "llm_response":
       return (
-        <div className="space-y-2">
-          <div className="font-medium text-primary">LLM Response</div>
-          <div className="text-sm text-muted-foreground">
-            {truncateText(data?.content?.toString() || "")}
-          </div>
-        </div>
+        <LLMResponseEvent
+          event={event}
+          isSelected={isSelected}
+          onClick={onClick}
+        />
       )
-    }
-
-    case "tool_call": {
-      const data = event.data as Record<string, any>
+    case "tool_call":
       return (
-        <div className="space-y-2">
-          <div className="font-medium text-blue-500">Tool Call</div>
-          <div className="text-sm">
-            {data?.tool || "Tool Not Found"}
-          </div>
-          {data?.parameters && (
-            <pre className="text-xs bg-muted p-2 rounded overflow-auto max-h-24">
-              {JSON.stringify(data.parameters, null, 2)}
-            </pre>
-          )}
-        </div>
+        <ToolCallEvent
+          event={event}
+          isSelected={isSelected}
+          onClick={onClick}
+        />
       )
-    }
-
-    case "tool_response": {
+    case "tool_response":
       return (
-        <div className="space-y-2">
-          <div className="font-medium text-green-500">Tool Response</div>
-          <pre className="text-xs bg-muted p-2 rounded overflow-auto max-h-24">
-            {typeof event.data === "string" 
-              ? event.data 
-              : JSON.stringify(event.data || {}, null, 2)}
-          </pre>
-        </div>
+        <ToolResponseEvent
+          event={event}
+          isSelected={isSelected}
+          onClick={onClick}
+        />
       )
-    }
-
-    case "error": {
-      const data = event.data as { message?: string }
+    case "error":
       return (
-        <div className="space-y-2">
-          <div className="font-medium text-destructive">Error</div>
-          <div className="text-sm text-destructive">
-            {data?.message || "Unknown error"}
-          </div>
-        </div>
+        <ErrorEvent event={event} isSelected={isSelected} onClick={onClick} />
       )
-    }
-
     default:
       return (
-        <div className="space-y-2">
-          <div className="font-medium capitalize">
-            {event.type.replace(/_/g, " ")}
-          </div>
-          {event.data && (
-            <pre className="text-xs bg-muted p-2 rounded overflow-auto max-h-24">
-              {JSON.stringify(event.data, null, 2)}
-            </pre>
-          )}
-        </div>
+        <DefaultEvent event={event} isSelected={isSelected} onClick={onClick} />
       )
   }
-}
-
-function EventDetails({ event }: { event: WorkflowEvent }) {
-  return (
-    <div className="space-y-4">
-      <div>
-        <h3 className="text-sm font-medium mb-1">Event Type</h3>
-        <p className="text-sm capitalize">
-          {event.type.replace(/_/g, " ")}
-        </p>
-      </div>
-
-      <div>
-        <h3 className="text-sm font-medium mb-1">Data</h3>
-        <pre className="text-xs bg-muted p-2 rounded overflow-auto max-h-[200px]">
-          {JSON.stringify(event.data, null, 2)}
-        </pre>
-      </div>
-
-      {event.metadata && (
-        <div>
-          <h3 className="text-sm font-medium mb-1">Metadata</h3>
-          <pre className="text-xs bg-muted p-2 rounded overflow-auto max-h-[200px]">
-            {JSON.stringify(event.metadata, null, 2)}
-          </pre>
-        </div>
-      )}
-    </div>
-  )
 }
 
 export default function WorkflowRunDetail({ events }: WorkflowRunDetailProps) {
@@ -153,49 +95,17 @@ export default function WorkflowRunDetail({ events }: WorkflowRunDetailProps) {
         </div>
       </div>
 
-      <div className="bg-card border rounded-lg p-6 relative">
-        {/* Timeline line */}
-        <div className="absolute left-4 top-6 bottom-6 w-0.5 bg-border" />
-
-        {/* Events */}
-        <div className="space-y-6">
+      <div className="bg-card border rounded-lg p-6">
+        <div className="space-y-6 flex flex-col items-center">
           {events.map((event, index) => (
-            <div
-              key={event.id}
-              className={`relative flex items-start gap-4 ${
-                selectedEventId === event.id ? "bg-accent/50 -mx-4 px-4 py-2 rounded-md" : ""
-              }`}
-            >
-              {/* Timeline dot */}
-              <div
-                className={`relative z-10 h-2 w-2 mt-2 rounded-full border-2 ${
-                  selectedEventId === event.id
-                    ? "bg-primary border-primary"
-                    : "bg-background border-muted-foreground"
-                }`}
+            <div key={event.id} className="relative min-w-[300px] max-w-[90%]">
+              <EventContent
+                event={event}
+                isSelected={selectedEventId === event.id}
+                onClick={() => setSelectedEventId(event.id)}
               />
-
-              {/* Event content */}
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button
-                    className="flex-1 text-left space-y-1 -mx-4 px-4 py-2 rounded-md"
-                    onClick={() => setSelectedEventId(event.id)}
-                  >
-                    <EventContent event={event} />
-                    <div className="text-xs text-muted-foreground mt-2">
-                      {event.timestamp.toLocaleString()}
-                    </div>
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent align="start" className="w-[400px]">
-                  <EventDetails event={event} />
-                </PopoverContent>
-              </Popover>
-
-              {/* Arrow to next event */}
               {index < events.length - 1 && (
-                <div className="absolute left-[0.5625rem] top-4 h-8 w-px bg-border transform -rotate-45 origin-top" />
+                <div className="absolute left-1/2 -bottom-6 h-6 w-px bg-border" />
               )}
             </div>
           ))}
