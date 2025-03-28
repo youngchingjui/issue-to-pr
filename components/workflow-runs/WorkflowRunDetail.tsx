@@ -6,28 +6,85 @@ import Link from "next/link"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
+import {
+  DefaultEvent,
+  ErrorEvent,
+  EventDetails,
+  LLMResponseEvent,
+  ToolCallEvent,
+  ToolResponseEvent,
+} from "@/components/workflow-runs/events"
 import { WorkflowEvent } from "@/lib/services/WorkflowPersistenceService"
 
 interface WorkflowRunDetailProps {
   events: WorkflowEvent[]
 }
 
+function EventContent({
+  event,
+  isSelected,
+  onClick,
+}: {
+  event: WorkflowEvent
+  isSelected: boolean
+  onClick: () => void
+}) {
+  switch (event.type) {
+    case "llm_response":
+      return (
+        <LLMResponseEvent
+          event={event}
+          isSelected={isSelected}
+          onClick={onClick}
+        />
+      )
+    case "tool_call":
+      return (
+        <ToolCallEvent
+          event={event}
+          isSelected={isSelected}
+          onClick={onClick}
+        />
+      )
+    case "tool_response":
+      return (
+        <ToolResponseEvent
+          event={event}
+          isSelected={isSelected}
+          onClick={onClick}
+        />
+      )
+    case "error":
+      return (
+        <ErrorEvent event={event} isSelected={isSelected} onClick={onClick} />
+      )
+    default:
+      return (
+        <DefaultEvent event={event} isSelected={isSelected} onClick={onClick} />
+      )
+  }
+}
+
 export default function WorkflowRunDetail({ events }: WorkflowRunDetailProps) {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(
     events.length > 0 ? events[0].id : null
   )
+  const [isSheetOpen, setIsSheetOpen] = useState(false)
 
-  const currentEvent = selectedEventId
-    ? events.find((e) => e.id === selectedEventId)
-    : null
+  const selectedEvent = events.find((event) => event.id === selectedEventId)
 
-  if (!currentEvent) {
+  if (events.length === 0) {
     return <div>No events found</div>
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center space-x-4">
         <Link href="/workflow-runs">
           <Button variant="outline" size="icon">
@@ -47,74 +104,36 @@ export default function WorkflowRunDetail({ events }: WorkflowRunDetailProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-1 space-y-4">
-          <div className="text-sm font-medium">Events</div>
-          <div className="space-y-2">
-            {events.map((event) => (
-              <Button
-                key={event.id}
-                variant={selectedEventId === event.id ? "default" : "outline"}
-                className="w-full justify-start text-left h-auto py-3"
-                onClick={() => setSelectedEventId(event.id)}
-              >
-                <div>
-                  <div className="font-medium capitalize">
-                    {event.type.replace(/_/g, " ")}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(event.timestamp, {
-                      addSuffix: true,
-                    })}
-                  </div>
-                </div>
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        <div className="md:col-span-2">
-          {currentEvent ? (
-            <Card className="p-6">
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-medium mb-2">Event Type</h3>
-                  <p className="text-sm capitalize">
-                    {currentEvent.type.replace(/_/g, " ")}
-                  </p>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-medium mb-2">Data</h3>
-                  <pre className="text-sm bg-muted p-4 rounded-md overflow-auto">
-                    {JSON.stringify(currentEvent.data, null, 2)}
-                  </pre>
-                </div>
-
-                {currentEvent.metadata && (
-                  <div>
-                    <h3 className="text-sm font-medium mb-2">Metadata</h3>
-                    <pre className="text-sm bg-muted p-4 rounded-md overflow-auto">
-                      {JSON.stringify(currentEvent.metadata, null, 2)}
-                    </pre>
-                  </div>
-                )}
-
-                <div>
-                  <h3 className="text-sm font-medium mb-2">Timestamp</h3>
-                  <p className="text-sm">
-                    {currentEvent.timestamp.toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            </Card>
-          ) : (
-            <div className="text-center p-12 text-muted-foreground">
-              Select an event to view details
+      <div className="bg-card border rounded-lg p-6">
+        <div className="space-y-6 flex flex-col items-center">
+          {events.map((event, index) => (
+            <div key={event.id} className="relative min-w-[300px] max-w-[90%]">
+              <EventContent
+                event={event}
+                isSelected={selectedEventId === event.id}
+                onClick={() => {
+                  setSelectedEventId(event.id)
+                  setIsSheetOpen(true)
+                }}
+              />
+              {index < events.length - 1 && (
+                <div className="absolute left-1/2 -bottom-6 h-6 w-px bg-border" />
+              )}
             </div>
-          )}
+          ))}
         </div>
       </div>
+
+      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>
+              {selectedEvent?.type.replace(/_/g, " ").toUpperCase()}
+            </SheetTitle>
+          </SheetHeader>
+          {selectedEvent && <EventDetails event={selectedEvent} />}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

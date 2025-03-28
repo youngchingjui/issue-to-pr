@@ -60,6 +60,48 @@ Acceptance Criteria:
 - Status changes are reflected in real-time
 - Users can tell if a workflow is active or completed
 
+### 7. Event Type Distinction
+
+**As a** user  
+**I want to** easily distinguish between status updates and interactive events  
+**So that** I can focus on the important decision points in the workflow
+
+Acceptance Criteria:
+
+- Status events (start/complete) are displayed as simple messages
+- Interactive events are clearly marked as clickable
+- Visual hierarchy emphasizes important events
+- Status messages are appropriately styled
+- Clear visual separation between event types
+
+### 8. Tool Call Understanding
+
+**As a** user  
+**I want to** see tool call parameters directly in the event card  
+**So that** I can understand the tool's usage without additional interaction
+
+Acceptance Criteria:
+
+- Tool parameters are visible in the event card
+- Parameters are properly formatted and readable
+- Complex parameters can be expanded
+- Parameter hierarchy is clear
+- Content stays within card boundaries
+
+### 9. Data Structure Clarity
+
+**As a** developer  
+**I want to** have a properly structured event data model  
+**So that** I can efficiently query and analyze workflow patterns
+
+Acceptance Criteria:
+
+- Events have clear relationships in Neo4j
+- Data model supports efficient querying
+- Event hierarchy is properly represented
+- Metadata is consistently structured
+- Indexes are optimized for common queries
+
 ## Future Considerations
 
 ### 5. Workflow Analytics
