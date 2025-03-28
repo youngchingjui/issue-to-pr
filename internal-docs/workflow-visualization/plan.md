@@ -44,10 +44,10 @@ Directory structure has been implemented:
     - [ ] Start with simple top-to-bottom timeline
     - [ ] Show event relationships using arrows
     - [ ] Color-code different event types
-  - [ ] Improve event type displays
-    - [ ] Create specific card layouts for each event type
+  - [x] Improve event type displays
+    - [x] Create specific card layouts for each event type
     - [ ] Add syntax highlighting for code in tool calls
-    - [ ] Show LLM responses in a more readable format
+    - [x] Show LLM responses in a more readable format
   - [ ] Add interactive features to existing UI
     - [ ] Implement zoom and pan for large workflows
     - [ ] Add collapsible sections for long content
@@ -60,11 +60,11 @@ Directory structure has been implemented:
 
 #### Phase 1: UI/UX Improvements (Week 1)
 
-- [ ] Event Type-Specific Enhancements
+- [x] Event Type-Specific Enhancements
 
-  - [ ] Design and implement LLM response card
-  - [ ] Create tool call visualization with params
-  - [ ] Add error state highlighting
+  - [x] Design and implement LLM response card
+  - [x] Create tool call visualization with params
+  - [x] Add error state highlighting
   - [ ] Show workflow completion summary
 
 - [ ] Navigation and Interaction
@@ -152,3 +152,21 @@ Directory structure has been implemented:
 - [ ] Service naming considerations:
   - Evaluate alternatives: `WorkflowService`, `WorkflowStateManager`, `WorkflowEventStore`
   - Document service responsibilities and interfaces
+
+### Implementation Details
+
+#### Component Architecture
+
+- Created modular event components in `components/workflow-runs/events/`
+  - Base `EventCard` component for consistent styling and behavior
+  - Separate components for each event type (LLM, Tool Call, Error, etc.)
+  - Shared utilities for common functionality (text truncation, formatting)
+  - Popover-based detailed view system
+
+#### Event Type Display
+
+- LLM Response: Truncated content with full view in popover
+- Tool Call: Tool name and parameters with collapsible JSON
+- Tool Response: Formatted response with error handling
+- Error: Highlighted error messages with destructive styling
+- Default: Fallback for unknown event types

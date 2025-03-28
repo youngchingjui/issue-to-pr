@@ -149,27 +149,30 @@ Our implementation strategy focuses on iterative improvements to existing compon
    - Enhances the current `WorkflowRunDetail` component
    - Leverages existing Neo4j data structure and relationships
    - Uses current workflow event types and data models
+   - Implements modular component architecture for maintainability
 
-2. **Iterative Feature Development**
+2. **Component Architecture**
 
-   - Start with simple timeline visualization
-   - Add event-specific improvements gradually
+   - Base EventCard component for consistent UI/UX
+   - Event-specific components for specialized display
+   - Shared utilities for common operations
+   - Popover system for detailed views
+   - Clear separation of concerns between components
+
+3. **Event Type Implementation**
+
+   - LLM Response: Focused on content readability
+   - Tool Call: Clear parameter visualization
+   - Tool Response: Structured data display
+   - Error: High-visibility error states
+   - Default: Graceful handling of unknown types
+
+4. **Iterative Feature Development**
+
+   - Start with modular component structure ✓
+   - Add event-specific improvements gradually ✓
    - Implement real-time updates on existing UI
    - Add advanced features based on actual usage patterns
-
-3. **Data-Driven Decision Making**
-
-   - Base component improvements on actual workflow data
-   - Design visualizations around real use cases
-   - Implement fallback components for edge cases
-   - Optimize based on real performance metrics
-
-4. **Component Enhancement Priority**
-   - Timeline/graph visualization
-   - Event type-specific displays
-   - Interactive features
-   - Real-time updates
-   - Advanced graph features (as needed)
 
 This strategy ensures we:
 
