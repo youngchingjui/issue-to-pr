@@ -41,7 +41,7 @@ Directory structure has been implemented:
 - [ ] Enhance Existing Workflow Visualization
 
   - [ ] Add visual timeline/graph view to `WorkflowRunDetail`
-    - [ ] Start with simple left-to-right timeline
+    - [ ] Start with simple top-to-bottom timeline
     - [ ] Show event relationships using arrows
     - [ ] Color-code different event types
   - [ ] Improve event type displays

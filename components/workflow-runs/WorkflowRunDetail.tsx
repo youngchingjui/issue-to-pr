@@ -6,11 +6,121 @@ import Link from "next/link"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { WorkflowEvent } from "@/lib/services/WorkflowPersistenceService"
 
 interface WorkflowRunDetailProps {
   events: WorkflowEvent[]
+}
+
+function truncateText(text: string, maxLength: number = 150) {
+  if (text.length <= maxLength) return text
+  return text.slice(0, maxLength) + "..."
+}
+
+function EventContent({ event }: { event: WorkflowEvent }) {
+  switch (event.type) {
+    case "llm_response": {
+      const data = event.data as { content?: string }
+      return (
+        <div className="space-y-2">
+          <div className="font-medium text-primary">LLM Response</div>
+          <div className="text-sm text-muted-foreground">
+            {truncateText(data?.content?.toString() || "")}
+          </div>
+        </div>
+      )
+    }
+
+    case "tool_call": {
+      const data = event.data as Record<string, any>
+      return (
+        <div className="space-y-2">
+          <div className="font-medium text-blue-500">Tool Call</div>
+          <div className="text-sm">
+            {data?.tool || "Tool Not Found"}
+          </div>
+          {data?.parameters && (
+            <pre className="text-xs bg-muted p-2 rounded overflow-auto max-h-24">
+              {JSON.stringify(data.parameters, null, 2)}
+            </pre>
+          )}
+        </div>
+      )
+    }
+
+    case "tool_response": {
+      return (
+        <div className="space-y-2">
+          <div className="font-medium text-green-500">Tool Response</div>
+          <pre className="text-xs bg-muted p-2 rounded overflow-auto max-h-24">
+            {typeof event.data === "string" 
+              ? event.data 
+              : JSON.stringify(event.data || {}, null, 2)}
+          </pre>
+        </div>
+      )
+    }
+
+    case "error": {
+      const data = event.data as { message?: string }
+      return (
+        <div className="space-y-2">
+          <div className="font-medium text-destructive">Error</div>
+          <div className="text-sm text-destructive">
+            {data?.message || "Unknown error"}
+          </div>
+        </div>
+      )
+    }
+
+    default:
+      return (
+        <div className="space-y-2">
+          <div className="font-medium capitalize">
+            {event.type.replace(/_/g, " ")}
+          </div>
+          {event.data && (
+            <pre className="text-xs bg-muted p-2 rounded overflow-auto max-h-24">
+              {JSON.stringify(event.data, null, 2)}
+            </pre>
+          )}
+        </div>
+      )
+  }
+}
+
+function EventDetails({ event }: { event: WorkflowEvent }) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-sm font-medium mb-1">Event Type</h3>
+        <p className="text-sm capitalize">
+          {event.type.replace(/_/g, " ")}
+        </p>
+      </div>
+
+      <div>
+        <h3 className="text-sm font-medium mb-1">Data</h3>
+        <pre className="text-xs bg-muted p-2 rounded overflow-auto max-h-[200px]">
+          {JSON.stringify(event.data, null, 2)}
+        </pre>
+      </div>
+
+      {event.metadata && (
+        <div>
+          <h3 className="text-sm font-medium mb-1">Metadata</h3>
+          <pre className="text-xs bg-muted p-2 rounded overflow-auto max-h-[200px]">
+            {JSON.stringify(event.metadata, null, 2)}
+          </pre>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function WorkflowRunDetail({ events }: WorkflowRunDetailProps) {
@@ -18,16 +128,12 @@ export default function WorkflowRunDetail({ events }: WorkflowRunDetailProps) {
     events.length > 0 ? events[0].id : null
   )
 
-  const currentEvent = selectedEventId
-    ? events.find((e) => e.id === selectedEventId)
-    : null
-
-  if (!currentEvent) {
+  if (events.length === 0) {
     return <div>No events found</div>
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center space-x-4">
         <Link href="/workflow-runs">
           <Button variant="outline" size="icon">
@@ -47,72 +153,52 @@ export default function WorkflowRunDetail({ events }: WorkflowRunDetailProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-1 space-y-4">
-          <div className="text-sm font-medium">Events</div>
-          <div className="space-y-2">
-            {events.map((event) => (
-              <Button
-                key={event.id}
-                variant={selectedEventId === event.id ? "default" : "outline"}
-                className="w-full justify-start text-left h-auto py-3"
-                onClick={() => setSelectedEventId(event.id)}
-              >
-                <div>
-                  <div className="font-medium capitalize">
-                    {event.type.replace(/_/g, " ")}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(event.timestamp, {
-                      addSuffix: true,
-                    })}
-                  </div>
-                </div>
-              </Button>
-            ))}
-          </div>
-        </div>
+      <div className="bg-card border rounded-lg p-6 relative">
+        {/* Timeline line */}
+        <div className="absolute left-4 top-6 bottom-6 w-0.5 bg-border" />
 
-        <div className="md:col-span-2">
-          {currentEvent ? (
-            <Card className="p-6">
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-medium mb-2">Event Type</h3>
-                  <p className="text-sm capitalize">
-                    {currentEvent.type.replace(/_/g, " ")}
-                  </p>
-                </div>
+        {/* Events */}
+        <div className="space-y-6">
+          {events.map((event, index) => (
+            <div
+              key={event.id}
+              className={`relative flex items-start gap-4 ${
+                selectedEventId === event.id ? "bg-accent/50 -mx-4 px-4 py-2 rounded-md" : ""
+              }`}
+            >
+              {/* Timeline dot */}
+              <div
+                className={`relative z-10 h-2 w-2 mt-2 rounded-full border-2 ${
+                  selectedEventId === event.id
+                    ? "bg-primary border-primary"
+                    : "bg-background border-muted-foreground"
+                }`}
+              />
 
-                <div>
-                  <h3 className="text-sm font-medium mb-2">Data</h3>
-                  <pre className="text-sm bg-muted p-4 rounded-md overflow-auto">
-                    {JSON.stringify(currentEvent.data, null, 2)}
-                  </pre>
-                </div>
+              {/* Event content */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    className="flex-1 text-left space-y-1 -mx-4 px-4 py-2 rounded-md"
+                    onClick={() => setSelectedEventId(event.id)}
+                  >
+                    <EventContent event={event} />
+                    <div className="text-xs text-muted-foreground mt-2">
+                      {event.timestamp.toLocaleString()}
+                    </div>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-[400px]">
+                  <EventDetails event={event} />
+                </PopoverContent>
+              </Popover>
 
-                {currentEvent.metadata && (
-                  <div>
-                    <h3 className="text-sm font-medium mb-2">Metadata</h3>
-                    <pre className="text-sm bg-muted p-4 rounded-md overflow-auto">
-                      {JSON.stringify(currentEvent.metadata, null, 2)}
-                    </pre>
-                  </div>
-                )}
-
-                <div>
-                  <h3 className="text-sm font-medium mb-2">Timestamp</h3>
-                  <p className="text-sm">
-                    {currentEvent.timestamp.toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            </Card>
-          ) : (
-            <div className="text-center p-12 text-muted-foreground">
-              Select an event to view details
+              {/* Arrow to next event */}
+              {index < events.length - 1 && (
+                <div className="absolute left-[0.5625rem] top-4 h-8 w-px bg-border transform -rotate-45 origin-top" />
+              )}
             </div>
-          )}
+          ))}
         </div>
       </div>
     </div>
