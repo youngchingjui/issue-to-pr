@@ -1,6 +1,27 @@
 # Workflow Visualization Implementation Guide
 
-This document outlines the technical implementation details for the workflow visualization feature.
+## TODO
+
+### Guidelines for this TODO list:
+
+- Do not write implementation code in this document
+- Always specify complete file paths for easy reference
+- Keep tasks specific and actionable
+
+### Tasks:
+
+- [ ] Update name of `WorkflowPersistenceService` to something better and more suitable
+
+  - Current location: `lib/services/WorkflowPersistenceService.ts`
+  - Consider names that better reflect its role in managing workflow state and events
+  - Potential names: `WorkflowService`, `WorkflowStateManager`, `WorkflowEventStore`
+
+- [ ] Update routing parameter name in workflow pages
+  - Current: Using `traceId` in dynamic routes
+  - Change to `workflowId` to better reflect the data model
+  - Files to update:
+    - `app/workflow-runs/[traceId]/page.tsx` → `app/workflow-runs/[workflowId]/page.tsx`
+    - Update all references to this parameter in the codebase
 
 ## Architecture Overview
 

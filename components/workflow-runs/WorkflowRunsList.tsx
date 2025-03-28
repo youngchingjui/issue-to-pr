@@ -3,6 +3,7 @@
 import { formatDistanceToNow } from "date-fns"
 import Link from "next/link"
 
+import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import {
   Table,
@@ -12,17 +13,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { TraceWithDetails } from "@/lib/types/langfuse"
+import { WorkflowEvent } from "@/lib/services/WorkflowPersistenceService"
 
 interface WorkflowRunsListProps {
-  traces: TraceWithDetails[]
+  workflows?: {
+    id: string
+    events: WorkflowEvent[]
+    status: "active" | "completed" | "error"
+    lastEventTimestamp?: Date | null
+  }[]
 }
 
 // TODO: Show additional details, including # of observations, timestamp in friendly way, and connected issue or PR if any
 // TODO: If in dev mode, add link to page on langfuse using process.env.LANGFUSE_BASEURL. example htmlPath: '/project/cm5eseyx20eoqcj50zgvcmed8/traces/fef4790b-d195-48b4-88c3-9e8045c500de'
 
 export default async function WorkflowRunsList({
-  traces,
+  workflows = [],
 }: WorkflowRunsListProps) {
   return (
     <Card className="max-w-screen-xl mx-auto rounded">
@@ -32,25 +38,44 @@ export default async function WorkflowRunsList({
             <TableRow>
               <TableHead className="py-4 text-base font-medium">Name</TableHead>
               <TableHead className="py-4 text-base font-medium">
+                Status
+              </TableHead>
+              <TableHead className="py-4 text-base font-medium">
                 Started
               </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {traces.map((trace) => (
-              <TableRow key={trace.id}>
+            {workflows.map((workflow) => (
+              <TableRow key={workflow.id}>
                 <TableCell className="py-4">
                   <Link
-                    href={`/workflow-runs/${trace.id}`}
+                    href={`/workflow-runs/${workflow.id}`}
                     className="text-blue-600 hover:underline font-medium"
                   >
-                    {trace.name || trace.id.slice(0, 8)}
+                    {workflow.events[0]?.data?.name?.toString() ||
+                      workflow.id.slice(0, 8)}
                   </Link>
                 </TableCell>
+                <TableCell>
+                  <Badge
+                    variant={
+                      workflow.status === "completed"
+                        ? "default"
+                        : workflow.status === "error"
+                          ? "destructive"
+                          : "secondary"
+                    }
+                  >
+                    {workflow.status}
+                  </Badge>
+                </TableCell>
                 <TableCell className="py-4 text-muted-foreground">
-                  {formatDistanceToNow(new Date(trace.timestamp), {
-                    addSuffix: true,
-                  })}
+                  {workflow.lastEventTimestamp
+                    ? formatDistanceToNow(workflow.lastEventTimestamp, {
+                        addSuffix: true,
+                      })
+                    : "N/A"}
                 </TableCell>
               </TableRow>
             ))}

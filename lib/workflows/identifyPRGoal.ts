@@ -1,3 +1,5 @@
+import { v4 as uuidv4 } from "uuid"
+
 import { GoalIdentifierAgent } from "@/lib/agents"
 import { getRepoFromString } from "@/lib/github/content"
 import {
@@ -6,6 +8,8 @@ import {
   getPullRequestDiff,
 } from "@/lib/github/pullRequests"
 import { langfuse } from "@/lib/langfuse"
+import WorkflowEventEmitter from "@/lib/services/EventEmitter"
+import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceService"
 import { GetIssueTool } from "@/lib/tools"
 import { GitHubIssue } from "@/lib/types/github"
 import { updateJobStatus } from "@/lib/utils/utils-common"
@@ -24,18 +28,65 @@ export async function identifyPRGoal({
   apiKey,
   jobId,
 }: IdentifyPRGoalParams): Promise<string> {
-  // Start a trace for this workflow
-  const trace = langfuse.trace({
-    name: "Identify PR Goal",
-  })
-  const span = trace.span({ name: "identify_goal" })
+  const workflowId = uuidv4()
+  const persistenceService = new WorkflowPersistenceService()
 
   try {
+    // Start a trace for this workflow
+    const trace = langfuse.trace({
+      name: "Identify PR Goal",
+    })
+    const span = trace.span({ name: "identify_goal" })
+
+    // Emit workflow start event
+    await persistenceService.saveEvent({
+      type: "workflow_start",
+      workflowId,
+      data: {
+        repoFullName,
+        pullNumber,
+      },
+      timestamp: new Date(),
+    })
+
+    WorkflowEventEmitter.emit(workflowId, {
+      type: "llm_response",
+      data: {
+        content: `Starting PR goal identification for PR #${pullNumber} in ${repoFullName}`,
+      },
+      timestamp: new Date(),
+    })
+
     // Add status updates throughout the workflow
     updateJobStatus(jobId, "Fetching repository information...")
+    await persistenceService.saveEvent({
+      type: "tool_call",
+      workflowId,
+      data: {
+        tool: "getRepoFromString",
+        params: {
+          repoFullName,
+        },
+      },
+      timestamp: new Date(),
+    })
+
     const repo = await getRepoFromString(repoFullName)
 
     updateJobStatus(jobId, "Retrieving PR details and comments...")
+    await persistenceService.saveEvent({
+      type: "tool_call",
+      workflowId,
+      data: {
+        tool: "getPullRequest",
+        params: {
+          repoFullName,
+          pullNumber,
+        },
+      },
+      timestamp: new Date(),
+    })
+
     const pr = await getPullRequest({ repoFullName, pullNumber })
     const comments = await getPullRequestComments({ repoFullName, pullNumber })
     const diff = await getPullRequestDiff({ repoFullName, pullNumber })
@@ -74,10 +125,58 @@ Available tools:
     }
 
     agent.addMessage(initialMessage)
+
+    await persistenceService.saveEvent({
+      type: "llm_response",
+      workflowId,
+      data: {
+        content: "Starting PR goal analysis",
+      },
+      timestamp: new Date(),
+    })
+
     const result = await agent.runWithFunctions()
+
+    // Emit completion event
+    await persistenceService.saveEvent({
+      type: "complete",
+      workflowId,
+      data: {
+        content: result,
+        success: true,
+      },
+      timestamp: new Date(),
+    })
+
+    WorkflowEventEmitter.emit(workflowId, {
+      type: "complete",
+      data: {
+        content: result,
+        success: true,
+      },
+      timestamp: new Date(),
+    })
+
     updateJobStatus(jobId, "Analysis complete")
     return result
   } catch (error) {
+    // Emit error event
+    const errorEvent = {
+      type: "error" as const,
+      data: {
+        error: error instanceof Error ? error : new Error(String(error)),
+        recoverable: false,
+      },
+      timestamp: new Date(),
+    }
+
+    await persistenceService.saveEvent({
+      ...errorEvent,
+      workflowId,
+    })
+
+    WorkflowEventEmitter.emit(workflowId, errorEvent)
+
     updateJobStatus(jobId, `Error: ${error.message}`)
     throw error
   }

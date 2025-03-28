@@ -11,6 +11,7 @@ import { z } from "zod"
 
 import { updateJobStatus } from "@/lib/redis-old"
 import WorkflowEventEmitter from "@/lib/services/EventEmitter"
+import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceService"
 import { AgentConstructorParams, Tool } from "@/lib/types"
 
 interface ToolCallInProgress extends ChatCompletionMessageToolCall {
@@ -25,6 +26,7 @@ export class Agent {
   llm: OpenAI
   model: ChatModel = "gpt-4o"
   jobId?: string
+  private persistenceService: WorkflowPersistenceService
 
   constructor({ model, systemPrompt, apiKey }: AgentConstructorParams) {
     if (model) {
@@ -36,6 +38,7 @@ export class Agent {
     if (apiKey) {
       this.addApiKey(apiKey)
     }
+    this.persistenceService = new WorkflowPersistenceService()
   }
 
   setSystemPrompt(prompt: string) {
@@ -111,6 +114,17 @@ export class Agent {
         this.jobId,
         JSON.stringify(response.choices[0].message)
       )
+
+      // Track LLM completion event
+      await this.persistenceService.saveEvent({
+        type: "llm_response",
+        workflowId: this.jobId,
+        data: {
+          content: response.choices[0].message.content,
+          toolCalls: response.choices[0].message.tool_calls,
+        },
+        timestamp: new Date(),
+      })
     }
 
     this.addMessage(response.choices[0].message)
@@ -121,6 +135,19 @@ export class Agent {
           (t) => t.tool.function.name === toolCall.function.name
         )
         if (tool) {
+          // Track tool call event
+          if (this.jobId) {
+            await this.persistenceService.saveEvent({
+              type: "tool_call",
+              workflowId: this.jobId,
+              data: {
+                toolName: toolCall.function.name,
+                arguments: JSON.parse(toolCall.function.arguments),
+              },
+              timestamp: new Date(),
+            })
+          }
+
           const validationResult = tool.parameters.safeParse(
             JSON.parse(toolCall.function.arguments)
           )
@@ -128,9 +155,38 @@ export class Agent {
             console.error(
               `Validation failed for tool ${toolCall.function.name}: ${validationResult.error.message}`
             )
+
+            // Track error event
+            if (this.jobId) {
+              await this.persistenceService.saveEvent({
+                type: "error",
+                workflowId: this.jobId,
+                data: {
+                  toolName: toolCall.function.name,
+                  error: validationResult.error.message,
+                  recoverable: true,
+                },
+                timestamp: new Date(),
+              })
+            }
             continue
           }
+
           const toolResponse = await tool.handler(validationResult.data)
+
+          // Track tool response event
+          if (this.jobId) {
+            await this.persistenceService.saveEvent({
+              type: "tool_response",
+              workflowId: this.jobId,
+              data: {
+                toolName: toolCall.function.name,
+                response: toolResponse,
+              },
+              timestamp: new Date(),
+            })
+          }
+
           this.addMessage({
             role: "tool",
             content: toolResponse,
@@ -138,11 +194,36 @@ export class Agent {
           })
         } else {
           console.error(`Tool ${toolCall.function.name} not found`)
+          // Track error event
+          if (this.jobId) {
+            await this.persistenceService.saveEvent({
+              type: "error",
+              workflowId: this.jobId,
+              data: {
+                error: `Tool ${toolCall.function.name} not found`,
+                recoverable: false,
+              },
+              timestamp: new Date(),
+            })
+          }
         }
       }
       return await this.runWithFunctions()
     } else {
-      return response.choices[0].message.content || ""
+      const finalContent = response.choices[0].message.content || ""
+
+      // Only emit complete event to mark the end of the agent's execution
+      if (this.jobId) {
+        await this.persistenceService.saveEvent({
+          type: "complete",
+          workflowId: this.jobId,
+          data: {
+            success: true,
+          },
+          timestamp: new Date(),
+        })
+      }
+      return finalContent
     }
   }
 
