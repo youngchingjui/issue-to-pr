@@ -36,63 +36,57 @@ Directory structure has been implemented:
 
 ### 4. Implementation Planning
 
-#### Immediate Tasks
+#### Immediate Tasks (This Week)
 
-- [ ] Update name of `WorkflowPersistenceService` to better reflect its role
-  - Current location: `lib/services/WorkflowPersistenceService.ts`
-  - Consider: `WorkflowService`, `WorkflowStateManager`, `WorkflowEventStore`
-- [ ] Update routing parameter name in workflow pages
-  - Change from `traceId` to `workflowId`
-  - Update: `app/workflow-runs/[traceId]/page.tsx` → `app/workflow-runs/[workflowId]/page.tsx`
-  - Update all parameter references in codebase
+- [ ] Enhance Existing Workflow Visualization
 
-#### Phase 1: Core Graph Structure
+  - [ ] Add visual timeline/graph view to `WorkflowRunDetail`
+    - [ ] Start with simple left-to-right timeline
+    - [ ] Show event relationships using arrows
+    - [ ] Color-code different event types
+  - [ ] Improve event type displays
+    - [ ] Create specific card layouts for each event type
+    - [ ] Add syntax highlighting for code in tool calls
+    - [ ] Show LLM responses in a more readable format
+  - [ ] Add interactive features to existing UI
+    - [ ] Implement zoom and pan for large workflows
+    - [ ] Add collapsible sections for long content
+    - [ ] Enable quick navigation between related events
 
-- [ ] Research and select graph visualization library
-- [ ] Plan basic node-edge structure
-- [ ] Define node positioning algorithm requirements
-- [ ] Specify basic node styling approach
-- [ ] Set up Neo4j schema for workflow events
-- [ ] Implement event persistence layer
-- [ ] Create query optimizations for common paths
+- [ ] Real-time Updates
+  - [ ] Add WebSocket connection to existing component
+  - [ ] Implement live updates for active workflows
+  - [ ] Show loading states for pending events
 
-#### Phase 2: Node Type Implementation
+#### Phase 1: UI/UX Improvements (Week 1)
 
-- [ ] Design base node component structure
-- [ ] Plan specific node type implementations
-- [ ] Design preview system
-- [ ] Plan expandable content system
-- [ ] Implement event type handling:
-  - workflow_start
-  - llm_complete
-  - tool_call
-  - tool_response
-  - error
-  - complete
+- [ ] Event Type-Specific Enhancements
 
-#### Phase 3: Real-time Updates and Relationships
+  - [ ] Design and implement LLM response card
+  - [ ] Create tool call visualization with params
+  - [ ] Add error state highlighting
+  - [ ] Show workflow completion summary
 
-- [ ] Design relationship visualization approach
-- [ ] Plan interactive features
-- [ ] Design relationship type indicators
-- [ ] Plan support for parallel execution branches
-- [ ] Implement WebSocket server
-- [ ] Create event buffering system
-- [ ] Set up connection management
-- [ ] Implement event replay mechanism
+- [ ] Navigation and Interaction
+  - [ ] Add workflow search and filtering
+  - [ ] Implement event type filtering
+  - [ ] Add timestamp-based navigation
+  - [ ] Create workflow comparison view
 
-#### Phase 4: Performance Optimization
+#### Phase 2: Advanced Features (Week 2)
 
-- [ ] Plan lazy loading implementation
-- [ ] Design virtualization for large graphs
-- [ ] Define render performance optimizations
-- [ ] Plan caching mechanisms
-- [ ] Implement monitoring metrics:
-  - Event storage latency
-  - Query performance
-  - Storage growth
-  - Relationship depth
-  - Error rates
+- [ ] Graph View Implementation
+
+  - [ ] Add optional graph view toggle
+  - [ ] Implement basic node layout
+  - [ ] Show relationships between events
+  - [ ] Enable node expansion/collapse
+
+- [ ] Performance Optimization
+  - [ ] Implement pagination for large workflows
+  - [ ] Add lazy loading for event details
+  - [ ] Optimize WebSocket updates
+  - [ ] Cache frequently accessed data
 
 ## Questions to Resolve
 
@@ -125,3 +119,36 @@ Directory structure has been implemented:
 
 - Implementation details are kept in `/internal-docs`
 - Public documentation is kept in `/docs`
+
+## Future Considerations
+
+### Additional Performance Optimizations
+
+- [ ] Implement monitoring metrics:
+  - Event storage latency
+  - Query performance
+  - Storage growth
+  - Relationship depth
+  - Error rates
+
+### Event Handling and Real-time Features
+
+- [ ] Plan support for parallel execution branches
+- [ ] Set up connection management
+- [ ] Implement event replay mechanism
+
+### Research Tasks
+
+- Research and evaluate different graph visualization libraries
+- Investigate optimal node positioning algorithms
+- Study best practices for graph layout algorithms
+- Analyze performance implications of different visualization approaches
+
+### Technical Debt Items
+
+- [ ] Original routing update tasks:
+  - Update all parameter references in codebase from `traceId` to `workflowId`
+  - Ensure backward compatibility during transition
+- [ ] Service naming considerations:
+  - Evaluate alternatives: `WorkflowService`, `WorkflowStateManager`, `WorkflowEventStore`
+  - Document service responsibilities and interfaces
