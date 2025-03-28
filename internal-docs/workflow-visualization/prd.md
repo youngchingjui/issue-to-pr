@@ -99,11 +99,42 @@ So that I can access detailed information when needed
 
 ### Non-Functional Requirements
 
+#### Performance Requirements
+
 - Performance optimization for large workflows
 - Responsive graph layout
 - Smooth animations
 - Efficient content loading
 - Browser compatibility
+- Batch updates for large workflows
+- Lazy loading for historical data
+- Client-side caching strategies
+- Server-side query optimization
+- Event buffering and batching for real-time updates
+
+#### Security Requirements
+
+- Access control for workflow data
+- Audit logging for interventions
+- Data encryption in transit
+- Authentication for WebSocket connections
+- Secure handling of sensitive workflow data
+
+#### Real-time Communication
+
+- WebSocket connections for live updates
+- Connection recovery mechanisms
+- Event replay for missed updates
+- Event buffering system for performance
+- Real-time state synchronization
+
+#### Data Storage and Retrieval
+
+- Optimized schema for quick traversal
+- Efficient relationship queries
+- Data archival strategy
+- Backup procedures
+- Index optimization for common queries
 
 ## Implementation Plan
 
@@ -189,6 +220,37 @@ So that I can access detailed information when needed
 - How do we optimize content loading for best performance?
 
 ## Appendix
+
+### Core Data Structures
+
+```typescript
+interface WorkflowEvent {
+  id: string
+  type:
+    | "workflow_start"
+    | "llm_complete"
+    | "tool_call"
+    | "tool_response"
+    | "error"
+    | "complete"
+  workflowId: string
+  data: any
+  timestamp: Date
+  metadata?: Record<string, any>
+}
+
+interface StreamToken {
+  type: "token" | "chunk"
+  content: string
+  timestamp: Date
+}
+```
+
+### Neo4j Relationships
+
+- NEXT_EVENT: Sequential relationship between events
+- BELONGS_TO_WORKFLOW: Event to workflow relationship
+- TRIGGERED_BY: Causal relationship between events
 
 - Reference to workflow event tracking documentation
 - Graph visualization library comparison
