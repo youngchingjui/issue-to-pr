@@ -6,15 +6,21 @@ import Link from "next/link"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import { WorkflowEvent } from "@/lib/services/WorkflowPersistenceService"
-
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 import {
   DefaultEvent,
   ErrorEvent,
+  EventDetails,
   LLMResponseEvent,
   ToolCallEvent,
   ToolResponseEvent,
-} from "./events"
+} from "@/components/workflow-runs/events"
+import { WorkflowEvent } from "@/lib/services/WorkflowPersistenceService"
 
 interface WorkflowRunDetailProps {
   events: WorkflowEvent[]
@@ -69,6 +75,9 @@ export default function WorkflowRunDetail({ events }: WorkflowRunDetailProps) {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(
     events.length > 0 ? events[0].id : null
   )
+  const [isSheetOpen, setIsSheetOpen] = useState(false)
+
+  const selectedEvent = events.find((event) => event.id === selectedEventId)
 
   if (events.length === 0) {
     return <div>No events found</div>
@@ -102,7 +111,10 @@ export default function WorkflowRunDetail({ events }: WorkflowRunDetailProps) {
               <EventContent
                 event={event}
                 isSelected={selectedEventId === event.id}
-                onClick={() => setSelectedEventId(event.id)}
+                onClick={() => {
+                  setSelectedEventId(event.id)
+                  setIsSheetOpen(true)
+                }}
               />
               {index < events.length - 1 && (
                 <div className="absolute left-1/2 -bottom-6 h-6 w-px bg-border" />
@@ -111,6 +123,17 @@ export default function WorkflowRunDetail({ events }: WorkflowRunDetailProps) {
           ))}
         </div>
       </div>
+
+      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>
+              {selectedEvent?.type.replace(/_/g, " ").toUpperCase()}
+            </SheetTitle>
+          </SheetHeader>
+          {selectedEvent && <EventDetails event={selectedEvent} />}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
