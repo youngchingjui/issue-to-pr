@@ -99,4 +99,5 @@ class WorkflowEventEmitter extends EventEmitter {
   }
 }
 
-export default new WorkflowEventEmitter()
+const workflowEventEmitter = new WorkflowEventEmitter()
+export default workflowEventEmitter
