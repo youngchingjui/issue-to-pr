@@ -57,12 +57,24 @@ So that I can access detailed information when needed
 #### Node Types Display
 
 - workflow_start
-  - Minimal visual presence
+  - Notification-style event
+  - No interactive card display
   - Simple status message format
   - No interactive elements
   - Light styling to indicate workflow initiation
+- system_prompt
+  - Prominent display
+  - Full system prompt text
+  - Collapsible content
+  - Clear visual distinction as context
+- user_message
+  - Prominent display
+  - Full user message text
+  - Collapsible content
+  - Clear visual distinction as input
 - llm_response
   - Prominent display
+  - Full LLM response text
   - Collapsible content
   - Preview with full content expansion
   - Proper content truncation
@@ -72,7 +84,9 @@ So that I can access detailed information when needed
   - Collapsible parameter details
   - Execution status
   - Clear parameter hierarchy
+  - Complete tool response data included
 - tool_response
+  - Complete response data
   - Result preview
   - Response type indication
   - Error handling
@@ -83,14 +97,15 @@ So that I can access detailed information when needed
   - Recovery options
   - Clear error context
 - complete
-  - Simple status message format
-  - Non-interactive display
-  - Success indication
+  - Notification-style event
+  - No interactive card display
+  - Simple success status
   - Light styling for completion state
+  - No content from LLM response
 
 #### Event Type Classification
 
-- Status Events
+- Status Events (Notification Style)
 
   - workflow_start
   - complete
@@ -100,9 +115,11 @@ So that I can access detailed information when needed
   - Focus on status communication
 
 - Interactive Events
+  - system_prompt
+  - user_message
   - llm_response
-  - tool_call
-  - tool_response
+  - tool_call (with complete response data)
+  - tool_response (with complete data)
   - error
   - Rich content display
   - Expandable details
@@ -117,13 +134,39 @@ So that I can access detailed information when needed
   - Proper event sequencing
   - Accurate timestamp tracking
   - Event type categorization
+  - Complete context preservation
+  - System prompts and user messages tracking
+  - Full LLM response capture
+  - Complete tool call data with responses
 
 - Neo4j Schema
+
   - Optimized relationship modeling
   - Proper indexing strategy
   - Event metadata storage
   - Query performance optimization
   - Data integrity constraints
+  - Complete conversation context storage
+  - Tool response data preservation
+  - System prompt and user message relationships
+
+- Event Data Completeness
+  - LLM Events
+    - Full response text
+    - System prompts used
+    - User messages
+    - Conversation context
+    - Timestamp and sequence data
+  - Tool Events
+    - Complete tool call parameters
+    - Full tool response data
+    - Error states and messages
+    - Execution context
+  - Status Events
+    - Minimal required data
+    - Clear status indicators
+    - Timestamp information
+    - Workflow context
 
 #### Relationship Visualization
 
@@ -360,7 +403,9 @@ interface WorkflowEvent {
   id: string
   type:
     | "workflow_start"
-    | "llm_complete"
+    | "llm_response"
+    | "system_prompt"
+    | "user_message"
     | "tool_call"
     | "tool_response"
     | "error"
@@ -371,18 +416,59 @@ interface WorkflowEvent {
   metadata?: Record<string, any>
 }
 
+interface LLMResponseData {
+  content: string
+  role: string
+  model: string
+}
+
+interface SystemPromptData {
+  content: string
+  timestamp: Date
+}
+
+interface UserMessageData {
+  content: string
+  timestamp: Date
+}
+
+interface ToolCallData {
+  toolName: string
+  parameters: Record<string, any>
+  response?: any
+  error?: {
+    message: string
+    stack?: string
+  }
+}
+
+interface StatusEventData {
+  status: string
+  message: string
+  timestamp: Date
+}
+
 interface StreamToken {
   type: "token" | "chunk"
   content: string
   timestamp: Date
+  eventType: "llm" | "tool" | "status"
 }
 ```
 
 ### Neo4j Relationships
 
-- NEXT_EVENT: Sequential relationship between events
+- NEXT_EVENT: Sequential relationship between events (e.g. system prompt -> user message -> LLM response -> tool call)
 - BELONGS_TO_WORKFLOW: Event to workflow relationship
-- TRIGGERED_BY: Causal relationship between events
+- TRIGGERED_BY: Causal relationship between events (e.g. tool call triggering a tool response)
+- RESPONSE_TO: Links tool responses to their corresponding tool calls
+
+Note: Messages (system prompts, user messages, LLM responses) are linked sequentially via NEXT_EVENT relationships rather than having special CONTEXT_OF relationships. This better reflects the actual message chain structure where:
+
+1. System prompt is the first message
+2. Followed by one or more user messages
+3. Then LLM responses, tool calls, and additional messages follow in sequence
+4. Each message may have its own LLM model configuration
 
 - Reference to workflow event tracking documentation
 - Graph visualization library comparison

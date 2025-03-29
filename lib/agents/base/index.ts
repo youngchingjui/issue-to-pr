@@ -9,10 +9,15 @@ import {
 } from "openai/resources/chat/completions"
 import { z } from "zod"
 
-import { updateJobStatus } from "@/lib/redis-old"
 import WorkflowEventEmitter from "@/lib/services/EventEmitter"
 import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceService"
 import { AgentConstructorParams, Tool } from "@/lib/types"
+import {
+  ErrorData,
+  StatusData,
+  ToolCallData,
+  ToolResponseData,
+} from "@/lib/types/workflow"
 
 interface ToolCallInProgress extends ChatCompletionMessageToolCall {
   index: number
@@ -20,8 +25,8 @@ interface ToolCallInProgress extends ChatCompletionMessageToolCall {
 
 export class Agent {
   REQUIRED_TOOLS: string[] = []
-  prompt: string
   messages: ChatCompletionMessageParam[] = []
+  private untrackedMessages: ChatCompletionMessageParam[] = [] // Queue for untracked messages
   tools: Tool<z.ZodType>[] = []
   llm: OpenAI
   model: ChatModel = "gpt-4o"
@@ -32,29 +37,84 @@ export class Agent {
     if (model) {
       this.model = model
     }
-    if (systemPrompt) {
-      this.setSystemPrompt(systemPrompt)
-    }
     if (apiKey) {
       this.addApiKey(apiKey)
     }
     this.persistenceService = new WorkflowPersistenceService()
+    if (systemPrompt) {
+      this.setSystemPrompt(systemPrompt)
+    }
   }
 
-  setSystemPrompt(prompt: string) {
-    // Adds system prompt to the agent
-    // then updates system prompt within the message list
+  private async trackMessage(message: ChatCompletionMessageParam) {
+    if (!this.jobId) return
 
-    this.prompt = prompt
+    if (message.role === "system" && typeof message.content === "string") {
+      await this.persistenceService.saveEvent({
+        type: "system_prompt",
+        workflowId: this.jobId,
+        data: { content: message.content },
+        timestamp: new Date(),
+      })
+    } else if (message.role === "user" && typeof message.content === "string") {
+      await this.persistenceService.saveEvent({
+        type: "user_message",
+        workflowId: this.jobId,
+        data: { content: message.content },
+        timestamp: new Date(),
+      })
+    } else if (
+      message.role === "assistant" &&
+      typeof message.content === "string"
+    ) {
+      await this.persistenceService.saveEvent({
+        type: "llm_response",
+        workflowId: this.jobId,
+        data: {
+          content: message.content,
+          model: this.model,
+        },
+        timestamp: new Date(),
+      })
+    }
+  }
+
+  async addJobId(jobId: string) {
+    this.jobId = jobId
+
+    // Process any queued messages
+    for (const message of this.untrackedMessages) {
+      await this.trackMessage(message)
+    }
+    this.untrackedMessages = [] // Clear the queue
+  }
+
+  async setSystemPrompt(prompt: string) {
+    // Update messages array
     this.messages = this.messages.filter((message) => message.role !== "system")
-    this.messages.unshift({
+    const systemMessage: ChatCompletionMessageParam = {
       role: "system",
       content: prompt,
-    })
+    }
+    this.messages.unshift(systemMessage)
+
+    // Track the message
+    if (this.jobId) {
+      await this.trackMessage(systemMessage)
+    } else {
+      this.untrackedMessages.push(systemMessage)
+    }
   }
 
-  addMessage(message: ChatCompletionMessageParam) {
+  async addMessage(message: ChatCompletionMessageParam) {
     this.messages.push(message)
+
+    // Track or queue the message
+    if (this.jobId) {
+      await this.trackMessage(message)
+    } else {
+      this.untrackedMessages.push(message)
+    }
   }
 
   addTool<T extends z.ZodType>(toolConfig: Tool<T>) {
@@ -75,10 +135,6 @@ export class Agent {
     this.llm = observeOpenAI(this.llm, { parent: span, generationName })
   }
 
-  addJobId(jobId: string) {
-    this.jobId = jobId
-  }
-
   checkTools() {
     for (const tool of this.REQUIRED_TOOLS) {
       if (!this.tools.some((t) => t.tool.function.name === tool)) {
@@ -95,6 +151,16 @@ export class Agent {
       throw new Error("Missing tools, please attach required tools first")
     }
 
+    // Ensure we have at least one user message after system prompt before generating response
+    const hasSystemPrompt = this.messages.some((m) => m.role === "system")
+    const hasUserMessage = this.messages.some((m) => m.role === "user")
+
+    if (!hasSystemPrompt || !hasUserMessage) {
+      throw new Error(
+        "Cannot generate response: Need both system prompt and at least one user message"
+      )
+    }
+
     const params: ChatCompletionCreateParamsNonStreaming = {
       model: this.model,
       messages: this.messages,
@@ -109,25 +175,8 @@ export class Agent {
       `[DEBUG] response: ${JSON.stringify(response.choices[0].message)}`
     )
 
-    if (this.jobId) {
-      await updateJobStatus(
-        this.jobId,
-        JSON.stringify(response.choices[0].message)
-      )
-
-      // Track LLM completion event
-      await this.persistenceService.saveEvent({
-        type: "llm_response",
-        workflowId: this.jobId,
-        data: {
-          content: response.choices[0].message.content,
-          toolCalls: response.choices[0].message.tool_calls,
-        },
-        timestamp: new Date(),
-      })
-    }
-
-    this.addMessage(response.choices[0].message)
+    // Add and track the assistant's response
+    await this.addMessage(response.choices[0].message)
 
     if (response.choices[0].message.tool_calls) {
       for (const toolCall of response.choices[0].message.tool_calls) {
@@ -187,7 +236,7 @@ export class Agent {
             })
           }
 
-          this.addMessage({
+          await this.addMessage({
             role: "tool",
             content: toolResponse,
             tool_call_id: toolCall.id,
@@ -219,6 +268,7 @@ export class Agent {
           workflowId: this.jobId,
           data: {
             success: true,
+            status: "completed",
           },
           timestamp: new Date(),
         })
@@ -266,6 +316,7 @@ export class Agent {
             type: "llm_response",
             data: {
               content: delta.content,
+              model: this.model,
             },
             timestamp: new Date(),
           })
@@ -304,13 +355,11 @@ export class Agent {
           WorkflowEventEmitter.emit(this.jobId, {
             type: "tool_call",
             data: {
-              toolCalls: currentToolCalls.map((tc) => ({
-                function: {
-                  name: tc.function.name,
-                  arguments: tc.function.arguments,
-                },
-              })),
-            },
+              toolName: currentToolCalls[0].function.name,
+              arguments: JSON.parse(
+                currentToolCalls[0].function.arguments || "{}"
+              ),
+            } as ToolCallData,
             timestamp: new Date(),
           })
         }
@@ -323,7 +372,7 @@ export class Agent {
     }
 
     // Add the complete message to our history
-    this.addMessage(currentMessage)
+    await this.addMessage(currentMessage)
 
     // Handle tool calls if any
     if (currentToolCalls.length > 0) {
@@ -345,41 +394,42 @@ export class Agent {
                   data: {
                     toolName: toolCall.function.name,
                     response: toolResponse,
-                  },
+                  } as ToolResponseData,
                   timestamp: new Date(),
                 })
               }
 
-              this.addMessage({
+              await this.addMessage({
                 role: "tool",
                 content: toolResponse,
                 tool_call_id: toolCall.id,
               })
             } else {
               if (this.jobId) {
-                WorkflowEventEmitter.emit(this.jobId, {
+                const eventData: ErrorData = {
+                  error: validationResult.error.message,
+                  toolName: toolCall.function.name,
+                  recoverable: true,
+                }
+                await this.persistenceService.saveEvent({
                   type: "error",
-                  data: {
-                    error: new Error(
-                      `Validation failed for tool ${toolCall.function.name}: ${validationResult.error.message}`
-                    ),
-                    retryCount: 0,
-                    recoverable: true,
-                  },
+                  workflowId: this.jobId,
+                  data: eventData,
                   timestamp: new Date(),
                 })
               }
             }
           } catch (error) {
             if (this.jobId) {
-              WorkflowEventEmitter.emit(this.jobId, {
+              const eventData: ErrorData = {
+                error:
+                  error instanceof Error ? error : new Error(String(error)),
+                recoverable: true,
+              }
+              await this.persistenceService.saveEvent({
                 type: "error",
-                data: {
-                  error:
-                    error instanceof Error ? error : new Error(String(error)),
-                  retryCount: 0,
-                  recoverable: true,
-                },
+                workflowId: this.jobId,
+                data: eventData,
                 timestamp: new Date(),
               })
             }
@@ -394,9 +444,7 @@ export class Agent {
     if (this.jobId) {
       WorkflowEventEmitter.emit(this.jobId, {
         type: "complete",
-        data: {
-          content: fullContent,
-        },
+        data: { success: true } as StatusData,
         timestamp: new Date(),
       })
     }

@@ -7,7 +7,7 @@ import {
   updateIssueComment,
 } from "@/lib/github/issues"
 import { langfuse } from "@/lib/langfuse"
-import { updateJobStatus } from "@/lib/redis-old"
+import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceService"
 import { SearchCodeTool } from "@/lib/tools"
 import GetFileContentTool from "@/lib/tools/GetFileContent"
 import { GitHubRepository } from "@/lib/types/github"
@@ -30,9 +30,16 @@ export default async function commentOnIssue(
 ) {
   const trace = langfuse.trace({ name: "commentOnIssue" })
   let initialCommentId: number | null = null
+  const persistenceService = new WorkflowPersistenceService()
 
   try {
-    updateJobStatus(jobId, "Authenticating and retrieving token")
+    await persistenceService.saveEvent({
+      type: "status",
+      workflowId: jobId,
+      data: { status: "Authenticating and retrieving token" },
+      timestamp: new Date(),
+    })
+
     // Get the issue
     const issue = await getIssue({
       fullName: repo.full_name,
@@ -48,10 +55,21 @@ export default async function commentOnIssue(
       )
     })
 
-    updateJobStatus(jobId, "Issue retrieved successfully")
+    await persistenceService.saveEvent({
+      type: "status",
+      workflowId: jobId,
+      data: { status: "Issue retrieved successfully" },
+      timestamp: new Date(),
+    })
 
     // Post initial comment indicating processing start
-    updateJobStatus(jobId, "Posting initial processing comment")
+    await persistenceService.saveEvent({
+      type: "status",
+      workflowId: jobId,
+      data: { status: "Posting initial processing comment" },
+      timestamp: new Date(),
+    })
+
     try {
       const initialComment = await createIssueComment({
         issueNumber,
@@ -94,7 +112,13 @@ export default async function commentOnIssue(
       )
     }
 
-    updateJobStatus(jobId, "Setting up the local repository")
+    await persistenceService.saveEvent({
+      type: "status",
+      workflowId: jobId,
+      data: { status: "Setting up the local repository" },
+      timestamp: new Date(),
+    })
+
     // Setup local repository using setupLocalRepository
     const dirPath = await setupLocalRepository({
       repoFullName: repo.full_name,
@@ -107,28 +131,64 @@ export default async function commentOnIssue(
       throw new Error(`Failed to setup local repository: ${error.message}`)
     })
 
-    updateJobStatus(jobId, "Repository setup completed")
+    await persistenceService.saveEvent({
+      type: "status",
+      workflowId: jobId,
+      data: { status: "Repository setup completed" },
+      timestamp: new Date(),
+    })
 
     const tree = await createDirectoryTree(dirPath)
-    updateJobStatus(jobId, "Directory tree created")
+    await persistenceService.saveEvent({
+      type: "status",
+      workflowId: jobId,
+      data: { status: "Directory tree created" },
+      timestamp: new Date(),
+    })
 
     // Prepare the tools
     const getFileContentTool = new GetFileContentTool(dirPath)
     const searchCodeTool = new SearchCodeTool(repo.full_name)
 
-    // Create the thinker agent
-    const thinker = new ThinkerAgent({ issue, apiKey, tree })
+    // Create and initialize the thinker agent
+    const thinker = new ThinkerAgent({ apiKey })
+    thinker.addJobId(jobId) // Set jobId before any messages are added
     const span = trace.span({ name: "generateComment" })
     thinker.addSpan({ span, generationName: "commentOnIssue" })
     thinker.addTool(getFileContentTool)
     thinker.addTool(searchCodeTool)
-    thinker.addJobId(jobId)
 
-    updateJobStatus(jobId, "Generating comment")
+    // Add issue information as user message
+    await thinker.addMessage({
+      role: "user",
+      content: `Github issue title: ${issue.title}\nGithub issue description: ${issue.body}`,
+    })
+
+    // Add tree information as user message
+    if (tree && tree.length > 0) {
+      await thinker.addMessage({
+        role: "user",
+        content: `Here is the codebase's tree directory:\n${tree.join("\n")}`,
+      })
+    }
+
+    await persistenceService.saveEvent({
+      type: "status",
+      workflowId: jobId,
+      data: { status: "Generating comment" },
+      timestamp: new Date(),
+    })
+
     const response = await thinker.runWithFunctions()
     span.end()
 
-    updateJobStatus(jobId, "Updating initial comment with final response")
+    await persistenceService.saveEvent({
+      type: "status",
+      workflowId: jobId,
+      data: { status: "Updating initial comment with final response" },
+      timestamp: new Date(),
+    })
+
     // Update the initial comment with the final response
     if (initialCommentId) {
       await updateIssueComment({
@@ -145,10 +205,12 @@ export default async function commentOnIssue(
       })
     }
 
-    updateJobStatus(jobId, "Comment updated successfully")
-
-    // Send a final message indicating the stream is finished
-    updateJobStatus(jobId, "Stream finished")
+    await persistenceService.saveEvent({
+      type: "status",
+      workflowId: jobId,
+      data: { status: "Comment updated successfully" },
+      timestamp: new Date(),
+    })
 
     // Return the comment
     return { status: "complete", issueComment: response }
@@ -182,7 +244,13 @@ export default async function commentOnIssue(
       }
     }
 
-    updateJobStatus(jobId, `Error: ${errorMessage}`)
+    await persistenceService.saveEvent({
+      type: "error",
+      workflowId: jobId,
+      data: { error: errorMessage },
+      timestamp: new Date(),
+    })
+
     throw githubError // Re-throw the error to be handled by the caller
   }
 }

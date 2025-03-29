@@ -43,8 +43,7 @@ export async function identifyPRGoal({
       type: "workflow_start",
       workflowId,
       data: {
-        repoFullName,
-        pullNumber,
+        status: "starting",
       },
       timestamp: new Date(),
     })
@@ -60,13 +59,10 @@ export async function identifyPRGoal({
     // Add status updates throughout the workflow
     updateJobStatus(jobId, "Fetching repository information...")
     await persistenceService.saveEvent({
-      type: "tool_call",
+      type: "status",
       workflowId,
       data: {
-        tool: "getRepoFromString",
-        params: {
-          repoFullName,
-        },
+        status: "fetching_repo",
       },
       timestamp: new Date(),
     })
@@ -75,14 +71,10 @@ export async function identifyPRGoal({
 
     updateJobStatus(jobId, "Retrieving PR details and comments...")
     await persistenceService.saveEvent({
-      type: "tool_call",
+      type: "status",
       workflowId,
       data: {
-        tool: "getPullRequest",
-        params: {
-          repoFullName,
-          pullNumber,
-        },
+        status: "fetching_pr_details",
       },
       timestamp: new Date(),
     })
@@ -124,7 +116,7 @@ Available tools:
 - Use the get_issue tool to fetch details for any referenced GitHub issues (e.g., "Fixes #123" or "Related to #456")`,
     }
 
-    agent.addMessage(initialMessage)
+    await agent.addMessage(initialMessage)
 
     await persistenceService.saveEvent({
       type: "llm_response",

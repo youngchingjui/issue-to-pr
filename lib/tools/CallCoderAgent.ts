@@ -50,7 +50,7 @@ class CallCoderAgentTool implements Tool<typeof callCoderAgentParameters> {
     coderAgent.addTool(writeFileTool)
     coderAgent.addTool(getDirectoryStructureTool)
 
-    coderAgent.addMessage({
+    await coderAgent.addMessage({
       role: "user",
       content: `Instructions: ${instructions}\nFile to modify: ${relativeFilePath}`,
     })

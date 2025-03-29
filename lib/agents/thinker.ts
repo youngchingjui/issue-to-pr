@@ -1,12 +1,7 @@
 import { Agent } from "@/lib/agents/base"
-import { ThinkerAgentParams } from "@/lib/types"
+import { AgentConstructorParams } from "@/lib/types"
 
-export class ThinkerAgent extends Agent {
-  private initialSystemPrompt: string
-
-  constructor({ issue, tree, ...rest }: ThinkerAgentParams) {
-    const initialSystemPrompt = `
-## Instructions
+const SYSTEM_PROMPT = `## Instructions
 You are a senior software engineer. 
 You are given a Github issue, and your job is to understand the issue in relation to the codebase, 
 and try to best understand the user's intent.
@@ -33,32 +28,16 @@ You will need to generate a comment on the issue that includes the following sec
 - Identify all functions and files involved in the feature, not just the one that looks like the main entry point.
 - If a function calls other functions, trace the entire execution flow before making changes.
 - Fetch and review downstream function definitions that may modify key behavior.
-- Open specific files to get a full understanding of the problem in the code
-`
-    super({
-      systemPrompt:
-        initialSystemPrompt +
-        (tree
-          ? `\nHere is the codebase's tree directory:\n${tree.join("\n")}`
-          : ""),
-      ...rest,
+- Open specific files to get a full understanding of the problem in the code`
+
+export class ThinkerAgent extends Agent {
+  constructor({ ...rest }: AgentConstructorParams) {
+    // Initialize with model config that will be used for the system prompt and subsequent messages
+    super(rest)
+
+    // Set system prompt as first message in the chain
+    this.setSystemPrompt(SYSTEM_PROMPT).catch((error) => {
+      console.error("Error initializing ThinkerAgent system prompt:", error)
     })
-
-    this.initialSystemPrompt = initialSystemPrompt
-
-    this.addMessage({
-      role: "user",
-      content: `
-      Github issue title: ${issue.title}
-      Github issue description: ${issue.body}
-      `,
-    })
-  }
-
-  updateSystemPrompt(tree: string[]) {
-    this.setSystemPrompt(
-      this.initialSystemPrompt +
-        `\nHere is the codebase's tree directory:\n${tree.join("\n")}`
-    )
   }
 }

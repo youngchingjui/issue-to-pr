@@ -71,9 +71,7 @@ export async function reviewPullRequest({
       type: "workflow_start",
       workflowId,
       data: {
-        repoFullName,
-        pullNumber,
-        issueNumber: issue?.number,
+        status: "starting",
       },
       timestamp: new Date(),
     })
@@ -119,14 +117,10 @@ export async function reviewPullRequest({
     // Identify the diff
     if (pullNumber) {
       await persistenceService.saveEvent({
-        type: "tool_call",
+        type: "status",
         workflowId,
         data: {
-          tool: "getPullRequestDiff",
-          params: {
-            repoFullName,
-            pullNumber,
-          },
+          status: "fetching_pr_diff",
         },
         timestamp: new Date(),
       })
@@ -144,13 +138,10 @@ export async function reviewPullRequest({
     let updatedBaseDir = baseDir
     if (!baseDir) {
       await persistenceService.saveEvent({
-        type: "tool_call",
+        type: "status",
         workflowId,
         data: {
-          tool: "setupLocalRepository",
-          params: {
-            repoFullName,
-          },
+          status: "setting_up_local_repo",
         },
         timestamp: new Date(),
       })
@@ -209,7 +200,7 @@ export async function reviewPullRequest({
     ${formattedReviews ? `## Reviews\n${formattedReviews}\n` : ""}
     `
 
-    reviewer.addMessage({
+    await reviewer.addMessage({
       role: "user",
       content: message,
     })
