@@ -186,6 +186,27 @@ So that I can access detailed information when needed
 
 ### Non-Functional Requirements
 
+#### Service Architecture
+
+- Streaming Service
+
+  - Real-time token/chunk delivery
+  - WebSocket/SSE connection management
+  - In-memory event buffering
+  - No persistence responsibilities
+  - Low latency requirements
+  - Connection recovery handling
+  - Event debouncing and batching
+
+- Persistence Service
+  - Neo4j data storage
+  - Complete event persistence
+  - Workflow state management
+  - Relationship tracking
+  - Data integrity assurance
+  - Query optimization
+  - Archival strategies
+
 #### Performance Requirements
 
 - Performance optimization for large workflows

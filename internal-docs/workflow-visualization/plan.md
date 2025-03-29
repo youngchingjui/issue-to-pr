@@ -187,6 +187,21 @@ Directory structure has been implemented:
 - [ ] Service naming considerations:
   - Evaluate alternatives: `WorkflowService`, `WorkflowStateManager`, `WorkflowEventStore`
   - Document service responsibilities and interfaces
+- [ ] Service Separation Implementation:
+  - Split `WorkflowEventEmitter` into two services:
+    1. `StreamingService`: Handles real-time UI updates
+       - Manages WebSocket/SSE connections
+       - Buffers and debounces token streams
+       - Handles temporary subscriptions
+       - Memory-only, no persistence
+    2. `WorkflowPersistenceService`: Manages Neo4j storage
+       - Stores complete, meaningful events
+       - Maintains workflow state/history
+       - Handles relationships between events
+       - Ensures data integrity
+  - Update Agent class to use both services appropriately
+  - Ensure proper error handling and recovery in both services
+  - Add separate monitoring metrics for each service
 
 ### Implementation Details
 
