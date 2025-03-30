@@ -40,19 +40,19 @@ Directory structure has been implemented:
 
 ##### Sprint 1: Critical Fixes and Basic Improvements
 
-- [ ] Fix Tool Not Found Errors (Commit 1)
+- [x] Fix Tool Not Found Errors (Commit 1)
 
-  - [ ] Investigate tool registration system
-  - [ ] Add proper error handling for missing tools
-  - [ ] Implement graceful fallback for unknown tools
-  - [ ] Add error logging for debugging
+  - [x] Investigate tool registration system
+  - [x] Add proper error handling for missing tools
+  - [x] Implement graceful fallback for unknown tools
+  - [x] Add error logging for debugging
 
-- [ ] Event Card Content Display (Commit 2)
+- [x] Event Card Content Display (Commit 2)
 
-  - [ ] Fix content overflow in pill containers
-  - [ ] Implement consistent card sizing
-  - [ ] Add text truncation with ellipsis
-  - [ ] Add "Show More" functionality for long content
+  - [x] Fix content overflow in pill containers
+  - [x] Implement consistent card sizing
+  - [x] Add text truncation with ellipsis
+  - [x] Add "Show More" functionality for long content
 
 - [x] Status Event Simplification (Commit 3)
   - [x] Convert workflow start/complete to status indicators
@@ -97,11 +97,11 @@ Each commit should be:
 
 ##### UI Improvements
 
-- [ ] Fix Event Card Content Display
+- [x] Fix Event Card Content Display
 
-  - [ ] Prevent content overflow from pill container
-  - [ ] Ensure consistent card sizing
-  - [ ] Add proper text truncation with ellipsis
+  - [x] Prevent content overflow from pill container
+  - [x] Ensure consistent card sizing
+  - [x] Add proper text truncation with ellipsis
 
 - [ ] Enhance Tool Call Event Display
 
@@ -254,10 +254,11 @@ Each commit should be:
   - Shared utilities for common functionality (text truncation, formatting)
   - Simplified props interface
   - Removed unnecessary wrapper components
+  - Added reusable collapsible content pattern
 
 #### Event Type Display
 
-- LLM Response: Truncated content with full view in popover
+- LLM Response: Truncated content with show more/less functionality
 - Tool Call: Tool name and parameters with collapsible JSON
 - Tool Response: Formatted response with error handling
 - Error: Highlighted error messages with destructive styling
