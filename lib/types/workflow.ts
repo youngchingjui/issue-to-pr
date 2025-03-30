@@ -41,7 +41,6 @@ export type WorkflowEventType =
   | "tool_call"
   | "tool_response"
   | "error"
-  | "complete"
   | "status"
 
 export type WorkflowEventData =
@@ -95,11 +94,6 @@ export interface ErrorEvent extends BaseEventFields {
   data: ErrorData
 }
 
-export interface CompleteEvent extends BaseEventFields {
-  type: "complete"
-  data: StatusData
-}
-
 export interface StatusEvent extends BaseEventFields {
   type: "status"
   data: StatusData
@@ -113,5 +107,4 @@ export type WorkflowEvent =
   | ToolCallEvent
   | ToolResponseEvent
   | ErrorEvent
-  | CompleteEvent
   | StatusEvent

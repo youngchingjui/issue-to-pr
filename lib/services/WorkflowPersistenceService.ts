@@ -60,7 +60,10 @@ export class WorkflowPersistenceService {
             const lastEvent = workflowEvents[workflowEvents.length - 1]
             lastEventTimestamp = lastEvent.timestamp
 
-            if (lastEvent.type === "complete") {
+            if (
+              lastEvent.type === "status" &&
+              lastEvent.data.status === "completed"
+            ) {
               status = "completed"
             } else if (lastEvent.type === "error") {
               status = "error"
@@ -184,8 +187,11 @@ export class WorkflowPersistenceService {
       const lastEventTimestamp = new Date(lastEvent.get("lastEventTimestamp"))
 
       let status: "active" | "completed" | "error" = "active"
-      if (lastEventType === "complete") {
-        status = "completed"
+      if (lastEventType === "status") {
+        const eventData = JSON.parse(result.records[0].get("e").properties.data)
+        if (eventData.status === "completed") {
+          status = "completed"
+        }
       } else if (lastEventType === "error") {
         status = "error"
       }

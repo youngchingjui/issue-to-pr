@@ -261,18 +261,16 @@ export class Agent {
     } else {
       const finalContent = response.choices[0].message.content || ""
 
-      // Only emit complete event to mark the end of the agent's execution
-      if (this.jobId) {
-        await this.persistenceService.saveEvent({
-          type: "complete",
-          workflowId: this.jobId,
-          data: {
-            success: true,
-            status: "completed",
-          },
-          timestamp: new Date(),
-        })
-      }
+      // Only emit status event to mark the end of the agent's execution
+      await this.persistenceService.saveEvent({
+        workflowId: this.jobId,
+        timestamp: new Date(),
+        type: "status",
+        data: {
+          status: "completed",
+          success: true,
+        },
+      })
       return finalContent
     }
   }
@@ -443,11 +441,22 @@ export class Agent {
 
     if (this.jobId) {
       WorkflowEventEmitter.emit(this.jobId, {
-        type: "complete",
-        data: { success: true } as StatusData,
+        type: "status",
+        data: { status: "completed", success: true } as StatusData,
         timestamp: new Date(),
       })
     }
+
+    // Add the completion status to our history
+    await this.persistenceService.saveEvent({
+      workflowId: this.jobId,
+      timestamp: new Date(),
+      type: "status",
+      data: {
+        status: "completed",
+        success: true,
+      },
+    })
 
     return fullContent
   }
