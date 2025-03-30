@@ -1,23 +1,16 @@
-"use client"
+"use server"
 
 import { formatDistanceToNow } from "date-fns"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet"
-import {
   DefaultEvent,
   ErrorEvent,
-  EventDetails,
   LLMResponseEvent,
   StatusUpdate,
+  SystemPromptEvent,
   ToolCallEvent,
   ToolResponseEvent,
   UserMessageEvent,
@@ -28,67 +21,30 @@ interface WorkflowRunDetailProps {
   events: WorkflowEvent[]
 }
 
-function EventContent({
-  event,
-  isSelected,
-  onClick,
-}: {
-  event: WorkflowEvent
-  isSelected: boolean
-  onClick: () => void
-}) {
+function EventContent({ event }: { event: WorkflowEvent }) {
   switch (event.type) {
     case "status":
       return <StatusUpdate event={event} timestamp={event.timestamp} />
+    case "system_prompt":
+      return <SystemPromptEvent event={event} timestamp={event.timestamp} />
     case "llm_response":
-      return (
-        <LLMResponseEvent
-          event={event}
-          isSelected={isSelected}
-          timestamp={event.timestamp}
-        />
-      )
+      return <LLMResponseEvent event={event} timestamp={event.timestamp} />
     case "user_message":
-      return (
-        <UserMessageEvent
-          event={event}
-          isSelected={isSelected}
-          timestamp={event.timestamp}
-        />
-      )
+      return <UserMessageEvent event={event} timestamp={event.timestamp} />
     case "tool_call":
-      return (
-        <ToolCallEvent
-          event={event}
-          isSelected={isSelected}
-          onClick={onClick}
-        />
-      )
+      return <ToolCallEvent event={event} />
     case "tool_response":
-      return (
-        <ToolResponseEvent
-          event={event}
-          isSelected={isSelected}
-          onClick={onClick}
-        />
-      )
+      return <ToolResponseEvent event={event} />
     case "error":
-      return (
-        <ErrorEvent event={event} isSelected={isSelected} onClick={onClick} />
-      )
+      return <ErrorEvent event={event} />
     default:
-      return (
-        <DefaultEvent event={event} isSelected={isSelected} onClick={onClick} />
-      )
+      return <DefaultEvent event={event} />
   }
 }
 
-export default function WorkflowRunDetail({ events }: WorkflowRunDetailProps) {
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
-  const [isSheetOpen, setIsSheetOpen] = useState(false)
-
-  const selectedEvent = events.find((event) => event.id === selectedEventId)
-
+export default async function WorkflowRunDetail({
+  events,
+}: WorkflowRunDetailProps) {
   if (events.length === 0) {
     return <div>No events found</div>
   }
@@ -115,31 +71,10 @@ export default function WorkflowRunDetail({ events }: WorkflowRunDetailProps) {
       <div className="bg-card border rounded-lg p-3 sm:p-4">
         <div className="space-y-3">
           {events.map((event, index) => (
-            <EventContent
-              key={event.id}
-              event={event}
-              isSelected={selectedEventId === event.id}
-              onClick={() => {
-                if (event.type !== "llm_response") {
-                  setSelectedEventId(event.id)
-                  setIsSheetOpen(true)
-                }
-              }}
-            />
+            <EventContent key={event.id} event={event} />
           ))}
         </div>
       </div>
-
-      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent>
-          <SheetHeader>
-            <SheetTitle>
-              {selectedEvent?.type.replace(/_/g, " ").toUpperCase()}
-            </SheetTitle>
-          </SheetHeader>
-          {selectedEvent && <EventDetails event={selectedEvent} />}
-        </SheetContent>
-      </Sheet>
     </div>
   )
 }

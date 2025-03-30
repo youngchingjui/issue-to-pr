@@ -10,18 +10,12 @@ import {
 
 interface EventTypeProps<T extends WorkflowEvent> {
   event: T
-  isSelected: boolean
-  onClick: () => void
 }
 
-export function ToolCallEvent({
-  event,
-  isSelected,
-  onClick,
-}: EventTypeProps<ToolCallEventType>) {
+export function ToolCallEvent({ event }: EventTypeProps<ToolCallEventType>) {
   const { data } = event
   return (
-    <EventCard event={event} isSelected={isSelected} onClick={onClick}>
+    <EventCard event={event}>
       <div>
         <div className="flex items-center gap-2 mb-2">
           <div className="font-medium text-blue-500 text-sm">Tool Call</div>
@@ -42,12 +36,10 @@ export function ToolCallEvent({
 
 export function ToolResponseEvent({
   event,
-  isSelected,
-  onClick,
 }: EventTypeProps<ToolResponseEventType>) {
   const { data } = event
   return (
-    <EventCard event={event} isSelected={isSelected} onClick={onClick}>
+    <EventCard event={event}>
       <div>
         <div className="flex items-center gap-2 mb-2">
           <div className="font-medium text-green-500 text-sm">
@@ -65,14 +57,10 @@ export function ToolResponseEvent({
   )
 }
 
-export function ErrorEvent({
-  event,
-  isSelected,
-  onClick,
-}: EventTypeProps<ErrorEventType>) {
+export function ErrorEvent({ event }: EventTypeProps<ErrorEventType>) {
   const { data } = event
   return (
-    <EventCard event={event} isSelected={isSelected} onClick={onClick}>
+    <EventCard event={event}>
       <div>
         <div className="flex items-center gap-2 mb-2">
           <div className="font-medium text-destructive text-sm">Error</div>
@@ -88,13 +76,9 @@ export function ErrorEvent({
   )
 }
 
-export function DefaultEvent({
-  event,
-  isSelected,
-  onClick,
-}: EventTypeProps<WorkflowEvent>) {
+export function DefaultEvent({ event }: EventTypeProps<WorkflowEvent>) {
   return (
-    <EventCard event={event} isSelected={isSelected} onClick={onClick}>
+    <EventCard event={event}>
       <div>
         <div className="flex items-center gap-2 mb-2">
           <div className="font-medium text-sm capitalize">

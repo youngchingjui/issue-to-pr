@@ -8,4 +8,5 @@ export {
 } from "@/components/workflow-runs/events/EventTypes"
 export { LLMResponseEvent } from "@/components/workflow-runs/events/LLMResponseEvent"
 export { StatusUpdate } from "@/components/workflow-runs/events/StatusUpdate"
+export { SystemPromptEvent } from "@/components/workflow-runs/events/SystemPromptEvent"
 export { UserMessageEvent } from "@/components/workflow-runs/events/UserMessageEvent"

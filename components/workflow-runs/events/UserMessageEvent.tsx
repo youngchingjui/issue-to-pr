@@ -6,15 +6,10 @@ import { formatEventTime } from "@/lib/utils/date-utils"
 
 export interface UserMessageEventProps {
   event: UserMessageEventType
-  isSelected: boolean
   timestamp: Date
 }
 
-export function UserMessageEvent({
-  event,
-  isSelected,
-  timestamp,
-}: UserMessageEventProps) {
+export function UserMessageEvent({ event, timestamp }: UserMessageEventProps) {
   const headerContent = (
     <>
       <div className="text-xs font-medium text-muted-foreground">
@@ -29,7 +24,7 @@ export function UserMessageEvent({
   return (
     <CollapsibleContent
       headerContent={headerContent}
-      className={isSelected ? "bg-muted" : "hover:bg-muted/50"}
+      className="hover:bg-muted/50"
     >
       <div className="prose prose-sm dark:prose-invert max-w-none">
         <ReactMarkdown>{event.data.content}</ReactMarkdown>

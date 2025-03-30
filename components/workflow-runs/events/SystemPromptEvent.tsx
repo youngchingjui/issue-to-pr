@@ -1,19 +1,22 @@
 import ReactMarkdown from "react-markdown"
 
 import { CollapsibleContent } from "@/components/ui/collapsible-content"
-import { LLMResponseEvent as LLMResponseEventType } from "@/lib/types/workflow"
+import { SystemPromptEvent as SystemPromptEventType } from "@/lib/types/workflow"
 import { formatEventTime } from "@/lib/utils/date-utils"
 
-export interface LLMResponseEventProps {
-  event: LLMResponseEventType
+export interface SystemPromptEventProps {
+  event: SystemPromptEventType
   timestamp: Date
 }
 
-export function LLMResponseEvent({ event, timestamp }: LLMResponseEventProps) {
+export function SystemPromptEvent({
+  event,
+  timestamp,
+}: SystemPromptEventProps) {
   const headerContent = (
     <>
-      <div className="text-xs font-medium text-muted-foreground">
-        LLM Response
+      <div className="text-xs font-medium text-blue-500 dark:text-blue-400">
+        System Prompt
       </div>
       <div className="text-xs text-muted-foreground">
         {formatEventTime(timestamp)}
@@ -24,7 +27,7 @@ export function LLMResponseEvent({ event, timestamp }: LLMResponseEventProps) {
   return (
     <CollapsibleContent
       headerContent={headerContent}
-      className="hover:bg-muted/50"
+      className={`border-l-2 border-blue-500 dark:border-blue-400 hover:bg-muted/50`}
     >
       <div className="prose prose-sm dark:prose-invert max-w-none">
         <ReactMarkdown>{event.data.content}</ReactMarkdown>
