@@ -38,6 +38,38 @@ Directory structure has been implemented:
 
 #### Immediate Tasks (This Week)
 
+##### Sprint 1: Critical Fixes and Basic Improvements
+
+- [ ] Fix Tool Not Found Errors (Commit 1)
+
+  - [ ] Investigate tool registration system
+  - [ ] Add proper error handling for missing tools
+  - [ ] Implement graceful fallback for unknown tools
+  - [ ] Add error logging for debugging
+
+- [ ] Event Card Content Display (Commit 2)
+
+  - [ ] Fix content overflow in pill containers
+  - [ ] Implement consistent card sizing
+  - [ ] Add text truncation with ellipsis
+  - [ ] Add "Show More" functionality for long content
+
+- [ ] Status Event Simplification (Commit 3)
+  - [ ] Convert workflow start/complete to status indicators
+  - [ ] Remove card UI for status messages
+  - [ ] Add visual distinction for status vs. interactive events
+  - [ ] Ensure proper spacing between events
+
+Each commit should be:
+
+- Small and focused on a single improvement
+- Easy to understand and verify
+- Quick to revert if needed (`git revert`)
+- Independently deployable without breaking existing functionality
+- Tested locally before pushing to main
+
+##### Upcoming Improvements
+
 - [ ] Enhance Existing Workflow Visualization
 
   - [ ] Add visual timeline/graph view to `WorkflowRunDetail`

@@ -68,13 +68,33 @@ Acceptance Criteria:
 
 Acceptance Criteria:
 
-- Status events (start/complete) are displayed as simple messages
-- Interactive events are clearly marked as clickable
-- Visual hierarchy emphasizes important events
-- Status messages are appropriately styled
-- Clear visual separation between event types
+- Status events (start/complete) are displayed as simple, non-interactive messages
+- Interactive events have clear visual affordances (shadows, hover states)
+- Status messages use minimal vertical space
+- Status messages have appropriate icons for their type
+- Interactive events show clear expansion/collapse controls
+- Content is properly contained within card boundaries
+- Long content has "Show More" functionality
+- Card sizing is consistent across similar event types
 
-### 8. Tool Call Understanding
+### 8. Error Handling and Recovery
+
+**As a** user  
+**I want to** clearly see when and why errors occur in the workflow  
+**So that** I can understand and potentially resolve issues
+
+Acceptance Criteria:
+
+- Error states are immediately visible with distinct styling
+- Error messages are clear and actionable
+- Tool registration errors show which tool was not found
+- Error cards show relevant context for debugging
+- Errors don't break the overall workflow visualization
+- Error states persist in the workflow history
+- Recovery options are presented when available
+- Error logging helps with debugging
+
+### 9. Tool Call Understanding
 
 **As a** user  
 **I want to** see tool call parameters directly in the event card  
