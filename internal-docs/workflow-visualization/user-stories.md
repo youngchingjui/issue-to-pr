@@ -68,14 +68,16 @@ Acceptance Criteria:
 
 Acceptance Criteria:
 
-- Status events (start/complete) are displayed as simple, non-interactive messages
-- Interactive events have clear visual affordances (shadows, hover states)
-- Status messages use minimal vertical space
-- Status messages have appropriate icons for their type
-- Interactive events show clear expansion/collapse controls
-- Content is properly contained within card boundaries
-- Long content has "Show More" functionality
-- Card sizing is consistent across similar event types
+- Status events are displayed in a compact, timestamp-first format
+- Timestamps are right-aligned in a fixed column on the left
+- Timestamps only shown when different from previous event (by second)
+- Status messages use consistent checkmark icon
+- Status messages are grouped when consecutive
+- All status messages use muted styling for visual consistency
+- Interactive events remain card-based with full interaction controls
+- Clear visual hierarchy between status and interactive events
+- Status messages show local time without millisecond precision
+- Grid layout ensures consistent alignment across all status messages
 
 ### 8. Error Handling and Recovery
 

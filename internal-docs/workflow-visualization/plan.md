@@ -54,11 +54,16 @@ Directory structure has been implemented:
   - [ ] Add text truncation with ellipsis
   - [ ] Add "Show More" functionality for long content
 
-- [ ] Status Event Simplification (Commit 3)
-  - [ ] Convert workflow start/complete to status indicators
-  - [ ] Remove card UI for status messages
-  - [ ] Add visual distinction for status vs. interactive events
-  - [ ] Ensure proper spacing between events
+- [x] Status Event Simplification (Commit 3)
+  - [x] Convert workflow start/complete to status indicators
+  - [x] Remove card UI for status messages
+  - [x] Add visual distinction for status vs. interactive events
+  - [x] Ensure proper spacing between events
+  - [x] Implement right-aligned timestamps on left side
+  - [x] Show timestamps only when different from previous event
+  - [x] Use local time without milliseconds
+  - [x] Group consecutive status updates
+  - [x] Add consistent checkmark icon for all status events
 
 Each commit should be:
 
@@ -256,3 +261,15 @@ Each commit should be:
 - Tool Response: Formatted response with error handling
 - Error: Highlighted error messages with destructive styling
 - Default: Fallback for unknown event types
+
+### Learnings and Decisions
+
+#### Status Event Display
+
+- Timestamps should be right-aligned in a fixed column on the left
+- Only show timestamps when they differ from the previous event
+- Use local time format without milliseconds
+- Group consecutive status updates for cleaner display
+- Use consistent checkmark icon instead of varying by status
+- Keep all status updates in muted style without highlighting latest
+- Use grid layout for consistent alignment

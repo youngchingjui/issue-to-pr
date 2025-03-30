@@ -56,6 +56,16 @@ So that I can access detailed information when needed
 
 #### Node Types Display
 
+- status
+  - Compact, non-interactive display
+  - Right-aligned timestamps on left side
+  - Timestamps only shown when different from previous event
+  - Consistent checkmark icon for all status events
+  - Muted text styling
+  - Grid layout with fixed timestamp column
+  - No millisecond precision in timestamps
+  - Local time display
+  - Grouped consecutive status updates
 - workflow_start
   - Notification-style event
   - No interactive card display
