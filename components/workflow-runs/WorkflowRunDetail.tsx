@@ -16,9 +16,7 @@ import {
   DefaultEvent,
   ErrorEvent,
   EventDetails,
-  EventRow,
   LLMResponseEvent,
-  StatusEventRow,
   StatusUpdate,
   ToolCallEvent,
   ToolResponseEvent,
@@ -33,85 +31,46 @@ function EventContent({
   event,
   isSelected,
   onClick,
-  previousEvent,
-  nextEvent,
 }: {
   event: WorkflowEvent
   isSelected: boolean
   onClick: () => void
-  previousEvent?: WorkflowEvent
-  nextEvent?: WorkflowEvent
 }) {
-  if (event.type === "status") {
-    // Only show timestamp if no previous event or if the timestamps differ by at least a second
-    const showTimestamp =
-      !previousEvent ||
-      Math.floor(event.timestamp.getTime() / 1000) !==
-        Math.floor(previousEvent.timestamp.getTime() / 1000)
-
-    const nextIsNotStatus = nextEvent && nextEvent.type !== "status"
-
-    return (
-      <StatusEventRow
-        timestamp={event.timestamp}
-        showTimestamp={showTimestamp}
-        isLastStatus={nextIsNotStatus}
-      >
-        <StatusUpdate
-          event={event}
-          showTimestamp={showTimestamp}
-          isLastStatus={nextIsNotStatus}
-        />
-      </StatusEventRow>
-    )
-  }
-
   switch (event.type) {
+    case "status":
+      return <StatusUpdate event={event} timestamp={event.timestamp} />
     case "llm_response":
       return (
-        <EventRow timestamp={event.timestamp}>
-          <LLMResponseEvent
-            event={event}
-            isSelected={isSelected}
-            onClick={onClick}
-          />
-        </EventRow>
+        <LLMResponseEvent
+          event={event}
+          isSelected={isSelected}
+          onClick={onClick}
+          timestamp={event.timestamp}
+        />
       )
     case "tool_call":
       return (
-        <EventRow timestamp={event.timestamp}>
-          <ToolCallEvent
-            event={event}
-            isSelected={isSelected}
-            onClick={onClick}
-          />
-        </EventRow>
+        <ToolCallEvent
+          event={event}
+          isSelected={isSelected}
+          onClick={onClick}
+        />
       )
     case "tool_response":
       return (
-        <EventRow timestamp={event.timestamp}>
-          <ToolResponseEvent
-            event={event}
-            isSelected={isSelected}
-            onClick={onClick}
-          />
-        </EventRow>
+        <ToolResponseEvent
+          event={event}
+          isSelected={isSelected}
+          onClick={onClick}
+        />
       )
     case "error":
       return (
-        <EventRow timestamp={event.timestamp}>
-          <ErrorEvent event={event} isSelected={isSelected} onClick={onClick} />
-        </EventRow>
+        <ErrorEvent event={event} isSelected={isSelected} onClick={onClick} />
       )
     default:
       return (
-        <EventRow timestamp={event.timestamp}>
-          <DefaultEvent
-            event={event}
-            isSelected={isSelected}
-            onClick={onClick}
-          />
-        </EventRow>
+        <DefaultEvent event={event} isSelected={isSelected} onClick={onClick} />
       )
   }
 }
@@ -129,7 +88,7 @@ export default function WorkflowRunDetail({ events }: WorkflowRunDetailProps) {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-4 max-w-3xl mx-auto px-4 sm:px-6">
       <div className="flex items-center space-x-4">
         <Link href="/workflow-runs">
           <Button variant="outline" size="icon">
@@ -147,8 +106,8 @@ export default function WorkflowRunDetail({ events }: WorkflowRunDetailProps) {
         </div>
       </div>
 
-      <div className="bg-card border rounded-lg p-6">
-        <div className="grid grid-cols-[100px_1fr] gap-4">
+      <div className="bg-card border rounded-lg p-3 sm:p-4">
+        <div className="space-y-3">
           {events.map((event, index) => (
             <EventContent
               key={event.id}
@@ -158,10 +117,6 @@ export default function WorkflowRunDetail({ events }: WorkflowRunDetailProps) {
                 setSelectedEventId(event.id)
                 setIsSheetOpen(true)
               }}
-              previousEvent={index > 0 ? events[index - 1] : undefined}
-              nextEvent={
-                index < events.length - 1 ? events[index + 1] : undefined
-              }
             />
           ))}
         </div>

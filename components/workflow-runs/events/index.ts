@@ -1,10 +1,6 @@
 export { EventCard } from "@/components/workflow-runs/events/EventCard"
 export { EventDetails } from "@/components/workflow-runs/events/EventDetails"
 export {
-  EventRow,
-  StatusEventRow,
-} from "@/components/workflow-runs/events/EventRow"
-export {
   DefaultEvent,
   ErrorEvent,
   ToolCallEvent,
