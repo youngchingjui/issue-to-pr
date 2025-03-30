@@ -4,7 +4,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { EventDetails } from "@/components/workflow-runs/events/EventDetails"
-import { WorkflowEvent } from "@/lib/services/WorkflowPersistenceService"
+import { WorkflowEvent } from "@/lib/types/workflow"
 
 export interface EventCardProps {
   event: WorkflowEvent

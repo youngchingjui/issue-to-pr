@@ -17,6 +17,7 @@ export default function DemoPage() {
       const event: BaseStreamEvent = {
         type: "token",
         data: message,
+        timestamp: new Date(),
       }
 
       await fetch(`/api/workflow/${workflowId}`, {

@@ -1,4 +1,4 @@
-import { WorkflowEvent } from "@/lib/services/WorkflowPersistenceService"
+import { WorkflowEvent } from "@/lib/types/workflow"
 
 export function EventDetails({ event }: { event: WorkflowEvent }) {
   return (

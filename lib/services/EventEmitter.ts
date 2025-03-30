@@ -1,10 +1,10 @@
 import { EventEmitter } from "events"
 
-import { WorkflowEvent } from "@/lib/types/workflow"
+import { StreamEvent } from "@/lib/types/events"
 
 interface WorkflowState {
   lastActivity: Date
-  subscribers: Set<(event: WorkflowEvent) => void>
+  subscribers: Set<(event: StreamEvent) => void>
   status: "active" | "completed" | "error"
 }
 
@@ -54,11 +54,11 @@ class WorkflowEventEmitter extends EventEmitter {
     }
   }
 
-  emit(workflowId: string, event: Omit<WorkflowEvent, "workflowId">): boolean {
+  emit(workflowId: string, event: Omit<StreamEvent, "workflowId">): boolean {
     this.initWorkflow(workflowId)
     this.updateWorkflowActivity(workflowId)
 
-    const fullEvent: WorkflowEvent = { ...event, workflowId }
+    const fullEvent: StreamEvent = { ...event, workflowId }
 
     // Update workflow status based on event type
     const state = this.workflowStates.get(workflowId)
@@ -73,14 +73,14 @@ class WorkflowEventEmitter extends EventEmitter {
     return super.emit(workflowId, fullEvent)
   }
 
-  subscribe(workflowId: string, callback: (event: WorkflowEvent) => void) {
+  subscribe(workflowId: string, callback: (event: StreamEvent) => void) {
     this.initWorkflow(workflowId)
     const state = this.workflowStates.get(workflowId)!
     state.subscribers.add(callback)
     this.addListener(workflowId, callback)
   }
 
-  unsubscribe(workflowId: string, callback: (event: WorkflowEvent) => void) {
+  unsubscribe(workflowId: string, callback: (event: StreamEvent) => void) {
     const state = this.workflowStates.get(workflowId)
     if (state) {
       state.subscribers.delete(callback)

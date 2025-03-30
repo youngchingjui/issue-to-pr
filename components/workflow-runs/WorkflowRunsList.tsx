@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { WorkflowEvent } from "@/lib/services/WorkflowPersistenceService"
+import { WorkflowEvent } from "@/lib/types/workflow"
 
 interface WorkflowRunsListProps {
   workflows?: {

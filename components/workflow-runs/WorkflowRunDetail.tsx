@@ -20,7 +20,7 @@ import {
   ToolCallEvent,
   ToolResponseEvent,
 } from "@/components/workflow-runs/events"
-import { WorkflowEvent } from "@/lib/services/WorkflowPersistenceService"
+import { WorkflowEvent } from "@/lib/types/workflow"
 
 interface WorkflowRunDetailProps {
   events: WorkflowEvent[]

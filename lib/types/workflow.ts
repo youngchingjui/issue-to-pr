@@ -1,14 +1,3 @@
-export type WorkflowEventType =
-  | "workflow_start"
-  | "system_prompt"
-  | "user_message"
-  | "llm_response"
-  | "tool_call"
-  | "tool_response"
-  | "error"
-  | "complete"
-  | "status"
-
 export interface SystemPromptData {
   content: string
 }
@@ -19,7 +8,7 @@ export interface UserMessageData {
 
 export interface LLMResponseData {
   content: string
-  model: string
+  model?: string
 }
 
 export interface ToolCallData {
@@ -44,6 +33,17 @@ export interface StatusData {
   success?: boolean
 }
 
+export type WorkflowEventType =
+  | "workflow_start"
+  | "system_prompt"
+  | "user_message"
+  | "llm_response"
+  | "tool_call"
+  | "tool_response"
+  | "error"
+  | "complete"
+  | "status"
+
 export type WorkflowEventData =
   | SystemPromptData
   | UserMessageData
@@ -53,9 +53,65 @@ export type WorkflowEventData =
   | ErrorData
   | StatusData
 
-export interface WorkflowEvent {
-  type: WorkflowEventType
+interface BaseEventFields {
+  id: string
   workflowId: string
-  data: WorkflowEventData
   timestamp: Date
+  metadata?: Record<string, unknown>
 }
+
+export interface WorkflowStartEvent extends BaseEventFields {
+  type: "workflow_start"
+  data: Record<string, never>
+}
+
+export interface SystemPromptEvent extends BaseEventFields {
+  type: "system_prompt"
+  data: SystemPromptData
+}
+
+export interface UserMessageEvent extends BaseEventFields {
+  type: "user_message"
+  data: UserMessageData
+}
+
+export interface LLMResponseEvent extends BaseEventFields {
+  type: "llm_response"
+  data: LLMResponseData
+}
+
+export interface ToolCallEvent extends BaseEventFields {
+  type: "tool_call"
+  data: ToolCallData
+}
+
+export interface ToolResponseEvent extends BaseEventFields {
+  type: "tool_response"
+  data: ToolResponseData
+}
+
+export interface ErrorEvent extends BaseEventFields {
+  type: "error"
+  data: ErrorData
+}
+
+export interface CompleteEvent extends BaseEventFields {
+  type: "complete"
+  data: StatusData
+}
+
+export interface StatusEvent extends BaseEventFields {
+  type: "status"
+  data: StatusData
+}
+
+export type WorkflowEvent =
+  | WorkflowStartEvent
+  | SystemPromptEvent
+  | UserMessageEvent
+  | LLMResponseEvent
+  | ToolCallEvent
+  | ToolResponseEvent
+  | ErrorEvent
+  | CompleteEvent
+  | StatusEvent

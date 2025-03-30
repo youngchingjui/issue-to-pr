@@ -10,10 +10,7 @@ import {
 } from "@/lib/github/pullRequests"
 import { langfuse } from "@/lib/langfuse"
 import WorkflowEventEmitter from "@/lib/services/EventEmitter"
-import {
-  WorkflowEvent,
-  WorkflowPersistenceService,
-} from "@/lib/services/WorkflowPersistenceService"
+import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceService"
 import { SearchCodeTool } from "@/lib/tools"
 import { GetFileContentTool } from "@/lib/tools"
 import {
@@ -21,6 +18,7 @@ import {
   IssueComment,
   PullRequestReview,
 } from "@/lib/types/github"
+import { WorkflowEvent } from "@/lib/types/workflow"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 
 interface ReviewPullRequestParams {

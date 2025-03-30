@@ -2,16 +2,7 @@ import { Node, Record as Neo4jRecord } from "neo4j-driver"
 import { v4 as uuidv4 } from "uuid"
 
 import { Neo4jClient } from "@/lib/neo4j/client"
-import {
-  WorkflowEvent as BaseWorkflowEvent,
-  WorkflowEventData,
-  WorkflowEventType,
-} from "@/lib/types/workflow"
-
-export interface WorkflowEvent extends BaseWorkflowEvent {
-  id: string
-  metadata?: Record<string, unknown>
-}
+import { WorkflowEvent, WorkflowEventType } from "@/lib/types/workflow"
 
 export interface WorkflowWithEvents {
   id: string
@@ -53,9 +44,7 @@ export class WorkflowPersistenceService {
               id: e.properties.id as string,
               type: e.properties.type as WorkflowEventType,
               workflowId,
-              data: JSON.parse(
-                e.properties.data as string
-              ) as WorkflowEventData,
+              data: JSON.parse(e.properties.data as string),
               metadata: e.properties.metadata
                 ? JSON.parse(e.properties.metadata as string)
                 : undefined,
@@ -159,7 +148,7 @@ export class WorkflowPersistenceService {
           id: event.id,
           type: event.type as WorkflowEventType,
           workflowId,
-          data: JSON.parse(event.data) as WorkflowEventData,
+          data: JSON.parse(event.data),
           metadata: event.metadata ? JSON.parse(event.metadata) : undefined,
           timestamp: new Date(event.timestamp),
         }

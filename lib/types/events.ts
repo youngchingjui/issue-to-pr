@@ -1,20 +1,31 @@
+import { WorkflowEventType } from "@/lib/types/workflow"
+
+export type StreamEventType = WorkflowEventType | "token"
+
 // Base type for all stream events
 export interface BaseStreamEvent {
-  type: string // Extensible event type
-  data: unknown // Flexible payload type
+  type: StreamEventType
+  data: unknown
+  timestamp: Date | number // Allow both Date objects and timestamps
+  metadata?: Record<string, unknown>
 }
 
 // Lightweight event for LLM tokens
 export interface TokenEvent extends BaseStreamEvent {
   type: "token"
   data: string // Just the token content
+  timestamp: number // Tokens always use timestamps for performance
 }
 
 // For events requiring more structure
 export interface StructuredEvent extends BaseStreamEvent {
   id?: string // Optional ID for events that need reference
-  timestamp?: number // Only when timing is relevant
-  metadata?: Record<string, unknown> // Optional metadata when needed
+  timestamp: Date // Structured events use Date objects
+}
+
+// Complete stream event with workflow ID
+export interface StreamEvent extends BaseStreamEvent {
+  workflowId: string
 }
 
 // Type guard helpers
@@ -23,7 +34,4 @@ export const isTokenEvent = (event: BaseStreamEvent): event is TokenEvent =>
 
 export const isStructuredEvent = (
   event: BaseStreamEvent
-): event is StructuredEvent =>
-  event.hasOwnProperty("id") ||
-  event.hasOwnProperty("timestamp") ||
-  event.hasOwnProperty("metadata")
+): event is StructuredEvent => event.hasOwnProperty("id")

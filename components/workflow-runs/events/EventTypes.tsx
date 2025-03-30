@@ -1,7 +1,7 @@
 import { formatDistanceToNow } from "date-fns"
 
 import { EventCard } from "@/components/workflow-runs/events/EventCard"
-import { WorkflowEvent } from "@/lib/services/WorkflowPersistenceService"
+import { WorkflowEvent } from "@/lib/types/workflow"
 
 function truncateText(text: string, maxLength: number = 150) {
   if (text.length <= maxLength) return text
@@ -19,7 +19,11 @@ export function LLMResponseEvent({
   isSelected,
   onClick,
 }: EventTypeProps) {
-  const data = event.data as { content?: string }
+  if (event.type !== "llm_response") {
+    throw new Error("Invalid event type")
+  }
+
+  const { data } = event
   return (
     <EventCard event={event} isSelected={isSelected} onClick={onClick}>
       <div>
@@ -29,19 +33,19 @@ export function LLMResponseEvent({
             {formatDistanceToNow(event.timestamp, { addSuffix: true })}
           </div>
         </div>
-        <div className="text-sm">
-          {truncateText(data?.content?.toString() || "")}
-        </div>
+        <div className="text-sm">{truncateText(data.content)}</div>
       </div>
     </EventCard>
   )
 }
 
 export function ToolCallEvent({ event, isSelected, onClick }: EventTypeProps) {
-  const data = event.data as {
-    tool?: string
-    parameters?: Record<string, unknown>
+  if (event.type !== "tool_call") {
+    throw new Error("Invalid event type")
   }
+
+  // TypeScript now knows event.data is ToolCallData
+  const { data } = event
   return (
     <EventCard event={event} isSelected={isSelected} onClick={onClick}>
       <div>
@@ -51,12 +55,10 @@ export function ToolCallEvent({ event, isSelected, onClick }: EventTypeProps) {
             {formatDistanceToNow(event.timestamp, { addSuffix: true })}
           </div>
         </div>
-        <div className="text-sm font-medium">
-          {data?.tool || "Tool Not Found"}
-        </div>
-        {data?.parameters && (
+        <div className="text-sm font-medium">{data.toolName}</div>
+        {data.arguments && (
           <pre className="text-xs mt-2 font-mono text-muted-foreground overflow-auto max-h-24">
-            {JSON.stringify(data.parameters, null, 2)}
+            {JSON.stringify(data.arguments, null, 2)}
           </pre>
         )}
       </div>
@@ -69,6 +71,11 @@ export function ToolResponseEvent({
   isSelected,
   onClick,
 }: EventTypeProps) {
+  if (event.type !== "tool_response") {
+    throw new Error("Invalid event type")
+  }
+
+  const { data } = event
   return (
     <EventCard event={event} isSelected={isSelected} onClick={onClick}>
       <div>
@@ -81,9 +88,7 @@ export function ToolResponseEvent({
           </div>
         </div>
         <pre className="text-xs font-mono text-muted-foreground overflow-auto max-h-24">
-          {typeof event.data === "string"
-            ? event.data
-            : JSON.stringify(event.data || {}, null, 2)}
+          {JSON.stringify(data.response, null, 2)}
         </pre>
       </div>
     </EventCard>
@@ -91,7 +96,11 @@ export function ToolResponseEvent({
 }
 
 export function ErrorEvent({ event, isSelected, onClick }: EventTypeProps) {
-  const data = event.data as { message?: string }
+  if (event.type !== "error") {
+    throw new Error("Invalid event type")
+  }
+
+  const { data } = event
   return (
     <EventCard event={event} isSelected={isSelected} onClick={onClick}>
       <div>
@@ -102,7 +111,7 @@ export function ErrorEvent({ event, isSelected, onClick }: EventTypeProps) {
           </div>
         </div>
         <div className="text-sm text-destructive">
-          {data?.message || "Unknown error"}
+          {data.error instanceof Error ? data.error.message : data.error}
         </div>
       </div>
     </EventCard>
