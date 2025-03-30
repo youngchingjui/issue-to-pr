@@ -264,6 +264,25 @@ Each commit should be:
 
 ### Learnings and Decisions
 
+#### Layout Structure
+
+- Two-column grid layout is essential for consistent alignment
+  - Left column: Fixed-width for timestamps
+  - Right column: Flexible width for content
+- Timestamps must be right-aligned in the left column
+- Grid should be implemented at the container level, not per-event
+- Each event row contains both timestamp and content cells
+
+#### Vertical Spacing Rules
+
+- Base spacing between events should be consistent
+- Special cases require different spacing:
+  1. Consecutive status events: Reduced spacing
+  2. Transition from status to non-status: Increased spacing
+  3. Non-status events: Standard spacing
+- Spacing should be controlled at the container level
+- Avoid using individual margin adjustments on events
+
 #### Status Event Display
 
 - Timestamps should be right-aligned in a fixed column on the left
@@ -272,4 +291,3 @@ Each commit should be:
 - Group consecutive status updates for cleaner display
 - Use consistent checkmark icon instead of varying by status
 - Keep all status updates in muted style without highlighting latest
-- Use grid layout for consistent alignment

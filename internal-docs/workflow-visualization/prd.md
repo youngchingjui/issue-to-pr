@@ -58,10 +58,12 @@ So that I can access detailed information when needed
 
 - status
   - Compact, non-interactive display
-  - Right-aligned timestamps on left side
+  - Timestamps in left column
+  - Right-aligned timestamps
   - Timestamps only shown when different from previous event
-  - Consistent checkmark icon for all status events
+  - Consistent checkmark icon
   - Muted text styling
+  - Reduced vertical spacing between consecutive status events
   - Grid layout with fixed timestamp column
   - No millisecond precision in timestamps
   - Local time display
@@ -187,6 +189,33 @@ So that I can access detailed information when needed
 - Interactive relationship exploration
 
 #### UI/UX Requirements
+
+- Layout Structure
+
+  - Two-column grid layout for all events
+    - Left column: Fixed-width timestamps (right-aligned)
+    - Right column: Event content (flexible width)
+  - Consistent base vertical spacing between events
+  - Special vertical spacing rules:
+    - Reduced spacing between consecutive status events
+    - Standard spacing between non-status events
+
+- Node Types Display
+
+  - status
+    - Compact, non-interactive display
+    - Timestamps only shown when different from previous event
+    - Consistent checkmark icon
+    - Muted text styling
+    - Reduced vertical spacing between consecutive status events
+  - workflow_start
+  - system_prompt
+  - user_message
+  - llm_response
+  - tool_call
+  - tool_response
+  - error
+  - complete
 
 - Node expansion/collapse functionality
 - Content preview system
