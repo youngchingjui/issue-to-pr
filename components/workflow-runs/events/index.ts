@@ -7,3 +7,4 @@ export {
   ToolCallEvent,
   ToolResponseEvent,
 } from "@/components/workflow-runs/events/EventTypes"
+export { StatusUpdate } from "@/components/workflow-runs/events/StatusUpdate"

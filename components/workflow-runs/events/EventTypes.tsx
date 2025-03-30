@@ -1,15 +1,21 @@
 import { formatDistanceToNow } from "date-fns"
 
 import { EventCard } from "@/components/workflow-runs/events/EventCard"
-import { WorkflowEvent } from "@/lib/types/workflow"
+import {
+  ErrorEvent as ErrorEventType,
+  LLMResponseEvent as LLMResponseEventType,
+  ToolCallEvent as ToolCallEventType,
+  ToolResponseEvent as ToolResponseEventType,
+  WorkflowEvent,
+} from "@/lib/types/workflow"
 
 function truncateText(text: string, maxLength: number = 150) {
   if (text.length <= maxLength) return text
   return text.slice(0, maxLength) + "..."
 }
 
-interface EventTypeProps {
-  event: WorkflowEvent
+interface EventTypeProps<T extends WorkflowEvent> {
+  event: T
   isSelected: boolean
   onClick: () => void
 }
@@ -18,11 +24,7 @@ export function LLMResponseEvent({
   event,
   isSelected,
   onClick,
-}: EventTypeProps) {
-  if (event.type !== "llm_response") {
-    throw new Error("Invalid event type")
-  }
-
+}: EventTypeProps<LLMResponseEventType>) {
   const { data } = event
   return (
     <EventCard event={event} isSelected={isSelected} onClick={onClick}>
@@ -39,12 +41,11 @@ export function LLMResponseEvent({
   )
 }
 
-export function ToolCallEvent({ event, isSelected, onClick }: EventTypeProps) {
-  if (event.type !== "tool_call") {
-    throw new Error("Invalid event type")
-  }
-
-  // TypeScript now knows event.data is ToolCallData
+export function ToolCallEvent({
+  event,
+  isSelected,
+  onClick,
+}: EventTypeProps<ToolCallEventType>) {
   const { data } = event
   return (
     <EventCard event={event} isSelected={isSelected} onClick={onClick}>
@@ -70,11 +71,7 @@ export function ToolResponseEvent({
   event,
   isSelected,
   onClick,
-}: EventTypeProps) {
-  if (event.type !== "tool_response") {
-    throw new Error("Invalid event type")
-  }
-
+}: EventTypeProps<ToolResponseEventType>) {
   const { data } = event
   return (
     <EventCard event={event} isSelected={isSelected} onClick={onClick}>
@@ -95,11 +92,11 @@ export function ToolResponseEvent({
   )
 }
 
-export function ErrorEvent({ event, isSelected, onClick }: EventTypeProps) {
-  if (event.type !== "error") {
-    throw new Error("Invalid event type")
-  }
-
+export function ErrorEvent({
+  event,
+  isSelected,
+  onClick,
+}: EventTypeProps<ErrorEventType>) {
   const { data } = event
   return (
     <EventCard event={event} isSelected={isSelected} onClick={onClick}>
@@ -118,7 +115,11 @@ export function ErrorEvent({ event, isSelected, onClick }: EventTypeProps) {
   )
 }
 
-export function DefaultEvent({ event, isSelected, onClick }: EventTypeProps) {
+export function DefaultEvent({
+  event,
+  isSelected,
+  onClick,
+}: EventTypeProps<WorkflowEvent>) {
   return (
     <EventCard event={event} isSelected={isSelected} onClick={onClick}>
       <div>
