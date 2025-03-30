@@ -27,6 +27,28 @@ Contains Next.js App Router pages, layouts, and API routes. This is where the ma
 
 Reusable React components used throughout the application. These are shared UI elements that can be imported and used across different pages.
 
+Key component patterns:
+
+- `/ui`: Base UI components and design system
+
+  - Core interactive elements (button, input, textarea, etc.)
+  - Layout components (card, grid-background, etc.)
+  - Navigation elements (navigation-menu, breadcrumb, etc.)
+  - Feedback components (toast, tooltip, etc.)
+  - Overlay components (sheet, popover, dropdown-menu)
+  - Typography components (text-sm, text-md, text-lg)
+  - Utility components (collapsible-content, scroll-area)
+  - Custom styled components (shine-button, moving-border-card)
+
+- `/workflow-runs`: Workflow visualization components
+  - `WorkflowRunsList.tsx`: List view of workflow runs
+  - `WorkflowRunDetail.tsx`: Detailed view of a single workflow run
+  - `/events`: Event-specific components
+    - Event type definitions and shared types
+    - Specialized event displays (LLM, User Message, Status, etc.)
+    - Event card layouts and details views
+    - Common event utilities and patterns
+
 ### `/lib`
 
 Core application logic, utilities, and services. Contains multiple subdirectories:
