@@ -308,14 +308,16 @@ Our implementation strategy focuses on iterative improvements to existing compon
    - Leverages existing Neo4j data structure and relationships
    - Uses current workflow event types and data models
    - Implements modular component architecture for maintainability
+   - Keeps simple logic inline where it makes sense, avoiding premature abstraction
 
 2. **Component Architecture**
 
    - Base EventCard component for consistent UI/UX
    - Event-specific components for specialized display
-   - Shared utilities for common operations
+   - Shared utilities ONLY for truly reusable operations
    - Popover system for detailed views
    - Clear separation of concerns between components
+   - Simple, single-use logic kept inline for clarity
 
 3. **Event Type Implementation**
 
@@ -429,6 +431,9 @@ This strategy ensures we:
 1. **Component Structure**
 
    - Main visualization: `components/workflow-runs/WorkflowRunDetail.tsx`
+     - Contains core workflow display logic
+     - Handles timestamp display and status updates
+     - Keeps simple, single-use logic inline for clarity
    - Event data management: `lib/services/WorkflowPersistenceService.ts`
 
 2. **Data Flow**

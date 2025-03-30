@@ -113,8 +113,8 @@ Acceptance Criteria:
 ### 9. Data Structure Clarity
 
 **As a** developer  
-**I want to** have a properly structured event data model  
-**So that** I can efficiently query and analyze workflow patterns
+**I want to** have a properly structured and maintainable codebase  
+**So that** I can efficiently develop and debug workflow patterns
 
 Acceptance Criteria:
 
@@ -123,6 +123,9 @@ Acceptance Criteria:
 - Event hierarchy is properly represented
 - Metadata is consistently structured
 - Indexes are optimized for common queries
+- Simple logic is kept inline where appropriate
+- Code is easy to understand and maintain
+- Abstractions are created only when they provide clear value
 
 ## Future Considerations
 

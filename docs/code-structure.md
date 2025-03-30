@@ -104,20 +104,29 @@ Docker-related configuration:
 
    - Keep components focused and single-responsibility
    - Use appropriate subdirectories for related components
+   - Keep simple, single-use logic inline within components
+   - Create shared utilities only for truly reusable logic
+   - Avoid premature abstraction
 
 2. **Library Structure**
 
    - Keep business logic in `/lib`
    - Separate concerns into appropriate subdirectories
    - Use clear, descriptive names for files and directories
+   - Create shared functions only when they provide clear value
+   - Prioritize code clarity over excessive modularization
 
 3. **Testing**
 
    - Place tests close to the code they test
    - Use `test-utils` for shared testing utilities
    - Follow the testing patterns established in `__tests__`
+   - Test complex logic thoroughly
+   - Keep test structure simple for straightforward code
 
 4. **Documentation**
    - Keep documentation up-to-date in `/docs`
    - Document complex workflows and architecture decisions
    - Include examples where appropriate
+   - Document the reasoning behind architectural decisions
+   - Update documentation when implementation patterns change
