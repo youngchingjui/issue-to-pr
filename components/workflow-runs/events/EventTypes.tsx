@@ -3,42 +3,15 @@ import { formatDistanceToNow } from "date-fns"
 import { EventCard } from "@/components/workflow-runs/events/EventCard"
 import {
   ErrorEvent as ErrorEventType,
-  LLMResponseEvent as LLMResponseEventType,
   ToolCallEvent as ToolCallEventType,
   ToolResponseEvent as ToolResponseEventType,
   WorkflowEvent,
 } from "@/lib/types/workflow"
 
-function truncateText(text: string, maxLength: number = 150) {
-  if (text.length <= maxLength) return text
-  return text.slice(0, maxLength) + "..."
-}
-
 interface EventTypeProps<T extends WorkflowEvent> {
   event: T
   isSelected: boolean
   onClick: () => void
-}
-
-export function LLMResponseEvent({
-  event,
-  isSelected,
-  onClick,
-}: EventTypeProps<LLMResponseEventType>) {
-  const { data } = event
-  return (
-    <EventCard event={event} isSelected={isSelected} onClick={onClick}>
-      <div>
-        <div className="flex items-center gap-2 mb-2">
-          <div className="font-medium text-primary text-sm">LLM Response</div>
-          <div className="text-xs text-muted-foreground">
-            {formatDistanceToNow(event.timestamp, { addSuffix: true })}
-          </div>
-        </div>
-        <div className="text-sm">{truncateText(data.content)}</div>
-      </div>
-    </EventCard>
-  )
 }
 
 export function ToolCallEvent({
