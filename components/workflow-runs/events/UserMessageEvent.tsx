@@ -1,24 +1,24 @@
 import ReactMarkdown from "react-markdown"
 
 import { CollapsibleContent } from "@/components/ui/collapsible-content"
-import { LLMResponseEvent as LLMResponseEventType } from "@/lib/types/workflow"
+import { UserMessageEvent as UserMessageEventType } from "@/lib/types/workflow"
 import { formatEventTime } from "@/lib/utils/date-utils"
 
-export interface LLMResponseEventProps {
-  event: LLMResponseEventType
+export interface UserMessageEventProps {
+  event: UserMessageEventType
   isSelected: boolean
   timestamp: Date
 }
 
-export function LLMResponseEvent({
+export function UserMessageEvent({
   event,
   isSelected,
   timestamp,
-}: LLMResponseEventProps) {
+}: UserMessageEventProps) {
   const headerContent = (
     <>
       <div className="text-xs font-medium text-muted-foreground">
-        LLM Response
+        User Message
       </div>
       <div className="text-xs text-muted-foreground">
         {formatEventTime(timestamp)}

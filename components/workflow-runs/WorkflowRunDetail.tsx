@@ -20,6 +20,7 @@ import {
   StatusUpdate,
   ToolCallEvent,
   ToolResponseEvent,
+  UserMessageEvent,
 } from "@/components/workflow-runs/events"
 import { WorkflowEvent } from "@/lib/types/workflow"
 
@@ -44,7 +45,14 @@ function EventContent({
         <LLMResponseEvent
           event={event}
           isSelected={isSelected}
-          onClick={onClick}
+          timestamp={event.timestamp}
+        />
+      )
+    case "user_message":
+      return (
+        <UserMessageEvent
+          event={event}
+          isSelected={isSelected}
           timestamp={event.timestamp}
         />
       )
@@ -76,9 +84,7 @@ function EventContent({
 }
 
 export default function WorkflowRunDetail({ events }: WorkflowRunDetailProps) {
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(
-    events.length > 0 ? events[0].id : null
-  )
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
 
   const selectedEvent = events.find((event) => event.id === selectedEventId)
@@ -114,8 +120,10 @@ export default function WorkflowRunDetail({ events }: WorkflowRunDetailProps) {
               event={event}
               isSelected={selectedEventId === event.id}
               onClick={() => {
-                setSelectedEventId(event.id)
-                setIsSheetOpen(true)
+                if (event.type !== "llm_response") {
+                  setSelectedEventId(event.id)
+                  setIsSheetOpen(true)
+                }
               }}
             />
           ))}
