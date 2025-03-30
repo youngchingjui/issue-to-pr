@@ -248,11 +248,12 @@ Each commit should be:
 
 #### Component Architecture
 
-- Created modular event components in `components/workflow-runs/events/`
-  - Base `EventCard` component for consistent styling and behavior
+- ✓ Created modular event components in `components/workflow-runs/events/`
+  - Base event styling through Tailwind classes
   - Separate components for each event type (LLM, Tool Call, Error, etc.)
   - Shared utilities for common functionality (text truncation, formatting)
-  - Popover-based detailed view system
+  - Simplified props interface
+  - Removed unnecessary wrapper components
 
 #### Event Type Display
 
@@ -266,28 +267,14 @@ Each commit should be:
 
 #### Layout Structure
 
-- Two-column grid layout is essential for consistent alignment
-  - Left column: Fixed-width for timestamps
-  - Right column: Flexible width for content
-- Timestamps must be right-aligned in the left column
-- Grid should be implemented at the container level, not per-event
-- Each event row contains both timestamp and content cells
-
-#### Vertical Spacing Rules
-
-- Base spacing between events should be consistent
-- Special cases require different spacing:
-  1. Consecutive status events: Reduced spacing
-  2. Transition from status to non-status: Increased spacing
-  3. Non-status events: Standard spacing
-- Spacing should be controlled at the container level
-- Avoid using individual margin adjustments on events
+- ✓ Container-level spacing is more maintainable than per-event margins
+- ✓ Avoid unnecessary div nesting for simpler component structure
+- ✓ Mobile-first responsive design with appropriate padding
+- ✓ Reduced maximum width improves readability
 
 #### Status Event Display
 
-- Timestamps should be right-aligned in a fixed column on the left
-- Only show timestamps when they differ from the previous event
-- Use local time format without milliseconds
-- Group consecutive status updates for cleaner display
-- Use consistent checkmark icon instead of varying by status
-- Keep all status updates in muted style without highlighting latest
+- ✓ Timestamps always shown (removed conditional display logic)
+- ✓ Keep all status updates in muted style
+- ✓ Use consistent checkmark icon
+- ✓ Simplified component structure with fewer props

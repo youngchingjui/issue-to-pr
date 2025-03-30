@@ -190,28 +190,29 @@ So that I can access detailed information when needed
 
 #### UI/UX Requirements
 
-- Layout Structure
+- Layout Structure ✓
 
-  - Two-column grid layout for all events
-    - Left column: Fixed-width timestamps (right-aligned)
-    - Right column: Event content (flexible width)
-  - Consistent base vertical spacing between events
-  - Special vertical spacing rules:
-    - Reduced spacing between consecutive status events
-    - Standard spacing between non-status events
+  - Consistent vertical rhythm between events
+  - Simplified event wrapper structure (avoid unnecessary div nesting)
+  - Mobile-responsive layout with appropriate padding
+  - Reduced maximum width for better readability
 
 - Node Types Display
 
-  - status
+  - status ✓
     - Compact, non-interactive display
-    - Timestamps only shown when different from previous event
+    - Timestamps shown consistently (removed conditional display)
     - Consistent checkmark icon
     - Muted text styling
-    - Reduced vertical spacing between consecutive status events
+    - Simplified component structure
   - workflow_start
   - system_prompt
   - user_message
-  - llm_response
+  - llm_response ✓
+    - Prominent display
+    - Full LLM response text
+    - Collapsible content
+    - Timestamp in header
   - tool_call
   - tool_response
   - error

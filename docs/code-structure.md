@@ -107,6 +107,8 @@ Docker-related configuration:
    - Keep simple, single-use logic inline within components
    - Create shared utilities only for truly reusable logic
    - Avoid premature abstraction
+   - Use Tailwind's utility classes for consistent spacing
+   - Minimize wrapper div nesting for simpler component structure
 
 2. **Library Structure**
 
