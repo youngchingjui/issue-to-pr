@@ -92,9 +92,7 @@ export default function WorkflowRunDetail({ events }: WorkflowRunDetailProps) {
           </Button>
         </Link>
         <div>
-          <h2 className="text-lg font-semibold">
-            {events[0]?.data?.name?.toString() || "Workflow Run"}
-          </h2>
+          <h2 className="text-lg font-semibold">Workflow Run</h2>
           <p className="text-sm text-muted-foreground">
             Started{" "}
             {formatDistanceToNow(events[0].timestamp, {
