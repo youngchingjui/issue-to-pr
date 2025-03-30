@@ -224,19 +224,19 @@ export async function reviewPullRequest({
 
     // Emit completion event
     await persistenceService.saveEvent({
-      type: "complete",
+      type: "status",
       workflowId,
       data: {
-        content: response,
+        status: "completed",
         success: true,
       },
       timestamp: new Date(),
     })
 
     WorkflowEventEmitter.emit(workflowId, {
-      type: "complete",
+      type: "status",
       data: {
-        content: response,
+        status: "completed",
         success: true,
       },
       timestamp: new Date(),

@@ -114,19 +114,19 @@ export const resolveIssue = async (
 
     // Emit completion event
     await persistenceService.saveEvent({
-      type: "complete",
+      type: "status",
       workflowId,
       data: {
-        content: result,
+        status: "completed",
         success: true,
       },
       timestamp: new Date(),
     })
 
     WorkflowEventEmitter.emit(workflowId, {
-      type: "complete",
+      type: "status",
       data: {
-        content: result,
+        status: "completed",
         success: true,
       },
       timestamp: new Date(),

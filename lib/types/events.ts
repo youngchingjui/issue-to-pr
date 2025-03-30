@@ -1,4 +1,4 @@
-import { WorkflowEventType } from "@/lib/types/workflow"
+import { StatusData, WorkflowEventType } from "@/lib/types/workflow"
 
 export type StreamEventType = WorkflowEventType | "token"
 
@@ -23,6 +23,13 @@ export interface StructuredEvent extends BaseStreamEvent {
   timestamp: Date // Structured events use Date objects
 }
 
+// Status event type
+export interface StatusStreamEvent extends BaseStreamEvent {
+  type: "status"
+  data: StatusData
+  timestamp: Date
+}
+
 // Complete stream event with workflow ID
 export interface StreamEvent extends BaseStreamEvent {
   workflowId: string
@@ -35,3 +42,7 @@ export const isTokenEvent = (event: BaseStreamEvent): event is TokenEvent =>
 export const isStructuredEvent = (
   event: BaseStreamEvent
 ): event is StructuredEvent => event.hasOwnProperty("id")
+
+export const isStatusEvent = (
+  event: BaseStreamEvent
+): event is StatusStreamEvent => event.type === "status"

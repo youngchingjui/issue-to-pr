@@ -1,6 +1,6 @@
 import { EventEmitter } from "events"
 
-import { StreamEvent } from "@/lib/types/events"
+import { isStatusEvent, StreamEvent } from "@/lib/types/events"
 
 interface WorkflowState {
   lastActivity: Date
@@ -63,7 +63,7 @@ class WorkflowEventEmitter extends EventEmitter {
     // Update workflow status based on event type
     const state = this.workflowStates.get(workflowId)
     if (state) {
-      if (event.type === "complete") {
+      if (isStatusEvent(event) && event.data.status === "completed") {
         state.status = "completed"
       } else if (event.type === "error") {
         state.status = "error"
