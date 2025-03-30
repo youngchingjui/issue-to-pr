@@ -197,6 +197,17 @@ So that I can access detailed information when needed
   - Low latency requirements
   - Connection recovery handling
   - Event debouncing and batching
+  - Distinct event types for streaming:
+    - Token events (lightweight, numeric timestamps)
+    - Workflow events (full event data)
+    - Structured events (with metadata)
+
+- Event Type Separation
+
+  - Streaming events optimized for real-time delivery
+  - Persistent events with strict type safety for storage
+  - Clear conversion path between streaming and persistent events
+  - Type guards for runtime type safety
 
 - Persistence Service
   - Neo4j data storage

@@ -124,6 +124,10 @@ Each commit should be:
   - [ ] Define clear event type hierarchy
   - [ ] Add proper metadata fields for each event type
   - [ ] Ensure consistent data format across event types
+  - [x] Implement separate types for streaming vs persistent events
+    - [x] StreamEvent type for real-time updates
+    - [x] WorkflowEvent type for persistence
+    - [x] Type guards for runtime safety
 
 #### Phase 1: UI/UX Improvements (Week 1)
 
