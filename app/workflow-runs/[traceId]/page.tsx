@@ -18,9 +18,7 @@ export default async function WorkflowRunDetailPage({
   if (workflowEvents && workflowEvents.length > 0) {
     return (
       <main className="container mx-auto p-4">
-        <h1 className="text-2xl font-bold mb-4">
-          {workflowEvents[0]?.data?.name?.toString() || "Workflow Run"}
-        </h1>
+        <h1 className="text-2xl font-bold mb-4">Workflow Run</h1>
         <WorkflowRunDetail events={workflowEvents} />
       </main>
     )

@@ -53,8 +53,7 @@ export default async function WorkflowRunsList({
                     href={`/workflow-runs/${workflow.id}`}
                     className="text-blue-600 hover:underline font-medium"
                   >
-                    {workflow.events[0]?.data?.name?.toString() ||
-                      workflow.id.slice(0, 8)}
+                    {workflow.id.slice(0, 8)}
                   </Link>
                 </TableCell>
                 <TableCell>
