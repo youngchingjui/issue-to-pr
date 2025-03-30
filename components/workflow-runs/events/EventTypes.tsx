@@ -3,35 +3,12 @@ import { formatDistanceToNow } from "date-fns"
 import { EventCard } from "@/components/workflow-runs/events/EventCard"
 import {
   ErrorEvent as ErrorEventType,
-  ToolCallEvent as ToolCallEventType,
   ToolResponseEvent as ToolResponseEventType,
   WorkflowEvent,
 } from "@/lib/types/workflow"
 
 interface EventTypeProps<T extends WorkflowEvent> {
   event: T
-}
-
-export function ToolCallEvent({ event }: EventTypeProps<ToolCallEventType>) {
-  const { data } = event
-  return (
-    <EventCard event={event}>
-      <div>
-        <div className="flex items-center gap-2 mb-2">
-          <div className="font-medium text-blue-500 text-sm">Tool Call</div>
-          <div className="text-xs text-muted-foreground">
-            {formatDistanceToNow(event.timestamp, { addSuffix: true })}
-          </div>
-        </div>
-        <div className="text-sm font-medium">{data.toolName}</div>
-        {data.arguments && (
-          <pre className="text-xs mt-2 font-mono text-muted-foreground overflow-auto max-h-24">
-            {JSON.stringify(data.arguments, null, 2)}
-          </pre>
-        )}
-      </div>
-    </EventCard>
-  )
 }
 
 export function ToolResponseEvent({
