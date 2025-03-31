@@ -4,6 +4,30 @@
 
 This document describes the ideal user interface flow for executing workflows and reviewing content before publication to GitHub. The focus is on providing clear control over GitHub interactions while maintaining a smooth user experience.
 
+## Navigation Patterns
+
+### Issue List to Details Flow
+
+```mermaid
+graph TD
+    A[Issue List] -->|Click Issue Title| B[Issue Details]
+    B -->|Back Button| A
+    B -->|External Link| C[GitHub Issue]
+    A -->|External Link| C
+```
+
+- **Issue List Navigation**:
+
+  - Issue titles use client-side navigation
+  - External GitHub links open in new tabs
+  - Clear visual distinction between internal/external links
+
+- **Issue Details Navigation**:
+  - Back button returns to issue list
+  - Consistent button styling with design system
+  - Clear visual hierarchy
+  - Smooth transitions between states
+
 ## Global Controls
 
 ### User Preferences

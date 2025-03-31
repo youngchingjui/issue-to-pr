@@ -14,27 +14,29 @@ This document outlines the implementation plan for creating a dedicated issue de
 
 ## Tasks
 
-### 1. Route and Layout Setup
+### 1. Route and Layout Setup ✅
 
-1. Create new file `app/[username]/[repo]/issues/[id]/page.tsx`
+1. Create new file `app/[username]/[repo]/issues/[id]/page.tsx` ✅
 
-   - Add dynamic route parameters (username, repo, id)
-   - Set up data fetching with suspense
-   - Add error boundary
-   - Integrate with existing breadcrumb navigation
+   - Add dynamic route parameters (username, repo, id) ✅
+   - Set up data fetching with suspense ✅
+   - Add error boundary and notFound() handling ✅
+   - Add back button navigation ✅
+   - Style back button to match design system ✅
 
-2. Update `components/layout/Breadcrumb.tsx`
-   - Add issue details to breadcrumb path
-   - Handle issue number in navigation
+2. Update navigation system
+   - Update issue list to use client-side navigation ✅
+   - Configure DataRow component to support both internal and external links ✅
+   - Maintain backward compatibility for existing components ✅
 
 ### 2. Data Layer
 
 1. Update `lib/github/issues.ts`
 
-   - Add function to fetch detailed issue data
+   - Add function to fetch detailed issue data ✅
    - Add function to fetch issue timeline
-   - Add error handling for rate limits
-   - Add types for new API responses
+   - Add error handling for rate limits ✅
+   - Add types for new API responses ✅
 
 2. Create new file `lib/stores/issueDetailsStore.ts`
    - Add issue data state
@@ -44,13 +46,12 @@ This document outlines the implementation plan for creating a dedicated issue de
 
 ### 3. Core Components
 
-1. Create new file `components/issues/IssueDetailsCard.tsx`
+1. Create new file `components/issues/IssueDetailsWrapper.tsx` ✅
 
-   - Extend existing `GitHubItemDetails` component
-   - Add issue status badge
-   - Add issue metadata display
-   - Add issue description with markdown
-   - Style with existing design system
+   - Create client-side wrapper for workflow state ✅
+   - Handle loading states ✅
+   - Handle workflow actions ✅
+   - Integrate with GitHubItemDetails ✅
 
 2. Create new file `components/issues/IssueTimeline.tsx`
 
@@ -83,12 +84,12 @@ This document outlines the implementation plan for creating a dedicated issue de
 
 1. Create new file `components/issues/IssueDetailsSkeleton.tsx`
 
-   - Add loading states for all sections
-   - Match existing design patterns
-   - Ensure smooth transitions
+   - Add loading states for all sections ✅
+   - Match existing design patterns ✅
+   - Ensure smooth transitions ✅
 
 2. Create new file `components/issues/IssueDetailsError.tsx`
-   - Add error states for API failures
+   - Add error states for API failures ✅
    - Add retry functionality
    - Add user feedback
    - Match existing error patterns
@@ -123,12 +124,20 @@ This document outlines the implementation plan for creating a dedicated issue de
 
 ## Implementation Notes
 
-- Follow existing component patterns from `GitHubItemDetails`
-- Maintain workflow execution patterns from `IssueActions`
-- Use existing design system components
-- Keep accessibility in mind
-- Ensure mobile responsiveness
-- Follow established error handling patterns
-- Use existing workflow event system
-- Maintain type safety throughout
+- Follow existing component patterns from `GitHubItemDetails` ✅
+- Maintain workflow execution patterns from `IssueActions` ✅
+- Use existing design system components ✅
+- Keep accessibility in mind ✅
+- Ensure mobile responsiveness ✅
+- Follow established error handling patterns ✅
+- Use existing workflow event system ✅
+- Maintain type safety throughout ✅
 - Follow existing testing patterns
+
+## Navigation Patterns
+
+- Use client-side navigation for internal links ✅
+- Maintain external links in new tabs ✅
+- Provide clear back navigation ✅
+- Use consistent button styling ✅
+- Follow accessibility best practices ✅

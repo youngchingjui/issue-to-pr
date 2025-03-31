@@ -6,7 +6,17 @@ As a developer, I want to review and control AI-generated content before it's pu
 
 ## Detailed User Stories
 
-### 1. Workflow Configuration
+### 1. Issue Navigation ✅
+
+As a developer, I want to:
+
+- Navigate between issue list and details seamlessly ✅
+- Clearly distinguish between internal and external links ✅
+- Easily return to the issue list from details view ✅
+- Access GitHub directly when needed ✅
+- Have consistent navigation patterns across the app ✅
+
+### 2. Workflow Configuration
 
 As a developer, I want to:
 
@@ -15,7 +25,7 @@ As a developer, I want to:
 - Set default preferences for workflow behavior
 - Have my preferences persisted across sessions
 
-### 2. Content Generation
+### 3. Content Generation
 
 As a developer, I want to:
 
@@ -25,7 +35,7 @@ As a developer, I want to:
 - Access a history of generated content
 - Cancel content generation if needed
 
-### 3. Content Review
+### 4. Content Review
 
 As a developer, I want to:
 
@@ -36,7 +46,7 @@ As a developer, I want to:
 - Compare different versions of generated content
 - Understand the AI's reasoning for generated content
 
-### 4. Publication Control
+### 5. Publication Control
 
 As a developer, I want to:
 
@@ -47,7 +57,7 @@ As a developer, I want to:
 - Retry content generation with modified parameters
 - Roll back published content if needed
 
-### 5. Testing Mode
+### 6. Testing Mode
 
 As a developer, I want to:
 
@@ -57,7 +67,7 @@ As a developer, I want to:
 - Generate multiple versions for comparison
 - Have a clear indication that I'm in testing mode
 
-### 6. Content Management
+### 7. Content Management
 
 As a developer, I want to:
 
