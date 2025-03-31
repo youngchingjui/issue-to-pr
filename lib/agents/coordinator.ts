@@ -1,34 +1,6 @@
 import { Agent } from "@/lib/agents/base"
-import {
-  GitHubIssue,
-  GitHubIssueComment,
-  GitHubRepository,
-} from "@/lib/types/github"
 
-export class CoordinatorAgent extends Agent {
-  repo: GitHubRepository
-  REQUIRED_TOOLS = [
-    "get_file_content",
-    "call_coder_agent",
-    "upload_and_create_PR",
-    "search_code",
-    "review_pull_request",
-  ]
-
-  constructor({
-    issue,
-    apiKey,
-    repo,
-    tree,
-    comments,
-  }: {
-    issue?: GitHubIssue
-    apiKey: string
-    repo: GitHubRepository
-    tree: string[]
-    comments?: GitHubIssueComment[]
-  }) {
-    const initialSystemPrompt = `
+const SYSTEM_PROMPT = `
 ## Goal 
 Resolve the Github Issue and create a Pull Request
 
@@ -51,36 +23,20 @@ These are the functions you can call on to help you. After you call each functio
 - review_pull_request: This function will call a workflow to review your proposed changes. Please call this function before submitting a pull request.
 - submit_pr: This function can upload the updated files to Github, and create a pull request. This should be the last tool you call. After this tool, you should provide your final output.
 
-## Codebase tree
-Here is the structure of the codebase, so you understand what files are available to retrieve.
-${tree.join("\n")}
-
 ## Conclusion
 Please output in JSON mode. You may call any or all functions, in sequence or in parallel. Again, your goal is to resolve the Github Issue.
 `
-    super({ systemPrompt: initialSystemPrompt, apiKey })
 
-    this.repo = repo
+export class CoordinatorAgent extends Agent {
+  REQUIRED_TOOLS = [
+    "get_file_content",
+    "call_coder_agent",
+    "upload_and_create_PR",
+    "search_code",
+    "review_pull_request",
+  ]
 
-    if (issue) {
-      this.addMessage({
-        role: "user",
-        content: `
-Github issue title: ${issue.title}
-Github issue description: ${issue.body}
-Github issue comments: 
-${comments
-  ?.map(
-    (comment) => `
-- **User**: ${comment.user.login}
-- **Created At**: ${new Date(comment.created_at).toLocaleString()}
-- **Reactions**: ${comment.reactions ? comment.reactions.total_count : 0}
-- **Comment**: ${comment.body}
-`
-  )
-  .join("\n")}
-`,
-      })
-    }
+  constructor({ apiKey }: { apiKey: string }) {
+    super({ systemPrompt: SYSTEM_PROMPT, apiKey })
   }
 }

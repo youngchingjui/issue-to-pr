@@ -4,8 +4,8 @@ import { z } from "zod"
 
 import { getRepoFromString } from "@/lib/github/content"
 import { getIssue } from "@/lib/github/issues"
-import { updateJobStatus } from "@/lib/redis-old"
 import { ResolveRequestSchema } from "@/lib/schemas/api"
+import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceService"
 import { resolveIssue } from "@/lib/workflows/resolveIssue"
 
 export async function POST(request: NextRequest) {
@@ -16,10 +16,11 @@ export async function POST(request: NextRequest) {
 
     // Generate a unique job ID
     const jobId = uuidv4()
-    await updateJobStatus(jobId, "Starting resolve workflow")
 
     // Start the resolve workflow as a background job
     ;(async () => {
+      const persistenceService = new WorkflowPersistenceService()
+
       try {
         // Get full repository details and issue
         const fullRepo = await getRepoFromString(repoFullName)
@@ -27,16 +28,53 @@ export async function POST(request: NextRequest) {
           fullName: repoFullName,
           issueNumber,
         })
+
         const response = await resolveIssue(issue, fullRepo, apiKey, jobId)
-        await updateJobStatus(jobId, "Completed: " + JSON.stringify(response))
+
+        // Log successful completion
+        console.log("Successfully resolved issue:", {
+          issueNumber,
+          repoFullName,
+          jobId,
+          response,
+        })
+
+        // Save completion status
+        await persistenceService.saveEvent({
+          type: "status",
+          workflowId: jobId,
+          data: {
+            status: "completed",
+            success: true,
+          },
+          timestamp: new Date(),
+        })
       } catch (error) {
-        await updateJobStatus(jobId, "Failed: " + error.message)
+        // Log the error
+        console.error("Error in resolve workflow:", {
+          issueNumber,
+          repoFullName,
+          jobId,
+          error,
+        })
+
+        // Save error status
+        await persistenceService.saveEvent({
+          type: "error",
+          workflowId: jobId,
+          data: {
+            error: error instanceof Error ? error.message : String(error),
+            recoverable: false,
+          },
+          timestamp: new Date(),
+        })
       }
     })()
 
-    // Immediately return the job ID to the client
+    // Return the job ID immediately
     return NextResponse.json({ jobId })
   } catch (error) {
+    console.error("Error processing request:", error)
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         {
@@ -47,7 +85,7 @@ export async function POST(request: NextRequest) {
       )
     }
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Failed to process request" },
       { status: 500 }
     )
   }

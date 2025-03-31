@@ -3,13 +3,10 @@
 // All the agents will share the same trace
 // They can also all access the same data, such as the issue, the codebase, etc.
 
-import { v4 as uuidv4 } from "uuid"
-
 import { CoordinatorAgent } from "@/lib/agents/coordinator"
 import { createDirectoryTree } from "@/lib/fs"
 import { getIssueComments } from "@/lib/github/issues"
 import { langfuse } from "@/lib/langfuse"
-import WorkflowEventEmitter from "@/lib/services/EventEmitter"
 import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceService"
 import {
   CallCoderAgentTool,
@@ -27,7 +24,7 @@ export const resolveIssue = async (
   apiKey: string,
   jobId: string
 ) => {
-  const workflowId = uuidv4()
+  const workflowId = jobId
   const persistenceService = new WorkflowPersistenceService()
 
   try {
@@ -35,14 +32,6 @@ export const resolveIssue = async (
     await persistenceService.saveEvent({
       type: "workflow_start",
       workflowId,
-      data: {
-        content: `Starting workflow for issue #${issue.number} in ${repository.full_name}`,
-      },
-      timestamp: new Date(),
-    })
-
-    WorkflowEventEmitter.emit(workflowId, {
-      type: "llm_response",
       data: {
         content: `Starting workflow for issue #${issue.number} in ${repository.full_name}`,
       },
@@ -84,13 +73,41 @@ export const resolveIssue = async (
 
     // Prepare the coordinator agent
     const coordinatorAgent = new CoordinatorAgent({
-      issue,
       apiKey,
-      repo: repository,
-      tree,
-      comments,
     })
     coordinatorAgent.addSpan({ span, generationName: "coordinate" })
+    coordinatorAgent.addJobId(jobId)
+
+    // Add issue information as user message
+    await coordinatorAgent.addMessage({
+      role: "user",
+      content: `Github issue title: ${issue.title}\nGithub issue description: ${issue.body}`,
+    })
+
+    // Add comments if they exist
+    if (comments && comments.length > 0) {
+      await coordinatorAgent.addMessage({
+        role: "user",
+        content: `Github issue comments:\n${comments
+          .map(
+            (comment) => `
+- **User**: ${comment.user.login}
+- **Created At**: ${new Date(comment.created_at).toLocaleString()}
+- **Reactions**: ${comment.reactions ? comment.reactions.total_count : 0}
+- **Comment**: ${comment.body}
+`
+          )
+          .join("\n")}`,
+      })
+    }
+
+    // Add tree information as user message
+    if (tree && tree.length > 0) {
+      await coordinatorAgent.addMessage({
+        role: "user",
+        content: `Here is the codebase's tree directory:\n${tree.join("\n")}`,
+      })
+    }
 
     // Add tools for coordinator agent
     coordinatorAgent.addTool(getFileContentTool)
@@ -98,14 +115,13 @@ export const resolveIssue = async (
     coordinatorAgent.addTool(submitPRTool)
     coordinatorAgent.addTool(searchCodeTool)
     coordinatorAgent.addTool(reviewPullRequestTool)
-    coordinatorAgent.addJobId(jobId)
 
     // Run the coordinator agent
     await persistenceService.saveEvent({
-      type: "llm_response",
+      type: "status",
       workflowId,
       data: {
-        content: "Starting coordinator agent",
+        status: "Starting coordinator agent",
       },
       timestamp: new Date(),
     })
@@ -116,15 +132,6 @@ export const resolveIssue = async (
     await persistenceService.saveEvent({
       type: "status",
       workflowId,
-      data: {
-        status: "completed",
-        success: true,
-      },
-      timestamp: new Date(),
-    })
-
-    WorkflowEventEmitter.emit(workflowId, {
-      type: "status",
       data: {
         status: "completed",
         success: true,
@@ -148,8 +155,6 @@ export const resolveIssue = async (
       ...errorEvent,
       workflowId,
     })
-
-    WorkflowEventEmitter.emit(workflowId, errorEvent)
 
     throw error
   }
