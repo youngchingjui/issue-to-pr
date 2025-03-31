@@ -1,32 +1,10 @@
 import { formatDistanceToNow } from "date-fns"
 
 import { EventCard } from "@/components/workflow-runs/events/EventCard"
-import {
-  ErrorEvent as ErrorEventType,
-  WorkflowEvent,
-} from "@/lib/types/workflow"
+import { WorkflowEvent } from "@/lib/types/workflow"
 
 interface EventTypeProps<T extends WorkflowEvent> {
   event: T
-}
-
-export function ErrorEvent({ event }: EventTypeProps<ErrorEventType>) {
-  const { data } = event
-  return (
-    <EventCard event={event}>
-      <div>
-        <div className="flex items-center gap-2 mb-2">
-          <div className="font-medium text-destructive text-sm">Error</div>
-          <div className="text-xs text-muted-foreground">
-            {formatDistanceToNow(event.timestamp, { addSuffix: true })}
-          </div>
-        </div>
-        <div className="text-sm text-destructive">
-          {data.error instanceof Error ? data.error.message : data.error}
-        </div>
-      </div>
-    </EventCard>
-  )
 }
 
 export function DefaultEvent({ event }: EventTypeProps<WorkflowEvent>) {
@@ -50,3 +28,5 @@ export function DefaultEvent({ event }: EventTypeProps<WorkflowEvent>) {
     </EventCard>
   )
 }
+
+export { ErrorEvent } from "./ErrorEvent"

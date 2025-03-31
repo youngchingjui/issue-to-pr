@@ -1,9 +1,7 @@
+export { ErrorEvent } from "@/components/workflow-runs/events/ErrorEvent"
 export { EventCard } from "@/components/workflow-runs/events/EventCard"
 export { EventDetails } from "@/components/workflow-runs/events/EventDetails"
-export {
-  DefaultEvent,
-  ErrorEvent,
-} from "@/components/workflow-runs/events/EventTypes"
+export { DefaultEvent } from "@/components/workflow-runs/events/EventTypes"
 export { LLMResponseEvent } from "@/components/workflow-runs/events/LLMResponseEvent"
 export { StatusUpdate } from "@/components/workflow-runs/events/StatusUpdate"
 export { SystemPromptEvent } from "@/components/workflow-runs/events/SystemPromptEvent"
