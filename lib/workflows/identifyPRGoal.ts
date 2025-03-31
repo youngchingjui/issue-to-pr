@@ -1,5 +1,3 @@
-import { v4 as uuidv4 } from "uuid"
-
 import { GoalIdentifierAgent } from "@/lib/agents"
 import { getRepoFromString } from "@/lib/github/content"
 import {
@@ -8,11 +6,9 @@ import {
   getPullRequestDiff,
 } from "@/lib/github/pullRequests"
 import { langfuse } from "@/lib/langfuse"
-import WorkflowEventEmitter from "@/lib/services/EventEmitter"
 import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceService"
 import { GetIssueTool } from "@/lib/tools"
 import { GitHubIssue } from "@/lib/types/github"
-import { updateJobStatus } from "@/lib/utils/utils-common"
 
 interface IdentifyPRGoalParams {
   repoFullName: string
@@ -28,7 +24,7 @@ export async function identifyPRGoal({
   apiKey,
   jobId,
 }: IdentifyPRGoalParams): Promise<string> {
-  const workflowId = uuidv4()
+  const workflowId = jobId
   const persistenceService = new WorkflowPersistenceService()
 
   try {
@@ -40,24 +36,14 @@ export async function identifyPRGoal({
 
     // Emit workflow start event
     await persistenceService.saveEvent({
-      type: "workflow_start",
+      type: "status",
       workflowId,
       data: {
-        status: "starting",
+        status: `Starting identifyPRGoal workflow for PR #${pullNumber} in ${repoFullName}`,
       },
       timestamp: new Date(),
     })
 
-    WorkflowEventEmitter.emit(workflowId, {
-      type: "llm_response",
-      data: {
-        content: `Starting PR goal identification for PR #${pullNumber} in ${repoFullName}`,
-      },
-      timestamp: new Date(),
-    })
-
-    // Add status updates throughout the workflow
-    updateJobStatus(jobId, "Fetching repository information...")
     await persistenceService.saveEvent({
       type: "status",
       workflowId,
@@ -69,7 +55,6 @@ export async function identifyPRGoal({
 
     const repo = await getRepoFromString(repoFullName)
 
-    updateJobStatus(jobId, "Retrieving PR details and comments...")
     await persistenceService.saveEvent({
       type: "status",
       workflowId,
@@ -83,7 +68,6 @@ export async function identifyPRGoal({
     const comments = await getPullRequestComments({ repoFullName, pullNumber })
     const diff = await getPullRequestDiff({ repoFullName, pullNumber })
 
-    updateJobStatus(jobId, "Analyzing PR with AI...")
     const agent = new GoalIdentifierAgent({
       apiKey,
     })
@@ -140,16 +124,6 @@ Available tools:
       timestamp: new Date(),
     })
 
-    WorkflowEventEmitter.emit(workflowId, {
-      type: "status",
-      data: {
-        status: "completed",
-        success: true,
-      },
-      timestamp: new Date(),
-    })
-
-    updateJobStatus(jobId, "Analysis complete")
     return result
   } catch (error) {
     // Emit error event
@@ -167,9 +141,6 @@ Available tools:
       workflowId,
     })
 
-    WorkflowEventEmitter.emit(workflowId, errorEvent)
-
-    updateJobStatus(jobId, `Error: ${error.message}`)
     throw error
   }
 }

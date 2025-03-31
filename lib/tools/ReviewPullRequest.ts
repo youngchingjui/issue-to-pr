@@ -1,4 +1,5 @@
 import { zodFunction } from "openai/helpers/zod"
+import { v4 as uuidv4 } from "uuid"
 import { z } from "zod"
 
 import { getDiff } from "@/lib/git"
@@ -17,6 +18,7 @@ class ReviewPullRequestTool
   private diff?: string
   private baseDir: string
   private apiKey: string
+  private jobId?: string
 
   constructor({
     repo,
@@ -24,6 +26,7 @@ class ReviewPullRequestTool
     pullNumber,
     baseDir,
     apiKey,
+    jobId,
   }: {
     repo: GitHubRepository
     issue: GitHubIssue
@@ -31,12 +34,14 @@ class ReviewPullRequestTool
     diff?: string
     baseDir: string
     apiKey: string
+    jobId?: string
   }) {
     this.repo = repo
     this.issue = issue
     this.pullNumber = pullNumber
     this.baseDir = baseDir
     this.apiKey = apiKey
+    this.jobId = jobId
   }
 
   parameters = reviewPullRequestParameters
@@ -57,6 +62,10 @@ class ReviewPullRequestTool
       return "No pull request number was provided , and no file changes were detected."
     }
 
+    if (!this.jobId) {
+      this.jobId = uuidv4()
+    }
+
     return await reviewPullRequest({
       repoFullName: this.repo.full_name,
       issue: this.issue,
@@ -64,6 +73,7 @@ class ReviewPullRequestTool
       diff: this.diff,
       baseDir: this.baseDir,
       apiKey: this.apiKey,
+      jobId: this.jobId,
     })
   }
 }

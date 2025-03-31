@@ -30,10 +30,10 @@ export const resolveIssue = async (
   try {
     // Emit workflow start event
     await persistenceService.saveEvent({
-      type: "workflow_start",
+      type: "status",
       workflowId,
       data: {
-        content: `Starting workflow for issue #${issue.number} in ${repository.full_name}`,
+        status: `Starting workflow for issue #${issue.number} in ${repository.full_name}`,
       },
       timestamp: new Date(),
     })

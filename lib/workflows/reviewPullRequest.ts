@@ -28,6 +28,7 @@ interface ReviewPullRequestParams {
   diff?: string
   baseDir?: string
   apiKey: string
+  jobId?: string
 }
 
 export async function reviewPullRequest({
@@ -37,8 +38,9 @@ export async function reviewPullRequest({
   diff,
   baseDir,
   apiKey,
+  jobId,
 }: ReviewPullRequestParams) {
-  const workflowId = uuidv4()
+  const workflowId = jobId || uuidv4()
   const persistenceService = new WorkflowPersistenceService()
 
   try {
@@ -66,10 +68,10 @@ export async function reviewPullRequest({
 
     // Emit workflow start event
     await persistenceService.saveEvent({
-      type: "workflow_start",
+      type: "status",
       workflowId,
       data: {
-        status: "starting",
+        status: "Starting PR review",
       },
       timestamp: new Date(),
     })
