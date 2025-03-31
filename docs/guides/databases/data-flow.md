@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes how data flows through our system, particularly focusing on the interaction between Redis and Neo4j, and how they work together to provide both real-time updates and persistent storage.
+This document describes how data flows through our multi-database system, utilizing PostgreSQL for structured data, Neo4j for workflow relationships, and Redis for real-time updates.
 
 ## System Requirements
 
@@ -14,6 +14,8 @@ This document describes how data flows through our system, particularly focusing
 4. Enable efficient querying and retrieval
 5. Support concurrent workflows
 6. Ensure data durability and reliability
+7. Manage draft content and user preferences
+8. Support content review workflows
 
 ### Performance Requirements
 
@@ -25,7 +27,13 @@ This document describes how data flows through our system, particularly focusing
 
 ## Data Flow Architecture
 
-The following diagram illustrates the complete data flow through our system, showing how Redis handles real-time events while Neo4j provides persistent storage. You can find the full diagram here: [Data Flow Diagram](../../assets/data-flow-diagram.md)
+Our system uses three databases, each with a specific purpose:
+
+1. **PostgreSQL**: Structured data (user preferences, draft content)
+2. **Neo4j**: Workflow relationships and connected data
+3. **Redis**: Real-time state and caching
+
+The following diagram illustrates the complete data flow through our system: [Data Flow Diagram](../../assets/data-flow-diagram.md)
 
 ## Event Flow Process
 
@@ -52,6 +60,31 @@ The following diagram illustrates the complete data flow through our system, sho
    - Consistency checks performed
    - Error handling and recovery
 
+## Content Generation Flow
+
+1. **Workflow Initiation**
+
+   - User triggers workflow
+   - Event stored in Neo4j
+   - Real-time updates via Redis
+
+2. **Content Generation**
+
+   - AI generates content
+   - Content stored as draft in PostgreSQL
+   - Status updated in Redis for UI
+
+3. **Review Process**
+
+   - User reviews draft content
+   - Updates tracked in PostgreSQL
+   - Status changes broadcast via Redis
+
+4. **Publication**
+   - User approves content
+   - Content published to GitHub
+   - Status updated across all databases
+
 ## Implementation Details
 
 ### Event Structure
@@ -67,6 +100,30 @@ interface Event {
     userId: string
     source: string
     version: string
+  }
+}
+```
+
+### Data Models
+
+```typescript
+// Existing Event interface
+interface Event {
+  // ... existing code ...
+}
+
+// New Draft Content interface
+interface DraftContent {
+  id: string
+  workflowRunId: string
+  contentType: "comment" | "pull_request"
+  content: string
+  status: "draft" | "published" | "discarded"
+  metadata: {
+    githubIssueId: number
+    githubRepo: string
+    userId: string
+    timestamp: number
   }
 }
 ```
@@ -105,6 +162,26 @@ class DataSynchronizer {
         // Handle error and retry logic
         await this.handleSyncError(event, error)
       }
+    }
+  }
+
+  async syncDraftContent() {
+    // Get published content from PostgreSQL
+    const publishedContent = await postgres.query(
+      "SELECT * FROM draft_content WHERE status = $1",
+      ["published"]
+    )
+
+    // Update workflow status in Neo4j
+    for (const content of publishedContent) {
+      await neo4j.run(
+        `
+        MATCH (w:WorkflowRun {id: $workflowRunId})
+        SET w.contentStatus = 'published'
+        SET w.publishedAt = datetime()
+        `,
+        content
+      )
     }
   }
 }

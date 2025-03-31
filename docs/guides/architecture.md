@@ -15,7 +15,10 @@ Our system is a GitHub-integrated workflow automation platform that converts iss
 1. **Web Interface**: A Next.js application providing real-time workflow visualization and control
 2. **API Layer**: Handles GitHub integration and coordinates workflow processes
 3. **AI Engine**: Manages multiple specialized AI agents for code generation and decision making
-4. **Data Storage**: Dual database system for different data requirements
+4. **Data Storage**: Multi-database system optimized for different data requirements:
+   - PostgreSQL for structured data and draft content
+   - Neo4j for workflow relationships
+   - Redis for real-time state management
 
 ## Technology Stack
 
@@ -30,6 +33,7 @@ Our system is a GitHub-integrated workflow automation platform that converts iss
 - Next.js API routes
 - GitHub API integration
 - OpenAI API
+- PostgreSQL
 - Redis
 - Neo4j
 - Langfuse (AI Observability)
@@ -54,7 +58,9 @@ graph TD
     B -->|Code Generation| D[AI Engine]
     B -->|State Management| E[Redis]
     B -->|Workflow Storage| F[Neo4j]
+    B -->|Structured Data| H[PostgreSQL]
     D -->|Decisions| E
+    D -->|Draft Content| H
     D -->|Code Changes| C
     D -->|Monitoring| G[Langfuse]
 ```
@@ -120,6 +126,15 @@ graph TD
   - User preferences and settings
   - System configuration
 
+#### PostgreSQL (Structured Data)
+
+- **Purpose**: Stores structured data and draft content
+- **Data Stored**:
+  - Structured data
+  - Draft content
+  - User preferences and settings
+  - System configuration
+
 #### Langfuse (Observability)
 
 - **Purpose**: Monitors and analyzes AI operations
@@ -147,7 +162,17 @@ graph TD
    - Status updates are stored in Redis
    - Long-term data is persisted to Neo4j
 
-3. **Monitoring Flow**
+3. **Content Review Flow**
+
+   - User initiates workflow in Web Interface
+   - AI Engine generates content
+   - Draft content stored in PostgreSQL
+   - User reviews content in Web Interface
+   - Upon approval, content is published to GitHub
+   - Status updates stored in Neo4j
+   - Real-time updates via Redis
+
+4. **Monitoring Flow**
    - AI operations are tracked by Langfuse
    - Performance metrics are collected
    - Analytics are made available via dashboard
