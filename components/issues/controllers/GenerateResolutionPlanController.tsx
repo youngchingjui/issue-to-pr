@@ -1,5 +1,16 @@
 "use client"
 
+import { HelpCircle } from "lucide-react"
+import { useState } from "react"
+
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { toast } from "@/lib/hooks/use-toast"
 import { CommentRequestSchema } from "@/lib/schemas/api"
 import { getApiKeyFromLocalStorage, SSEUtils } from "@/lib/utils/utils-common"
@@ -19,6 +30,8 @@ export default function GenerateResolutionPlanController({
   onComplete,
   onError,
 }: Props) {
+  const [postToGithub, setPostToGithub] = useState(false)
+
   const execute = async () => {
     try {
       const apiKey = getApiKeyFromLocalStorage()
@@ -36,6 +49,7 @@ export default function GenerateResolutionPlanController({
         issueNumber,
         repoFullName,
         apiKey,
+        postToGithub,
       })
       const response = await fetch("/api/comment", {
         method: "POST",
@@ -91,5 +105,39 @@ export default function GenerateResolutionPlanController({
     }
   }
 
-  return { execute }
+  return {
+    execute,
+    ToggleControl: () => (
+      <div className="flex items-center gap-3">
+        <Switch
+          id="post-to-github"
+          checked={postToGithub}
+          onCheckedChange={setPostToGithub}
+          className="data-[state=checked]:bg-primary"
+        />
+        <div className="flex items-center gap-2">
+          <Label
+            htmlFor="post-to-github"
+            className="text-sm text-muted-foreground"
+          >
+            Post to GitHub
+          </Label>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <HelpCircle className="h-4 w-4 text-muted-foreground/70 cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-[300px]">
+                <p>
+                  When enabled, the workflow will automatically post the
+                  generated plan as a comment on the GitHub issue. When
+                  disabled, the plan will only be shown here.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      </div>
+    ),
+  }
 }

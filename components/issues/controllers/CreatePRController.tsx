@@ -1,5 +1,16 @@
 "use client"
 
+import { HelpCircle } from "lucide-react"
+import { useState } from "react"
+
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { toast } from "@/lib/hooks/use-toast"
 import { ResolveRequestSchema } from "@/lib/schemas/api"
 import { getApiKeyFromLocalStorage } from "@/lib/utils/utils-common"
@@ -19,6 +30,8 @@ export default function CreatePRController({
   onComplete,
   onError,
 }: Props) {
+  const [postToGithub, setPostToGithub] = useState(true) // Default to true for PR creation
+
   const execute = async () => {
     try {
       const apiKey = getApiKeyFromLocalStorage()
@@ -36,6 +49,7 @@ export default function CreatePRController({
         issueNumber,
         repoFullName,
         apiKey,
+        postToGithub,
       })
       const response = await fetch("/api/resolve", {
         method: "POST",
@@ -72,5 +86,40 @@ export default function CreatePRController({
     }
   }
 
-  return { execute }
+  return {
+    execute,
+    ToggleControl: () => (
+      <div className="flex items-center gap-3">
+        <Switch
+          id="post-pr-to-github"
+          checked={postToGithub}
+          onCheckedChange={setPostToGithub}
+          className="data-[state=checked]:bg-primary"
+        />
+        <div className="flex items-center gap-2">
+          <Label
+            htmlFor="post-pr-to-github"
+            className="text-sm text-muted-foreground"
+          >
+            Create PR
+          </Label>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <HelpCircle className="h-4 w-4 text-muted-foreground/70 cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-[300px]">
+                <p>
+                  When enabled, the workflow will automatically create a pull
+                  request on GitHub with the proposed changes. When disabled,
+                  you&apos;ll be able to review the changes before they&apos;re
+                  published.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      </div>
+    ),
+  }
 }

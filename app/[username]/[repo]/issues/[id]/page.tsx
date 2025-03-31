@@ -35,7 +35,7 @@ export default async function IssueDetailsPage({ params }: Props) {
 
   return (
     <main className="container mx-auto p-4">
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 max-w-2xl mx-auto">
         <div className="flex items-center gap-4">
           <Link href={`/${username}/${repo}/issues`}>
             <Button

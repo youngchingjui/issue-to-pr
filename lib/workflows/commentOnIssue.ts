@@ -26,7 +26,8 @@ export default async function commentOnIssue(
   issueNumber: number,
   repo: GitHubRepository,
   apiKey: string,
-  jobId: string
+  jobId: string,
+  postToGithub: boolean = false
 ) {
   const trace = langfuse.trace({ name: "commentOnIssue" })
   let initialCommentId: number | null = null
@@ -62,54 +63,57 @@ export default async function commentOnIssue(
       timestamp: new Date(),
     })
 
-    // Post initial comment indicating processing start
-    await persistenceService.saveEvent({
-      type: "status",
-      workflowId: jobId,
-      data: { status: "Posting initial processing comment" },
-      timestamp: new Date(),
-    })
-
-    try {
-      const initialComment = await createIssueComment({
-        issueNumber,
-        repoFullName: repo.full_name,
-        comment: "[Issue To PR] Generating plan...please wait a minute.",
-      })
-      initialCommentId = initialComment.id
-    } catch (error) {
-      const githubError = error as GitHubError
-      console.error("Failed to create initial comment:", {
-        status: githubError.status,
-        message: githubError.message,
-        responseData: githubError.response?.data,
-        authMethod: AUTH_CONFIG.getCurrentProvider(),
-        repo: repo.full_name,
-        issueNumber,
+    // Only post to GitHub if postToGithub is true
+    if (postToGithub) {
+      // Post initial comment indicating processing start
+      await persistenceService.saveEvent({
+        type: "status",
+        workflowId: jobId,
+        data: { status: "Posting initial processing comment" },
+        timestamp: new Date(),
       })
 
-      if (githubError.status === 403) {
-        const isIntegrationError =
-          githubError.response?.data?.message?.includes(
-            "not accessible by integration"
-          )
-        if (isIntegrationError && AUTH_CONFIG.isUsingOAuth()) {
+      try {
+        const initialComment = await createIssueComment({
+          issueNumber,
+          repoFullName: repo.full_name,
+          comment: "[Issue To PR] Generating plan...please wait a minute.",
+        })
+        initialCommentId = initialComment.id
+      } catch (error) {
+        const githubError = error as GitHubError
+        console.error("Failed to create initial comment:", {
+          status: githubError.status,
+          message: githubError.message,
+          responseData: githubError.response?.data,
+          authMethod: AUTH_CONFIG.getCurrentProvider(),
+          repo: repo.full_name,
+          issueNumber,
+        })
+
+        if (githubError.status === 403) {
+          const isIntegrationError =
+            githubError.response?.data?.message?.includes(
+              "not accessible by integration"
+            )
+          if (isIntegrationError && AUTH_CONFIG.isUsingOAuth()) {
+            throw new Error(
+              "Permission denied: You don't have write access to this repository. " +
+                "Please ensure you have the necessary permissions to comment on this issue."
+            )
+          }
           throw new Error(
-            "Permission denied: You don't have write access to this repository. " +
-              "Please ensure you have the necessary permissions to comment on this issue."
+            "Permission denied: Unable to comment on this issue. Please check if you have write access to this repository."
+          )
+        } else if (githubError.status === 404) {
+          throw new Error(
+            "Issue or repository not found. Please check if the issue exists and you have access to it."
           )
         }
         throw new Error(
-          "Permission denied: Unable to comment on this issue. Please check if you have write access to this repository."
-        )
-      } else if (githubError.status === 404) {
-        throw new Error(
-          "Issue or repository not found. Please check if the issue exists and you have access to it."
+          `Failed to create comment: ${githubError.response?.data?.message || githubError.message}`
         )
       }
-      throw new Error(
-        `Failed to create comment: ${githubError.response?.data?.message || githubError.message}`
-      )
     }
 
     await persistenceService.saveEvent({
@@ -175,22 +179,22 @@ export default async function commentOnIssue(
     await persistenceService.saveEvent({
       type: "status",
       workflowId: jobId,
-      data: { status: "Generating comment" },
+      data: { status: "Reviewing issue and codebase" },
       timestamp: new Date(),
     })
 
     const response = await thinker.runWithFunctions()
     span.end()
 
-    await persistenceService.saveEvent({
-      type: "status",
-      workflowId: jobId,
-      data: { status: "Updating initial comment with final response" },
-      timestamp: new Date(),
-    })
+    // Only update GitHub comment if postToGithub is true
+    if (postToGithub && initialCommentId) {
+      await persistenceService.saveEvent({
+        type: "status",
+        workflowId: jobId,
+        data: { status: "Updating initial comment with final response" },
+        timestamp: new Date(),
+      })
 
-    // Update the initial comment with the final response
-    if (initialCommentId) {
       await updateIssueComment({
         repoFullName: repo.full_name,
         commentId: initialCommentId,
@@ -203,14 +207,14 @@ export default async function commentOnIssue(
         })
         throw new Error(`Failed to update comment: ${error.message}`)
       })
-    }
 
-    await persistenceService.saveEvent({
-      type: "status",
-      workflowId: jobId,
-      data: { status: "Comment updated successfully" },
-      timestamp: new Date(),
-    })
+      await persistenceService.saveEvent({
+        type: "status",
+        workflowId: jobId,
+        data: { status: "Comment updated successfully" },
+        timestamp: new Date(),
+      })
+    }
 
     // Return the comment
     return { status: "complete", issueComment: response }

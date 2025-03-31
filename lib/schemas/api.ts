@@ -65,10 +65,12 @@ export const CommentRequestSchema = z.object({
   issueNumber: z.number(),
   repoFullName: z.string().min(1),
   apiKey: z.string().min(1),
+  postToGithub: z.boolean().default(false),
 })
 
 export const ResolveRequestSchema = z.object({
   issueNumber: z.number(),
-  repoFullName: z.string().min(1),
-  apiKey: z.string().min(1),
+  repoFullName: z.string(),
+  apiKey: z.string(),
+  postToGithub: z.boolean().default(false),
 })

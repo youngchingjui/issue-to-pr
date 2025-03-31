@@ -22,47 +22,65 @@ export default function IssueActions({
   onWorkflowError,
 }: IssueActionsProps) {
   const repoFullName = getRepoFullNameFromIssue(issue)
+  const { execute: executePlan, ToggleControl: PlanToggleControl } =
+    GenerateResolutionPlanController({
+      issueNumber: issue.number,
+      repoFullName,
+      onStart: () => {
+        onWorkflowStart("Generating Plan...")
+      },
+      onComplete: onWorkflowComplete,
+      onError: onWorkflowError,
+    })
+
+  const { execute: executePR, ToggleControl: PRToggleControl } =
+    CreatePRController({
+      issueNumber: issue.number,
+      repoFullName,
+      onStart: () => {
+        onWorkflowStart("Creating PR...")
+      },
+      onComplete: onWorkflowComplete,
+      onError: onWorkflowError,
+    })
 
   return (
-    <div className="flex gap-4 mt-4">
-      <Button
-        onClick={() => {
-          const controller = GenerateResolutionPlanController({
-            issueNumber: issue.number,
-            repoFullName,
-            onStart: () => {
-              onWorkflowStart("Generating Plan...")
-            },
-            onComplete: onWorkflowComplete,
-            onError: onWorkflowError,
-          })
-          controller.execute()
-        }}
-        disabled={isLoading}
-      >
-        {activeWorkflow === "Generating Plan..."
-          ? "Generating..."
-          : "Generate Resolution Plan"}
-      </Button>
-      <Button
-        onClick={() => {
-          const controller = CreatePRController({
-            issueNumber: issue.number,
-            repoFullName,
-            onStart: () => {
-              onWorkflowStart("Creating PR...")
-            },
-            onComplete: onWorkflowComplete,
-            onError: onWorkflowError,
-          })
-          controller.execute()
-        }}
-        disabled={isLoading}
-      >
-        {activeWorkflow === "Creating PR..."
-          ? "Creating..."
-          : "Fix Issue and Create PR"}
-      </Button>
+    <div className="flex flex-col gap-6 mt-4">
+      <div className="grid gap-6">
+        <div className="border rounded-lg p-4 bg-muted/5">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <Button
+                onClick={executePlan}
+                disabled={isLoading}
+                variant="default"
+              >
+                {activeWorkflow === "Generating Plan..."
+                  ? "Generating..."
+                  : "Generate Resolution Plan"}
+              </Button>
+              <PlanToggleControl />
+            </div>
+          </div>
+        </div>
+
+        <div className="border rounded-lg p-4 bg-muted/5">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <Button
+                onClick={executePR}
+                disabled={isLoading}
+                variant="default"
+              >
+                {activeWorkflow === "Creating PR..."
+                  ? "Creating..."
+                  : "Fix Issue and Create PR"}
+              </Button>
+              <PRToggleControl />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

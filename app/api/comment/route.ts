@@ -19,7 +19,7 @@ import commentOnIssue from "@/lib/workflows/commentOnIssue"
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { issueNumber, repoFullName, apiKey } =
+    const { issueNumber, repoFullName, apiKey, postToGithub } =
       CommentRequestSchema.parse(body)
 
     // Generate a unique job ID
@@ -35,7 +35,8 @@ export async function POST(request: NextRequest) {
           issueNumber,
           fullRepo,
           apiKey,
-          jobId
+          jobId,
+          postToGithub
         )
         await updateJobStatus(jobId, "Completed: " + JSON.stringify(response))
       } catch (error) {
