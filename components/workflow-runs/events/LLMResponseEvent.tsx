@@ -1,8 +1,8 @@
 import ReactMarkdown from "react-markdown"
 
 import { CollapsibleContent } from "@/components/ui/collapsible-content"
+import { EventTime } from "@/components/workflow-runs/events"
 import { LLMResponseEvent as LLMResponseEventType } from "@/lib/types/workflow"
-import { formatEventTime } from "@/lib/utils/date-utils"
 
 export interface LLMResponseEventProps {
   event: LLMResponseEventType
@@ -15,9 +15,7 @@ export function LLMResponseEvent({ event, timestamp }: LLMResponseEventProps) {
       <div className="text-xs font-medium text-muted-foreground">
         LLM Response
       </div>
-      <div className="text-xs text-muted-foreground">
-        {formatEventTime(timestamp)}
-      </div>
+      <EventTime timestamp={timestamp} />
     </>
   )
 
@@ -29,6 +27,7 @@ export function LLMResponseEvent({ event, timestamp }: LLMResponseEventProps) {
       <div className="prose prose-sm dark:prose-invert max-w-none">
         <ReactMarkdown>{event.data.content}</ReactMarkdown>
       </div>
+      <EventTime timestamp={timestamp} />
     </CollapsibleContent>
   )
 }

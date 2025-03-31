@@ -1,8 +1,8 @@
 import ReactMarkdown from "react-markdown"
 
 import { CollapsibleContent } from "@/components/ui/collapsible-content"
+import { EventTime } from "@/components/workflow-runs/events"
 import { UserMessageEvent as UserMessageEventType } from "@/lib/types/workflow"
-import { formatEventTime } from "@/lib/utils/date-utils"
 
 export interface UserMessageEventProps {
   event: UserMessageEventType
@@ -15,9 +15,7 @@ export function UserMessageEvent({ event, timestamp }: UserMessageEventProps) {
       <div className="text-xs font-medium text-muted-foreground">
         User Message
       </div>
-      <div className="text-xs text-muted-foreground">
-        {formatEventTime(timestamp)}
-      </div>
+      <EventTime timestamp={timestamp} />
     </>
   )
 

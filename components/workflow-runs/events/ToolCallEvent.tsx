@@ -1,7 +1,7 @@
 import { Code2 } from "lucide-react"
 
+import { EventTime } from "@/components/workflow-runs/events"
 import { ToolCallEvent as ToolCallEventType } from "@/lib/types/workflow"
-import { formatEventTime } from "@/lib/utils/date-utils"
 
 export interface ToolCallEventProps {
   event: ToolCallEventType
@@ -21,9 +21,7 @@ export function ToolCallEvent({ event }: ToolCallEventProps) {
             <span className="font-medium">{data.toolName}</span>
           </div>
         </div>
-        <div className="text-xs text-muted-foreground">
-          {formatEventTime(timestamp)}
-        </div>
+        <EventTime timestamp={timestamp} />
       </div>
 
       {Object.entries(data.arguments).length > 0 && (

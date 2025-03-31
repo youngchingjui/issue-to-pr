@@ -2,8 +2,8 @@ import { XCircle } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { CollapsibleContent } from "@/components/ui/collapsible-content"
+import { EventTime } from "@/components/workflow-runs/events"
 import { ErrorEvent as ErrorEventType } from "@/lib/types/workflow"
-import { formatEventTime } from "@/lib/utils/date-utils"
 
 interface ErrorEventProps {
   event: ErrorEventType
@@ -49,9 +49,7 @@ export function ErrorEvent({ event }: ErrorEventProps) {
           </Badge>
         )}
       </div>
-      <div className="text-xs text-muted-foreground">
-        {formatEventTime(timestamp)}
-      </div>
+      <EventTime timestamp={timestamp} />
     </div>
   )
 

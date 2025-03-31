@@ -1,8 +1,8 @@
 import { ArrowDownLeft } from "lucide-react"
 
 import { CollapsibleContent } from "@/components/ui/collapsible-content"
+import { EventTime } from "@/components/workflow-runs/events"
 import { ToolResponseEvent as ToolResponseEventType } from "@/lib/types/workflow"
-import { formatEventTime } from "@/lib/utils/date-utils"
 
 export interface ToolResponseEventProps {
   event: ToolResponseEventType
@@ -21,9 +21,7 @@ export function ToolResponseEvent({ event }: ToolResponseEventProps) {
           <span className="font-medium">{data.toolName}</span>
         </div>
       </div>
-      <div className="text-xs text-muted-foreground">
-        {formatEventTime(timestamp)}
-      </div>
+      <EventTime timestamp={timestamp} />
     </div>
   )
 

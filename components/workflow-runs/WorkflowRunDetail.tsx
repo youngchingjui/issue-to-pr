@@ -1,6 +1,5 @@
 "use server"
 
-import { formatDistanceToNow } from "date-fns"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 
@@ -15,6 +14,7 @@ import {
   ToolResponseEvent,
   UserMessageEvent,
 } from "@/components/workflow-runs/events"
+import { TimeDisplay } from "@/components/workflow-runs/TimeDisplay"
 import { WorkflowEvent } from "@/lib/types/workflow"
 
 interface WorkflowRunDetailProps {
@@ -60,10 +60,7 @@ export default async function WorkflowRunDetail({
         <div>
           <h2 className="text-lg font-semibold">Workflow Run</h2>
           <p className="text-sm text-muted-foreground">
-            Started{" "}
-            {formatDistanceToNow(events[0].timestamp, {
-              addSuffix: true,
-            })}
+            Started <TimeDisplay timestamp={events[0].timestamp} />
           </p>
         </div>
       </div>

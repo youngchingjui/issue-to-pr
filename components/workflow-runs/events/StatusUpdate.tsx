@@ -1,7 +1,7 @@
 import { CheckCircle2 } from "lucide-react"
 
+import { EventTime } from "@/components/workflow-runs/events"
 import { StatusEvent } from "@/lib/types/workflow"
-import { formatEventTime } from "@/lib/utils/date-utils"
 
 interface StatusUpdateProps {
   event: StatusEvent
@@ -15,9 +15,7 @@ export function StatusUpdate({ event, timestamp }: StatusUpdateProps) {
         <CheckCircle2 className="w-4 h-4 text-green-500" />
       </div>
       <span className="text-sm text-muted-foreground">{event.data.status}</span>
-      <span className="text-xs text-muted-foreground ml-auto">
-        {formatEventTime(timestamp)}
-      </span>
+      <EventTime timestamp={timestamp} />
     </div>
   )
 }

@@ -1,8 +1,8 @@
 import ReactMarkdown from "react-markdown"
 
 import { CollapsibleContent } from "@/components/ui/collapsible-content"
+import { EventTime } from "@/components/workflow-runs/events"
 import { SystemPromptEvent as SystemPromptEventType } from "@/lib/types/workflow"
-import { formatEventTime } from "@/lib/utils/date-utils"
 
 export interface SystemPromptEventProps {
   event: SystemPromptEventType
@@ -18,9 +18,7 @@ export function SystemPromptEvent({
       <div className="text-xs font-medium text-blue-500 dark:text-blue-400">
         System Prompt
       </div>
-      <div className="text-xs text-muted-foreground">
-        {formatEventTime(timestamp)}
-      </div>
+      <EventTime timestamp={timestamp} />
     </>
   )
 
