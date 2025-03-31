@@ -262,15 +262,17 @@ export class Agent {
       const finalContent = response.choices[0].message.content || ""
 
       // Only emit status event to mark the end of the agent's execution
-      await this.persistenceService.saveEvent({
-        workflowId: this.jobId,
-        timestamp: new Date(),
-        type: "status",
-        data: {
-          status: "completed",
-          success: true,
-        },
-      })
+      if (this.jobId) {
+        await this.persistenceService.saveEvent({
+          workflowId: this.jobId,
+          timestamp: new Date(),
+          type: "status",
+          data: {
+            status: "completed",
+            success: true,
+          },
+        })
+      }
       return finalContent
     }
   }
