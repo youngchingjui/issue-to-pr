@@ -22,6 +22,7 @@ interface DataRowProps {
   children: React.ReactNode // For dropdown menu items
   isLoading?: boolean
   activeWorkflow?: string | null
+  openInNewTab?: boolean // New prop with default value true for backward compatibility
 }
 
 export default function DataRow({
@@ -34,6 +35,7 @@ export default function DataRow({
   children,
   isLoading = false,
   activeWorkflow = null,
+  openInNewTab = true, // Default to true for backward compatibility
 }: DataRowProps) {
   return (
     <TableRow>
@@ -42,8 +44,9 @@ export default function DataRow({
           <div className="font-medium text-base">
             <Link
               href={url}
-              target="_blank"
-              rel="noopener noreferrer"
+              {...(openInNewTab
+                ? { target: "_blank", rel: "noopener noreferrer" }
+                : {})}
               className="hover:underline"
             >
               {title}

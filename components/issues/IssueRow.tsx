@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useState } from "react"
 import React from "react"
 
@@ -52,16 +53,21 @@ export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
     },
   })
 
+  // Extract username and repo from repoFullName
+  const [username, repo] = repoFullName.split("/")
+  const localIssueUrl = `/${username}/${repo}/issues/${issue.number}`
+
   return (
     <DataRow
       title={issue.title}
       number={issue.number}
-      url={`https://github.com/${repoFullName}/issues/${issue.number}`}
+      url={localIssueUrl}
       user={issue.user?.login}
       state={issue.state}
       updatedAt={issue.updated_at}
       isLoading={isLoading}
       activeWorkflow={activeWorkflow}
+      openInNewTab={false}
     >
       <DropdownMenuItem onClick={generateResolutionPlanController.execute}>
         <div>
