@@ -1,3 +1,5 @@
+"use server"
+
 import { Octokit } from "@octokit/rest"
 import * as fs from "fs"
 import { App } from "octokit"
