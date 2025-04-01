@@ -3,11 +3,11 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { SearchParams } from "@/lib/actions/search-issues"
+import { SearchReposParams } from "@/lib/github/search"
 
 interface IssueSearchProps {
-  onSearch: (params: SearchParams) => void
-  defaultValues?: Partial<SearchParams>
+  onSearch: (params: SearchReposParams) => void
+  defaultValues?: Partial<SearchReposParams>
 }
 
 export function IssueSearch({ onSearch, defaultValues }: IssueSearchProps) {
