@@ -3,14 +3,14 @@ import PullRequestRow from "@/components/pull-requests/PullRequestRow"
 import { getPullRequestList } from "@/lib/github/pullRequests"
 
 export default async function PullRequestTable({
-  username,
+  login,
   repoName,
 }: {
-  username: string
+  login: string
   repoName: string
 }) {
   const pullRequests = await getPullRequestList({
-    repoFullName: `${username}/${repoName}`,
+    repoFullName: `${login}/${repoName}`,
   })
 
   return (
