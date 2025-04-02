@@ -187,15 +187,29 @@ export async function getUserRepositories(
   if (!octokit) {
     throw new Error("No octokit found")
   }
-  const response = await octokit.repos.listForAuthenticatedUser({
-    username,
-    ...options,
-  })
+  try {
+    const response = await octokit.repos.listForUser({
+      username,
+      ...options,
+    })
 
-  const linkHeader = response.headers.link
-  const lastPageMatch = linkHeader?.match(
-    /<[^>]*[?&]page=(\d+)[^>]*>;\s*rel="last"/
-  )
-  const maxPage = lastPageMatch ? Number(lastPageMatch[1]) : 1
-  return { repositories: response.data, maxPage }
+    const linkHeader = response.headers.link
+    const lastPageMatch = linkHeader?.match(
+      /<[^>]*[?&]page=(\d+)[^>]*>;\s*rel="last"/
+    )
+    const maxPage = lastPageMatch ? Number(lastPageMatch[1]) : 1
+    return { repositories: response.data, maxPage }
+  } catch (error) {
+    // Handle specific errors from GitHub
+    if (error.status === 404) {
+      throw new GitHubError(`User not found: ${username}`, 404)
+    }
+    if (error.status === 403) {
+      throw new GitHubError("Authentication failed or rate limit exceeded", 403)
+    }
+
+    // Log and throw unexpected errors
+    console.error("Unexpected error in getUserRepositories:", error)
+    throw new GitHubError(`Failed to fetch user repositories: ${error.message}`, 500)
+  }
 }
