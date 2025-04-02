@@ -173,7 +173,7 @@ export async function getRepoFromString(
 export async function getUserRepositories(
   username: string,
   options: {
-    type?: "owner" | "all" | "public" | "private" | "member"
+    type?: "owner" | "all" | "member"
     sort?: "created" | "updated" | "pushed" | "full_name"
     direction?: "asc" | "desc"
     per_page?: number
@@ -187,15 +187,104 @@ export async function getUserRepositories(
   if (!octokit) {
     throw new Error("No octokit found")
   }
-  const response = await octokit.repos.listForAuthenticatedUser({
-    username,
-    ...options,
-  })
+  try {
+    const response = await octokit.rest.repos.listForUser({
+      username,
+      ...options,
+    })
 
-  const linkHeader = response.headers.link
-  const lastPageMatch = linkHeader?.match(
-    /<[^>]*[?&]page=(\d+)[^>]*>;\s*rel="last"/
-  )
-  const maxPage = lastPageMatch ? Number(lastPageMatch[1]) : 1
-  return { repositories: response.data, maxPage }
+    const linkHeader = response.headers.link
+    const lastPageMatch = linkHeader?.match(
+      /<[^>]*[?&]page=(\d+)[^>]*>;\s*rel="last"/
+    )
+    const maxPage = lastPageMatch ? Number(lastPageMatch[1]) : 1
+    return {
+      repositories: response.data as AuthenticatedUserRepository[],
+      maxPage,
+    }
+  } catch (error) {
+    // Handle specific errors from GitHub
+    if (error.status === 404) {
+      throw new GitHubError(`User not found: ${username}`, 404)
+    }
+    if (error.status === 403) {
+      throw new GitHubError("Authentication failed or rate limit exceeded", 403)
+    }
+
+    // Log and throw unexpected errors
+    console.error("Unexpected error in getUserRepositories:", error)
+    throw new GitHubError(
+      `Failed to fetch user repositories: ${error.message}`,
+      500
+    )
+  }
+}
+
+export async function getAuthenticatedUserRepositories(
+  options: {
+    type?: "all" | "owner" | "public" | "private" | "member"
+    sort?: "created" | "updated" | "pushed" | "full_name"
+    direction?: "asc" | "desc"
+    per_page?: number
+    page?: number
+    affiliation?: string
+  } = {}
+): Promise<{
+  repositories: AuthenticatedUserRepository[]
+  maxPage: number
+}> {
+  const octokit = await getOctokit()
+  if (!octokit) {
+    throw new Error("No octokit found")
+  }
+  try {
+    const response = await octokit.rest.repos.listForAuthenticatedUser({
+      ...options,
+    })
+
+    const linkHeader = response.headers.link
+    const lastPageMatch = linkHeader?.match(
+      /<[^>]*[?&]page=(\d+)[^>]*>;\s*rel="last"/
+    )
+    const maxPage = lastPageMatch ? Number(lastPageMatch[1]) : 1
+    return {
+      repositories: response.data as AuthenticatedUserRepository[],
+      maxPage,
+    }
+  } catch (error) {
+    // Handle specific errors from GitHub
+    if (error.status === 404) {
+      throw new GitHubError("User not found", 404)
+    }
+    if (error.status === 403) {
+      throw new GitHubError("Authentication failed or rate limit exceeded", 403)
+    }
+
+    // Log and throw unexpected errors
+    console.error(
+      "Unexpected error in getAuthenticatedUserRepositories:",
+      error
+    )
+    throw new GitHubError(
+      `Failed to fetch authenticated user repositories: ${error.message}`,
+      500
+    )
+  }
+}
+
+export function combineRepositories<T extends { id: number }>(
+  repos1: T[],
+  repos2: T[]
+): T[] {
+  // Create a Map to store unique repositories by their ID
+  const repoMap = new Map<number, T>()
+
+  // Add all repositories from the first array
+  repos1.forEach((repo) => repoMap.set(repo.id, repo))
+
+  // Add all repositories from the second array (will overwrite duplicates)
+  repos2.forEach((repo) => repoMap.set(repo.id, repo))
+
+  // Convert the Map values back to an array and sort by id
+  return Array.from(repoMap.values()).sort((a, b) => b.id - a.id)
 }
