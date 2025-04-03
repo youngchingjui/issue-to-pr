@@ -163,8 +163,19 @@ export function IssueExplorer({ searchAction }: IssueExplorerProps) {
                         </span>
                       </div>
 
-                      <div className="mt-2 text-sm text-gray-500">
-                        #{issue.number} opened by {issue.user?.login}
+                      <div className="mt-2 text-sm text-gray-500 space-x-4">
+                        <span>
+                          #{issue.number} opened by {issue.user?.login}
+                        </span>
+                        <span>
+                          Created:{" "}
+                          {new Date(issue.created_at).toLocaleDateString()}
+                        </span>
+                        <span>
+                          Last updated:{" "}
+                          {new Date(issue.updated_at).toLocaleDateString()}
+                        </span>
+                        <span>{issue.comments} comments</span>
                       </div>
 
                       <div className="mt-2 flex flex-wrap gap-2">

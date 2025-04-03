@@ -84,6 +84,10 @@ export interface SearchReposParams {
   state?: "open" | "closed" | "all"
   perPage?: number
   page?: number
+  createdAfter?: string // ISO date string
+  createdBefore?: string // ISO date string
+  sort?: "created" | "updated" | "comments"
+  order?: "asc" | "desc"
 }
 
 export async function searchReposWithIssues({
@@ -95,6 +99,10 @@ export async function searchReposWithIssues({
   state = "open",
   perPage = 10,
   page = 1,
+  createdAfter,
+  createdBefore,
+  sort = "created",
+  order = "desc",
 }: SearchReposParams): Promise<SearchReposWithIssuesResult> {
   const octokit = await getOctokit()
   if (!octokit) {
@@ -107,6 +115,8 @@ export async function searchReposWithIssues({
     if (language) searchQuery += ` language:${language}`
     if (maxStars) searchQuery += ` stars:<=${maxStars}`
     if (minStars) searchQuery += ` stars:>=${minStars}`
+    if (createdAfter) searchQuery += ` created:>=${createdAfter}`
+    if (createdBefore) searchQuery += ` created:<=${createdBefore}`
 
     // Search for repositories
     const repoResponse = await octokit.rest.search.repos({
@@ -126,6 +136,8 @@ export async function searchReposWithIssues({
             state,
             labels: issueLabel,
             per_page: 100,
+            sort,
+            order,
           })
 
           return {
