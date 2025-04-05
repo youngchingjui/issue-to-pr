@@ -1,7 +1,9 @@
+import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 
 import BaseGitHubItemCard from "@/components/github/BaseGitHubItemCard"
+import { Button } from "@/components/ui/button"
 import WorkflowRunDetail from "@/components/workflow-runs/WorkflowRunDetail"
 import { getIssue } from "@/lib/github/issues"
 import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceService"
@@ -53,26 +55,44 @@ export default async function WorkflowRunDetailPage({
 
   return (
     <main className="container mx-auto p-4">
-      <div className="flex flex-col gap-6 max-w-3xl mx-auto">
-        <h1 className="text-2xl font-bold">
-          {workflowMetadata.workflowType === "commentOnIssue"
-            ? "Comment on Issue Workflow"
-            : "Workflow Run"}{" "}
-          - {issue.title}
-        </h1>
-        <div className="flex flex-col gap-4">
-          <Link
-            href={`/${owner}/${repo}/issues/${issue.number}`}
-            className="block"
-          >
+      <div className="flex flex-col gap-6 max-w-4xl mx-auto">
+        {/* Navigation */}
+        <div className="flex items-center gap-2">
+          <Link href="/workflow-runs">
+            <Button variant="ghost" size="sm" className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back to Workflows
+            </Button>
+          </Link>
+        </div>
+
+        {/* Page Header */}
+        <div className="space-y-2">
+          <h1 className="text-2xl font-bold">{issue.title}</h1>
+          <p className="text-sm text-muted-foreground">
+            Workflow Type:{" "}
+            {workflowMetadata.workflowType === "commentOnIssue"
+              ? "Comment on Issue"
+              : "Unknown Workflow"}
+          </p>
+        </div>
+
+        {/* Context Section */}
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold">Associated Issue</h2>
+          <div className="max-w-2xl">
             <BaseGitHubItemCard
               item={{
                 ...issue,
                 type: "issue",
               }}
             />
-          </Link>
-          <h2 className="text-xl font-semibold">Workflow Timeline</h2>
+          </div>
+        </div>
+
+        {/* Timeline Section */}
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold">Workflow Timeline</h2>
           <WorkflowRunDetail events={workflow.events} />
         </div>
       </div>

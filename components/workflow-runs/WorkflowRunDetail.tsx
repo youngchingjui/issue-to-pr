@@ -1,9 +1,5 @@
 "use server"
 
-import { ArrowLeft } from "lucide-react"
-import Link from "next/link"
-
-import { Button } from "@/components/ui/button"
 import {
   DefaultEvent,
   ErrorEvent,
@@ -14,7 +10,6 @@ import {
   ToolResponseEvent,
   UserMessageEvent,
 } from "@/components/workflow-runs/events"
-import { TimeDisplay } from "@/components/workflow-runs/TimeDisplay"
 import { WorkflowEvent } from "@/lib/types/workflow"
 
 interface WorkflowRunDetailProps {
@@ -50,28 +45,12 @@ export default async function WorkflowRunDetail({
   }
 
   return (
-    <div className="space-y-4 max-w-3xl mx-auto px-4 sm:px-6">
-      <div className="flex items-center space-x-4">
-        <Link href="/workflow-runs">
-          <Button variant="outline" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div>
-          <h2 className="text-lg font-semibold">Workflow Run</h2>
-          <p className="text-sm text-muted-foreground">
-            Started <TimeDisplay timestamp={events[0].timestamp} />
-          </p>
+    <div className="bg-card border rounded-lg overflow-hidden">
+      {events.map((event) => (
+        <div key={event.id} className="p-3 sm:p-4">
+          <EventContent event={event} />
         </div>
-      </div>
-
-      <div className="bg-card border rounded-lg p-3 sm:p-4">
-        <div className="space-y-3">
-          {events.map((event, index) => (
-            <EventContent key={event.id} event={event} />
-          ))}
-        </div>
-      </div>
+      ))}
     </div>
   )
 }
