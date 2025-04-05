@@ -118,10 +118,10 @@ export class WorkflowPersistenceService {
   async saveEvent(event: Omit<WorkflowEvent, "id">) {
     const session = await this.neo4j.getSession()
     try {
-      // Then create event node with relationships
+      // Only handle event creation and linking, no workflow metadata management
       const result = await session.run(
         `
-        MATCH (w:Workflow {id: $workflowId})
+        MERGE (w:Workflow {id: $workflowId})
         CREATE (e:Event {
           id: $eventId,
           type: $type,
@@ -130,12 +130,14 @@ export class WorkflowPersistenceService {
         })
         CREATE (w)-[:BELONGS_TO_WORKFLOW]->(e)
         WITH e, w
-        MATCH (w)-[:BELONGS_TO_WORKFLOW]->(prev:Event)
+        OPTIONAL MATCH (w)-[:BELONGS_TO_WORKFLOW]->(prev:Event)
         WHERE prev.timestamp < e.timestamp
         WITH e, prev
         ORDER BY prev.timestamp DESC
         LIMIT 1
-        CREATE (prev)-[:NEXT_EVENT]->(e)
+        FOREACH(x IN CASE WHEN prev IS NOT NULL THEN [1] ELSE [] END |
+          CREATE (prev)-[:NEXT_EVENT]->(e)
+        )
         RETURN e
         `,
         {

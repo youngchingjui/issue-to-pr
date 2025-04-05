@@ -29,16 +29,20 @@ export async function POST(request: NextRequest) {
           issueNumber,
         })
 
-        const response = await resolveIssue(issue, fullRepo, apiKey, jobId)
-
-        // Log successful completion
-        console.log("Successfully resolved issue:", {
-          issueNumber,
-          repoFullName,
-          jobId,
-          response,
+        // Initialize workflow with metadata first
+        await persistenceService.initializeWorkflow(jobId, {
+          workflowType: "resolve_issue",
+          issue: {
+            number: issueNumber,
+            repoFullName,
+            title: issue.title,
+          },
+          postToGithub: body.postToGithub ?? false,
         })
 
+        const response = await resolveIssue(issue, fullRepo, apiKey, jobId)
+
+        console.log(response)
         // Save completion status
         await persistenceService.saveEvent({
           type: "status",
@@ -50,14 +54,6 @@ export async function POST(request: NextRequest) {
           timestamp: new Date(),
         })
       } catch (error) {
-        // Log the error
-        console.error("Error in resolve workflow:", {
-          issueNumber,
-          repoFullName,
-          jobId,
-          error,
-        })
-
         // Save error status
         await persistenceService.saveEvent({
           type: "error",
