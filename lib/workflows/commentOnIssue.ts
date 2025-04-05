@@ -22,6 +22,17 @@ interface GitHubError extends Error {
   }
 }
 
+type WorkflowMetadata = Record<string, unknown> & {
+  workflowType: string
+  issue: {
+    number: number
+    /** Full repository name in the format 'owner/repo' (e.g. 'octocat/Hello-World') */
+    repoFullName: string
+    title?: string
+  }
+  postToGithub: boolean
+}
+
 export default async function commentOnIssue(
   issueNumber: number,
   repo: GitHubRepository,
@@ -32,6 +43,18 @@ export default async function commentOnIssue(
   const trace = langfuse.trace({ name: "commentOnIssue" })
   let initialCommentId: number | null = null
   const persistenceService = new WorkflowPersistenceService()
+
+  // Initialize workflow with metadata
+  const workflowMetadata: WorkflowMetadata = {
+    workflowType: "commentOnIssue",
+    issue: {
+      number: issueNumber,
+      repoFullName: repo.full_name,
+    },
+    postToGithub,
+  }
+
+  await persistenceService.initializeWorkflow(jobId, workflowMetadata)
 
   try {
     await persistenceService.saveEvent({
@@ -56,6 +79,10 @@ export default async function commentOnIssue(
       )
     })
 
+    // Update workflow metadata with issue title
+    workflowMetadata.issue.title = issue.title
+    await persistenceService.initializeWorkflow(jobId, workflowMetadata)
+
     await persistenceService.saveEvent({
       type: "status",
       workflowId: jobId,
@@ -65,7 +92,6 @@ export default async function commentOnIssue(
 
     // Only post to GitHub if postToGithub is true
     if (postToGithub) {
-      // Post initial comment indicating processing start
       await persistenceService.saveEvent({
         type: "status",
         workflowId: jobId,

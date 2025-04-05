@@ -9,6 +9,7 @@ export interface WorkflowWithEvents {
   events: WorkflowEvent[]
   status: "active" | "completed" | "error"
   lastEventTimestamp: Date | null
+  metadata?: Record<string, unknown>
 }
 
 export class WorkflowPersistenceService {
@@ -16,6 +17,29 @@ export class WorkflowPersistenceService {
 
   constructor() {
     this.neo4j = Neo4jClient.getInstance()
+  }
+
+  async initializeWorkflow(
+    workflowId: string,
+    metadata: Record<string, unknown>
+  ) {
+    const session = await this.neo4j.getSession()
+    try {
+      await session.run(
+        `
+        MERGE (w:Workflow {id: $workflowId})
+        SET w.created_at = datetime(),
+            w.metadata = $metadata
+        RETURN w
+        `,
+        {
+          workflowId,
+          metadata: JSON.stringify(metadata),
+        }
+      )
+    } finally {
+      await session.close()
+    }
   }
 
   static async getWorkflows(): Promise<WorkflowWithEvents[]> {
@@ -27,7 +51,7 @@ export class WorkflowPersistenceService {
         MATCH (w:Workflow)
         OPTIONAL MATCH (w)-[:BELONGS_TO_WORKFLOW]->(e:Event)
         WITH w, collect(e) as events
-        RETURN w.id as id, events
+        RETURN w.id as id, w.metadata as metadata, events
         ORDER BY w.created_at DESC
         `
       )
@@ -36,6 +60,7 @@ export class WorkflowPersistenceService {
         result.records.map(async (record: Neo4jRecord) => {
           const workflowId = record.get("id")
           const events = record.get("events") as Node[]
+          const metadata = record.get("metadata")
 
           // Convert Neo4j events to WorkflowEvent[]
           const workflowEvents: WorkflowEvent[] = events
@@ -45,9 +70,6 @@ export class WorkflowPersistenceService {
               type: e.properties.type as WorkflowEventType,
               workflowId,
               data: JSON.parse(e.properties.data as string),
-              metadata: e.properties.metadata
-                ? JSON.parse(e.properties.metadata as string)
-                : undefined,
               timestamp: new Date(e.properties.timestamp as string),
             }))
             .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
@@ -75,6 +97,7 @@ export class WorkflowPersistenceService {
             events: workflowEvents,
             status,
             lastEventTimestamp,
+            metadata: metadata ? JSON.parse(metadata as string) : undefined,
           }
         })
       )
@@ -86,16 +109,6 @@ export class WorkflowPersistenceService {
   async saveEvent(event: Omit<WorkflowEvent, "id">) {
     const session = await this.neo4j.getSession()
     try {
-      // First ensure workflow node exists
-      await session.run(
-        `
-        MERGE (w:Workflow {id: $workflowId})
-        ON CREATE SET w.created_at = datetime()
-        RETURN w
-        `,
-        { workflowId: event.workflowId }
-      )
-
       // Then create event node with relationships
       const result = await session.run(
         `
@@ -104,7 +117,6 @@ export class WorkflowPersistenceService {
           id: $eventId,
           type: $type,
           data: $data,
-          metadata: $metadata,
           timestamp: datetime($timestamp)
         })
         CREATE (w)-[:BELONGS_TO_WORKFLOW]->(e)
@@ -122,7 +134,6 @@ export class WorkflowPersistenceService {
           workflowId: event.workflowId,
           type: event.type,
           data: JSON.stringify(event.data),
-          metadata: event.metadata ? JSON.stringify(event.metadata) : null,
           timestamp: event.timestamp.toISOString(),
         }
       )
@@ -133,29 +144,46 @@ export class WorkflowPersistenceService {
     }
   }
 
-  async getWorkflowEvents(workflowId: string): Promise<WorkflowEvent[]> {
+  async getWorkflowEvents(workflowId: string): Promise<{
+    events: WorkflowEvent[]
+    metadata?: Record<string, unknown>
+  }> {
     const session = await this.neo4j.getSession()
     try {
       const result = await session.run(
         `
-        MATCH (w:Workflow {id: $workflowId})-[:BELONGS_TO_WORKFLOW]->(e:Event)
-        RETURN e
-        ORDER BY e.timestamp
+        MATCH (w:Workflow {id: $workflowId})
+        OPTIONAL MATCH (w)-[:BELONGS_TO_WORKFLOW]->(e:Event)
+        WITH w, collect(e) as events
+        RETURN w.metadata as metadata, events
+        ORDER BY w.created_at DESC
         `,
         { workflowId }
       )
 
-      return result.records.map((record) => {
-        const event = record.get("e").properties
-        return {
-          id: event.id,
-          type: event.type as WorkflowEventType,
+      if (result.records.length === 0) {
+        return { events: [], metadata: undefined }
+      }
+
+      const record = result.records[0]
+      const events = record.get("events") as Node[]
+      const metadata = record.get("metadata")
+
+      const workflowEvents: WorkflowEvent[] = events
+        .filter((e) => e !== null)
+        .map((e) => ({
+          id: e.properties.id as string,
+          type: e.properties.type as WorkflowEventType,
           workflowId,
-          data: JSON.parse(event.data),
-          metadata: event.metadata ? JSON.parse(event.metadata) : undefined,
-          timestamp: new Date(event.timestamp),
-        }
-      })
+          data: JSON.parse(e.properties.data as string),
+          timestamp: new Date(e.properties.timestamp as string),
+        }))
+        .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
+
+      return {
+        events: workflowEvents,
+        metadata: metadata ? JSON.parse(metadata as string) : undefined,
+      }
     } finally {
       await session.close()
     }

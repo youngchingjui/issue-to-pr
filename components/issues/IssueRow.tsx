@@ -35,7 +35,7 @@ export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
     },
   })
 
-  const generateResolutionPlanController = GenerateResolutionPlanController({
+  const { execute: generateResolutionPlan } = GenerateResolutionPlanController({
     issueNumber: issue.number,
     repoFullName,
     onStart: () => {
@@ -68,7 +68,7 @@ export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
       activeWorkflow={activeWorkflow}
       openInNewTab={false}
     >
-      <DropdownMenuItem onClick={generateResolutionPlanController.execute}>
+      <DropdownMenuItem onClick={generateResolutionPlan}>
         <div>
           <div>Generate Resolution Plan</div>
           <div className="text-xs text-muted-foreground">
