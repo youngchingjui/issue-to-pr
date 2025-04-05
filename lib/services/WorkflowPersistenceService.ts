@@ -12,6 +12,18 @@ export interface WorkflowWithEvents {
   metadata?: Record<string, unknown>
 }
 
+// Add a new type for workflow metadata
+export interface WorkflowMetadata {
+  workflowType: string
+  issue?: {
+    number: number
+    /** Full repository name in the format 'owner/repo' (e.g. 'octocat/Hello-World') */
+    repoFullName: string
+    title?: string
+  }
+  postToGithub: boolean
+}
+
 export class WorkflowPersistenceService {
   private neo4j: Neo4jClient
 
@@ -19,10 +31,7 @@ export class WorkflowPersistenceService {
     this.neo4j = Neo4jClient.getInstance()
   }
 
-  async initializeWorkflow(
-    workflowId: string,
-    metadata: Record<string, unknown>
-  ) {
+  async initializeWorkflow(workflowId: string, metadata: WorkflowMetadata) {
     const session = await this.neo4j.getSession()
     try {
       await session.run(
@@ -146,7 +155,7 @@ export class WorkflowPersistenceService {
 
   async getWorkflowEvents(workflowId: string): Promise<{
     events: WorkflowEvent[]
-    metadata?: Record<string, unknown>
+    metadata?: WorkflowMetadata
   }> {
     const session = await this.neo4j.getSession()
     try {
