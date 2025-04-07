@@ -187,7 +187,7 @@ const Pricing = () => {
               </CardHeader>
               <div className="w-full flex items-center justify-center mt-6 px-6">
                 <Link
-                  href="https://buy.stripe.com/subscription"
+                  href="https://buy.stripe.com/6oE6se1Zy5UH9jy9AI"
                   target="_blank"
                   className="w-full"
                 >
