@@ -1,3 +1,5 @@
+As you make changes to the codebase, don't forget to update this to-do list with 'x' checks in the boxes.
+
 ### URL Structure & Routing
 
 1. [ ] Evaluate URL structure options:
@@ -85,9 +87,9 @@
 
 1. [ ] Update pricing section to reflect cold email pricing:
 
-   - [ ] Change from $1/month to "$10 per successfully merged PR"
-   - [ ] Add "Flexible subscription plans available" option
-   - [ ] Update pricing card to show both pay-per-PR and subscription options
+   - [x] Change from $1/month to "$10 per successfully merged PR"
+   - [x] Add "Flexible subscription plans available" option
+   - [x] Update pricing card to show both pay-per-PR and subscription options
 
 2. [ ] Add social proof section:
 
@@ -122,3 +124,37 @@
    - [ ] Simplify the process steps to match cold email flow
    - [ ] Add emphasis on 2-minute resolution time
    - [ ] Add step about maintainer review process
+
+### Metered Billing Implementation
+
+1. [ ] Set up GitHub OAuth integration:
+
+   - [ ] Register application with GitHub
+   - [ ] Implement OAuth flow for user authentication
+   - [ ] Store GitHub user information securely
+
+2. [ ] Create Stripe integration:
+
+   - [ ] Set up Stripe account and API keys
+   - [ ] Implement Stripe Elements for secure payment collection
+   - [ ] Create customer records in Stripe linked to GitHub users
+
+3. [ ] Implement subscription management:
+
+   - [ ] Create metered billing products and prices in Stripe
+   - [ ] Set up per-PR pricing ($10/merged PR)
+   - [ ] Configure monthly subscription option ($50/month per repo)
+   - [ ] Implement usage tracking for metered billing
+
+4. [ ] Build user subscription page:
+
+   - [ ] Design subscription management interface
+   - [ ] Implement payment method management
+   - [ ] Create usage dashboard for customers
+   - [ ] Add subscription plan switching functionality
+
+5. [ ] Set up billing automation:
+   - [ ] Implement webhook handling for Stripe events
+   - [ ] Create automated billing for pay-per-PR usage
+   - [ ] Implement invoice generation and delivery
+   - [ ] Set up payment failure handling and retry logic
