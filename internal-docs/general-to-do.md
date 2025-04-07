@@ -80,3 +80,45 @@
 3. [ ] Optimize data loading with:
    - [ ] Server-side rendering where appropriate
    - [ ] Progressive loading for long timelines
+
+### Landing Page Updates
+
+1. [ ] Update pricing section to reflect cold email pricing:
+
+   - [ ] Change from $1/month to "$10 per successfully merged PR"
+   - [ ] Add "Flexible subscription plans available" option
+   - [ ] Update pricing card to show both pay-per-PR and subscription options
+
+2. [ ] Add social proof section:
+
+   - [ ] Add "Already helping 9 open-source maintainers ship 40% faster"
+   - [ ] Add urban-wheels as example case study
+   - [ ] Create space for testimonials
+
+3. [ ] Update value proposition in Hero:
+
+   - [ ] Add "Cuts issue resolution time from hours to 2 minutes"
+   - [ ] Emphasize maintaining codebase quality and style
+   - [ ] Add mention of final PR review control
+
+4. [ ] Enhance Features section:
+
+   - [ ] Add emphasis on TypeScript/Next.js expertise
+   - [ ] Add feature about maintaining existing codebase patterns
+   - [ ] Add feature about production-ready code generation
+
+5. [ ] Update GetStarted section:
+
+   - [ ] Add option for free issue resolution plan
+   - [ ] Add clearer CTA for booking demo/call
+   - [ ] Add personalized support offering
+
+6. [ ] Add Integrations section:
+
+   - [ ] Highlight specific framework support (Next.js, TypeScript, etc.)
+   - [ ] Show language/framework compatibility
+
+7. [ ] Steps section updates:
+   - [ ] Simplify the process steps to match cold email flow
+   - [ ] Add emphasis on 2-minute resolution time
+   - [ ] Add step about maintainer review process
