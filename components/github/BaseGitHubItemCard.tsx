@@ -1,5 +1,8 @@
+import Link from "next/link"
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { GitHubItem } from "@/lib/types/github"
+import { getRepoFullNameFromIssue } from "@/lib/utils/utils-common"
 
 interface BaseGitHubItemCardProps {
   item: GitHubItem
@@ -10,6 +13,15 @@ export default function BaseGitHubItemCard({
   item,
   children,
 }: BaseGitHubItemCardProps) {
+  // Get repository full name using the utility function
+  const repoFullName = getRepoFullNameFromIssue(item)
+
+  // Construct the issue URL
+  const issueUrl =
+    item.type === "issue"
+      ? `/${repoFullName}/issues/${item.number}`
+      : `/${repoFullName}/pulls/${item.number}`
+
   return (
     <Card>
       <CardHeader>
@@ -23,7 +35,9 @@ export default function BaseGitHubItemCard({
           >
             {item.type === "issue" ? "Issue" : "Pull Request"}
           </span>
-          <CardTitle>{item.title}</CardTitle>
+          <Link href={issueUrl} className="hover:underline">
+            <CardTitle>{item.title}</CardTitle>
+          </Link>
         </div>
       </CardHeader>
       <CardContent>
