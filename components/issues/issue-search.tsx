@@ -29,7 +29,6 @@ const formSchema = z.object({
   issueLabel: z.string().min(1, "Issue label is required"),
   state: z.enum(["OPEN", "CLOSED"]).default("OPEN"),
   createdAfter: z.string().optional(),
-  createdBefore: z.string().optional(),
 })
 
 type FormSchema = z.infer<typeof formSchema>
@@ -48,7 +47,6 @@ export function IssueSearch({ onSearch, defaultValues }: IssueSearchProps) {
       issueLabel: defaultValues?.issueLabel || "",
       state: defaultValues?.state || "OPEN",
       createdAfter: defaultValues?.createdAfter || "",
-      createdBefore: defaultValues?.createdBefore || "",
     },
   })
 
@@ -138,20 +136,6 @@ export function IssueSearch({ onSearch, defaultValues }: IssueSearchProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Created After</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="createdBefore"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Created Before</FormLabel>
                 <FormControl>
                   <Input type="date" {...field} />
                 </FormControl>

@@ -17,7 +17,6 @@ export interface SearchReposWithIssuesParams {
   perPage?: number
   page?: number
   createdAfter?: string // ISO date string
-  createdBefore?: string // ISO date string
   sort: IssueOrderField
   order: OrderDirection
 }
@@ -43,7 +42,7 @@ export interface SearchReposWithIssuesResult {
         name: string
         color: string
       }>
-      user: {
+      author: {
         login: string
       }
     }>
@@ -87,7 +86,7 @@ interface GraphQLSearchResponse {
               color: string
             }>
           }
-          user: {
+          author: {
             login: string
           }
         }>
@@ -184,7 +183,6 @@ export async function searchReposWithIssuesGraphQL({
   perPage = 10,
   page = 1,
   createdAfter,
-  createdBefore,
   sort = "CREATED_AT",
   order = "DESC",
 }: SearchReposWithIssuesParams): Promise<SearchReposWithIssuesResult> {
@@ -250,7 +248,7 @@ export async function searchReposWithIssuesGraphQL({
                     color
                   }
                 }
-                user: author {
+                author {
                   login
                 }
               }
@@ -287,29 +285,31 @@ export async function searchReposWithIssuesGraphQL({
         description: repo.description,
         stargazersCount: repo.stargazerCount,
         url: repo.url,
-        issues: repo.issues.nodes.map((issue) => ({
-          id: issue.id,
-          number: issue.number,
-          title: issue.title,
-          body: issue.body,
-          state: issue.state,
-          createdAt: issue.createdAt,
-          updatedAt: issue.updatedAt,
-          url: issue.url,
-          comments: issue.comments.totalCount,
-          labels: issue.labels.nodes.map((label) => ({
-            id: label.id,
-            name: label.name,
-            color: label.color,
-          })),
-          user: {
-            login: issue.user.login,
-          },
-        })),
+        issues:
+          repo.issues?.nodes?.map((issue) => ({
+            id: issue.id,
+            number: issue.number,
+            title: issue.title,
+            body: issue.body,
+            state: issue.state,
+            createdAt: issue.createdAt,
+            updatedAt: issue.updatedAt,
+            url: issue.url,
+            comments: issue.comments?.totalCount ?? 0,
+            labels:
+              issue.labels?.nodes?.map((label) => ({
+                id: label.id,
+                name: label.name,
+                color: label.color,
+              })) ?? [],
+            author: {
+              login: issue.author?.login ?? "unknown",
+            },
+          })) ?? [],
       })),
       totalReposFound: response.search.repositoryCount,
       reposWithoutIssues: response.search.nodes.filter(
-        (repo) => repo.issues.totalCount === 0
+        (repo) => !repo.issues?.totalCount
       ).length,
       hasNextPage: response.search.pageInfo.hasNextPage,
       page,

@@ -156,7 +156,7 @@ export function IssueExplorer() {
 
                       <div className="mt-2 text-sm text-gray-500 space-x-4">
                         <span>
-                          #{issue.number} opened by {issue.user.login}
+                          #{issue.number} opened by {issue.author.login}
                         </span>
                         <span>
                           Created:{" "}
