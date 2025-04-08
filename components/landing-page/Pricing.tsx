@@ -96,11 +96,7 @@ const Pricing = () => {
                 </h2>
               </CardHeader>
               <div className="w-full flex items-center justify-center mt-6 px-6">
-                <Link
-                  href="https://buy.stripe.com/dR603Q1Zy6YL7bq007"
-                  target="_blank"
-                  className="w-full"
-                >
+                <Link href="/checkout/pay-per-pr" className="w-full">
                   <ShineButton className="text-base w-full sm:text-lg py-3.5 bg-gradient-to-r from-accent to-accent/80 text-accent-foreground hover:from-accent/90 hover:to-accent/70 border-none font-medium">
                     Pay Per PR
                     <ShoppingCart className="ml-2 h-4 w-4 sm:h-5 sm:w-5 inline" />
@@ -186,11 +182,7 @@ const Pricing = () => {
                 </h2>
               </CardHeader>
               <div className="w-full flex items-center justify-center mt-6 px-6">
-                <Link
-                  href="https://buy.stripe.com/6oE6se1Zy5UH9jy9AI"
-                  target="_blank"
-                  className="w-full"
-                >
+                <Link href="/checkout/subscription" className="w-full">
                   <ShineButton className="text-base w-full sm:text-lg py-3.5 bg-gradient-to-r from-accent to-accent/80 text-accent-foreground hover:from-accent/90 hover:to-accent/70 border-none font-medium">
                     Subscribe
                     <ShoppingCart className="ml-2 h-4 w-4 sm:h-5 sm:w-5 inline" />
