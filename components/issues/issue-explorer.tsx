@@ -6,6 +6,7 @@ import { useState } from "react"
 import { IssueSearch } from "@/components/issues/issue-search"
 import {
   SearchReposParams,
+  searchReposWithIssues,
   SearchReposWithIssuesResult,
 } from "@/lib/github/search"
 
@@ -15,13 +16,7 @@ type Label = {
   color: string
 }
 
-interface IssueExplorerProps {
-  searchAction: (
-    params: SearchReposParams
-  ) => Promise<SearchReposWithIssuesResult>
-}
-
-export function IssueExplorer({ searchAction }: IssueExplorerProps) {
+export function IssueExplorer() {
   const [searchResult, setSearchResult] =
     useState<SearchReposWithIssuesResult | null>(null)
   const [loading, setLoading] = useState(false)
@@ -38,7 +33,7 @@ export function IssueExplorer({ searchAction }: IssueExplorerProps) {
     setSearchParams(params)
 
     try {
-      const results = await searchAction({ ...params, page: 1 })
+      const results = await searchReposWithIssues({ ...params, page: 1 })
       setSearchResult(results)
     } catch (err) {
       setError("Failed to fetch repositories and issues. Please try again.")
@@ -55,7 +50,10 @@ export function IssueExplorer({ searchAction }: IssueExplorerProps) {
     const nextPage = currentPage + 1
 
     try {
-      const results = await searchAction({ ...searchParams, page: nextPage })
+      const results = await searchReposWithIssues({
+        ...searchParams,
+        page: nextPage,
+      })
       setSearchResult((prev) =>
         prev
           ? {

@@ -1,5 +1,4 @@
 import { IssueExplorer } from "@/components/issues/issue-explorer"
-import { searchReposWithIssues } from "@/lib/github/search"
 
 export default function IssueSearchPage() {
   return (
@@ -12,7 +11,7 @@ export default function IssueSearchPage() {
         </p>
       </div>
 
-      <IssueExplorer searchAction={searchReposWithIssues} />
+      <IssueExplorer />
     </div>
   )
 }
