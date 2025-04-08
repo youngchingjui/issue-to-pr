@@ -5,16 +5,10 @@ import { useState } from "react"
 
 import { IssueSearch } from "@/components/issues/issue-search"
 import {
-  SearchReposParams,
-  searchReposWithIssues,
+  searchReposWithIssuesGraphQL,
+  SearchReposWithIssuesParams,
   SearchReposWithIssuesResult,
 } from "@/lib/github/search"
-
-type Label = {
-  id: number
-  name: string
-  color: string
-}
 
 export function IssueExplorer() {
   const [searchResult, setSearchResult] =
@@ -22,18 +16,17 @@ export function IssueExplorer() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const [searchParams, setSearchParams] = useState<SearchReposParams | null>(
-    null
-  )
+  const [searchParams, setSearchParams] =
+    useState<SearchReposWithIssuesParams | null>(null)
 
-  const handleSearch = async (params: SearchReposParams) => {
+  const handleSearch = async (params: SearchReposWithIssuesParams) => {
     setLoading(true)
     setError(null)
     setCurrentPage(1)
     setSearchParams(params)
 
     try {
-      const results = await searchReposWithIssues({ ...params, page: 1 })
+      const results = await searchReposWithIssuesGraphQL({ ...params, page: 1 })
       setSearchResult(results)
     } catch (err) {
       setError("Failed to fetch repositories and issues. Please try again.")
@@ -50,7 +43,7 @@ export function IssueExplorer() {
     const nextPage = currentPage + 1
 
     try {
-      const results = await searchReposWithIssues({
+      const results = await searchReposWithIssuesGraphQL({
         ...searchParams,
         page: nextPage,
       })
@@ -79,7 +72,7 @@ export function IssueExplorer() {
           topic: "nextjs",
           language: "typescript",
           issueLabel: "bug",
-          state: "open",
+          state: "OPEN",
         }}
       />
 
@@ -152,32 +145,32 @@ export function IssueExplorer() {
                         </h3>
                         <span
                           className={`px-2 py-1 text-xs rounded-full ${
-                            issue.state === "open"
+                            issue.state.toLowerCase() === "open"
                               ? "bg-green-100 text-green-800"
                               : "bg-red-100 text-red-800"
                           }`}
                         >
-                          {issue.state}
+                          {issue.state.toLowerCase()}
                         </span>
                       </div>
 
                       <div className="mt-2 text-sm text-gray-500 space-x-4">
                         <span>
-                          #{issue.number} opened by {issue.user?.login}
+                          #{issue.number} opened by {issue.user.login}
                         </span>
                         <span>
                           Created:{" "}
-                          {new Date(issue.created_at).toLocaleDateString()}
+                          {new Date(issue.createdAt).toLocaleDateString()}
                         </span>
                         <span>
                           Last updated:{" "}
-                          {new Date(issue.updated_at).toLocaleDateString()}
+                          {new Date(issue.updatedAt).toLocaleDateString()}
                         </span>
                         <span>{issue.comments} comments</span>
                       </div>
 
                       <div className="mt-2 flex flex-wrap gap-2">
-                        {issue.labels.map((label: Label) => (
+                        {issue.labels.map((label) => (
                           <span
                             key={label.id}
                             className="px-2 py-1 text-xs rounded-full bg-gray-100"
