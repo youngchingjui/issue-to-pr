@@ -23,13 +23,28 @@ import {
 } from "@/components/ui/select"
 import { SearchReposWithIssuesParams } from "@/lib/github/search"
 
-const formSchema = z.object({
-  topic: z.string().min(1, "Topic is required"),
-  language: z.string().min(1, "Language is required"),
-  issueLabel: z.string().min(1, "Issue label is required"),
-  state: z.enum(["OPEN", "CLOSED"]).default("OPEN"),
-  createdAfter: z.string().optional(),
-})
+const formSchema = z
+  .object({
+    topic: z.string().min(1, "Topic is required"),
+    language: z.string().min(1, "Language is required"),
+    issueLabel: z.string().min(1, "Issue label is required"),
+    state: z.enum(["OPEN", "CLOSED"]).default("OPEN"),
+    createdAfter: z.string().optional(),
+    minStars: z.number().optional(),
+    maxStars: z.number().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.minStars && data.maxStars) {
+        return data.minStars <= data.maxStars
+      }
+      return true
+    },
+    {
+      message: "Minimum stars must be less than or equal to maximum stars",
+      path: ["minStars"],
+    }
+  )
 
 type FormSchema = z.infer<typeof formSchema>
 
@@ -47,6 +62,8 @@ export function IssueSearch({ onSearch, defaultValues }: IssueSearchProps) {
       issueLabel: defaultValues?.issueLabel || "",
       state: defaultValues?.state || "OPEN",
       createdAfter: defaultValues?.createdAfter || "",
+      minStars: defaultValues?.minStars,
+      maxStars: defaultValues?.maxStars,
     },
   })
 
@@ -138,6 +155,54 @@ export function IssueSearch({ onSearch, defaultValues }: IssueSearchProps) {
                 <FormLabel>Created After</FormLabel>
                 <FormControl>
                   <Input type="date" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="minStars"
+            render={({ field: { value, onChange, ...field } }) => (
+              <FormItem>
+                <FormLabel>Minimum Stars</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    placeholder="0"
+                    value={value ?? ""}
+                    onChange={(e) =>
+                      onChange(
+                        e.target.value ? Number(e.target.value) : undefined
+                      )
+                    }
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="maxStars"
+            render={({ field: { value, onChange, ...field } }) => (
+              <FormItem>
+                <FormLabel>Maximum Stars</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    placeholder="10000"
+                    value={value ?? ""}
+                    onChange={(e) =>
+                      onChange(
+                        e.target.value ? Number(e.target.value) : undefined
+                      )
+                    }
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
