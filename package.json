@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",
+    "@octokit/auth-app": "^7.2.0",
     "@octokit/graphql": "^8.2.1",
     "@octokit/openapi-types": "^24.0.0",
     "@octokit/rest": "^21.0.2",
