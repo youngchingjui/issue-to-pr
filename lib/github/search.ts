@@ -1,10 +1,10 @@
 "use server"
 
 import getOctokit, { getGraphQLClient } from "@/lib/github"
-import { GitHubIssue, SearchCodeItem } from "@/lib/types/github"
+import { IssueOrderField, SearchCodeItem } from "@/lib/types/github"
 
 export type IssueState = "OPEN" | "CLOSED"
-export type IssueOrderField = "CREATED_AT" | "UPDATED_AT" | "COMMENTS"
+
 export type OrderDirection = "ASC" | "DESC"
 
 export interface SearchReposWithIssuesParams {
@@ -19,80 +19,6 @@ export interface SearchReposWithIssuesParams {
   createdAfter?: string // ISO date string
   sort: IssueOrderField
   order: OrderDirection
-}
-
-export interface SearchReposWithIssuesResult {
-  repos: Array<{
-    fullName: string
-    description: string | null
-    stargazersCount: number
-    url: string
-    issues: Array<{
-      id: string
-      number: number
-      title: string
-      body: string
-      state: IssueState
-      createdAt: string
-      updatedAt: string
-      url: string
-      comments: number
-      labels: Array<{
-        id: string
-        name: string
-        color: string
-      }>
-      author: {
-        login: string
-      }
-    }>
-  }>
-  totalReposFound: number
-  reposWithoutIssues: number
-  hasNextPage: boolean
-  page: number
-}
-
-interface GraphQLSearchResponse {
-  search: {
-    repositoryCount: number
-    pageInfo: {
-      hasNextPage: boolean
-      endCursor: string | null
-    }
-    nodes: Array<{
-      nameWithOwner: string
-      description: string | null
-      stargazerCount: number
-      url: string
-      issues: {
-        totalCount: number
-        nodes: Array<{
-          id: string
-          number: number
-          title: string
-          body: string
-          state: IssueState
-          createdAt: string
-          updatedAt: string
-          url: string
-          comments: {
-            totalCount: number
-          }
-          labels: {
-            nodes: Array<{
-              id: string
-              name: string
-              color: string
-            }>
-          }
-          author: {
-            login: string
-          }
-        }>
-      }
-    }>
-  }
 }
 
 export async function searchCode({
@@ -112,146 +38,155 @@ export async function searchCode({
   return response.data.items
 }
 
-export interface RepoSearchResult {
-  fullName: string
-  description: string | null
-  stargazersCount: number
-  url: string
+export interface SearchIssuesResult {
+  issues: Array<{
+    id: string
+    number: number
+    title: string
+    body: string
+    state: IssueState
+    createdAt: string
+    updatedAt: string
+    url: string
+    comments: number
+    labels: Array<{
+      id: string
+      name: string
+      color: string
+    }>
+    author: {
+      login: string
+    }
+    repository: {
+      nameWithOwner: string
+      description: string | null
+      stargazersCount: number
+      url: string
+    }
+  }>
+  totalIssuesFound: number
+  hasNextPage: boolean
+  page: number
 }
 
-export async function searchRepos({
-  query,
-  sort = "stars",
-  order = "desc",
-  perPage = 10,
-}: {
-  query: string
-  sort?: "stars" | "forks" | "help-wanted-issues" | "updated"
-  order?: "asc" | "desc"
-  perPage?: number
-}): Promise<RepoSearchResult[]> {
-  const octokit = await getOctokit()
-  if (!octokit) {
-    throw new Error("No octokit found")
+interface GraphQLIssueSearchResponse {
+  search: {
+    issueCount: number
+    pageInfo: {
+      hasNextPage: boolean
+      endCursor: string | null
+    }
+    nodes: Array<{
+      id: string
+      number: number
+      title: string
+      body: string
+      state: IssueState
+      createdAt: string
+      updatedAt: string
+      url: string
+      comments: {
+        totalCount: number
+      }
+      labels: {
+        nodes: Array<{
+          id: string
+          name: string
+          color: string
+        }>
+      }
+      author: {
+        login: string
+      }
+      repository: {
+        nameWithOwner: string
+        description: string | null
+        stargazerCount: number
+        url: string
+      }
+    }>
   }
-
-  const response = await octokit.rest.search.repos({
-    q: query,
-    sort,
-    order,
-    per_page: perPage,
-  })
-
-  return response.data.items.map((repo) => ({
-    fullName: repo.full_name,
-    description: repo.description,
-    stargazersCount: repo.stargazers_count,
-    url: repo.html_url,
-  }))
 }
 
-export interface RepoWithIssues {
-  fullName: string
-  description: string | null
-  stargazersCount: number
-  url: string
-  issues: GitHubIssue[]
-}
-
-export interface SearchReposParams {
-  topic?: string
-  maxStars?: number
-  minStars?: number
-  language?: string
-  issueLabel?: string
-  state?: "open" | "closed" | "all"
-  perPage?: number
-  page?: number
-  createdAfter?: string // ISO date string
-  createdBefore?: string // ISO date string
-  sort?: "created" | "updated" | "comments"
-  order?: "asc" | "desc"
-}
-
-export async function searchReposWithIssuesGraphQL({
+export async function searchAllIssuesGraphQL({
   topic,
   maxStars,
-  minStars = 0,
+  minStars,
   language,
   issueLabel,
   state = "OPEN",
-  perPage = 10,
+  perPage = 25,
   page = 1,
   createdAfter,
-  sort = "CREATED_AT",
+  sort = "CREATED",
   order = "DESC",
-}: SearchReposWithIssuesParams): Promise<SearchReposWithIssuesResult> {
+}: SearchReposWithIssuesParams): Promise<SearchIssuesResult> {
   const graphqlWithAuth = await getGraphQLClient()
   if (!graphqlWithAuth) {
     throw new Error("Could not initialize GraphQL client")
   }
 
-  // Construct repository search query
-  let searchQuery = topic ? `topic:${topic}` : ""
-  if (language) searchQuery += ` language:${language}`
-  if (maxStars) searchQuery += ` stars:<=${maxStars}`
-  if (minStars) searchQuery += ` stars:>=${minStars}`
+  // Construct issue search query
+  let searchQuery = "is:issue"
 
-  // Construct the GraphQL query
+  // Add state filter
+  if (state === "OPEN") searchQuery += " is:open"
+  if (state === "CLOSED") searchQuery += " is:closed"
+
+  // Add label filter
+  if (issueLabel) searchQuery += ` label:${issueLabel}`
+
+  // Add date filter
+  if (createdAfter) searchQuery += ` created:>=${createdAfter}`
+
+  // Add language filter (applies to the repository)
+  if (language) searchQuery += ` language:${language}`
+
+  // Add sorting to the search query
+  const sortField = sort.toLowerCase().replace("_", "-")
+  searchQuery += ` sort:${sortField}-${order.toLowerCase()}`
+
+  // Construct the GraphQL query focusing on issues directly
   const query = `
-    query SearchReposWithIssues(
+    query SearchIssues(
       $searchQuery: String!,
       $perPage: Int!,
-      $cursor: String,
-      $state: [IssueState!],
-      $labels: [String!],
-      $createdAfter: DateTime,
-      $orderField: IssueOrderField!,
-      $orderDirection: OrderDirection!
+      $cursor: String
     ) {
-      search(query: $searchQuery, type: REPOSITORY, first: $perPage, after: $cursor) {
-        repositoryCount
+      search(query: $searchQuery, type: ISSUE, first: $perPage, after: $cursor) {
+        issueCount
         pageInfo {
           hasNextPage
           endCursor
         }
         nodes {
-          ... on Repository {
-            nameWithOwner
-            description
-            stargazerCount
+          ... on Issue {
+            id
+            number
+            title
+            body
+            state
+            createdAt
+            updatedAt
             url
-            issues(
-              first: 100
-              states: $state
-              labels: $labels
-              filterBy: { since: $createdAfter }
-              orderBy: { field: $orderField, direction: $orderDirection }
-            ) {
+            comments {
               totalCount
+            }
+            labels(first: 10) {
               nodes {
                 id
-                number
-                title
-                body
-                state
-                createdAt
-                updatedAt
-                url
-                comments {
-                  totalCount
-                }
-                labels(first: 10) {
-                  nodes {
-                    id
-                    name
-                    color
-                  }
-                }
-                author {
-                  login
-                }
+                name
+                color
               }
+            }
+            author {
+              login
+            }
+            repository {
+              nameWithOwner
+              description
+              stargazerCount
+              url
             }
           }
         }
@@ -266,56 +201,60 @@ export async function searchReposWithIssuesGraphQL({
     searchQuery,
     perPage,
     cursor,
-    state: [state],
-    labels: issueLabel ? [issueLabel] : null,
-    createdAfter: createdAfter || null,
-    orderField: sort,
-    orderDirection: order,
   }
 
   try {
-    const response = await graphqlWithAuth<GraphQLSearchResponse>(
+    const response = await graphqlWithAuth<GraphQLIssueSearchResponse>(
       query,
       variables
     )
 
+    // We can filter by stars after the search
+    // If minStars or maxStars is specified, filter the results locally
+    let filteredIssues = response.search.nodes
+
+    if (minStars !== undefined || maxStars !== undefined) {
+      filteredIssues = response.search.nodes.filter((issue) => {
+        const stars = issue.repository.stargazerCount
+        if (minStars !== undefined && stars < minStars) return false
+        if (maxStars !== undefined && stars > maxStars) return false
+        return true
+      })
+    }
+
     return {
-      repos: response.search.nodes.map((repo) => ({
-        fullName: repo.nameWithOwner,
-        description: repo.description,
-        stargazersCount: repo.stargazerCount,
-        url: repo.url,
-        issues:
-          repo.issues?.nodes?.map((issue) => ({
-            id: issue.id,
-            number: issue.number,
-            title: issue.title,
-            body: issue.body,
-            state: issue.state,
-            createdAt: issue.createdAt,
-            updatedAt: issue.updatedAt,
-            url: issue.url,
-            comments: issue.comments?.totalCount ?? 0,
-            labels:
-              issue.labels?.nodes?.map((label) => ({
-                id: label.id,
-                name: label.name,
-                color: label.color,
-              })) ?? [],
-            author: {
-              login: issue.author?.login ?? "unknown",
-            },
+      issues: filteredIssues.map((issue) => ({
+        id: issue.id,
+        number: issue.number,
+        title: issue.title,
+        body: issue.body,
+        state: issue.state,
+        createdAt: issue.createdAt,
+        updatedAt: issue.updatedAt,
+        url: issue.url,
+        comments: issue.comments?.totalCount ?? 0,
+        labels:
+          issue.labels?.nodes?.map((label) => ({
+            id: label.id,
+            name: label.name,
+            color: label.color,
           })) ?? [],
+        author: {
+          login: issue.author?.login ?? "unknown",
+        },
+        repository: {
+          nameWithOwner: issue.repository.nameWithOwner,
+          description: issue.repository.description,
+          stargazersCount: issue.repository.stargazerCount,
+          url: issue.repository.url,
+        },
       })),
-      totalReposFound: response.search.repositoryCount,
-      reposWithoutIssues: response.search.nodes.filter(
-        (repo) => !repo.issues?.totalCount
-      ).length,
+      totalIssuesFound: response.search.issueCount,
       hasNextPage: response.search.pageInfo.hasNextPage,
       page,
     }
   } catch (error) {
-    console.error("Error searching repositories:", error)
+    console.error("Error searching issues:", error)
     throw error
   }
 }

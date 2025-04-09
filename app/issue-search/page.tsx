@@ -6,8 +6,7 @@ export default function IssueSearchPage() {
       <div>
         <h1 className="text-3xl font-bold">Search GitHub Issues</h1>
         <p className="mt-2 text-gray-600">
-          Search for issues across GitHub repositories. Results are limited to
-          10 repositories at a time.
+          Search for issues across GitHub repositories.
         </p>
       </div>
 

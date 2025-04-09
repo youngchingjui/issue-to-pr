@@ -5,14 +5,15 @@ import { useState } from "react"
 
 import { IssueSearch } from "@/components/issues/issue-search"
 import {
-  searchReposWithIssuesGraphQL,
+  searchAllIssuesGraphQL,
+  SearchIssuesResult,
   SearchReposWithIssuesParams,
-  SearchReposWithIssuesResult,
 } from "@/lib/github/search"
 
 export function IssueExplorer() {
-  const [searchResult, setSearchResult] =
-    useState<SearchReposWithIssuesResult | null>(null)
+  const [searchResult, setSearchResult] = useState<SearchIssuesResult | null>(
+    null
+  )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
@@ -26,10 +27,10 @@ export function IssueExplorer() {
     setSearchParams(params)
 
     try {
-      const results = await searchReposWithIssuesGraphQL({ ...params, page: 1 })
+      const results = await searchAllIssuesGraphQL({ ...params, page: 1 })
       setSearchResult(results)
     } catch (err) {
-      setError("Failed to fetch repositories and issues. Please try again.")
+      setError("Failed to fetch issues. Please try again.")
       console.error(err)
     } finally {
       setLoading(false)
@@ -43,7 +44,7 @@ export function IssueExplorer() {
     const nextPage = currentPage + 1
 
     try {
-      const results = await searchReposWithIssuesGraphQL({
+      const results = await searchAllIssuesGraphQL({
         ...searchParams,
         page: nextPage,
       })
@@ -51,7 +52,7 @@ export function IssueExplorer() {
         prev
           ? {
               ...results,
-              repos: [...prev.repos, ...results.repos],
+              issues: [...prev.issues, ...results.issues],
             }
           : results
       )
@@ -69,10 +70,10 @@ export function IssueExplorer() {
       <IssueSearch
         onSearch={handleSearch}
         defaultValues={{
-          topic: "nextjs",
           language: "typescript",
-          issueLabel: "bug",
           state: "OPEN",
+          sort: "CREATED",
+          order: "DESC",
         }}
       />
 
@@ -82,109 +83,89 @@ export function IssueExplorer() {
         </div>
       )}
 
-      {loading && !searchResult?.repos.length && (
+      {loading && !searchResult?.issues.length && (
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-2 text-gray-600">
-            Searching repositories and issues...
-          </p>
+          <p className="mt-2 text-gray-600">Searching issues...</p>
         </div>
       )}
 
       {searchResult && (
         <div className="space-y-4">
           <div className="text-sm text-gray-600">
-            Found {searchResult.totalReposFound} repositories matching your
-            criteria.
-            {searchResult.reposWithoutIssues > 0 && (
-              <span className="ml-2">
-                ({searchResult.reposWithoutIssues} repositories in this page had
-                no matching issues)
-              </span>
-            )}
+            Found {searchResult.totalIssuesFound} issues matching your criteria.
           </div>
 
-          <div className="space-y-8">
-            {searchResult.repos.map((repo) => (
+          <div className="space-y-4">
+            {searchResult.issues.map((issue) => (
               <div
-                key={repo.fullName}
-                className="border rounded-lg overflow-hidden"
+                key={issue.id}
+                className="border rounded-lg overflow-hidden hover:shadow-sm transition-shadow"
               >
-                <div className="bg-gray-50 p-4 border-b">
+                <div className="p-4">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-semibold">
-                      <a
-                        href={repo.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
-                      >
-                        {repo.fullName}
-                      </a>
-                    </h2>
-                    <span className="text-gray-500">
-                      ⭐ {repo.stargazersCount}
-                    </span>
-                  </div>
-                  {repo.description && (
-                    <p className="mt-2 text-gray-600">{repo.description}</p>
-                  )}
-                </div>
-
-                <div className="divide-y">
-                  {repo.issues.map((issue) => (
-                    <div key={issue.id} className="p-4 hover:bg-gray-50">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-medium">
-                          <Link
-                            href={`/${repo.fullName.split("/")[0]}/${repo.fullName.split("/")[1]}/issues/${issue.number}`}
-                            className="text-blue-600 hover:underline"
-                          >
-                            {issue.title}
-                          </Link>
-                        </h3>
-                        <span
-                          className={`px-2 py-1 text-xs rounded-full ${
-                            issue.state.toLowerCase() === "open"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
-                          }`}
+                    <div className="space-y-1">
+                      <h3 className="text-lg font-medium">
+                        <Link
+                          href={`/${issue.repository.nameWithOwner.split("/")[0]}/${
+                            issue.repository.nameWithOwner.split("/")[1]
+                          }/issues/${issue.number}`}
+                          className="text-blue-600 hover:underline"
                         >
-                          {issue.state.toLowerCase()}
-                        </span>
-                      </div>
-
-                      <div className="mt-2 text-sm text-gray-500 space-x-4">
-                        <span>
-                          #{issue.number} opened by {issue.author.login}
-                        </span>
-                        <span>
-                          Created:{" "}
-                          {new Date(issue.createdAt).toLocaleDateString()}
-                        </span>
-                        <span>
-                          Last updated:{" "}
-                          {new Date(issue.updatedAt).toLocaleDateString()}
-                        </span>
-                        <span>{issue.comments} comments</span>
-                      </div>
-
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {issue.labels.map((label) => (
-                          <span
-                            key={label.id}
-                            className="px-2 py-1 text-xs rounded-full bg-gray-100"
-                            style={{
-                              backgroundColor: `#${label.color}20`,
-                              color: `#${label.color}`,
-                            }}
-                          >
-                            {label.name}
-                          </span>
-                        ))}
+                          {issue.title}
+                        </Link>
+                      </h3>
+                      <div className="text-sm text-gray-500">
+                        <a
+                          href={issue.repository.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:underline"
+                        >
+                          {issue.repository.nameWithOwner}
+                        </a>{" "}
+                        • ⭐ {issue.repository.stargazersCount}
                       </div>
                     </div>
-                  ))}
+                    <span
+                      className={`px-2 py-1 text-xs rounded-full ${
+                        issue.state.toLowerCase() === "open"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
+                      }`}
+                    >
+                      {issue.state.toLowerCase()}
+                    </span>
+                  </div>
+
+                  <div className="mt-2 text-sm text-gray-500 space-x-4">
+                    <span>
+                      #{issue.number} opened by {issue.author.login}
+                    </span>
+                    <span>
+                      Created: {new Date(issue.createdAt).toLocaleDateString()}
+                    </span>
+                    <span>
+                      Last updated:{" "}
+                      {new Date(issue.updatedAt).toLocaleDateString()}
+                    </span>
+                    <span>{issue.comments} comments</span>
+                  </div>
+
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {issue.labels.map((label) => (
+                      <span
+                        key={label.id}
+                        className="px-2 py-1 text-xs rounded-full bg-gray-100"
+                        style={{
+                          backgroundColor: `#${label.color}20`,
+                          color: `#${label.color}`,
+                        }}
+                      >
+                        {label.name}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
             ))}
@@ -202,10 +183,10 @@ export function IssueExplorer() {
             </div>
           )}
 
-          {!loading && searchResult.repos.length === 0 && (
+          {!loading && searchResult.issues.length === 0 && (
             <div className="text-center py-8 text-gray-500">
-              No repositories found with matching issues. Try adjusting your
-              search criteria.
+              No issues found matching your search criteria. Try adjusting your
+              search parameters.
             </div>
           )}
         </div>

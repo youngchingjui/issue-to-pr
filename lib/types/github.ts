@@ -1,5 +1,6 @@
 import { components } from "@octokit/openapi-types"
 import { RestEndpointMethodTypes } from "@octokit/rest"
+import { z } from "zod"
 
 // GitHub API Types
 export type GitHubRepository = components["schemas"]["full-repository"]
@@ -33,3 +34,10 @@ export type WorkflowType =
 export type GitHubItem = GitHubIssue & {
   type: "issue" | "pull"
 }
+
+// zod
+
+export const IssueOrderFieldSchema = z
+  .enum(["CREATED", "UPDATED", "INTERACTIONS", "REACTIONS"])
+  .default("CREATED")
+export type IssueOrderField = z.infer<typeof IssueOrderFieldSchema>
