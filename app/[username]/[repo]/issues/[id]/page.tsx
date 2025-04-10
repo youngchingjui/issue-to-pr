@@ -4,6 +4,7 @@ import { notFound } from "next/navigation"
 import { Suspense } from "react"
 
 import IssueDetailsWrapper from "@/components/issues/IssueDetailsWrapper"
+import IssueWorkflowRuns from "@/components/issues/IssueWorkflowRuns"
 import TableSkeleton from "@/components/layout/TableSkeleton"
 import { Button } from "@/components/ui/button"
 import { getIssue } from "@/lib/github/issues"
@@ -53,6 +54,13 @@ export default async function IssueDetailsPage({ params }: Props) {
         </div>
         <Suspense fallback={<TableSkeleton />}>
           <IssueDetailsWrapper issue={issue} />
+        </Suspense>
+
+        <Suspense fallback={<TableSkeleton />}>
+          <IssueWorkflowRuns
+            repoFullName={repoFullName}
+            issueNumber={issueNumber}
+          />
         </Suspense>
       </div>
     </main>
