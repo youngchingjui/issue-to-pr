@@ -8,8 +8,8 @@ import {
 } from "@/lib/github/issues"
 import { langfuse } from "@/lib/langfuse"
 import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceService"
-import { SearchCodeTool } from "@/lib/tools"
 import GetFileContentTool from "@/lib/tools/GetFileContent"
+import RipgrepSearchTool from "@/lib/tools/RipgrepSearchTool"
 import { GitHubRepository } from "@/lib/types/github"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 
@@ -178,7 +178,7 @@ export default async function commentOnIssue(
 
     // Prepare the tools
     const getFileContentTool = new GetFileContentTool(dirPath)
-    const searchCodeTool = new SearchCodeTool(repo.full_name)
+    const searchCodeTool = new RipgrepSearchTool(dirPath)
 
     // Create and initialize the thinker agent
     const thinker = new ThinkerAgent({ apiKey })

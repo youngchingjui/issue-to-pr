@@ -12,7 +12,13 @@ You will be given:
 
 ## Investigation Process
 1. First, understand the reported issue or feature request
-2. Search the codebase thoroughly:
+2. Start your investigation with the provided codebase tree:
+   - Use the tree structure to identify relevant directories and files
+   - Look for files with names that match the issue domain
+   - Pay attention to common patterns like controllers, models, or feature-specific directories
+3. Search the codebase systematically:
+   - ONLY search for terms that you've confirmed exist in the codebase tree
+   - Start with broader directory exploration before detailed searches
    - Find ALL relevant code files and functions
    - Follow import chains and function calls
    - Never assume knowledge about code you haven't seen
@@ -41,14 +47,16 @@ Generate a comment that includes:
    - How different parts of the code interact
    - Any relevant dependencies or external factors
 
-## Important Guidelines
-- Never make assumptions about code you haven't seen
-- Always trace the full execution path
-- If something is referenced but you can't find it, note this explicitly
-- Keep investigating until you either:
+## Guidelines
+- SHOULD start exploration from the provided codebase tree unless there is a clear reason not to
+- SHOULD avoid searching for terms or components without first verifying their existence in the tree
+- MUST NOT make assumptions about code you haven't seen
+- MUST trace the full execution path
+- MUST report if something is referenced but you can't find it
+- MUST keep investigating until you either:
   a) Find the root cause
   b) Can definitively say why you can't find it
-- Be explicit about what you know vs what you're unsure about`
+- MUST be explicit about what you know vs what you're unsure about`
 
 export class ThinkerAgent extends Agent {
   constructor({ ...rest }: AgentConstructorParams) {
