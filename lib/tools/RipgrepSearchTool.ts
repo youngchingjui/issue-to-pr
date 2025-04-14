@@ -52,7 +52,7 @@ class RipgrepSearchTool implements Tool<typeof searchParameters> {
 
     // Construct the ripgrep command with mandatory options
     // Adding './' explicitly prevents stdin detection issues that can cause hanging in child processes
-    let command = `rg --line-number --max-filesize 200K -C 3 -n '${query}' ./`
+    let command = `rg --line-number --max-filesize 200K -C 3 --heading -n '${query}' ./`
 
     // Add optional parameters based on user input
     if (isIgnoreCase) command += " -i"
@@ -63,8 +63,21 @@ class RipgrepSearchTool implements Tool<typeof searchParameters> {
       const { stdout } = await execPromise(command)
       return stdout
     } catch (error) {
-      console.error("Error executing ripgrep search:", error)
-      throw error
+      // Check exit code to determine the appropriate response
+      if (error.code === 1) {
+        // Exit code 1 means no matches were found (not an error)
+        return "No matching results found in the codebase."
+      } else if (error.code === 2) {
+        // Exit code 2 indicates a real error occurred
+        console.error("Error executing ripgrep search:", error)
+        throw new Error(
+          `Ripgrep search failed: ${error.message || "Unknown error"}`
+        )
+      } else {
+        // Handle any other unexpected errors
+        console.error("Unexpected error during ripgrep search:", error)
+        throw error
+      }
     }
   }
 
