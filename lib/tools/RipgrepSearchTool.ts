@@ -34,6 +34,12 @@ const searchParameters = z.object({
 })
 
 class RipgrepSearchTool implements Tool<typeof searchParameters> {
+  private baseDir: string
+
+  constructor(baseDir: string) {
+    this.baseDir = baseDir
+  }
+
   parameters = searchParameters
 
   async handler(params: z.infer<typeof searchParameters>): Promise<string> {
@@ -45,7 +51,8 @@ class RipgrepSearchTool implements Tool<typeof searchParameters> {
     const followSymlinks = follow ?? false
 
     // Construct the ripgrep command with mandatory options
-    let command = `rg --line-number --max-filesize 200K -C 5 -n '${query}'`
+    // Adding './' explicitly prevents stdin detection issues that can cause hanging in child processes
+    let command = `rg --line-number --max-filesize 200K -C 3 -n '${query}' ./`
 
     // Add optional parameters based on user input
     if (isIgnoreCase) command += " -i"
@@ -65,7 +72,7 @@ class RipgrepSearchTool implements Tool<typeof searchParameters> {
     name: "ripgrep_search",
     parameters: searchParameters,
     description:
-      "Searches for code in the local file system using ripgrep. Use this tool when you need to search for specific code patterns or functions across the entire codebase.",
+      "Searches for code in the local file system using ripgrep. Returns snippets of code containing the search term with 3 lines of context before and after each match. Note: These are just snippets - to fully understand the code's context, you should use a file reading tool to examine the complete file contents.",
   })
 }
 
