@@ -30,7 +30,7 @@ export default function CreatePRController({
   onComplete,
   onError,
 }: Props) {
-  const [postToGithub, setPostToGithub] = useState(true) // Default to true for PR creation
+  const [postToGithub, setPostToGithub] = useState(false)
 
   const execute = async () => {
     try {
