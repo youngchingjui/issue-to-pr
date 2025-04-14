@@ -30,6 +30,13 @@ interface WorkflowRunsListProps {
 export default async function WorkflowRunsList({
   workflows = [],
 }: WorkflowRunsListProps) {
+  // Sort workflows by lastEventTimestamp in descending order
+  const sortedWorkflows = [...workflows].sort((a, b) => {
+    const timeA = a.lastEventTimestamp?.getTime() ?? 0
+    const timeB = b.lastEventTimestamp?.getTime() ?? 0
+    return timeB - timeA
+  })
+
   return (
     <Card className="max-w-screen-xl mx-auto rounded">
       <CardContent>
@@ -46,7 +53,7 @@ export default async function WorkflowRunsList({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {workflows.map((workflow) => (
+            {sortedWorkflows.map((workflow) => (
               <TableRow key={workflow.id}>
                 <TableCell className="py-4">
                   <Link
