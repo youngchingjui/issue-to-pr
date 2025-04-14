@@ -12,7 +12,7 @@ import {
   CallCoderAgentTool,
   GetFileContentTool,
   ReviewPullRequestTool,
-  SearchCodeTool,
+  RipgrepSearchTool,
   UploadAndPRTool,
 } from "@/lib/tools"
 import { GitHubIssue, GitHubRepository } from "@/lib/types/github"
@@ -63,7 +63,7 @@ export const resolveIssue = async (
     const callCoderAgentTool = new CallCoderAgentTool({ apiKey, baseDir })
     const getFileContentTool = new GetFileContentTool(baseDir)
     const submitPRTool = new UploadAndPRTool(repository, baseDir, issue.number)
-    const searchCodeTool = new SearchCodeTool(repository.full_name)
+    const searchCodeTool = new RipgrepSearchTool(baseDir)
     const reviewPullRequestTool = new ReviewPullRequestTool({
       repo: repository,
       issue,

@@ -19,14 +19,6 @@ Please output in JSON mode. You may call any or all functions, in sequence or in
 `
 
 export class CoordinatorAgent extends Agent {
-  REQUIRED_TOOLS = [
-    "get_file_content",
-    "call_coder_agent",
-    "upload_and_create_PR",
-    "search_code",
-    "review_pull_request",
-  ]
-
   constructor({ apiKey }: { apiKey: string }) {
     super({ systemPrompt: SYSTEM_PROMPT, apiKey })
   }
