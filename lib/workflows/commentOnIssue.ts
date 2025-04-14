@@ -178,7 +178,7 @@ export default async function commentOnIssue(
 
     // Prepare the tools
     const getFileContentTool = new GetFileContentTool(dirPath)
-    const searchCodeTool = new RipgrepSearchTool()
+    const searchCodeTool = new RipgrepSearchTool(dirPath)
 
     // Create and initialize the thinker agent
     const thinker = new ThinkerAgent({ apiKey })
