@@ -29,7 +29,7 @@ export class Agent {
   private untrackedMessages: ChatCompletionMessageParam[] = [] // Queue for untracked messages
   tools: Tool<z.ZodType>[] = []
   llm: OpenAI
-  model: ChatModel = "gpt-4o"
+  model: ChatModel = "gpt-4.1"
   jobId?: string
   private persistenceService: WorkflowPersistenceService
 
