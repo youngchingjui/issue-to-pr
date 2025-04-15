@@ -51,8 +51,8 @@ class RipgrepSearchTool implements Tool<typeof searchParameters> {
     const followSymlinks = follow ?? false
 
     // Construct the ripgrep command with mandatory options
-    // Adding './' explicitly prevents stdin detection issues that can cause hanging in child processes
-    let command = `rg --line-number --max-filesize 200K -C 3 --heading -n '${query}' ./`
+    // Using baseDir instead of './' to search in the specified directory
+    let command = `cd "${this.baseDir}" && rg --line-number --max-filesize 200K -C 3 --heading -n '${query}' ./`
 
     // Add optional parameters based on user input
     if (isIgnoreCase) command += " -i"
