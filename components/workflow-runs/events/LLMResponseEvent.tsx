@@ -2,6 +2,7 @@ import ReactMarkdown from "react-markdown"
 
 import { CollapsibleContent } from "@/components/ui/collapsible-content"
 import { EventTime } from "@/components/workflow-runs/events"
+import { CopyMarkdownButton } from "@/components/workflow-runs/events/CopyMarkdownButton"
 import { LLMResponseEvent as LLMResponseEventType } from "@/lib/types/workflow"
 
 export interface LLMResponseEventProps {
@@ -11,12 +12,15 @@ export interface LLMResponseEventProps {
 
 export function LLMResponseEvent({ event, timestamp }: LLMResponseEventProps) {
   const headerContent = (
-    <>
-      <div className="text-xs font-medium text-muted-foreground">
-        LLM Response
+    <div className="flex items-center justify-between w-full">
+      <div className="flex items-center gap-2">
+        <div className="text-xs font-medium text-muted-foreground">
+          LLM Response
+        </div>
+        <EventTime timestamp={timestamp} />
       </div>
-      <EventTime timestamp={timestamp} />
-    </>
+      <CopyMarkdownButton content={event.data.content} />
+    </div>
   )
 
   return (
@@ -27,7 +31,6 @@ export function LLMResponseEvent({ event, timestamp }: LLMResponseEventProps) {
       <div className="prose prose-sm dark:prose-invert max-w-none">
         <ReactMarkdown>{event.data.content}</ReactMarkdown>
       </div>
-      <EventTime timestamp={timestamp} />
     </CollapsibleContent>
   )
 }
