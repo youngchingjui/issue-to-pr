@@ -37,6 +37,19 @@ export const resolveIssue = async (
       timestamp: new Date(),
     })
 
+    // Initialize workflow with metadata and issue information
+    await persistenceService.initializeWorkflow(
+      workflowId,
+      {
+        workflowType: "resolveIssue",
+        postToGithub: true,
+      },
+      {
+        number: issue.number,
+        repoFullName: repository.full_name,
+      }
+    )
+
     // Setup local repository
     const baseDir = await setupLocalRepository({
       repoFullName: repository.full_name,

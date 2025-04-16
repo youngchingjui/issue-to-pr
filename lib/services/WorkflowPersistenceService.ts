@@ -33,7 +33,7 @@ export class WorkflowPersistenceService {
         // If issue metadata exists, create/merge Issue node and connect it
         FOREACH (x IN CASE WHEN $hasIssue THEN [1] ELSE [] END |
           MERGE (i:Issue {number: $issueNumber, repoFullName: $repoFullName})
-          MERGE (w)-[:RELATED_TO_ISSUE]->(i)
+          MERGE (w)-[:BASED_ON_ISSUE]->(i)
         )
         RETURN w
         `,
@@ -121,24 +121,19 @@ export class WorkflowPersistenceService {
     const client = Neo4jClient.getInstance()
     const session = await client.getSession()
     try {
-      // Use a Cypher query to filter workflows by issue metadata
+      // Use relationship-based query to find workflows connected to the issue
       const result = await session.run(
         `
-        MATCH (w:Workflow)
-        WHERE w.metadata IS NOT NULL
-        // Use manual JSON parsing to check the workflow is related to the issue
-        AND w.metadata CONTAINS $issueQuery 
-        AND w.metadata CONTAINS $repoQuery
-        // Get related events
+        MATCH (i:Issue {repoFullName: $repoFullName, number: $issueNumber})<-[:BASED_ON_ISSUE]-(w:Workflow)
         OPTIONAL MATCH (w)-[:BELONGS_TO_WORKFLOW]->(e:Event)
-        WITH w, collect(e) as events
-        RETURN w.id as id, w.metadata as metadata, events
+        WITH w, collect(e) as events, i
+        RETURN w.id as id, w.metadata as metadata, events,
+               { number: i.number, repoFullName: i.repoFullName } as issue
         ORDER BY w.created_at DESC
         `,
         {
-          // Create partial JSON strings to search for within the metadata
-          issueQuery: `"number":${issueNumber}`,
-          repoQuery: `"repoFullName":"${repoFullName}"`,
+          repoFullName,
+          issueNumber,
         }
       )
 
@@ -147,6 +142,7 @@ export class WorkflowPersistenceService {
           const workflowId = record.get("id")
           const events = record.get("events") as Node[]
           const metadata = record.get("metadata")
+          const issue = record.get("issue")
 
           // Convert Neo4j events to WorkflowEvent[]
           const workflowEvents: WorkflowEvent[] = events
@@ -184,6 +180,7 @@ export class WorkflowPersistenceService {
             status,
             lastEventTimestamp,
             metadata: metadata ? JSON.parse(metadata as string) : undefined,
+            issue,
           }
         })
       )
@@ -241,7 +238,7 @@ export class WorkflowPersistenceService {
         `
         MATCH (w:Workflow {id: $workflowId})
         OPTIONAL MATCH (w)-[:BELONGS_TO_WORKFLOW]->(e:Event)
-        OPTIONAL MATCH (w)-[:RELATED_TO_ISSUE]->(i:Issue)
+        OPTIONAL MATCH (w)-[:BASED_ON_ISSUE]->(i:Issue)
         WITH w, collect(e) as events, i
         RETURN 
           w.metadata as metadata,
