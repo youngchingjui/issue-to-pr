@@ -30,15 +30,17 @@ export async function POST(request: NextRequest) {
         })
 
         // Initialize workflow with metadata first
-        await persistenceService.initializeWorkflow(jobId, {
-          workflowType: "resolve_issue",
-          issue: {
+        await persistenceService.initializeWorkflow(
+          jobId,
+          {
+            workflowType: "resolve_issue",
+            postToGithub: body.postToGithub ?? false,
+          },
+          {
             number: issueNumber,
             repoFullName,
-            title: issue.title,
-          },
-          postToGithub: body.postToGithub ?? false,
-        })
+          }
+        )
 
         const response = await resolveIssue(issue, fullRepo, apiKey, jobId)
 

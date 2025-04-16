@@ -6,10 +6,8 @@ import BaseGitHubItemCard from "@/components/github/BaseGitHubItemCard"
 import { Button } from "@/components/ui/button"
 import WorkflowRunDetail from "@/components/workflow-runs/WorkflowRunDetail"
 import { getIssue } from "@/lib/github/issues"
-import {
-  WorkflowMetadata,
-  WorkflowPersistenceService,
-} from "@/lib/services/WorkflowPersistenceService"
+import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceService"
+import { WorkflowWithEvents } from "@/lib/types/workflow"
 
 export default async function WorkflowRunDetailPage({
   params,
@@ -18,23 +16,21 @@ export default async function WorkflowRunDetailPage({
 }) {
   const { traceId } = params
 
-  const workflow = await new WorkflowPersistenceService()
-    .getWorkflowEvents(traceId)
-    .catch(() => null)
+  const workflow: WorkflowWithEvents | null =
+    await new WorkflowPersistenceService()
+      .getWorkflowEvents(traceId)
+      .catch(() => null)
 
   // If no workflow was found
-  if (!workflow || workflow.events.length === 0) {
+  if (!workflow) {
     notFound()
   }
 
-  // Get workflow metadata
-  const workflowMetadata = workflow.metadata as WorkflowMetadata
-
-  // Fetch issue details if metadata exists
-  const issue = workflowMetadata?.issue
+  // Fetch issue details if issue exists
+  const issue = workflow.issue
     ? await getIssue({
-        fullName: workflowMetadata.issue.repoFullName,
-        issueNumber: workflowMetadata.issue.number,
+        fullName: workflow.issue.repoFullName,
+        issueNumber: workflow.issue.number,
       }).catch(() => null)
     : null
 
@@ -56,12 +52,12 @@ export default async function WorkflowRunDetailPage({
           <h1 className="text-2xl font-bold">
             {issue?.title || `Workflow Run: ${traceId}`}
           </h1>
-          {workflowMetadata?.workflowType && (
+          {workflow.metadata?.workflowType && (
             <p className="text-sm text-muted-foreground">
               Workflow Type:{" "}
-              {workflowMetadata.workflowType === "commentOnIssue"
+              {workflow.metadata.workflowType === "commentOnIssue"
                 ? "Comment on Issue"
-                : workflowMetadata.workflowType}
+                : workflow.metadata.workflowType}
             </p>
           )}
         </div>

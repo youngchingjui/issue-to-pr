@@ -2,27 +2,12 @@ import { Node, Record as Neo4jRecord } from "neo4j-driver"
 import { v4 as uuidv4 } from "uuid"
 
 import { Neo4jClient } from "@/lib/neo4j/client"
-import { WorkflowEvent, WorkflowEventType } from "@/lib/types/workflow"
-
-export interface WorkflowWithEvents {
-  id: string
-  events: WorkflowEvent[]
-  status: "active" | "completed" | "error"
-  lastEventTimestamp: Date | null
-  metadata?: Record<string, unknown>
-}
-
-// Add a new type for workflow metadata
-export interface WorkflowMetadata {
-  workflowType: string
-  issue?: {
-    number: number
-    /** Full repository name in the format 'owner/repo' (e.g. 'octocat/Hello-World') */
-    repoFullName: string
-    title?: string
-  }
-  postToGithub: boolean
-}
+import {
+  WorkflowEvent,
+  WorkflowEventType,
+  WorkflowMetadata,
+  WorkflowWithEvents,
+} from "@/lib/types/workflow"
 
 export class WorkflowPersistenceService {
   private neo4j: Neo4jClient
@@ -31,19 +16,33 @@ export class WorkflowPersistenceService {
     this.neo4j = Neo4jClient.getInstance()
   }
 
-  async initializeWorkflow(workflowId: string, metadata: WorkflowMetadata) {
+  async initializeWorkflow(
+    workflowId: string,
+    metadata: WorkflowMetadata,
+    issue?: { number: number; repoFullName: string }
+  ) {
     const session = await this.neo4j.getSession()
     try {
+      // Create workflow and optionally connect to issue if metadata contains issue info
       await session.run(
         `
         MERGE (w:Workflow {id: $workflowId})
         SET w.created_at = datetime(),
             w.metadata = $metadata
+        WITH w
+        // If issue metadata exists, create/merge Issue node and connect it
+        FOREACH (x IN CASE WHEN $hasIssue THEN [1] ELSE [] END |
+          MERGE (i:Issue {number: $issueNumber, repoFullName: $repoFullName})
+          MERGE (w)-[:RELATED_TO_ISSUE]->(i)
+        )
         RETURN w
         `,
         {
           workflowId,
           metadata: JSON.stringify(metadata),
+          hasIssue: !!issue,
+          issueNumber: issue?.number,
+          repoFullName: issue?.repoFullName,
         }
       )
     } finally {
@@ -233,30 +232,37 @@ export class WorkflowPersistenceService {
     }
   }
 
-  async getWorkflowEvents(workflowId: string): Promise<{
-    events: WorkflowEvent[]
-    metadata?: WorkflowMetadata
-  }> {
+  async getWorkflowEvents(
+    workflowId: string
+  ): Promise<WorkflowWithEvents | null> {
     const session = await this.neo4j.getSession()
     try {
       const result = await session.run(
         `
         MATCH (w:Workflow {id: $workflowId})
         OPTIONAL MATCH (w)-[:BELONGS_TO_WORKFLOW]->(e:Event)
-        WITH w, collect(e) as events
-        RETURN w.metadata as metadata, events
+        OPTIONAL MATCH (w)-[:RELATED_TO_ISSUE]->(i:Issue)
+        WITH w, collect(e) as events, i
+        RETURN 
+          w.metadata as metadata,
+          events,
+          CASE WHEN i IS NOT NULL 
+            THEN { number: i.number, repoFullName: i.repoFullName }
+            ELSE NULL 
+          END as issue
         ORDER BY w.created_at DESC
         `,
         { workflowId }
       )
 
       if (result.records.length === 0) {
-        return { events: [], metadata: undefined }
+        return null
       }
 
       const record = result.records[0]
       const events = record.get("events") as Node[]
       const metadata = record.get("metadata")
+      const issue = record.get("issue")
 
       const workflowEvents: WorkflowEvent[] = events
         .filter((e) => e !== null)
@@ -269,9 +275,31 @@ export class WorkflowPersistenceService {
         }))
         .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
 
+      // Determine workflow status and last event timestamp
+      let status: "active" | "completed" | "error" = "active"
+      let lastEventTimestamp: Date | null = null
+
+      if (workflowEvents.length > 0) {
+        const lastEvent = workflowEvents[workflowEvents.length - 1]
+        lastEventTimestamp = lastEvent.timestamp
+
+        if (
+          lastEvent.type === "status" &&
+          lastEvent.data.status === "completed"
+        ) {
+          status = "completed"
+        } else if (lastEvent.type === "error") {
+          status = "error"
+        }
+      }
+
       return {
+        id: workflowId,
         events: workflowEvents,
+        status,
+        lastEventTimestamp,
         metadata: metadata ? JSON.parse(metadata as string) : undefined,
+        issue: issue as { number: number; repoFullName: string } | undefined,
       }
     } finally {
       await session.close()
