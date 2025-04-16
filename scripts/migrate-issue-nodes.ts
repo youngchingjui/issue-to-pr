@@ -29,6 +29,8 @@ async function migrateIssueNodes() {
       const workflowId = record.get("id")
       const metadata = JSON.parse(record.get("metadata"))
 
+      console.log(`workflow id: ${workflowId}`)
+      console.log(`workflow metadata: ${metadata}`)
       // Extract issue information from metadata
       const issueNumber = metadata.number
       const repoFullName = metadata.repoFullName
