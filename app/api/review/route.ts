@@ -29,10 +29,18 @@ export async function POST(request: NextRequest) {
       })
 
       // Post the AI-generated review as a comment on the pull request
+      const lastMessage = response.messages[response.messages.length - 1]
+      if (typeof lastMessage.content !== "string") {
+        throw new Error(
+          `Last message content is not a string. Here's the content: ${JSON.stringify(
+            lastMessage.content
+          )}`
+        )
+      }
       await createIssueComment({
         issueNumber: pullNumber,
         repoFullName,
-        comment: response,
+        comment: lastMessage.content,
       })
     } catch (error) {
       console.error("Error posting comment:", error)

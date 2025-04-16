@@ -23,10 +23,22 @@ interface ToolCallInProgress extends ChatCompletionMessageToolCall {
   index: number
 }
 
+type EnhancedMessage = ChatCompletionMessageParam & {
+  id?: string
+  timestamp?: Date
+}
+
+interface RunResponse {
+  jobId?: string
+  startTime: Date
+  endTime: Date
+  messages: EnhancedMessage[]
+}
+
 export class Agent {
   REQUIRED_TOOLS: string[] = []
-  messages: ChatCompletionMessageParam[] = []
-  private untrackedMessages: ChatCompletionMessageParam[] = [] // Queue for untracked messages
+  messages: EnhancedMessage[] = []
+  private untrackedMessages: EnhancedMessage[] = [] // Queue for untracked messages
   tools: Tool<z.ZodType>[] = []
   llm: OpenAI
   model: ChatModel = "gpt-4.1"
@@ -46,18 +58,22 @@ export class Agent {
     }
   }
 
-  private async trackMessage(message: ChatCompletionMessageParam) {
+  private async trackMessage(
+    message: ChatCompletionMessageParam
+  ): Promise<string | undefined> {
     if (!this.jobId) return
 
+    let eventId: string | undefined
+
     if (message.role === "system" && typeof message.content === "string") {
-      await this.persistenceService.saveEvent({
+      eventId = await this.persistenceService.saveEvent({
         type: "system_prompt",
         workflowId: this.jobId,
         data: { content: message.content },
         timestamp: new Date(),
       })
     } else if (message.role === "user" && typeof message.content === "string") {
-      await this.persistenceService.saveEvent({
+      eventId = await this.persistenceService.saveEvent({
         type: "user_message",
         workflowId: this.jobId,
         data: { content: message.content },
@@ -67,7 +83,7 @@ export class Agent {
       message.role === "assistant" &&
       typeof message.content === "string"
     ) {
-      await this.persistenceService.saveEvent({
+      eventId = await this.persistenceService.saveEvent({
         type: "llm_response",
         workflowId: this.jobId,
         data: {
@@ -77,6 +93,8 @@ export class Agent {
         timestamp: new Date(),
       })
     }
+
+    return eventId
   }
 
   async addJobId(jobId: string) {
@@ -92,7 +110,7 @@ export class Agent {
   async setSystemPrompt(prompt: string) {
     // Update messages array
     this.messages = this.messages.filter((message) => message.role !== "system")
-    const systemMessage: ChatCompletionMessageParam = {
+    const systemMessage: EnhancedMessage = {
       role: "system",
       content: prompt,
     }
@@ -107,14 +125,16 @@ export class Agent {
   }
 
   async addMessage(message: ChatCompletionMessageParam) {
-    this.messages.push(message)
-
-    // Track or queue the message
-    if (this.jobId) {
-      await this.trackMessage(message)
-    } else {
-      this.untrackedMessages.push(message)
+    const enhancedMessage: EnhancedMessage = {
+      ...message,
+      timestamp: new Date(),
     }
+
+    if (this.jobId) {
+      enhancedMessage.id = await this.trackMessage(message)
+    }
+
+    this.messages.push(enhancedMessage)
   }
 
   addTool<T extends z.ZodType>(toolConfig: Tool<T>) {
@@ -145,7 +165,8 @@ export class Agent {
     return true
   }
 
-  async runWithFunctions(): Promise<string> {
+  async runWithFunctions(): Promise<RunResponse> {
+    const startTime = new Date()
     const hasTools = this.checkTools()
     if (!hasTools) {
       throw new Error("Missing tools, please attach required tools first")
@@ -259,8 +280,6 @@ export class Agent {
       }
       return await this.runWithFunctions()
     } else {
-      const finalContent = response.choices[0].message.content || ""
-
       // Only emit status event to mark the end of the agent's execution
       if (this.jobId) {
         await this.persistenceService.saveEvent({
@@ -273,7 +292,13 @@ export class Agent {
           },
         })
       }
-      return finalContent
+
+      return {
+        jobId: this.jobId,
+        startTime,
+        endTime: new Date(),
+        messages: this.messages,
+      }
     }
   }
 
@@ -285,7 +310,7 @@ export class Agent {
 
     const params: ChatCompletionCreateParamsStreaming = {
       model: this.model,
-      messages: this.messages,
+      messages: this.messages, // EnhancedMessage is compatible with ChatCompletionMessageParam
       stream: true,
     }
 
@@ -296,10 +321,11 @@ export class Agent {
     const response = await this.llm.chat.completions.create(params)
     let fullContent = ""
     const currentToolCalls: ToolCallInProgress[] = []
-    const currentMessage: ChatCompletionMessageParam = {
-      role: "assistant" as const,
+    const currentMessage: EnhancedMessage = {
+      role: "assistant",
       content: "",
       tool_calls: [],
+      timestamp: new Date(),
     }
 
     for await (const chunk of response) {
@@ -440,6 +466,9 @@ export class Agent {
       }
       return await this.runWithFunctionsStream()
     }
+
+    // Add the complete message to our history
+    await this.addMessage(currentMessage)
 
     if (this.jobId) {
       WorkflowEventEmitter.emit(this.jobId, {

@@ -318,4 +318,113 @@ export class WorkflowPersistenceService {
       await session.close()
     }
   }
+
+  async createPlan(params: {
+    workflowId: string
+    messageId: string
+    issueNumber: number
+    repoFullName: string
+  }) {
+    const session = await this.neo4j.getSession()
+    try {
+      // Create the Plan node and establish relationships
+      const result = await session.run(
+        `
+        // Match the workflow and message
+        MATCH (w:Workflow {id: $workflowId})
+        MATCH (m:Event {id: $messageId})
+        WHERE m.type = "llm_response"
+        
+        // Create Plan node
+        CREATE (p:Plan {
+          id: $planId,
+          status: "draft",
+          type: "issue_resolution",
+          createdAt: datetime()
+        })
+        
+        // Create relationships
+        CREATE (p)-[:GENERATED_FROM]->(m)
+        CREATE (p)-[:PART_OF]->(w)
+        
+        // Create relationship to Issue (creating Issue node if it doesn't exist)
+        MERGE (i:Issue {number: $issueNumber, repoFullName: $repoFullName})
+        CREATE (i)-[:HAS_PLAN]->(p)
+        
+        RETURN p
+        `,
+        {
+          planId: uuidv4(),
+          workflowId: params.workflowId,
+          messageId: params.messageId,
+          issueNumber: params.issueNumber,
+          repoFullName: params.repoFullName,
+        }
+      )
+
+      return result.records[0]?.get("p")?.properties
+    } finally {
+      await session.close()
+    }
+  }
+
+  async getPlanForIssue(issueNumber: number, repoFullName: string) {
+    const session = await this.neo4j.getSession()
+    try {
+      const result = await session.run(
+        `
+        MATCH (i:Issue {number: $issueNumber, repoFullName: $repoFullName})-[:HAS_PLAN]->(p:Plan)
+        MATCH (p)-[:GENERATED_FROM]->(m:Event)
+        RETURN p, m
+        ORDER BY p.createdAt DESC
+        LIMIT 1
+        `,
+        {
+          issueNumber,
+          repoFullName,
+        }
+      )
+
+      if (result.records.length === 0) {
+        return null
+      }
+
+      const plan = result.records[0].get("p").properties
+      const message = result.records[0].get("m").properties
+
+      return {
+        ...plan,
+        message: {
+          ...message,
+          data: JSON.parse(message.data),
+        },
+      }
+    } finally {
+      await session.close()
+    }
+  }
+
+  async updatePlanStatus(
+    planId: string,
+    status: "draft" | "approved" | "implemented"
+  ) {
+    const session = await this.neo4j.getSession()
+    try {
+      const result = await session.run(
+        `
+        MATCH (p:Plan {id: $planId})
+        SET p.status = $status
+        RETURN p
+        `,
+        {
+          planId,
+          status,
+        }
+      )
+
+      return result.records[0]?.get("p")?.properties
+    } finally {
+      await session.close()
+    }
+  }
 }

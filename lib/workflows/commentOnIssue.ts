@@ -212,6 +212,28 @@ export default async function commentOnIssue(
     const response = await thinker.runWithFunctions()
     span.end()
 
+    const lastAssistantMessage = response.messages
+      .filter(
+        (msg) =>
+          msg.role === "assistant" &&
+          typeof msg.content === "string" &&
+          !msg.tool_calls
+      )
+      .pop()
+
+    if (!lastAssistantMessage) {
+      throw new Error("No valid assistant message found in the response")
+    }
+
+    // The response is the final Plan.
+    // Create a Plan node linked to this response
+    await persistenceService.createPlan({
+      workflowId: jobId,
+      messageId: lastAssistantMessage.id,
+      issueNumber: issueNumber,
+      repoFullName: repo.full_name,
+    })
+
     // Only update GitHub comment if postToGithub is true
     if (postToGithub && initialCommentId) {
       await persistenceService.saveEvent({
@@ -221,10 +243,18 @@ export default async function commentOnIssue(
         timestamp: new Date(),
       })
 
+      if (typeof lastAssistantMessage.content !== "string") {
+        throw new Error(
+          `Last message content is not a string. Here's the content: ${JSON.stringify(
+            lastAssistantMessage.content
+          )}`
+        )
+      }
+
       await updateIssueComment({
         repoFullName: repo.full_name,
         commentId: initialCommentId,
-        comment: response,
+        comment: lastAssistantMessage.content,
       }).catch((error) => {
         console.error("Failed to update comment:", {
           error,

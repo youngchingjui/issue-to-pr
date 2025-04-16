@@ -11,7 +11,6 @@ import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceSe
 import {
   CallCoderAgentTool,
   GetFileContentTool,
-  ReviewPullRequestTool,
   RipgrepSearchTool,
   UploadAndPRTool,
 } from "@/lib/tools"
@@ -64,12 +63,6 @@ export const resolveIssue = async (
     const getFileContentTool = new GetFileContentTool(baseDir)
     const submitPRTool = new UploadAndPRTool(repository, baseDir, issue.number)
     const searchCodeTool = new RipgrepSearchTool(baseDir)
-    const reviewPullRequestTool = new ReviewPullRequestTool({
-      repo: repository,
-      issue,
-      baseDir,
-      apiKey,
-    })
 
     // Prepare the coordinator agent
     const coordinatorAgent = new CoordinatorAgent({
@@ -114,7 +107,6 @@ export const resolveIssue = async (
     coordinatorAgent.addTool(callCoderAgentTool)
     coordinatorAgent.addTool(submitPRTool)
     coordinatorAgent.addTool(searchCodeTool)
-    coordinatorAgent.addTool(reviewPullRequestTool)
 
     // Run the coordinator agent
     await persistenceService.saveEvent({

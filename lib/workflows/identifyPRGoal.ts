@@ -124,7 +124,15 @@ Available tools:
       timestamp: new Date(),
     })
 
-    return result
+    const lastMessage = result.messages[result.messages.length - 1]
+    if (typeof lastMessage.content !== "string") {
+      throw new Error(
+        `Last message content is not a string. Here's the content: ${JSON.stringify(
+          lastMessage.content
+        )}`
+      )
+    }
+    return lastMessage.content
   } catch (error) {
     // Emit error event
     const errorEvent = {

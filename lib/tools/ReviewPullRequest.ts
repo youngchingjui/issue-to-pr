@@ -66,7 +66,7 @@ class ReviewPullRequestTool
       this.jobId = uuidv4()
     }
 
-    return await reviewPullRequest({
+    const response = await reviewPullRequest({
       repoFullName: this.repo.full_name,
       issue: this.issue,
       pullNumber: this.pullNumber,
@@ -75,6 +75,18 @@ class ReviewPullRequestTool
       apiKey: this.apiKey,
       jobId: this.jobId,
     })
+
+    const lastMessage = response.messages[response.messages.length - 1]
+
+    if (typeof lastMessage.content !== "string") {
+      throw new Error(
+        `Last message content is not a string. Here's the content: ${JSON.stringify(
+          lastMessage.content
+        )}`
+      )
+    }
+
+    return lastMessage.content
   }
 }
 
