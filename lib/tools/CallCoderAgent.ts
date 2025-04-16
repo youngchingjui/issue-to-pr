@@ -56,7 +56,16 @@ class CallCoderAgentTool implements Tool<typeof callCoderAgentParameters> {
     })
 
     // Start the run
-    return await coderAgent.runWithFunctions()
+    const response = await coderAgent.runWithFunctions()
+    const lastMessage = response.messages[response.messages.length - 1]
+    if (typeof lastMessage.content !== "string") {
+      throw new Error(
+        `Last message content is not a string. Here's the content: ${JSON.stringify(
+          lastMessage.content
+        )}`
+      )
+    }
+    return lastMessage.content
   }
 }
 

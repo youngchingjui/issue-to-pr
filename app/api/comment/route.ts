@@ -12,7 +12,6 @@ import { v4 as uuidv4 } from "uuid"
 import { z } from "zod"
 
 import { getRepoFromString } from "@/lib/github/content"
-import { updateJobStatus } from "@/lib/redis-old"
 import { CommentRequestSchema } from "@/lib/schemas/api"
 import commentOnIssue from "@/lib/workflows/commentOnIssue"
 
@@ -24,7 +23,6 @@ export async function POST(request: NextRequest) {
 
     // Generate a unique job ID
     const jobId = uuidv4()
-    await updateJobStatus(jobId, "Starting comment workflow")
 
     // Start the comment workflow as a background job
     ;(async () => {
@@ -38,9 +36,9 @@ export async function POST(request: NextRequest) {
           jobId,
           postToGithub
         )
-        await updateJobStatus(jobId, "Completed: " + JSON.stringify(response))
+        console.log(response)
       } catch (error) {
-        await updateJobStatus(jobId, "Failed: " + error.message)
+        console.error(error)
       }
     })()
 

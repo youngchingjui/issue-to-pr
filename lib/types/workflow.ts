@@ -108,3 +108,17 @@ export type WorkflowEvent =
   | ToolResponseEvent
   | ErrorEvent
   | StatusEvent
+
+export interface WorkflowWithEvents {
+  id: string
+  events: WorkflowEvent[]
+  status: "active" | "completed" | "error"
+  lastEventTimestamp: Date | null
+  metadata?: WorkflowMetadata
+  issue?: { number: number; repoFullName: string }
+}
+
+export interface WorkflowMetadata {
+  workflowType: string
+  postToGithub: boolean
+}

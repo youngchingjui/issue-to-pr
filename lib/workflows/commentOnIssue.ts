@@ -11,6 +11,7 @@ import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceSe
 import GetFileContentTool from "@/lib/tools/GetFileContent"
 import RipgrepSearchTool from "@/lib/tools/RipgrepSearchTool"
 import { GitHubRepository } from "@/lib/types/github"
+import { WorkflowMetadata } from "@/lib/types/workflow"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 
 interface GitHubError extends Error {
@@ -20,17 +21,6 @@ interface GitHubError extends Error {
       message?: string
     }
   }
-}
-
-type WorkflowMetadata = Record<string, unknown> & {
-  workflowType: string
-  issue: {
-    number: number
-    /** Full repository name in the format 'owner/repo' (e.g. 'octocat/Hello-World') */
-    repoFullName: string
-    title?: string
-  }
-  postToGithub: boolean
 }
 
 export default async function commentOnIssue(
@@ -43,18 +33,6 @@ export default async function commentOnIssue(
   const trace = langfuse.trace({ name: "commentOnIssue" })
   let initialCommentId: number | null = null
   const persistenceService = new WorkflowPersistenceService()
-
-  // Initialize workflow with metadata
-  const workflowMetadata: WorkflowMetadata = {
-    workflowType: "commentOnIssue",
-    issue: {
-      number: issueNumber,
-      repoFullName: repo.full_name,
-    },
-    postToGithub,
-  }
-
-  await persistenceService.initializeWorkflow(jobId, workflowMetadata)
 
   try {
     await persistenceService.saveEvent({
@@ -79,9 +57,16 @@ export default async function commentOnIssue(
       )
     })
 
-    // Update workflow metadata with issue title
-    workflowMetadata.issue.title = issue.title
-    await persistenceService.initializeWorkflow(jobId, workflowMetadata)
+    // Initialize workflow with metadata
+    const workflowMetadata: WorkflowMetadata = {
+      workflowType: "commentOnIssue",
+      postToGithub,
+    }
+
+    await persistenceService.initializeWorkflow(jobId, workflowMetadata, {
+      number: issueNumber,
+      repoFullName: repo.full_name,
+    })
 
     await persistenceService.saveEvent({
       type: "status",
@@ -212,6 +197,28 @@ export default async function commentOnIssue(
     const response = await thinker.runWithFunctions()
     span.end()
 
+    const lastAssistantMessage = response.messages
+      .filter(
+        (msg) =>
+          msg.role === "assistant" &&
+          typeof msg.content === "string" &&
+          !msg.tool_calls
+      )
+      .pop()
+
+    if (!lastAssistantMessage) {
+      throw new Error("No valid assistant message found in the response")
+    }
+
+    // The response is the final Plan.
+    // Create a Plan node linked to this response
+    await persistenceService.createPlan({
+      workflowId: jobId,
+      messageId: lastAssistantMessage.id,
+      issueNumber: issueNumber,
+      repoFullName: repo.full_name,
+    })
+
     // Only update GitHub comment if postToGithub is true
     if (postToGithub && initialCommentId) {
       await persistenceService.saveEvent({
@@ -221,10 +228,18 @@ export default async function commentOnIssue(
         timestamp: new Date(),
       })
 
+      if (typeof lastAssistantMessage.content !== "string") {
+        throw new Error(
+          `Last message content is not a string. Here's the content: ${JSON.stringify(
+            lastAssistantMessage.content
+          )}`
+        )
+      }
+
       await updateIssueComment({
         repoFullName: repo.full_name,
         commentId: initialCommentId,
-        comment: response,
+        comment: lastAssistantMessage.content,
       }).catch((error) => {
         console.error("Failed to update comment:", {
           error,
