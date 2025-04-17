@@ -43,7 +43,7 @@ export class Agent {
   llm: OpenAI
   model: ChatModel = "gpt-4.1"
   jobId?: string
-  private persistenceService: WorkflowPersistenceService
+  private workflowService: WorkflowPersistenceService
 
   constructor({ model, systemPrompt, apiKey }: AgentConstructorParams) {
     if (model) {
@@ -52,7 +52,7 @@ export class Agent {
     if (apiKey) {
       this.addApiKey(apiKey)
     }
-    this.persistenceService = new WorkflowPersistenceService()
+    this.workflowService = new WorkflowPersistenceService()
     if (systemPrompt) {
       this.setSystemPrompt(systemPrompt)
     }
@@ -66,14 +66,14 @@ export class Agent {
     let eventId: string | undefined
 
     if (message.role === "system" && typeof message.content === "string") {
-      eventId = await this.persistenceService.saveEvent({
+      eventId = await this.workflowService.saveEvent({
         type: "system_prompt",
         workflowId: this.jobId,
         data: { content: message.content },
         timestamp: new Date(),
       })
     } else if (message.role === "user" && typeof message.content === "string") {
-      eventId = await this.persistenceService.saveEvent({
+      eventId = await this.workflowService.saveEvent({
         type: "user_message",
         workflowId: this.jobId,
         data: { content: message.content },
@@ -83,7 +83,7 @@ export class Agent {
       message.role === "assistant" &&
       typeof message.content === "string"
     ) {
-      eventId = await this.persistenceService.saveEvent({
+      eventId = await this.workflowService.saveEvent({
         type: "llm_response",
         workflowId: this.jobId,
         data: {
@@ -108,6 +108,18 @@ export class Agent {
   }
 
   async setSystemPrompt(prompt: string) {
+    // Find and remove old system messages from Neo4j if we have a jobId
+    if (this.jobId) {
+      const oldSystemMessages = this.messages.filter(
+        (message) => message.role === "system"
+      )
+      for (const message of oldSystemMessages) {
+        if ("id" in message) {
+          await this.workflowService.deleteEvent(message.id)
+        }
+      }
+    }
+
     // Update messages array
     this.messages = this.messages.filter((message) => message.role !== "system")
     const systemMessage: EnhancedMessage = {
@@ -207,7 +219,7 @@ export class Agent {
         if (tool) {
           // Track tool call event
           if (this.jobId) {
-            await this.persistenceService.saveEvent({
+            await this.workflowService.saveEvent({
               type: "tool_call",
               workflowId: this.jobId,
               data: {
@@ -228,7 +240,7 @@ export class Agent {
 
             // Track error event
             if (this.jobId) {
-              await this.persistenceService.saveEvent({
+              await this.workflowService.saveEvent({
                 type: "error",
                 workflowId: this.jobId,
                 data: {
@@ -246,7 +258,7 @@ export class Agent {
 
           // Track tool response event
           if (this.jobId) {
-            await this.persistenceService.saveEvent({
+            await this.workflowService.saveEvent({
               type: "tool_response",
               workflowId: this.jobId,
               data: {
@@ -266,7 +278,7 @@ export class Agent {
           console.error(`Tool ${toolCall.function.name} not found`)
           // Track error event
           if (this.jobId) {
-            await this.persistenceService.saveEvent({
+            await this.workflowService.saveEvent({
               type: "error",
               workflowId: this.jobId,
               data: {
@@ -282,7 +294,7 @@ export class Agent {
     } else {
       // Only emit status event to mark the end of the agent's execution
       if (this.jobId) {
-        await this.persistenceService.saveEvent({
+        await this.workflowService.saveEvent({
           workflowId: this.jobId,
           timestamp: new Date(),
           type: "status",
@@ -437,7 +449,7 @@ export class Agent {
                   toolName: toolCall.function.name,
                   recoverable: true,
                 }
-                await this.persistenceService.saveEvent({
+                await this.workflowService.saveEvent({
                   type: "error",
                   workflowId: this.jobId,
                   data: eventData,
@@ -452,7 +464,7 @@ export class Agent {
                   error instanceof Error ? error : new Error(String(error)),
                 recoverable: true,
               }
-              await this.persistenceService.saveEvent({
+              await this.workflowService.saveEvent({
                 type: "error",
                 workflowId: this.jobId,
                 data: eventData,
@@ -479,7 +491,7 @@ export class Agent {
     }
 
     // Add the completion status to our history
-    await this.persistenceService.saveEvent({
+    await this.workflowService.saveEvent({
       workflowId: this.jobId,
       timestamp: new Date(),
       type: "status",

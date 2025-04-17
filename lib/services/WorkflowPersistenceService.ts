@@ -2,12 +2,25 @@ import { Node, Record as Neo4jRecord } from "neo4j-driver"
 import { v4 as uuidv4 } from "uuid"
 
 import { Neo4jClient } from "@/lib/neo4j/client"
+import { PlanProperties } from "@/lib/types/plan"
 import {
   WorkflowEvent,
   WorkflowEventType,
   WorkflowMetadata,
   WorkflowWithEvents,
 } from "@/lib/types/workflow"
+
+interface PlanResponse extends PlanProperties {
+  message: {
+    id: string
+    type: "llm_response"
+    timestamp: string
+    data: {
+      content: string
+      model: string
+    }
+  }
+}
 
 export class WorkflowPersistenceService {
   private neo4j: Neo4jClient
@@ -393,7 +406,10 @@ export class WorkflowPersistenceService {
     }
   }
 
-  async getPlanForIssue(issueNumber: number, repoFullName: string) {
+  async getPlanForIssue(
+    issueNumber: number,
+    repoFullName: string
+  ): Promise<PlanResponse | null> {
     const session = await this.neo4j.getSession()
     try {
       const result = await session.run(
@@ -448,6 +464,30 @@ export class WorkflowPersistenceService {
       )
 
       return result.records[0]?.get("p")?.properties
+    } finally {
+      await session.close()
+    }
+  }
+
+  async deleteEvent(eventId: string) {
+    const session = await this.neo4j.getSession()
+    try {
+      // Find the previous and next events, delete the current event,
+      // and create a new relationship between previous and next if they exist
+      await session.run(
+        `
+        MATCH (e:Event {id: $eventId})
+        OPTIONAL MATCH (prev:Event)-[r1:NEXT_EVENT]->(e)
+        OPTIONAL MATCH (e)-[r2:NEXT_EVENT]->(next:Event)
+        WITH e, prev, next, r1, r2
+        DELETE r1, r2, e
+        WITH prev, next
+        FOREACH (x IN CASE WHEN prev IS NOT NULL AND next IS NOT NULL THEN [1] ELSE [] END |
+          CREATE (prev)-[:NEXT_EVENT]->(next)
+        )
+        `,
+        { eventId }
+      )
     } finally {
       await session.close()
     }

@@ -115,6 +115,22 @@ export const resolveIssue = async (
       })
     }
 
+    // Check for existing plan
+    const plan = await persistenceService.getPlanForIssue(
+      issue.number,
+      repository.full_name
+    )
+
+    if (plan) {
+      // Inject the plan itself as a user message (for clarity, before issue/comments/tree)
+      await coordinatorAgent.addMessage({
+        role: "user",
+        content: `Implementation plan for this issue (from previous workflow):
+
+${plan.message.data.content || "PLAN CONTENT UNAVAILABLE"}`,
+      })
+    }
+
     // Add tools for coordinator agent
     coordinatorAgent.addTool(getFileContentTool)
     coordinatorAgent.addTool(callCoderAgentTool)
