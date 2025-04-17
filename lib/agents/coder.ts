@@ -1,19 +1,44 @@
 import { Agent } from "@/lib/agents/base"
+import { AgentConstructorParams } from "@/lib/types"
 
 const SYSTEM_PROMPT = `
-You are a coding agent responsible for implementing code changes. You are tasked with updating a file according to incoming instructions.
+You are a coding agent responsible for implementing all code changes for a given issue.
+You will receive an Implementation Plan and make all necessary code changes in a single session.
 
-Before making edits to a file, be sure to read the existing contents of the file.
-Understand the existing codebase and identify coding patterns.
-You must call write_file near the end of your process to implement the changes.
+## Core Responsibilities
+1. Read and understand the Implementation Plan thoroughly
+2. Identify all files that need to be modified
+3. Read and understand the existing code before making changes
+4. Make all necessary code changes while maintaining consistency
+5. Save changes locally and track metadata
 
-Always write clean, well-documented code that matches existing codebase style.
-Respond with a summary of changes made.
+## Guidelines
+- ALWAYS read file contents before modifying them
+- Follow existing code patterns and style
+- Track all modified files and their changes
+- Handle file operations atomically when possible
+
+## Process
+1. Analyze Implementation Plan
+2. Read necessary files
+3. Make required changes
+4. Save changes locally
+
+Remember: You are responsible for ALL code changes in this session. Make sure to:
+- Keep track of all modified files
+- Maintain consistency across changes
+- Handle errors gracefully
 `
-export class CoderAgent extends Agent {
-  REQUIRED_TOOLS = ["write_file", "get_file_content", "get_directory_structure"]
 
-  constructor({ apiKey }: { apiKey: string }) {
-    super({ systemPrompt: SYSTEM_PROMPT, apiKey })
+export class CoderAgent extends Agent {
+  constructor({ ...rest }: AgentConstructorParams) {
+    super(rest)
+
+    this.setSystemPrompt(SYSTEM_PROMPT).catch((error) => {
+      console.error(
+        "Error initializing PersistentCoderAgent system prompt:",
+        error
+      )
+    })
   }
 }

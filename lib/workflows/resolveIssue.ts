@@ -3,16 +3,15 @@
 // All the agents will share the same trace
 // They can also all access the same data, such as the issue, the codebase, etc.
 
-import { CoordinatorAgent } from "@/lib/agents/coordinator"
+import { CoderAgent } from "@/lib/agents/coder"
 import { createDirectoryTree } from "@/lib/fs"
 import { getIssueComments } from "@/lib/github/issues"
 import { langfuse } from "@/lib/langfuse"
 import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceService"
 import {
-  CallCoderAgentTool,
   GetFileContentTool,
   RipgrepSearchTool,
-  UploadAndPRTool,
+  WriteFileContentTool,
 } from "@/lib/tools"
 import { GitHubIssue, GitHubRepository } from "@/lib/types/github"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
@@ -72,27 +71,33 @@ export const resolveIssue = async (
     })
 
     // Load all the tools
-    const callCoderAgentTool = new CallCoderAgentTool({ apiKey, baseDir })
     const getFileContentTool = new GetFileContentTool(baseDir)
-    const submitPRTool = new UploadAndPRTool(repository, baseDir, issue.number)
     const searchCodeTool = new RipgrepSearchTool(baseDir)
+    const writeFileTool = new WriteFileContentTool(baseDir)
 
-    // Prepare the coordinator agent
-    const coordinatorAgent = new CoordinatorAgent({
+    // Initialize the persistent coder agent
+    const coder = new CoderAgent({
       apiKey,
     })
-    coordinatorAgent.addSpan({ span, generationName: "coordinate" })
-    coordinatorAgent.addJobId(jobId)
+
+    coder.addJobId(jobId)
+
+    // Add tools to persistent coder
+    coder.addTool(getFileContentTool)
+    coder.addTool(writeFileTool)
+    coder.addTool(searchCodeTool)
+
+    coder.addSpan({ span, generationName: "Edit Code" })
 
     // Add issue information as user message
-    await coordinatorAgent.addMessage({
+    await coder.addMessage({
       role: "user",
       content: `Github issue title: ${issue.title}\nGithub issue description: ${issue.body}`,
     })
 
     // Add comments if they exist
     if (comments && comments.length > 0) {
-      await coordinatorAgent.addMessage({
+      await coder.addMessage({
         role: "user",
         content: `Github issue comments:\n${comments
           .map(
@@ -109,7 +114,7 @@ export const resolveIssue = async (
 
     // Add tree information as user message
     if (tree && tree.length > 0) {
-      await coordinatorAgent.addMessage({
+      await coder.addMessage({
         role: "user",
         content: `Here is the codebase's tree directory:\n${tree.join("\n")}`,
       })
@@ -123,7 +128,7 @@ export const resolveIssue = async (
 
     if (plan) {
       // Inject the plan itself as a user message (for clarity, before issue/comments/tree)
-      await coordinatorAgent.addMessage({
+      await coder.addMessage({
         role: "user",
         content: `Implementation plan for this issue (from previous workflow):
 
@@ -131,23 +136,17 @@ ${plan.message.data.content || "PLAN CONTENT UNAVAILABLE"}`,
       })
     }
 
-    // Add tools for coordinator agent
-    coordinatorAgent.addTool(getFileContentTool)
-    coordinatorAgent.addTool(callCoderAgentTool)
-    coordinatorAgent.addTool(submitPRTool)
-    coordinatorAgent.addTool(searchCodeTool)
-
-    // Run the coordinator agent
+    // Run the persistent coder to implement changes
     await persistenceService.saveEvent({
       type: "status",
       workflowId,
       data: {
-        status: "Starting coordinator agent",
+        status: "Starting code implementation",
       },
       timestamp: new Date(),
     })
 
-    const result = await coordinatorAgent.runWithFunctions()
+    const coderResult = await coder.runWithFunctions()
 
     // Emit completion event
     await persistenceService.saveEvent({
@@ -160,7 +159,7 @@ ${plan.message.data.content || "PLAN CONTENT UNAVAILABLE"}`,
       timestamp: new Date(),
     })
 
-    return result
+    return coderResult
   } catch (error) {
     // Emit error event
     const errorEvent = {
