@@ -4,6 +4,9 @@
 import { exec } from "child_process"
 import { promises as fs } from "fs"
 import path from "path"
+import util from "util"
+
+const execPromise = util.promisify(exec)
 
 export async function checkIfGitExists(dir: string): Promise<boolean> {
   return await fs
@@ -219,5 +222,73 @@ export async function ensureValidRepo(
     )
     await cleanupRepo(dir)
     await cloneRepo(cloneUrl, dir)
+  }
+}
+
+export async function stageFile(
+  filePath: string,
+  cwd: string | undefined = undefined
+): Promise<string> {
+  const command = `git add "${filePath}"`
+  return new Promise((resolve, reject) => {
+    exec(command, { cwd }, (error, stdout, stderr) => {
+      if (error) {
+        return reject(new Error(error.message))
+      }
+      if (stderr) {
+        return reject(new Error(stderr))
+      }
+      return resolve(stdout)
+    })
+  })
+}
+
+export async function createCommit(
+  message: string,
+  cwd: string | undefined = undefined
+): Promise<string> {
+  const command = `git commit -m "${message.replace(/"/g, '\\"')}"`
+  return new Promise((resolve, reject) => {
+    exec(command, { cwd }, (error, stdout, stderr) => {
+      if (error) {
+        return reject(new Error(error.message))
+      }
+      if (stderr) {
+        console.warn(`[WARNING] Commit produced stderr: ${stderr}`)
+      }
+      return resolve(stdout)
+    })
+  })
+}
+
+export async function getCommitHash(
+  cwd: string | undefined = undefined
+): Promise<string> {
+  const command = "git rev-parse HEAD"
+  return new Promise((resolve, reject) => {
+    exec(command, { cwd }, (error, stdout, stderr) => {
+      if (error) {
+        return reject(new Error(error.message))
+      }
+      if (stderr) {
+        return reject(new Error(stderr))
+      }
+      return resolve(stdout.trim())
+    })
+  })
+}
+
+export async function getCurrentBranch(repoPath: string): Promise<string> {
+  try {
+    const { stdout } = await execPromise("git rev-parse --abbrev-ref HEAD", {
+      cwd: repoPath,
+    })
+    return stdout.trim()
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      throw new Error("Failed to get current branch: " + error.message)
+    } else {
+      throw new Error("Failed to get current branch: Unknown error")
+    }
   }
 }

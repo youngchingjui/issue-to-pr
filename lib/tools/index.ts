@@ -1,4 +1,6 @@
+export { default as BranchTool } from "./Branch"
 export { default as CallCoderAgentTool } from "./CallCoderAgent"
+export { default as CommitTool } from "./Commit"
 export { default as GetDirectoryStructureTool } from "./GetDirectoryStructure"
 export { default as GetFileContentTool } from "./GetFileContent"
 export { default as GetIssueTool } from "./GetIssueTool"

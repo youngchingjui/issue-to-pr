@@ -9,6 +9,8 @@ import { getIssueComments } from "@/lib/github/issues"
 import { langfuse } from "@/lib/langfuse"
 import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceService"
 import {
+  BranchTool,
+  CommitTool,
   GetFileContentTool,
   RipgrepSearchTool,
   WriteFileContentTool,
@@ -70,11 +72,6 @@ export const resolveIssue = async (
       issueNumber: issue.number,
     })
 
-    // Load all the tools
-    const getFileContentTool = new GetFileContentTool(baseDir)
-    const searchCodeTool = new RipgrepSearchTool(baseDir)
-    const writeFileTool = new WriteFileContentTool(baseDir)
-
     // Initialize the persistent coder agent
     const coder = new CoderAgent({
       apiKey,
@@ -82,11 +79,21 @@ export const resolveIssue = async (
 
     coder.addJobId(jobId)
 
+    // Load all the tools
+    const getFileContentTool = new GetFileContentTool(baseDir)
+    const searchCodeTool = new RipgrepSearchTool(baseDir)
+    const writeFileTool = new WriteFileContentTool(baseDir)
+    const branchTool = new BranchTool(baseDir)
+    const commitTool = new CommitTool(baseDir, repository.default_branch)
+
     // Add tools to persistent coder
     coder.addTool(getFileContentTool)
     coder.addTool(writeFileTool)
     coder.addTool(searchCodeTool)
+    coder.addTool(branchTool)
+    coder.addTool(commitTool)
 
+    // Track the span for the coder agent on LangFuse
     coder.addSpan({ span, generationName: "Edit Code" })
 
     // Add issue information as user message
