@@ -252,10 +252,14 @@ export class WorkflowPersistenceService {
         MATCH (w:Workflow {id: $workflowId})
         OPTIONAL MATCH (w)-[:BELONGS_TO_WORKFLOW]->(e:Event)
         OPTIONAL MATCH (w)-[:BASED_ON_ISSUE]->(i:Issue)
-        WITH w, collect(e) as events, i
+        OPTIONAL MATCH (e)<-[:GENERATED_FROM]-(p:Plan)
+        WITH w, collect({
+          event: e,
+          plan: CASE WHEN p IS NOT NULL THEN p ELSE NULL END
+        }) as eventData, i
         RETURN 
           w.metadata as metadata,
-          events,
+          eventData,
           CASE WHEN i IS NOT NULL 
             THEN { number: i.number, repoFullName: i.repoFullName }
             ELSE NULL 
@@ -270,19 +274,37 @@ export class WorkflowPersistenceService {
       }
 
       const record = result.records[0]
-      const events = record.get("events") as Node[]
+      const eventData = record.get("eventData") as {
+        event: Node
+        plan: Node | null
+      }[]
       const metadata = record.get("metadata")
       const issue = record.get("issue")
 
-      const workflowEvents: WorkflowEvent[] = events
-        .filter((e) => e !== null)
-        .map((e) => ({
-          id: e.properties.id as string,
-          type: e.properties.type as WorkflowEventType,
-          workflowId,
-          data: JSON.parse(e.properties.data as string),
-          timestamp: new Date(e.properties.timestamp as string),
-        }))
+      const workflowEvents: WorkflowEvent[] = eventData
+        .filter((e) => e.event !== null)
+        .map((e) => {
+          const eventProperties = e.event.properties
+          const eventData = JSON.parse(eventProperties.data as string)
+
+          // If this is an LLM response and has a plan, include the plan data
+          if (eventProperties.type === "llm_response" && e.plan) {
+            eventData.plan = {
+              id: e.plan.properties.id,
+              status: e.plan.properties.status,
+              type: e.plan.properties.type,
+              createdAt: new Date(e.plan.properties.createdAt),
+            }
+          }
+
+          return {
+            id: eventProperties.id as string,
+            type: eventProperties.type as WorkflowEventType,
+            workflowId,
+            data: eventData,
+            timestamp: new Date(eventProperties.timestamp as string),
+          }
+        })
         .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
 
       // Determine workflow status and last event timestamp

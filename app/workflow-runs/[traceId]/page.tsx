@@ -80,7 +80,7 @@ export default async function WorkflowRunDetailPage({
         {/* Timeline Section */}
         <div className="space-y-3">
           <h2 className="text-lg font-semibold">Timeline</h2>
-          <WorkflowRunDetail events={workflow.events} />
+          <WorkflowRunDetail events={workflow.events} issue={workflow.issue} />
         </div>
       </div>
     </main>

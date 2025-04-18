@@ -9,6 +9,12 @@ export interface UserMessageData {
 export interface LLMResponseData {
   content: string
   model?: string
+  plan?: {
+    id: string
+    status: "draft" | "approved" | "implemented"
+    type: string
+    createdAt: Date
+  }
 }
 
 export interface ToolCallData {

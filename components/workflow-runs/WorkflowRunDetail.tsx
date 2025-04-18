@@ -14,16 +14,29 @@ import { WorkflowEvent } from "@/lib/types/workflow"
 
 interface WorkflowRunDetailProps {
   events: WorkflowEvent[]
+  issue?: { number: number; repoFullName: string }
 }
 
-function EventContent({ event }: { event: WorkflowEvent }) {
+function EventContent({
+  event,
+  issue,
+}: {
+  event: WorkflowEvent
+  issue?: { number: number; repoFullName: string }
+}) {
   switch (event.type) {
     case "status":
       return <StatusUpdate event={event} timestamp={event.timestamp} />
     case "system_prompt":
       return <SystemPromptEvent event={event} timestamp={event.timestamp} />
     case "llm_response":
-      return <LLMResponseEvent event={event} timestamp={event.timestamp} />
+      return (
+        <LLMResponseEvent
+          event={event}
+          timestamp={event.timestamp}
+          issue={issue}
+        />
+      )
     case "user_message":
       return <UserMessageEvent event={event} timestamp={event.timestamp} />
     case "tool_call":
@@ -39,6 +52,7 @@ function EventContent({ event }: { event: WorkflowEvent }) {
 
 export default async function WorkflowRunDetail({
   events,
+  issue,
 }: WorkflowRunDetailProps) {
   if (events.length === 0) {
     return <div>No events found</div>
@@ -48,7 +62,7 @@ export default async function WorkflowRunDetail({
     <div className="bg-card border rounded-lg overflow-hidden">
       {events.map((event) => (
         <div key={event.id} className="p-3 sm:p-4">
-          <EventContent event={event} />
+          <EventContent event={event} issue={issue} />
         </div>
       ))}
     </div>
