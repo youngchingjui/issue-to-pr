@@ -23,6 +23,28 @@ export type ListForRepoParams =
   RestEndpointMethodTypes["issues"]["listForRepo"]["parameters"]
 export type SearchCodeItem = components["schemas"]["code-search-result-item"]
 
+// Repository-specific types
+declare const RepoFullNameBrand: unique symbol
+export type RepoFullName = string & { readonly [RepoFullNameBrand]: never }
+
+export function isValidRepoFullName(name: string): name is RepoFullName {
+  return /^[^/]+\/[^/]+$/.test(name)
+}
+
+export function createRepoFullName(name: string): RepoFullName {
+  if (!isValidRepoFullName(name)) {
+    throw new Error('Repository name must be in the format "owner/repo"')
+  }
+  return name as RepoFullName
+}
+
+// Repository permissions types
+export interface RepoPermissions {
+  canPush: boolean
+  canCreatePR: boolean
+  reason?: string
+}
+
 // Application-specific types
 export type WorkflowType =
   | "Generating Plan..."
@@ -36,7 +58,6 @@ export type GitHubItem = GitHubIssue & {
 }
 
 // zod
-
 export const IssueOrderFieldSchema = z
   .enum(["CREATED", "UPDATED", "INTERACTIONS", "REACTIONS"])
   .default("CREATED")

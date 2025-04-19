@@ -11,7 +11,7 @@ import { resolveIssue } from "@/lib/workflows/resolveIssue"
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { issueNumber, repoFullName, apiKey } =
+    const { issueNumber, repoFullName, apiKey, createPR } =
       ResolveRequestSchema.parse(body)
 
     // Generate a unique job ID
@@ -42,7 +42,13 @@ export async function POST(request: NextRequest) {
           }
         )
 
-        const response = await resolveIssue(issue, fullRepo, apiKey, jobId)
+        const response = await resolveIssue({
+          issue,
+          repository: fullRepo,
+          apiKey,
+          jobId,
+          createPR,
+        })
 
         console.log(response)
         // Save completion status

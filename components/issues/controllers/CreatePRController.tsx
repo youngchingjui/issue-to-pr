@@ -49,7 +49,7 @@ export default function CreatePRController({
         issueNumber,
         repoFullName,
         apiKey,
-        postToGithub,
+        createPR: postToGithub,
       })
       const response = await fetch("/api/resolve", {
         method: "POST",

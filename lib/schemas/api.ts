@@ -73,4 +73,5 @@ export const ResolveRequestSchema = z.object({
   repoFullName: z.string(),
   apiKey: z.string(),
   postToGithub: z.boolean().default(false),
+  createPR: z.boolean().default(false),
 })
