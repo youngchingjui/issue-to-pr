@@ -6,7 +6,7 @@
 import { CoderAgent } from "@/lib/agents/coder"
 import { createDirectoryTree } from "@/lib/fs"
 import { getIssueComments } from "@/lib/github/issues"
-import { checkRepoPermissions, RepoPermissions } from "@/lib/github/users"
+import { checkRepoPermissions } from "@/lib/github/users"
 import { langfuse } from "@/lib/langfuse"
 import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceService"
 import {
@@ -22,6 +22,7 @@ import {
   createRepoFullName,
   GitHubIssue,
   GitHubRepository,
+  RepoPermissions,
 } from "@/lib/types/github"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 
@@ -140,7 +141,8 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
         type: "status",
         workflowId,
         data: {
-          status: "Branch sync and PR creation tools enabled.",
+          status:
+            "You have permissions to push commits and create pull requests on this repository.",
         },
         timestamp: new Date(),
       })
@@ -150,7 +152,7 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
         workflowId,
         data: {
           status:
-            "Branch sync and PR creation tools disabled due to insufficient permissions.",
+            "You don't have sufficient permissions to push commits or create pull requests on this repository. Changes will only be made locally.",
         },
         timestamp: new Date(),
       })
