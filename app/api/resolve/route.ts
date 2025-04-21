@@ -42,24 +42,12 @@ export async function POST(request: NextRequest) {
           }
         )
 
-        const response = await resolveIssue({
+        await resolveIssue({
           issue,
           repository: fullRepo,
           apiKey,
           jobId,
           createPR,
-        })
-
-        console.log(response)
-        // Save completion status
-        await persistenceService.saveEvent({
-          type: "status",
-          workflowId: jobId,
-          data: {
-            status: "completed",
-            success: true,
-          },
-          timestamp: new Date(),
         })
       } catch (error) {
         // Save error status
