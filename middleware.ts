@@ -20,12 +20,25 @@ export default auth((req) => {
     return NextResponse.next()
   }
 
-  // Protect dynamic /[username] and /workflow-runs routes
+  // Allow access to the redirect page
+  if (pathname === "/redirect") {
+    return NextResponse.next()
+  }
+
+  // Protect specific routes that require authentication
   if (
     !req.auth &&
-    (pathname.startsWith("/") || pathname === "/workflow-runs")
+    (pathname.startsWith("/workflow-runs") ||
+      // Protect user-specific routes, but not the redirect page
+      (pathname.startsWith("/") &&
+        pathname !== "/" &&
+        !pathname.startsWith("/blog") &&
+        pathname !== "/redirect"))
   ) {
-    const newUrl = new URL("/", req.nextUrl.origin)
+    // Capture the original URL including search params
+    const originalPath = req.nextUrl.pathname + req.nextUrl.search
+    const newUrl = new URL("/redirect", req.nextUrl.origin)
+    newUrl.searchParams.set("redirect", originalPath)
     return NextResponse.redirect(newUrl)
   }
 

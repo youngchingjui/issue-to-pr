@@ -1,9 +1,16 @@
 "use client"
 
-import { BookOpen, DollarSign, Github, HelpCircle, LogOut } from "lucide-react"
+import {
+  BookOpen,
+  DollarSign,
+  Github,
+  HelpCircle,
+  LogIn,
+  LogOut,
+} from "lucide-react"
 import * as motion from "motion/react-client"
 import Link from "next/link"
-import { useParams, usePathname } from "next/navigation"
+import { useParams, usePathname, useSearchParams } from "next/navigation"
 
 import Nav from "@/components/layout/Breadcrumb"
 import { Button } from "@/components/ui/button"
@@ -25,7 +32,11 @@ export default function DynamicNavigation({
   isAuthenticated: boolean
 }) {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const { repo } = useParams() as { repo: string | null }
+
+  // Get the redirect URL from search params, fallback to current pathname
+  const redirectPath = searchParams.get("redirect") || pathname
 
   const isLandingPage = pathname === "/"
   const isBlogsPage = pathname === "/blogs"
@@ -47,7 +58,7 @@ export default function DynamicNavigation({
 
         <div className="ml-auto flex items-center space-x-4">
           {!isAuthenticated ? (
-            <form action={signInWithGithub}>
+            <form action={signInWithGithub.bind(null, redirectPath)}>
               <motion.button
                 type="submit"
                 whileHover={{ scale: 1.02, translateY: -2 }}
@@ -139,4 +150,21 @@ export default function DynamicNavigation({
       </>
     )
   }
+
+  // Not authenticated - show sign in button
+  return (
+    <nav className="flex items-center space-x-4 ml-auto">
+      <form action={signInWithGithub.bind(null, redirectPath)}>
+        <Button
+          type="submit"
+          variant="outline"
+          size="sm"
+          className="flex items-center px-4 py-2"
+        >
+          <LogIn className="mr-2" size={20} />
+          Sign in with GitHub
+        </Button>
+      </form>
+    </nav>
+  )
 }
