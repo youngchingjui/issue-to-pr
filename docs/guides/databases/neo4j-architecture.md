@@ -215,9 +215,7 @@ CREATE (newPlan:Plan {          // Note: Not a Message node since it's a user ed
     content: string,     // Updated plan content
     timestamp: datetime(),
     role: "user",        // Edited by user
-    metadata: {
-        editReason: string
-    },
+    metadata: map,       // Any additional metadata about the edit
     // Plan-specific properties
     status: "pending_review",  // Reset to pending review after edit
     version: 2,               // Incremented version
