@@ -1,4 +1,5 @@
 import Link from "next/link"
+import ReactMarkdown from "react-markdown"
 
 import { PlanStatusUpdater } from "@/components/plans/PlanStatusUpdater"
 import {
@@ -64,8 +65,8 @@ export function PlanDetail({ plan, showStatusUpdater = true }: Props) {
       <CardContent className="space-y-6">
         <div>
           <h3 className="text-lg font-semibold mb-2">Plan Content</h3>
-          <div className="whitespace-pre-wrap rounded-lg bg-muted p-4">
-            {plan.message.data.content}
+          <div className="prose prose-sm dark:prose-invert max-w-none rounded-lg bg-muted p-4">
+            <ReactMarkdown>{plan.message.data.content}</ReactMarkdown>
           </div>
         </div>
 
