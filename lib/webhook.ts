@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from "uuid"
 import { getRepoFromString } from "@/lib/github/content"
 import { updateJobStatus } from "@/lib/redis-old"
 import commentOnIssue from "@/lib/workflows/commentOnIssue"
+import { getAutoPostPlanSetting } from "@/lib/services/SettingsService"
 
 // Subscribed events for Github App
 enum GitHubEvent {
@@ -26,7 +27,7 @@ export const routeWebhookHandler = async ({
   payload,
 }: {
   event: string
-  payload: object
+  payload: any
 }) => {
   if (!Object.values(GitHubEvent).includes(event as GitHubEvent)) {
     console.error("Invalid event type:", event)
@@ -44,11 +45,24 @@ export const routeWebhookHandler = async ({
       )
 
       const repo = await getRepoFromString(payload["repository"]["full_name"])
+      const installationId = payload["installation"]?.["id"]
+      let autoPostPlan = false
+      if (installationId && typeof installationId === "number") {
+        try {
+          autoPostPlan = await getAutoPostPlanSetting(installationId)
+        } catch (e) {
+          console.error(
+            `[AutoPostPlan] Failed to fetch setting for installation ${installationId}:`,
+            e
+          )
+        }
+      }
       commentOnIssue(
         payload["issue"]["number"],
         repo,
         process.env.OPENAI_API_KEY, // TODO: Pull API key from user account
-        jobId
+        jobId,
+        autoPostPlan // <--- New argument
       )
     }
   } else {
