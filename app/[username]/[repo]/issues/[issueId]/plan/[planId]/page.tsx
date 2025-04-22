@@ -19,7 +19,7 @@ export default async function PlanPage({ params }: PageProps) {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="flex min-h-screen items-start justify-center py-8 px-4">
       <PlanDetail plan={plan} />
     </div>
   )
