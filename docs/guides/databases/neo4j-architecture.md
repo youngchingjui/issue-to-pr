@@ -139,15 +139,90 @@ CREATE (:WorkflowRun {
 
 #### Message
 
-Represents direct output or reasoning from an AI Agent.
+Messages in our system represent all types of communication and content. Each message has a role that defines its source and purpose.
 
 ```cypher
 CREATE (:Message {
     id: string,
     content: string,      // The actual message content
-    model: string,        // e.g., "gpt-4"
     timestamp: datetime(),
-    metadata: map         // token usage, etc.
+    role: string,         // "user" | "system" | "assistant" | "tool_call" | "tool_result"
+    metadata: map         // Role-specific metadata (e.g., token usage, source, userId, model)
+})
+```
+
+The `role` property indicates the source and purpose of the message:
+
+- `"user"` - Messages from users (inputs, comments, edit suggestions)
+- `"system"` - System prompts and instructions
+- `"assistant"` - Responses from AI models
+- `"tool_call"` - Tool invocations requested by the assistant
+- `"tool_result"` - Results returned from tool executions
+
+Messages can have additional labels to indicate special purposes:
+
+- `:Plan` - Final actionable outputs that require review/approval
+- `:ReviewComment` - Comment from user about a Plan
+
+Example message types:
+
+```cypher
+// Tool call message
+CREATE (:Message {
+    id: string,
+    content: string,      // Serialized tool call parameters
+    timestamp: datetime(),
+    role: "tool_call",
+    metadata: {
+        toolName: string,     // e.g., "codebase_search"
+        status: string,       // initiated, executing, completed, failed
+        parameters: map       // The parameters passed to the tool
+    }
+})
+
+// Tool result message
+CREATE (:Message {
+    id: string,
+    content: string,      // The tool's output
+    timestamp: datetime(),
+    role: "tool_result",
+    metadata: {
+        toolName: string,     // Matching the tool call
+        isError: boolean,     // Whether the tool execution resulted in error
+        errorMessage: string  // Present if isError is true
+    }
+})
+
+// LLM response that is also a Plan
+CREATE (:Message:Plan {
+    id: string,
+    content: string,
+    timestamp: datetime(),
+    role: "assistant",
+    metadata: {
+        model: string,
+        tokenUsage: map
+    },
+    // Plan-specific properties
+    status: string,       // pending_review, approved, rejected, implemented
+    version: integer,
+    originalVersion: boolean,
+    editedAt: datetime(),
+    editedBy: string,
+    editMessage: string,
+    parentId: string
+})
+
+// Review comment on a plan
+CREATE (:Message:ReviewComment {
+    id: string,
+    content: string,
+    timestamp: datetime(),
+    role: "user",
+    metadata: {
+        userId: string,
+        reviewContext: map
+    }
 })
 ```
 
@@ -284,8 +359,8 @@ ORDER BY node.timestamp
 ### Get Tool Call with its Result
 
 ```cypher
-MATCH (call:ToolCall {id: $toolCallId})
-MATCH (call)-[:HAS_RESULT]->(result:ToolResult)
+MATCH (call:Message {role: "tool_call"})-[:NEXT]->(result:Message {role: "tool_result"})
+WHERE call.metadata.toolName = $toolName
 RETURN call, result
 ```
 
@@ -337,3 +412,124 @@ ORDER BY review.timestamp DESC
 - Custom Cypher procedures wrap GitHub API calls
 - Consider implementing caching layer for frequently accessed data
 - Use webhooks to trigger workflow updates on GitHub events
+
+### Multi-Label Nodes
+
+Some nodes in our system can have multiple labels to represent their different purposes. This approach provides several benefits:
+
+1. **Reduced Data Duplication**
+
+   - Core message properties stored once
+   - Additional labels add context without duplicating data
+   - Simpler data model maintenance
+
+2. **Clear Audit Trail**
+
+   - Version history preserved through relationships
+   - Actions and changes tracked with timestamps
+   - User attribution maintained
+
+3. **Flexible Querying**
+   - Filter by role and/or labels for targeted queries
+   - Combine labels for complex role combinations
+   - Efficient indexing on frequently queried properties
+
+Example multi-label queries:
+
+```cypher
+// Find all assistant messages that are plans
+MATCH (m:Message:Plan)
+WHERE m.role = 'assistant'
+RETURN m
+ORDER BY m.timestamp
+
+// Get plan version history
+MATCH (m:Message:Plan {id: $planId})
+MATCH path = (m)-[:PREVIOUS_VERSION*0..]->(prev:Message:Plan)
+RETURN path
+
+// Find user review comments on plans
+MATCH (p:Message:Plan)<-[:COMMENTS_ON]-(c:Message:ReviewComment)
+WHERE c.role = 'user'
+RETURN p, c
+ORDER BY c.timestamp
+```
+
+### Message Chains and Conversation Context
+
+Messages can be organized into chains for conversation context while maintaining their other roles through labels and relationships.
+
+#### Chain Relationships
+
+```cypher
+// Sequential message chain
+(:Message)-[:NEXT]->(:Message)
+
+// Workflow context
+(:Message)-[:PART_OF]->(:WorkflowRun)
+
+// Response relationships
+(:Message)-[:RESPONDS_TO]->(:Message)
+
+// Context relationships
+(:Message)-[:REFERENCES]->(:Issue)
+(:Message)-[:COMMENTS_ON]->(:Plan)
+(:Message)-[:SUGGESTS_EDIT_TO]->(:Plan)
+```
+
+#### Common Chain Queries
+
+```cypher
+// Get complete conversation chain including tool calls
+MATCH (w:WorkflowRun {id: $workflowId})
+MATCH (m:Message)-[:PART_OF]->(w)
+RETURN m.role, m.content, m.metadata
+ORDER BY m.timestamp
+
+// Get tool call with its result
+MATCH (call:Message {role: "tool_call"})-[:NEXT]->(result:Message {role: "tool_result"})
+WHERE call.metadata.toolName = $toolName
+RETURN call, result
+
+// Get conversation without tool calls (just user and assistant messages)
+MATCH (w:WorkflowRun {id: $workflowId})
+MATCH (m:Message)-[:PART_OF]->(w)
+WHERE m.role IN ["user", "assistant", "system"]
+RETURN m.role, m.content
+ORDER BY m.timestamp
+```
+
+#### Chain Management
+
+1. **Adding to Chain**
+
+   ```cypher
+   // Add new message to conversation
+   MATCH (prev:Message {id: $prevMessageId})
+   MATCH (new:Message {id: $newMessageId})
+   CREATE (prev)-[:NEXT]->(new)
+   ```
+
+2. **Creating Review Thread**
+
+   ```cypher
+   // Add review comment
+   MATCH (p:Message:Plan {id: $planId})
+   MATCH (m:Message:ReviewComment {id: $commentId})
+   CREATE (m)-[:COMMENTS_ON]->(p)
+   ```
+
+3. **Version Management**
+   ```cypher
+   // Create new version of plan
+   MATCH (original:Message:Plan {id: $originalPlanId})
+   CREATE (new:Message:Plan {
+       id: $newId,
+       content: $newContent,
+       version: original.version + 1,
+       originalVersion: false,
+       editedAt: datetime(),
+       editedBy: $userId
+   })
+   CREATE (new)-[:PREVIOUS_VERSION]->(original)
+   ```
