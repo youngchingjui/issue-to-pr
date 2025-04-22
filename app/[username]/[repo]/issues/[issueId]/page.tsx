@@ -4,6 +4,7 @@ import { notFound } from "next/navigation"
 import { Suspense } from "react"
 
 import IssueDetailsWrapper from "@/components/issues/IssueDetailsWrapper"
+import IssuePlans from "@/components/issues/IssuePlans"
 import IssueWorkflowRuns from "@/components/issues/IssueWorkflowRuns"
 import TableSkeleton from "@/components/layout/TableSkeleton"
 import { Button } from "@/components/ui/button"
@@ -54,6 +55,10 @@ export default async function IssueDetailsPage({ params }: Props) {
         </div>
         <Suspense fallback={<TableSkeleton />}>
           <IssueDetailsWrapper issue={issue} />
+        </Suspense>
+
+        <Suspense fallback={<TableSkeleton />}>
+          <IssuePlans repoFullName={repoFullName} issueNumber={issueNumber} />
         </Suspense>
 
         <Suspense fallback={<TableSkeleton />}>

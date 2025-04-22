@@ -1,6 +1,9 @@
+import { ExternalLink } from "lucide-react"
+import Link from "next/link"
 import ReactMarkdown from "react-markdown"
 
 import { PostToGitHubButton } from "@/components/issues/actions/PostToGitHubButton"
+import { Button } from "@/components/ui/button"
 import { CollapsibleContent } from "@/components/ui/collapsible-content"
 import { EventTime } from "@/components/workflow-runs/events"
 import { CopyMarkdownButton } from "@/components/workflow-runs/events/CopyMarkdownButton"
@@ -27,7 +30,17 @@ export function LLMResponseEvent({
       </div>
       <div className="flex items-center gap-2">
         {issue && event.data.plan && (
-          <PostToGitHubButton content={event.data.content} issue={issue} />
+          <>
+            <Link
+              href={`/${issue.repoFullName}/issues/${issue.number}/plan/${event.data.plan.id}`}
+            >
+              <Button variant="ghost" size="sm" className="gap-2">
+                <ExternalLink className="h-4 w-4" />
+                View Plan
+              </Button>
+            </Link>
+            <PostToGitHubButton content={event.data.content} issue={issue} />
+          </>
         )}
         <CopyMarkdownButton content={event.data.content} />
       </div>
