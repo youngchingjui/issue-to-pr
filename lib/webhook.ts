@@ -2,8 +2,8 @@ import { v4 as uuidv4 } from "uuid"
 
 import { getRepoFromString } from "@/lib/github/content"
 import { updateJobStatus } from "@/lib/redis-old"
-import commentOnIssue from "@/lib/workflows/commentOnIssue"
 import { getAutoPostPlanSetting } from "@/lib/services/SettingsService"
+import commentOnIssue from "@/lib/workflows/commentOnIssue"
 
 // Subscribed events for Github App
 enum GitHubEvent {
@@ -27,7 +27,7 @@ export const routeWebhookHandler = async ({
   payload,
 }: {
   event: string
-  payload: any
+  payload: object
 }) => {
   if (!Object.values(GitHubEvent).includes(event as GitHubEvent)) {
     console.error("Invalid event type:", event)

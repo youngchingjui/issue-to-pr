@@ -1,9 +1,10 @@
 "use client"
 
+import { Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
+
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { Loader2 } from "lucide-react"
 import { useToast } from "@/lib/hooks/use-toast"
 
 interface ApiResult {
@@ -26,7 +27,7 @@ const AutoPostPlanSetting = () => {
       setLoading(true)
       try {
         const res = await fetch("/api/settings/auto-post-plan", {
-          headers: { "x-installation-id": String(DEMO_INSTALL_ID) }
+          headers: { "x-installation-id": String(DEMO_INSTALL_ID) },
         })
         if (!res.ok) throw new Error("Could not fetch setting")
         const json: ApiResult = await res.json()
@@ -53,16 +54,19 @@ const AutoPostPlanSetting = () => {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          "x-installation-id": String(DEMO_INSTALL_ID)
+          "x-installation-id": String(DEMO_INSTALL_ID),
         },
-        body: JSON.stringify({ enabled: checked })
+        body: JSON.stringify({ enabled: checked }),
       })
       const json: ApiResult = await res.json()
       if (!res.ok || json.error) {
         throw new Error(json.error || "Could not update setting")
       }
       setEnabled(json.enabled)
-      toast({ title: "Preference updated", description: "Changed setting for plan auto-posting." })
+      toast({
+        title: "Preference updated",
+        description: "Changed setting for plan auto-posting.",
+      })
     } catch (err) {
       toast({
         title: "Error updating setting",
@@ -76,32 +80,47 @@ const AutoPostPlanSetting = () => {
 
   return (
     <div className="flex flex-col items-start gap-2 py-4">
-      <Label className="font-semibold">Automatically post Plan as GitHub comment when a new issue is created?</Label>
+      <Label className="font-semibold">
+        Automatically post Plan as GitHub comment when a new issue is created?
+      </Label>
       <div className="flex items-center gap-3">
         <Checkbox
           id="auto-post-plan-checkbox"
           checked={enabled}
           disabled={loading || saving}
-          onCheckedChange={val => typeof val === "boolean" && handleChange(val)}
+          onCheckedChange={(val) =>
+            typeof val === "boolean" && handleChange(val)
+          }
         />
-        <Label htmlFor="auto-post-plan-checkbox" className="text-muted-foreground text-sm">
+        <Label
+          htmlFor="auto-post-plan-checkbox"
+          className="text-muted-foreground text-sm"
+        >
           {loading ? (
-            <span className="flex items-center gap-1"><Loader2 className="animate-spin h-4 w-4" />Loading…</span>
+            <span className="flex items-center gap-1">
+              <Loader2 className="animate-spin h-4 w-4" />
+              Loading…
+            </span>
           ) : saving ? (
-            <span className="flex items-center gap-1"><Loader2 className="animate-spin h-4 w-4" />Saving…</span>
+            <span className="flex items-center gap-1">
+              <Loader2 className="animate-spin h-4 w-4" />
+              Saving…
+            </span>
           ) : enabled ? (
-            "Enabled (will auto-comment on new issues)" 
+            "Enabled (will auto-comment on new issues)"
           ) : (
             "Disabled (no automatic plan comment)"
           )}
         </Label>
       </div>
       <div className="text-xs text-muted-foreground max-w-md">
-        This preference automatically generates and posts a Plan as a comment when a new GitHub issue is opened in any repository under this installation. <br />
+        This preference automatically generates and posts a Plan as a comment
+        when a new GitHub issue is opened in any repository under this
+        installation. <br />
         You can enable or disable it here at any time.
       </div>
     </div>
   )
 }
 
-export default AutoPostPlanSetting;
+export default AutoPostPlanSetting

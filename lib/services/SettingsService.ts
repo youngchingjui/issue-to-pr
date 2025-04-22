@@ -1,10 +1,9 @@
-import { redis } from "../redis";
-import type { AutoPostPlanSetting } from "../types/settings";
+import { redis } from "@/lib/redis"
 
-const AUTO_POST_PLAN_KEY_PREFIX = "settings:autoPostPlan:";
+const AUTO_POST_PLAN_KEY_PREFIX = "settings:autoPostPlan:"
 
 function makeKey(installationId: number): string {
-  return `${AUTO_POST_PLAN_KEY_PREFIX}${installationId}`;
+  return `${AUTO_POST_PLAN_KEY_PREFIX}${installationId}`
 }
 
 /**
@@ -14,12 +13,12 @@ function makeKey(installationId: number): string {
 export async function getAutoPostPlanSetting(
   installationId: number
 ): Promise<boolean> {
-  const key = makeKey(installationId);
-  const result = await redis.get(key);
+  const key = makeKey(installationId)
+  const result = await redis.get(key)
   if (result === null || typeof result !== "boolean") {
-    return false;
+    return false
   }
-  return result;
+  return result
 }
 
 /**
@@ -29,6 +28,6 @@ export async function setAutoPostPlanSetting(
   installationId: number,
   value: boolean
 ): Promise<void> {
-  const key = makeKey(installationId);
-  await redis.set(key, value);
+  const key = makeKey(installationId)
+  await redis.set(key, value)
 }
