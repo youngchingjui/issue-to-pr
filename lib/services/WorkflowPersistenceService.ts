@@ -20,6 +20,14 @@ interface PlanResponse extends PlanProperties {
       model: string
     }
   }
+  workflow?: {
+    id: string
+    metadata: WorkflowMetadata
+  }
+  issue?: {
+    number: number
+    repoFullName: string
+  }
 }
 
 export class WorkflowPersistenceService {
@@ -437,30 +445,84 @@ export class WorkflowPersistenceService {
       const result = await session.run(
         `
         MATCH (i:Issue {number: $issueNumber, repoFullName: $repoFullName})-[:HAS_PLAN]->(p:Plan)
-        MATCH (p)-[:GENERATED_FROM]->(m:Event)
-        RETURN p, m
+        MATCH (p)-[:GENERATED_FROM]->(e:Event)
+        RETURN p, e
         ORDER BY p.createdAt DESC
         LIMIT 1
         `,
-        {
-          issueNumber,
-          repoFullName,
-        }
+        { issueNumber, repoFullName }
       )
 
       if (result.records.length === 0) {
         return null
       }
 
-      const plan = result.records[0].get("p").properties
-      const message = result.records[0].get("m").properties
+      const plan = result.records[0].get("p")
+      const event = result.records[0].get("e")
 
       return {
-        ...plan,
+        id: plan.properties.id,
+        status: plan.properties.status,
+        type: plan.properties.type,
+        createdAt: new Date(plan.properties.createdAt),
         message: {
-          ...message,
-          data: JSON.parse(message.data),
+          id: event.properties.id,
+          type: "llm_response",
+          timestamp: event.properties.timestamp,
+          data: JSON.parse(event.properties.data),
         },
+      }
+    } finally {
+      await session.close()
+    }
+  }
+
+  async getPlanById(planId: string): Promise<PlanResponse | null> {
+    const session = await this.neo4j.getSession()
+    try {
+      const result = await session.run(
+        `
+        MATCH (p:Plan {id: $planId})
+        OPTIONAL MATCH (e:Event)<-[:GENERATED_FROM]-(p)
+        OPTIONAL MATCH (w:Workflow)<-[:PART_OF]->(p)
+        OPTIONAL MATCH (p)<-[:HAS_PLAN]-(i:Issue)
+        RETURN p, e, w, i
+        `,
+        { planId }
+      )
+
+      if (result.records.length === 0) {
+        return null
+      }
+
+      const plan = result.records[0].get("p")
+      const event = result.records[0].get("e")
+      const workflow = result.records[0].get("w")
+      const issue = result.records[0].get("i")
+
+      return {
+        id: plan.properties.id,
+        status: plan.properties.status,
+        type: plan.properties.type,
+        createdAt: new Date(plan.properties.createdAt),
+        message: {
+          id: event.properties.id,
+          type: "llm_response",
+          timestamp: event.properties.timestamp,
+          data: JSON.parse(event.properties.data),
+        },
+        workflow: workflow
+          ? {
+              id: workflow.properties.id,
+              metadata: JSON.parse(workflow.properties.metadata || "{}"),
+            }
+          : undefined,
+        issue: issue
+          ? {
+              number: issue.properties.number,
+              repoFullName: issue.properties.repoFullName,
+            }
+          : undefined,
       }
     } finally {
       await session.close()

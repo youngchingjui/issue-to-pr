@@ -14,14 +14,14 @@ interface Props {
   params: {
     username: string
     repo: string
-    id: string
+    issueId: string
   }
 }
 
 export default async function IssueDetailsPage({ params }: Props) {
-  const { username, repo, id } = params
+  const { username, repo, issueId } = params
   const repoFullName = `${username}/${repo}`
-  const issueNumber = parseInt(id)
+  const issueNumber = parseInt(issueId)
 
   let issue: GitHubIssue
   try {
