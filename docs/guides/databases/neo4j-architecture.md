@@ -28,6 +28,33 @@ This document details the Neo4j-specific implementation of our workflow storage 
 
 ### 1. Core Entities (Primary Nodes)
 
+#### User
+
+Users in Neo4j primarily serve as connection points for relationships in the graph, while detailed user data is stored in PostgreSQL.
+
+```cypher
+CREATE (:User {
+    id: string,           // Maps to PostgreSQL users.id
+    displayName: string   // Cached display name for convenient querying
+})
+```
+
+Key relationships:
+
+```cypher
+// GitHub-related
+(:User)-[:HAS_ACCESS_TO]->(:GitHubAppInstallation)
+(:User)-[:AUTHORIZED_FOR]->(:Repository)
+(:User)-[:OWNS]->(:Repository)
+
+// Content-related
+(:User)-[:EDITED_BY]->(:Plan)
+(:User)-[:REVIEWS|:APPROVES|:REJECTS]->(:Plan)
+(:User)-[:AUTHORED]->(:Message {role: "user"})
+```
+
+Note: Core user data (OAuth config, subscription status, preferences) is stored in PostgreSQL. The Neo4j User node serves primarily as an anchor point for graph relationships.
+
 #### Repository
 
 ```cypher
@@ -529,3 +556,53 @@ ORDER BY p.timestamp DESC
    })
    CREATE (new)-[:PREVIOUS_VERSION]->(original)
    ```
+
+### Integration with PostgreSQL
+
+Our system uses a hybrid database approach where:
+
+1. **PostgreSQL stores:**
+
+   - User profiles and authentication
+   - OAuth configurations
+   - Subscription status and billing
+   - User preferences
+   - Draft content
+
+2. **Neo4j stores:**
+
+   - Graph relationships (user actions, permissions, ownership)
+   - Workflow data and message chains
+   - Plans and their version history
+   - Repository relationships
+
+3. **Synchronization:**
+   - User nodes in Neo4j are created/updated when corresponding PostgreSQL users are modified
+   - Both databases use the same user IDs for consistency
+   - Relationships in Neo4j reference PostgreSQL entities by ID
+
+Example queries involving users:
+
+```cypher
+// Find all plans reviewed by a specific user
+MATCH (u:User {id: $userId})-[:REVIEWS]->(p:Plan)
+RETURN p
+ORDER BY p.timestamp DESC
+
+// Find all repositories a user has access to
+MATCH (u:User {id: $userId})-[:HAS_ACCESS_TO]->(install:GitHubAppInstallation)
+MATCH (install)-[:INSTALLED_ON]->(repo:Repository)
+RETURN repo
+
+// Find users who have edited high-impact plans
+MATCH (u:User)<-[:EDITED_BY]-(p:Plan)
+WHERE p.status = 'implemented'
+RETURN DISTINCT u.displayName, COUNT(p) as editCount
+ORDER BY editCount DESC
+
+// Find collaboration patterns between users
+MATCH (u1:User)<-[:EDITED_BY]-(p:Plan)<-[:REVIEWS]-(u2:User)
+WHERE u1 <> u2
+RETURN u1.displayName, u2.displayName, COUNT(p) as collaborationCount
+ORDER BY collaborationCount DESC
+```
