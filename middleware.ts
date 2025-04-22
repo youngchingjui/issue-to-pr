@@ -25,8 +25,11 @@ export default auth((req) => {
     !req.auth &&
     (pathname.startsWith("/") || pathname === "/workflow-runs")
   ) {
-    const newUrl = new URL("/", req.nextUrl.origin)
-    return NextResponse.redirect(newUrl)
+    // Compose the original path + any query string
+    const intended = req.nextUrl.pathname + req.nextUrl.search
+    const loginUrl = new URL("/redirect", req.nextUrl.origin)
+    loginUrl.searchParams.set("redirect", intended)
+    return NextResponse.redirect(loginUrl)
   }
 
   return NextResponse.next()

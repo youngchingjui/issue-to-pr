@@ -3,7 +3,7 @@
 import { BookOpen, DollarSign, Github, HelpCircle, LogOut } from "lucide-react"
 import * as motion from "motion/react-client"
 import Link from "next/link"
-import { useParams, usePathname } from "next/navigation"
+import { useParams, usePathname, useSearchParams } from "next/navigation"
 
 import Nav from "@/components/layout/Breadcrumb"
 import { Button } from "@/components/ui/button"
@@ -25,11 +25,29 @@ export default function DynamicNavigation({
   isAuthenticated: boolean
 }) {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const { repo } = useParams() as { repo: string | null }
 
   const isLandingPage = pathname === "/"
   const isBlogsPage = pathname === "/blogs"
   const showBreadcrumbs = repo !== null && repo !== undefined
+
+  // Determine redirect param for login
+  let redirectValue = "/"
+  // Prefer ?redirect=... in the URL, if set
+  if (searchParams?.has("redirect")) {
+    const v = searchParams.get("redirect")
+    if (v && v.startsWith("/")) {
+      redirectValue = v
+    }
+  } else {
+    // Build current path + query for re-login purposes
+    redirectValue = pathname
+    const query = searchParams?.toString()
+    if (query) {
+      redirectValue += `?${query}`
+    }
+  }
 
   if (isLandingPage || isBlogsPage) {
     return (
@@ -48,6 +66,7 @@ export default function DynamicNavigation({
         <div className="ml-auto flex items-center space-x-4">
           {!isAuthenticated ? (
             <form action={signInWithGithub}>
+              <input type="hidden" name="redirect" value={redirectValue} />
               <motion.button
                 type="submit"
                 whileHover={{ scale: 1.02, translateY: -2 }}
