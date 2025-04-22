@@ -193,25 +193,47 @@ CREATE (:Message {
     }
 })
 
-// LLM response that is also a Plan
+// Original AI-generated Plan (v1)
 CREATE (:Message:Plan {
     id: string,
     content: string,
     timestamp: datetime(),
-    role: "assistant",
+    role: "assistant",    // Original plan is from AI
     metadata: {
         model: string,
         tokenUsage: map
     },
     // Plan-specific properties
     status: string,       // pending_review, approved, rejected, implemented
-    version: integer,
-    originalVersion: boolean,
-    editedAt: datetime(),
-    editedBy: string,
-    editMessage: string,
-    parentId: string
+    version: 1,          // First version
 })
+
+// User-edited version of a Plan (v2 onwards)
+// 1. Create the new plan node
+CREATE (newPlan:Plan {          // Note: Not a Message node since it's a user edit
+    id: string,
+    content: string,     // Updated plan content
+    timestamp: datetime(),
+    role: "user",        // Edited by user
+    metadata: {
+        editReason: string
+    },
+    // Plan-specific properties
+    status: "pending_review",  // Reset to pending review after edit
+    version: 2,               // Incremented version
+    editedAt: datetime(),
+    editMessage: string      // Why the edit was made
+})
+
+// 2. Link to the previous version
+WITH newPlan
+MATCH (previousPlan:Plan {id: $previousPlanId})
+CREATE (newPlan)-[:PREVIOUS_VERSION]->(previousPlan)
+
+// 3. Link to the editing user
+WITH newPlan
+MATCH (user:User {id: $userId})
+CREATE (newPlan)-[:EDITED_BY]->(user)
 
 // Review comment on a plan
 CREATE (:Message:ReviewComment {
@@ -223,54 +245,6 @@ CREATE (:Message:ReviewComment {
         userId: string,
         reviewContext: map
     }
-})
-```
-
-#### ToolCall
-
-Represents a tool invocation requested by the AI Agent.
-
-```cypher
-CREATE (:ToolCall {
-    id: string,
-    toolName: string,     // e.g., "codebase_search"
-    parameters: map,      // The parameters passed to the tool
-    status: string,       // initiated, executing, completed, failed
-    timestamp: datetime()
-})
-```
-
-#### ToolResult
-
-Represents the output returned from a tool execution.
-
-```cypher
-CREATE (:ToolResult {
-    id: string,
-    content: string | map,  // The tool's output
-    isError: boolean,
-    errorMessage: string,   // if error occurred
-    timestamp: datetime()
-})
-```
-
-#### Plan
-
-Represents the final actionable output that requires review.
-
-```cypher
-CREATE (:Plan {
-    id: string,
-    status: string,      // pending_review, approved, rejected, implemented
-    content: string,     // The actual plan content
-    version: integer,
-    originalVersion: boolean,
-    createdAt: datetime(),
-    updatedAt: datetime(),
-    editedAt: datetime(),
-    editedBy: string,
-    editMessage: string,
-    parentId: string     // Link to previous version if edited
 })
 ```
 
@@ -294,21 +268,17 @@ CREATE (:Plan {
 (:PullRequest)-[:CREATED_BY]->(:User)
 (:PullRequest)-[:GENERATED_BY]->(:WorkflowRun)
 
-// Execution Sequence Relationships
-(:Message | :ToolCall | :ToolResult)-[:NEXT]->(:Message | :ToolCall | :ToolResult | :Plan)
-(:Message | :ToolCall | :ToolResult | :Plan)-[:PART_OF]->(:WorkflowRun)
-(:Message | :ToolCall)-[:EXECUTED_BY]->(:AIAgent)
+// Message Relationships
+(:Message)-[:NEXT]->(:Message)  // Sequential order in conversation
+(:Message)-[:PART_OF]->(:WorkflowRun)  // Belongs to workflow
+(:Message)-[:COMMENTS_ON]->(:Message)  // For review comments on plans
 
-// Tool Execution Flow
-(:ToolCall)-[:HAS_RESULT]->(:ToolResult)
-(:ToolResult)-[:RESULT_OF]->(:ToolCall)
-
-// Plan Relationships
-(:Message)-[:GENERATED_PLAN]->(:Plan)  // Links the final message to the plan
-(:Plan)-[:PREVIOUS_VERSION]->(:Plan)   // For plan versions
-(:User)-[:REVIEWS | :APPROVES | :REJECTS | :EDITS]->(:Plan)
-(:Plan)-[:IMPLEMENTS]->(:Issue)
-(:Plan)-[:RESULTS_IN]->(:PullRequest)
+// Versioning and Plan Relationships
+(:Plan)-[:PREVIOUS_VERSION]->(:Plan)         // Links plan versions
+(:Plan)-[:EDITED_BY]->(:User)                // Indicates which user edited a plan
+(:User)-[:REVIEWS|:APPROVES|:REJECTS]->(:Message:Plan) // User actions on plans
+(:Message:Plan)-[:IMPLEMENTS]->(:Issue)
+(:Message:Plan)-[:RESULTS_IN]->(:PullRequest)
 ```
 
 ## Common Queries
@@ -497,6 +467,34 @@ MATCH (m:Message)-[:PART_OF]->(w)
 WHERE m.role IN ["user", "assistant", "system"]
 RETURN m.role, m.content
 ORDER BY m.timestamp
+
+// Get plan version history (from latest to original)
+MATCH (latest:Plan)
+WHERE latest.id = $planId
+MATCH path = (latest)-[:PREVIOUS_VERSION*0..]->(original:Message:Plan)
+WHERE original.originalVersion = true
+RETURN path
+
+// Find latest version of a plan
+MATCH (p:Plan)
+WHERE p.id = $planId
+AND NOT (:Plan)-[:PREVIOUS_VERSION]->(p)
+RETURN p
+
+// Find all plans edited by a specific user
+MATCH (u:User {id: $userId})<-[:EDITED_BY]-(p:Plan)
+RETURN p
+ORDER BY p.timestamp DESC
+
+// Find the user who edited a specific plan version
+MATCH (p:Plan {id: $planVersionId})-[:EDITED_BY]->(u:User)
+RETURN u
+
+// Find original AI-generated plans
+MATCH (p:Message:Plan)
+WHERE p.role = 'assistant' AND p.originalVersion = true
+RETURN p
+ORDER BY p.timestamp DESC
 ```
 
 #### Chain Management
