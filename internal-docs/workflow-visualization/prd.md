@@ -141,7 +141,6 @@ So that I can access detailed information when needed
 #### Data Structure Requirements
 
 - Event Hierarchy
-
   - Clear parent-child relationships
   - Proper event sequencing
   - Accurate timestamp tracking
@@ -151,16 +150,7 @@ So that I can access detailed information when needed
   - Full LLM response capture
   - Complete tool call data with responses
 
-- Neo4j Schema
-
-  - Optimized relationship modeling
-  - Proper indexing strategy
-  - Event metadata storage
-  - Query performance optimization
-  - Data integrity constraints
-  - Complete conversation context storage
-  - Tool response data preservation
-  - System prompt and user message relationships
+For detailed information about our Neo4j implementation, including schema design, relationships, and data modeling, please refer to our official [Neo4j Architecture Documentation](../../../docs/guides/databases/neo4j-architecture.md).
 
 - Event Data Completeness
   - LLM Events
@@ -289,11 +279,14 @@ So that I can access detailed information when needed
 
 #### Data Storage and Retrieval
 
-- Optimized schema for quick traversal
-- Efficient relationship queries
+For detailed information about our data storage implementation, including Neo4j schema design, relationships, and query optimization, please refer to our official [Neo4j Architecture Documentation](../../../docs/guides/databases/neo4j-architecture.md).
+
+The visualization system requires:
+
+- Fast data retrieval for workflow visualization
+- Efficient relationship traversal
 - Data archival strategy
 - Backup procedures
-- Index optimization for common queries
 
 ## Implementation Plan
 
@@ -427,127 +420,13 @@ This strategy ensures we:
 
 ### Technical Notes
 
-#### Current Implementation (as of March 2024)
+For detailed information about our Neo4j implementation, including data models, relationships, and common queries, please refer to our official [Neo4j Architecture Documentation](../../../docs/guides/databases/neo4j-architecture.md).
 
-1. **Component Structure**
+For details about our Neo4j data model and relationships, please refer to our [Neo4j Architecture Documentation](../../../docs/guides/databases/neo4j-architecture.md).
 
-   - Main visualization: `components/workflow-runs/WorkflowRunDetail.tsx`
-     - Contains core workflow display logic
-     - Handles timestamp display and status updates
-     - Keeps simple, single-use logic inline for clarity
-   - Event data management: `lib/services/WorkflowPersistenceService.ts`
-
-2. **Data Flow**
-
-   ```typescript
-   // Event data structure
-   interface WorkflowEvent {
-     id: string
-     type: WorkflowEventType
-     workflowId: string
-     data: Record<string, unknown>
-     timestamp: Date
-     metadata?: Record<string, unknown>
-   }
-
-   // Event types
-   type WorkflowEventType =
-     | "workflow_start"
-     | "llm_response"
-     | "tool_call"
-     | "tool_response"
-     | "error"
-     | "complete"
-   ```
-
-3. **Neo4j Relationships**
-
-   - `BELONGS_TO_WORKFLOW`: Links events to their workflow
-   - `NEXT_EVENT`: Sequential relationship between events
-
-4. **Current UI Features**
-   - Event list with timestamps
-   - Event type categorization
-   - Detailed event data view
-   - Basic navigation between events
-
-This implementation serves as the foundation for our planned enhancements.
-
-### Core Data Structures
-
-```typescript
-interface WorkflowEvent {
-  id: string
-  type:
-    | "workflow_start"
-    | "llm_response"
-    | "system_prompt"
-    | "user_message"
-    | "tool_call"
-    | "tool_response"
-    | "error"
-    | "complete"
-  workflowId: string
-  data: any
-  timestamp: Date
-  metadata?: Record<string, any>
-}
-
-interface LLMResponseData {
-  content: string
-  role: string
-  model: string
-}
-
-interface SystemPromptData {
-  content: string
-  timestamp: Date
-}
-
-interface UserMessageData {
-  content: string
-  timestamp: Date
-}
-
-interface ToolCallData {
-  toolName: string
-  parameters: Record<string, any>
-  response?: any
-  error?: {
-    message: string
-    stack?: string
-  }
-}
-
-interface StatusEventData {
-  status: string
-  message: string
-  timestamp: Date
-}
-
-interface StreamToken {
-  type: "token" | "chunk"
-  content: string
-  timestamp: Date
-  eventType: "llm" | "tool" | "status"
-}
-```
-
-### Neo4j Relationships
-
-- NEXT_EVENT: Sequential relationship between events (e.g. system prompt -> user message -> LLM response -> tool call)
-- BELONGS_TO_WORKFLOW: Event to workflow relationship
-- TRIGGERED_BY: Causal relationship between events (e.g. tool call triggering a tool response)
-- RESPONSE_TO: Links tool responses to their corresponding tool calls
-
-Note: Messages (system prompts, user messages, LLM responses) are linked sequentially via NEXT_EVENT relationships rather than having special CONTEXT_OF relationships. This better reflects the actual message chain structure where:
+Note: Events and Messages (system prompts, user messages, LLM responses, workflow run updates, etc) are linked sequentially via neo4j relationships. This better reflects the actual event and message chain structure where:
 
 1. System prompt is the first message
 2. Followed by one or more user messages
 3. Then LLM responses, tool calls, and additional messages follow in sequence
 4. Each message may have its own LLM model configuration
-
-- Reference to workflow event tracking documentation
-- Graph visualization library comparison
-- Performance benchmarking methodology
-- User research findings
