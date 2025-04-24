@@ -52,14 +52,12 @@ export type WorkflowType =
   | "identifyPRGoal"
   | "reviewPullRequest"
 
+export type WorkflowRunStatus = "running" | "completed" | "error"
 export type WorkflowRun = {
   id: string
   workflowType: WorkflowType
-  startedAt: Date
-  completedAt?: Date
-  status: "running" | "completed" | "failed"
+  created_at: Date
   result?: string
-  metadata: Record<string, unknown> // Additional run-specific data
 }
 
 // Message Types
@@ -76,29 +74,29 @@ export type BaseMessage = {
   content: string
   timestamp: Date
   role: MessageRole
-  metadata: Record<string, unknown>
 }
+
+type ToolCallStatus = "initiated" | "executing" | "completed" | "failed"
 
 export type ToolCall = {
   role: "tool_call"
-  metadata: {
-    toolName: string
-    status: "initiated" | "executing" | "completed" | "failed"
-    parameters: Record<string, unknown>
-  }
+  toolName: string
+  status: ToolCallStatus
+  parameters: Record<string, unknown>
 }
 
 export type ToolResult = {
   role: "tool_result"
-  metadata: {
-    toolName: string
-    isError: boolean
-    errorMessage?: string
-  }
+  toolName: string
+  result: string
+  isError: boolean
+  errorMessage?: string
 }
 
+type PlanStatus = "pending_review" | "approved" | "rejected" | "implemented"
+
 export type Plan = {
-  status: "pending_review" | "approved" | "rejected" | "implemented"
+  status: PlanStatus
   version: number
   editedAt?: Date
   editMessage?: string
@@ -106,10 +104,7 @@ export type Plan = {
 
 export type ReviewComment = {
   role: "user"
-  metadata: {
-    userId: string
-    reviewContext: Record<string, unknown>
-  }
+  comment: string
 }
 
 // Relationship Types
@@ -143,6 +138,8 @@ export type RelationshipTypes =
   | "PREVIOUS_VERSION"
   | "IMPLEMENTS"
   | "RESULTS_IN"
+  // WorkflowRun Relationships
+  | "GENERATED_BY"
 
 export type Relationship = {
   type: RelationshipTypes

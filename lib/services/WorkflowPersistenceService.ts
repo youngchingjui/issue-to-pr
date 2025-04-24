@@ -47,7 +47,7 @@ export class WorkflowPersistenceService {
       // Create workflow and optionally connect to issue if metadata contains issue info
       await session.run(
         `
-        MERGE (w:Workflow {id: $workflowId})
+        MERGE (w:WorkflowRun {id: $workflowId})
         SET w.created_at = datetime(),
             w.metadata = $metadata
         WITH w
@@ -71,70 +71,6 @@ export class WorkflowPersistenceService {
     }
   }
 
-  static async getWorkflows(): Promise<WorkflowWithEvents[]> {
-    const client = Neo4jClient.getInstance()
-    const session = await client.getSession()
-    try {
-      const result = await session.run(
-        `
-        MATCH (w:Workflow)
-        OPTIONAL MATCH (w)-[:BELONGS_TO_WORKFLOW]->(e:Event)
-        WITH w, collect(e) as events
-        RETURN w.id as id, w.metadata as metadata, events
-        ORDER BY w.created_at DESC
-        `
-      )
-
-      return await Promise.all(
-        result.records.map(async (record: Neo4jRecord) => {
-          const workflowId = record.get("id")
-          const events = record.get("events") as Node[]
-          const metadata = record.get("metadata")
-
-          // Convert Neo4j events to WorkflowEvent[]
-          const workflowEvents: WorkflowEvent[] = events
-            .filter((e) => e !== null)
-            .map((e) => ({
-              id: e.properties.id as string,
-              type: e.properties.type as WorkflowEventType,
-              workflowId,
-              data: JSON.parse(e.properties.data as string),
-              timestamp: new Date(e.properties.timestamp as string),
-            }))
-            .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
-
-          // Determine workflow status and last event timestamp
-          let status: "active" | "completed" | "error" = "active"
-          let lastEventTimestamp: Date | null = null
-
-          if (workflowEvents.length > 0) {
-            const lastEvent = workflowEvents[workflowEvents.length - 1]
-            lastEventTimestamp = lastEvent.timestamp
-
-            if (
-              lastEvent.type === "status" &&
-              lastEvent.data.status === "completed"
-            ) {
-              status = "completed"
-            } else if (lastEvent.type === "error") {
-              status = "error"
-            }
-          }
-
-          return {
-            id: workflowId,
-            events: workflowEvents,
-            status,
-            lastEventTimestamp,
-            metadata: metadata ? JSON.parse(metadata as string) : undefined,
-          }
-        })
-      )
-    } finally {
-      await session.close()
-    }
-  }
-
   static async getWorkflowsByIssue(
     repoFullName: string,
     issueNumber: number
@@ -145,7 +81,7 @@ export class WorkflowPersistenceService {
       // Use relationship-based query to find workflows connected to the issue
       const result = await session.run(
         `
-        MATCH (i:Issue {repoFullName: $repoFullName, number: $issueNumber})<-[:BASED_ON_ISSUE]-(w:Workflow)
+        MATCH (i:Issue {repoFullName: $repoFullName, number: $issueNumber})<-[:BASED_ON_ISSUE]-(w:WorkflowRun)
         OPTIONAL MATCH (w)-[:BELONGS_TO_WORKFLOW]->(e:Event)
         WITH w, collect(e) as events, i
         RETURN w.id as id, w.metadata as metadata, events,
@@ -216,7 +152,7 @@ export class WorkflowPersistenceService {
       // Only handle event creation and linking, no workflow metadata management
       const result = await session.run(
         `
-        MERGE (w:Workflow {id: $workflowId})
+        MERGE (w:WorkflowRun {id: $workflowId})
         CREATE (e:Event {
           id: $eventId,
           type: $type,
@@ -257,7 +193,7 @@ export class WorkflowPersistenceService {
     try {
       const result = await session.run(
         `
-        MATCH (w:Workflow {id: $workflowId})
+        MATCH (w:WorkflowRun {id: $workflowId})
         OPTIONAL MATCH (w)-[:BELONGS_TO_WORKFLOW]->(e:Event)
         OPTIONAL MATCH (w)-[:BASED_ON_ISSUE]->(i:Issue)
         OPTIONAL MATCH (e)<-[:GENERATED_FROM]-(p:Plan)
@@ -346,47 +282,6 @@ export class WorkflowPersistenceService {
     }
   }
 
-  async getWorkflowState(workflowId: string): Promise<{
-    status: "active" | "completed" | "error"
-    lastEventTimestamp: Date | null
-  }> {
-    const session = await this.neo4j.getSession()
-    try {
-      const result = await session.run(
-        `
-        MATCH (w:Workflow {id: $workflowId})-[:BELONGS_TO_WORKFLOW]->(e:Event)
-        WITH e
-        ORDER BY e.timestamp DESC
-        LIMIT 1
-        RETURN e.type as lastEventType, e.timestamp as lastEventTimestamp
-        `,
-        { workflowId }
-      )
-
-      if (result.records.length === 0) {
-        return { status: "active", lastEventTimestamp: null }
-      }
-
-      const lastEvent = result.records[0]
-      const lastEventType = lastEvent.get("lastEventType")
-      const lastEventTimestamp = new Date(lastEvent.get("lastEventTimestamp"))
-
-      let status: "active" | "completed" | "error" = "active"
-      if (lastEventType === "status") {
-        const eventData = JSON.parse(result.records[0].get("e").properties.data)
-        if (eventData.status === "completed") {
-          status = "completed"
-        }
-      } else if (lastEventType === "error") {
-        status = "error"
-      }
-
-      return { status, lastEventTimestamp }
-    } finally {
-      await session.close()
-    }
-  }
-
   async createPlan(params: {
     workflowId: string
     messageId: string
@@ -399,7 +294,7 @@ export class WorkflowPersistenceService {
       const result = await session.run(
         `
         // Match the workflow and message
-        MATCH (w:Workflow {id: $workflowId})
+        MATCH (w:WorkflowRun {id: $workflowId})
         MATCH (m:Event {id: $messageId})
         WHERE m.type = "llm_response"
         
@@ -484,7 +379,7 @@ export class WorkflowPersistenceService {
         `
         MATCH (p:Plan {id: $planId})
         OPTIONAL MATCH (e:Event)<-[:GENERATED_FROM]-(p)
-        OPTIONAL MATCH (w:Workflow)<-[:PART_OF]->(p)
+        OPTIONAL MATCH (w:WorkflowRun)<-[:PART_OF]->(p)
         OPTIONAL MATCH (p)<-[:HAS_PLAN]-(i:Issue)
         RETURN p, e, w, i
         `,
@@ -571,6 +466,48 @@ export class WorkflowPersistenceService {
         )
         `,
         { eventId }
+      )
+    } finally {
+      await session.close()
+    }
+  }
+
+  async completeWorkflowRun(workflowId: string, result?: string) {
+    const session = await this.neo4j.getSession()
+    try {
+      await session.run(
+        `
+        MATCH (w:WorkflowRun {id: $workflowId})
+        SET w.status = 'completed',
+            w.completedAt = datetime(),
+            w.result = $result
+        RETURN w
+        `,
+        {
+          workflowId,
+          result,
+        }
+      )
+    } finally {
+      await session.close()
+    }
+  }
+
+  async failWorkflowRun(workflowId: string, error: string) {
+    const session = await this.neo4j.getSession()
+    try {
+      await session.run(
+        `
+        MATCH (w:WorkflowRun {id: $workflowId})
+        SET w.status = 'failed',
+            w.completedAt = datetime(),
+            w.result = $error
+        RETURN w
+        `,
+        {
+          workflowId,
+          error,
+        }
       )
     } finally {
       await session.close()
