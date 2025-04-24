@@ -4,7 +4,7 @@ This directory contains database migration scripts and utilities for managing Ne
 
 ## Workflow to WorkflowRun Migration
 
-This migration converts the old Workflow nodes to the new WorkflowRun model with the following changes:
+This migration converts the old Workflow nodes to the new WorkflowRun model and updates Event nodes to also be Message nodes.
 
 ### Data Model Changes
 
@@ -45,6 +45,8 @@ Key Changes:
 - Standardized status values
 - Added optional result field
 - Renamed `created_at` to `createdAt` for consistency
+- Added Message label to Event nodes
+- Added `PART_OF` relationship between Message and WorkflowRun nodes
 
 ### Taking a Backup
 
@@ -68,21 +70,22 @@ docker run --rm \
 docker compose start neo4j
 ```
 
-### Running the Migration
+### Running the Step-by-Step Migration
 
-After taking a backup, run the migration:
+The migration is broken down into several steps that can be run independently.
+Review `scripts/migrations/workflow-to-workflowrun.cypher` to see those steps.
+
+Or, you can run these steps using the Cypher script:
 
 ```bash
-npx ts-node scripts/migrations/workflow-to-workflowrun.ts
+# Using cypher-shell
+cat scripts/migrations/workflow-to-workflowrun.cypher | cypher-shell -u neo4j -p password
+
+# Or using the Neo4j Browser
+# Copy and paste each step separately and verify before proceeding to the next step
 ```
 
-The migration script is idempotent and can be run multiple times safely. It will:
-
-1. Clean up any failed previous migrations
-2. Convert Workflow nodes to WorkflowRun nodes
-3. Create proper relationships with Issues
-4. Preserve Event relationships
-5. Validate the migration success
+The migration script is idempotent and can be run multiple times safely.
 
 ### Restoring from Backup
 
@@ -114,3 +117,5 @@ docker compose start neo4j
 - The restore process will completely replace the current database with the backup version
 - The migration script includes validation to ensure data integrity
 - Any Workflow nodes with invalid or missing metadata will be preserved and reported
+- The Event nodes retain their original label while also having the Message label
+- New PART_OF relationships are created alongside existing BELONGS_TO_WORKFLOW relationships
