@@ -18,7 +18,9 @@ export class n4jService {
     return n4jService.instance
   }
 
-  public async listWorkflowRuns(): Promise<
+  public async listWorkflowRuns({
+    issue,
+  }: { issue?: { repoFullName: string; issueNumber: number } } = {}): Promise<
     (WorkflowRun & { status: WorkflowRunStatus })[]
   > {
     const session = await this.client.getSession()
@@ -29,9 +31,9 @@ export class n4jService {
       }>(
         `
         MATCH (w:WorkflowRun)
+        ${issue ? `MATCH (w)-[:BASED_ON_ISSUE]->(i:Issue {number: $issue.issueNumber, repoFullName: $issue.repoFullName})` : ""}
         OPTIONAL MATCH (status:Message {type: 'status'})-[:PART_OF]->(w)
         OPTIONAL MATCH (error:Message {type: 'error'})-[:PART_OF]->(w)
-        
         WITH w, collect(status) as statusNodes, collect(error) as errorNodes
         
         // Determine the final status based on priority
@@ -53,7 +55,8 @@ export class n4jService {
         
         RETURN w, lastStatus
         ORDER BY w.created_at DESC
-        `
+        `,
+        { issue: issue ?? null }
       )
       const workflows = result.records.map((record) => record.get("w"))
       const lastStatus = result.records.map((record) =>
