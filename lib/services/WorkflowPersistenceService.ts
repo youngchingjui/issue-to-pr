@@ -10,6 +10,9 @@ import {
   WorkflowWithEvents,
 } from "@/lib/types/workflow"
 
+/**
+ * @deprecated Migrate or build functionality with /lib/neo4j/service.ts or /lib/types/neo4j
+ */
 interface PlanResponse extends PlanProperties {
   message: {
     id: string
@@ -30,6 +33,9 @@ interface PlanResponse extends PlanProperties {
   }
 }
 
+/**
+ * @deprecated Migrate or build functionality with /lib/neo4j/service.ts or /lib/types/neo4j
+ */
 export class WorkflowPersistenceService {
   private neo4j: Neo4jClient
 
@@ -71,6 +77,9 @@ export class WorkflowPersistenceService {
     }
   }
 
+  /**
+   * @deprecated Migrate or build functionality with /lib/neo4j/service.ts or /lib/types/neo4j
+   */
   static async getWorkflowsByIssue(
     repoFullName: string,
     issueNumber: number
@@ -146,6 +155,9 @@ export class WorkflowPersistenceService {
     }
   }
 
+  /**
+   * @deprecated Migrate or build functionality with /lib/neo4j/service.ts or /lib/types/neo4j
+   */
   async saveEvent(event: Omit<WorkflowEvent, "id">) {
     const session = await this.neo4j.getSession()
     try {
@@ -186,6 +198,9 @@ export class WorkflowPersistenceService {
     }
   }
 
+  /**
+   * @deprecated Migrate or build functionality with /lib/neo4j/service.ts or /lib/types/neo4j
+   */
   async getWorkflowEvents(
     workflowId: string
   ): Promise<WorkflowWithEvents | null> {
@@ -282,6 +297,9 @@ export class WorkflowPersistenceService {
     }
   }
 
+  /**
+   * @deprecated Migrate or build functionality with /lib/neo4j/service.ts or /lib/types/neo4j
+   */
   async createPlan(params: {
     workflowId: string
     messageId: string
@@ -331,6 +349,9 @@ export class WorkflowPersistenceService {
     }
   }
 
+  /**
+   * @deprecated Migrate or build functionality with /lib/neo4j/service.ts or /lib/types/neo4j
+   */
   async getPlanForIssue(
     issueNumber: number,
     repoFullName: string
@@ -372,6 +393,9 @@ export class WorkflowPersistenceService {
     }
   }
 
+  /**
+   * @deprecated Migrate or build functionality with /lib/neo4j/service.ts or /lib/types/neo4j
+   */
   async getPlanById(planId: string): Promise<PlanResponse | null> {
     const session = await this.neo4j.getSession()
     try {
@@ -424,6 +448,9 @@ export class WorkflowPersistenceService {
     }
   }
 
+  /**
+   * @deprecated Migrate or build functionality with /lib/neo4j/service.ts or /lib/types/neo4j
+   */
   async updatePlanStatus(
     planId: string,
     status: "draft" | "approved" | "implemented"
@@ -448,6 +475,9 @@ export class WorkflowPersistenceService {
     }
   }
 
+  /**
+   * @deprecated Migrate or build functionality with /lib/neo4j/service.ts or /lib/types/neo4j
+   */
   async deleteEvent(eventId: string) {
     const session = await this.neo4j.getSession()
     try {
@@ -472,6 +502,9 @@ export class WorkflowPersistenceService {
     }
   }
 
+  /**
+   * @deprecated Migrate or build functionality with /lib/neo4j/service.ts or /lib/types/neo4j
+   */
   async completeWorkflowRun(workflowId: string, result?: string) {
     const session = await this.neo4j.getSession()
     try {
@@ -493,6 +526,9 @@ export class WorkflowPersistenceService {
     }
   }
 
+  /**
+   * @deprecated Migrate or build functionality with /lib/neo4j/service.ts or /lib/types/neo4j
+   */
   async failWorkflowRun(workflowId: string, error: string) {
     const session = await this.neo4j.getSession()
     try {
