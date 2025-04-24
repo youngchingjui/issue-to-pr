@@ -28,16 +28,11 @@ This document details the Neo4j-specific implementation of our workflow storage 
 
 ### 1. Core Entities (Primary Nodes)
 
+Our core entities are defined in `lib/types/neo4j.ts`. Below are the key nodes and their relationships. For detailed type definitions, please refer to the TypeScript interfaces.
+
 #### User
 
-Users in Neo4j primarily serve as connection points for relationships in the graph, while detailed user data is stored in PostgreSQL.
-
-```cypher
-CREATE (:User {
-    id: string,           // Maps to PostgreSQL users.id
-    displayName: string   // Cached display name for convenient querying
-})
-```
+Users in Neo4j primarily serve as connection points for relationships in the graph, while detailed user data is stored in PostgreSQL. See `User` type in `neo4j.ts`.
 
 Key relationships:
 
@@ -57,60 +52,15 @@ Note: Core user data (OAuth config, subscription status, preferences) is stored 
 
 #### Repository
 
-```cypher
-CREATE (:Repository {
-    // Immutable properties stored in Neo4j
-    name: string,           // Repository name
-    owner: string,         // Repository owner
-    id: string,           // GitHub repository ID
-
-    // Mutable properties fetched from GitHub API
-    // - description
-    // - defaultBranch
-    // - settings
-    // - visibility
-})
-```
+See `Repository` type in `neo4j.ts` for full property definitions.
 
 #### Issue
 
-```cypher
-CREATE (:Issue {
-    // Immutable properties stored in Neo4j
-    number: integer,       // Issue number
-    id: string,           // GitHub issue ID
-    createdAt: datetime(), // Creation timestamp
-
-    // Mutable properties fetched from GitHub API
-    // - title
-    // - body
-    // - state
-    // - labels
-    // - assignees
-    // - updatedAt
-})
-```
+See `Issue` type in `neo4j.ts` for full property definitions.
 
 #### PullRequest
 
-```cypher
-CREATE (:PullRequest {
-    // Immutable properties stored in Neo4j
-    number: integer,      // PR number
-    id: string,          // GitHub PR ID
-    createdAt: datetime(), // Creation timestamp
-
-    // Mutable properties fetched from GitHub API
-    // - title
-    // - body
-    // - state
-    // - branch
-    // - reviewers
-    // - labels
-    // - mergeable
-    // - updatedAt
-})
-```
+See `PullRequest` type in `neo4j.ts` for full property definitions.
 
 ### Helper Functions
 
@@ -150,35 +100,15 @@ RETURN r.name, description, defaultBranch, visibility
 
 #### WorkflowRun
 
-```cypher
-CREATE (:WorkflowRun {
-    id: string,
-    workflowType: string,    // e.g., "commentOnIssue", "createPR"
-    startedAt: datetime(),
-    completedAt: datetime(),
-    status: string,          // running, completed, failed, etc.
-    result: string,
-    metadata: map           // Additional run-specific data
-})
-```
+See `WorkflowRun` type in `neo4j.ts` for full property definitions.
 
 ### 3. Execution Sequence Nodes
 
 #### Message
 
-Messages in our system represent all types of communication and content. Each message has a role that defines its source and purpose.
+Messages in our system represent all types of communication and content. Each message has a role that defines its source and purpose. See `BaseMessage` type and its extensions (`ToolCall`, `ToolResult`, `Plan`, `ReviewComment`) in `neo4j.ts`.
 
-```cypher
-CREATE (:Message {
-    id: string,
-    content: string,      // The actual message content
-    timestamp: datetime(),
-    role: string,         // "user" | "system" | "assistant" | "tool_call" | "tool_result"
-    metadata: map         // Role-specific metadata (e.g., token usage, source, userId, model)
-})
-```
-
-The `role` property indicates the source and purpose of the message:
+The `role` property (defined by `MessageRole` type) indicates the source and purpose of the message:
 
 - `"user"` - Messages from users (inputs, comments, edit suggestions)
 - `"system"` - System prompts and instructions
@@ -194,86 +124,30 @@ Messages can have additional labels to indicate special purposes:
 Example message types:
 
 ```cypher
-// Tool call message
-CREATE (:Message {
-    id: string,
-    content: string,      // Serialized tool call parameters
-    timestamp: datetime(),
-    role: "tool_call",
-    metadata: {
-        toolName: string,     // e.g., "codebase_search"
-        status: string,       // initiated, executing, completed, failed
-        parameters: map       // The parameters passed to the tool
-    }
-})
+// Tool call message - see ToolCall type in neo4j.ts
+MATCH (m:Message {role: "tool_call"})
+WHERE m.metadata.toolName = $toolName
+RETURN m
 
-// Tool result message
-CREATE (:Message {
-    id: string,
-    content: string,      // The tool's output
-    timestamp: datetime(),
-    role: "tool_result",
-    metadata: {
-        toolName: string,     // Matching the tool call
-        isError: boolean,     // Whether the tool execution resulted in error
-        errorMessage: string  // Present if isError is true
-    }
-})
+// Tool result message - see ToolResult type in neo4j.ts
+MATCH (m:Message {role: "tool_result"})
+WHERE m.metadata.toolName = $toolName
+RETURN m
 
-// Original AI-generated Plan (v1)
-CREATE (:Message:Plan {
-    id: string,
-    content: string,
-    timestamp: datetime(),
-    role: "assistant",    // Original plan is from AI
-    metadata: {
-        model: string,
-        tokenUsage: map
-    },
-    // Plan-specific properties
-    status: string,       // pending_review, approved, rejected, implemented
-    version: 1,          // First version
-})
+// Plan message - see Plan type in neo4j.ts
+MATCH (m:Message:Plan)
+WHERE m.role = "assistant"
+RETURN m
 
-// User-edited version of a Plan (v2 onwards)
-// 1. Create the new plan node
-CREATE (newPlan:Plan {          // Note: Not a Message node since it's a user edit
-    id: string,
-    content: string,     // Updated plan content
-    timestamp: datetime(),
-    role: "user",        // Edited by user
-    metadata: map,       // Any additional metadata about the edit
-    // Plan-specific properties
-    status: "pending_review",  // Reset to pending review after edit
-    version: 2,               // Incremented version
-    editedAt: datetime(),
-    editMessage: string      // Why the edit was made
-})
-
-// 2. Link to the previous version
-WITH newPlan
-MATCH (previousPlan:Plan {id: $previousPlanId})
-CREATE (newPlan)-[:PREVIOUS_VERSION]->(previousPlan)
-
-// 3. Link to the editing user
-WITH newPlan
-MATCH (user:User {id: $userId})
-CREATE (newPlan)-[:EDITED_BY]->(user)
-
-// Review comment on a plan
-CREATE (:Message:ReviewComment {
-    id: string,
-    content: string,
-    timestamp: datetime(),
-    role: "user",
-    metadata: {
-        userId: string,
-        reviewContext: map
-    }
-})
+// Review comment - see ReviewComment type in neo4j.ts
+MATCH (m:Message:ReviewComment)
+WHERE m.role = "user"
+RETURN m
 ```
 
 ### Core Relationships
+
+All relationship types are defined in the `RelationshipTypes` type in `neo4j.ts`. Here are the key relationships:
 
 ```cypher
 // Repository Relationships
@@ -452,9 +326,11 @@ ORDER BY c.timestamp
 
 ### Message Chains and Conversation Context
 
-Messages can be organized into chains for conversation context while maintaining their other roles through labels and relationships.
+Messages can be organized into chains for conversation context while maintaining their other roles through labels and relationships. All message types are defined in `neo4j.ts`.
 
 #### Chain Relationships
+
+All relationship types are defined in the `RelationshipTypes` type in `neo4j.ts`:
 
 ```cypher
 // Sequential message chain

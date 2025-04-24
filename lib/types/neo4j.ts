@@ -60,51 +60,61 @@ export type WorkflowRun = {
   result?: string
 }
 
-// Message Types
+// Event Types
 
-export type MessageRole =
-  | "user"
-  | "system"
-  | "assistant"
-  | "tool_call"
-  | "tool_result"
-
-export type BaseMessage = {
+// Base Event properties that all events will have
+export type Event = {
   id: string
-  content: string
   timestamp: Date
+  metadata?: Record<string, unknown>
+}
+
+// Message Events (:Event:Message)
+export type MessageRole = "user" | "system" | "assistant"
+export type Message = Event & {
+  content: string
   role: MessageRole
 }
 
-type ToolCallStatus = "initiated" | "executing" | "completed" | "failed"
-
-export type ToolCall = {
-  role: "tool_call"
+// Tool Events (:Event:ToolCall and :Event:ToolResult)
+export type ToolCall = Event & {
   toolName: string
-  status: ToolCallStatus
   parameters: Record<string, unknown>
 }
 
-export type ToolResult = {
-  role: "tool_result"
+export type ToolCallResult = Event & {
   toolName: string
   result: string
   isError: boolean
   errorMessage?: string
 }
 
-type PlanStatus = "pending_review" | "approved" | "rejected" | "implemented"
+// Workflow Status Events (:Event:WorkflowStatus)
+export type WorkflowStatusEvent = Event & {
+  workflowId: string
+  status: WorkflowRunStatus
+  details?: string
+}
 
+// Workspace Events (:Event:WorkspaceInit)
+export type Status = Event & {
+  message: string
+}
+
+// Plan
+type PlanStatus = "pending_review" | "approved" | "rejected" | "implemented"
 export type Plan = {
+  content: string
   status: PlanStatus
   version: number
   editedAt?: Date
   editMessage?: string
 }
 
-export type ReviewComment = {
-  role: "user"
-  comment: string
+// Review Events (:Event:Review)
+export type ReviewComment = Event & {
+  content: string
+  planId: string
 }
 
 // Relationship Types
@@ -118,14 +128,15 @@ export type RelationshipTypes =
   | "BELONGS_TO"
   | "CREATED_BY"
   | "HAS_COMMENTS"
-  | "HAS_RUNS"
+  // Workflow run Relationships
+  | "STARTS_WITH" // Links WorkflowRun to its first event
   // PullRequest Relationships
   | "RESOLVES"
   | "GENERATED_BY"
-  // Message Relationships
-  | "NEXT"
-  | "PART_OF"
-  | "COMMENTS_ON"
+  // Event Relationships
+  | "NEXT" // Links events in chronological order
+  | "REFERENCES" // Event referencing another node (Issue, PR, etc)
+  | "COMMENTS_ON" // Review comments on plans
   // User Relationships
   | "HAS_ACCESS_TO"
   | "AUTHORIZED_FOR"
@@ -138,8 +149,6 @@ export type RelationshipTypes =
   | "PREVIOUS_VERSION"
   | "IMPLEMENTS"
   | "RESULTS_IN"
-  // WorkflowRun Relationships
-  | "GENERATED_BY"
 
 export type Relationship = {
   type: RelationshipTypes
