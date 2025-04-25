@@ -298,7 +298,7 @@ Our implementation strategy focuses on iterative improvements to existing compon
 
 1. **Builds on Existing Code**
 
-   - Enhances the current `WorkflowRunDetail` component
+   - Enhances the current `WorkflowRunDetailsPage` component
    - Leverages existing Neo4j data structure and relationships
    - Uses current workflow event types and data models
    - Implements modular component architecture for maintainability

@@ -77,7 +77,7 @@ Each commit should be:
 
 - [ ] Enhance Existing Workflow Visualization
 
-  - [ ] Add visual timeline/graph view to `WorkflowRunDetail`
+  - [ ] Add visual timeline/graph view to `WorkflowRunDetails Page`
     - [ ] Start with simple top-to-bottom timeline
     - [ ] Show event relationships using arrows
     - [ ] Color-code different event types

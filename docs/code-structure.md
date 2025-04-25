@@ -41,7 +41,6 @@ Key component patterns:
   - Custom styled components (shine-button, moving-border-card)
 
 - `/workflow-runs`: Workflow visualization components
-  - `WorkflowRunDetail.tsx`: Detailed view of a single workflow run
   - `/events`: Event-specific components
     - Event type definitions and shared types
     - Specialized event displays (LLM, User Message, Status, etc.)
