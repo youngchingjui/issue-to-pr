@@ -52,7 +52,6 @@ export type WorkflowType =
   | "identifyPRGoal"
   | "reviewPullRequest"
 
-export type WorkflowRunStatus = "running" | "completed" | "error"
 export type WorkflowRun = {
   id: string
   workflowType: WorkflowType
@@ -65,8 +64,8 @@ export type WorkflowRun = {
 // Base Event properties that all events will have
 export type Event = {
   id: string
-  timestamp: Date
-  metadata?: Record<string, unknown>
+  createdAt: Date
+  workflowId: string
 }
 
 // Message Events (:Event:Message)
@@ -89,15 +88,15 @@ export type ToolCallResult = Event & {
   errorMessage?: string
 }
 
-// Workflow Status Events (:Event:WorkflowStatus)
-export type WorkflowStatusEvent = Event & {
-  workflowId: string
-  status: WorkflowRunStatus
+// Workflow State Events - track the overall state of the workflow
+export type WorkflowRunState = "running" | "completed" | "error"
+export type WorkflowState = Event & {
+  state: WorkflowRunState
   details?: string
 }
 
-// Workspace Events (:Event:WorkspaceInit)
-export type Status = Event & {
+// Workflow Status Events
+export type WorkflowStatus = Event & {
   message: string
 }
 

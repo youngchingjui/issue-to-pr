@@ -4,6 +4,7 @@ import { z } from "zod"
 
 import { getRepoFromString } from "@/lib/github/content"
 import { getIssue } from "@/lib/github/issues"
+import { n4j } from "@/lib/neo4j/service"
 import { ResolveRequestSchema } from "@/lib/schemas/api"
 import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceService"
 import { resolveIssue } from "@/lib/workflows/resolveIssue"
@@ -51,14 +52,10 @@ export async function POST(request: NextRequest) {
         })
       } catch (error) {
         // Save error status
-        await persistenceService.saveEvent({
-          type: "error",
+        await n4j.createWorkflowStateEvent({
           workflowId: jobId,
-          data: {
-            error: error instanceof Error ? error.message : String(error),
-            recoverable: false,
-          },
-          timestamp: new Date(),
+          state: "error",
+          details: error instanceof Error ? error.message : String(error),
         })
       }
     })()

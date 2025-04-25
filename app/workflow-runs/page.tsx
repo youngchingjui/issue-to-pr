@@ -52,14 +52,14 @@ export default async function WorkflowRunsPage() {
                     <TableCell>
                       <Badge
                         variant={
-                          workflow.status === "completed"
+                          workflow.state === "completed"
                             ? "default"
-                            : workflow.status === "error"
+                            : workflow.state === "error"
                               ? "destructive"
                               : "secondary"
                         }
                       >
-                        {workflow.status}
+                        {workflow.state}
                       </Badge>
                     </TableCell>
                     <TableCell className="py-4 text-muted-foreground">

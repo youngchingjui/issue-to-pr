@@ -1,4 +1,4 @@
-import { Node, Record as Neo4jRecord } from "neo4j-driver"
+import { Node } from "neo4j-driver"
 import { v4 as uuidv4 } from "uuid"
 
 import { Neo4jClient } from "@/lib/neo4j/client"
@@ -43,6 +43,9 @@ export class WorkflowPersistenceService {
     this.neo4j = Neo4jClient.getInstance()
   }
 
+  /**
+   * @deprecated Migrate or build functionality with /lib/neo4j/service.ts or /lib/types/neo4j
+   */
   async initializeWorkflow(
     workflowId: string,
     metadata: WorkflowMetadata,
@@ -71,84 +74,6 @@ export class WorkflowPersistenceService {
           issueNumber: issue?.number,
           repoFullName: issue?.repoFullName,
         }
-      )
-    } finally {
-      await session.close()
-    }
-  }
-
-  /**
-   * @deprecated Migrate or build functionality with /lib/neo4j/service.ts or /lib/types/neo4j
-   */
-  static async getWorkflowsByIssue(
-    repoFullName: string,
-    issueNumber: number
-  ): Promise<WorkflowWithEvents[]> {
-    const client = Neo4jClient.getInstance()
-    const session = await client.getSession()
-    try {
-      // Use relationship-based query to find workflows connected to the issue
-      const result = await session.run(
-        `
-        MATCH (i:Issue {repoFullName: $repoFullName, number: $issueNumber})<-[:BASED_ON_ISSUE]-(w:WorkflowRun)
-        OPTIONAL MATCH (w)-[:BELONGS_TO_WORKFLOW]->(e:Event)
-        WITH w, collect(e) as events, i
-        RETURN w.id as id, w.metadata as metadata, events,
-               { number: i.number, repoFullName: i.repoFullName } as issue
-        ORDER BY w.created_at DESC
-        `,
-        {
-          repoFullName,
-          issueNumber,
-        }
-      )
-
-      return await Promise.all(
-        result.records.map(async (record: Neo4jRecord) => {
-          const workflowId = record.get("id")
-          const events = record.get("events") as Node[]
-          const metadata = record.get("metadata")
-          const issue = record.get("issue")
-
-          // Convert Neo4j events to WorkflowEvent[]
-          const workflowEvents: WorkflowEvent[] = events
-            .filter((e) => e !== null)
-            .map((e) => ({
-              id: e.properties.id as string,
-              type: e.properties.type as WorkflowEventType,
-              workflowId,
-              data: JSON.parse(e.properties.data as string),
-              timestamp: new Date(e.properties.timestamp as string),
-            }))
-            .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
-
-          // Determine workflow status and last event timestamp
-          let status: "active" | "completed" | "error" = "active"
-          let lastEventTimestamp: Date | null = null
-
-          if (workflowEvents.length > 0) {
-            const lastEvent = workflowEvents[workflowEvents.length - 1]
-            lastEventTimestamp = lastEvent.timestamp
-
-            if (
-              lastEvent.type === "status" &&
-              lastEvent.data.status === "completed"
-            ) {
-              status = "completed"
-            } else if (lastEvent.type === "error") {
-              status = "error"
-            }
-          }
-
-          return {
-            id: workflowId,
-            events: workflowEvents,
-            status,
-            lastEventTimestamp,
-            metadata: metadata ? JSON.parse(metadata as string) : undefined,
-            issue,
-          }
-        })
       )
     } finally {
       await session.close()

@@ -58,14 +58,14 @@ export default async function IssueWorkflowRuns({
                 <TableCell>
                   <Badge
                     variant={
-                      run.status === "completed"
+                      run.state === "completed"
                         ? "default"
-                        : run.status === "error"
+                        : run.state === "error"
                           ? "destructive"
                           : "secondary"
                     }
                   >
-                    {run.status}
+                    {run.state}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-muted-foreground">
