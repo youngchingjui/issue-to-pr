@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 
-import RipgrepSearchTool from "@/lib/tools/RipgrepSearchTool"
+import { n4j } from "@/lib/neo4j/service"
 
 export async function POST(request: Request) {
   if (process.env.NODE_ENV === "production") {
@@ -11,29 +11,48 @@ export async function POST(request: Request) {
   }
 
   try {
-    // Initialize the RipgrepSearchTool with the project root directory
-    const projectRoot = process.cwd()
-    const ripgrepTool = new RipgrepSearchTool(projectRoot)
+    // Create a test workflow ID
+    const workflowId = "5de78c6d-8397-4cde-be38-c570e1ab8b97"
 
-    // Test searching for "TestButton" in the codebase
-    const searchResults = await ripgrepTool.handler({
-      query: "TestButton",
-      ignoreCase: true,
-      hidden: false,
-      follow: false,
+    // Create first event
+    const event1 = await n4j.createWorkflowStateEvent({
+      workflowId,
+      state: "running",
+      details: "Starting workflow test",
+    })
+
+    // Create second event linked to first
+    const event2 = await n4j.createWorkflowStateEvent({
+      workflowId,
+      state: "running",
+      details: "Processing task 1",
+      parentId: event1.id,
+    })
+
+    // Create third event linked to second
+    const event3 = await n4j.createWorkflowStateEvent({
+      workflowId,
+      state: "completed",
+      details: "Workflow test completed",
+      parentId: event2.id,
     })
 
     const result = {
-      message: "Ripgrep search test completed",
+      message: "Workflow state events created",
       timestamp: new Date().toISOString(),
-      searchQuery: "TestButton",
-      searchResults,
-      searchDirectory: projectRoot,
+      workflowId,
+      events: [event1, event2, event3],
     }
 
     return NextResponse.json(result)
   } catch (error) {
     console.error("Test API error:", error)
-    return NextResponse.json({ error: "Test API failed" }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: "Test API failed",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 }
+    )
   }
 }

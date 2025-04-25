@@ -67,7 +67,7 @@ export function TestButton() {
           </div>
           <div className="font-medium">Results:</div>
           <pre className="bg-gray-100 p-4 rounded-lg overflow-auto whitespace-pre-wrap text-sm">
-            {response.searchResults || "No results found"}
+            {JSON.stringify(response, null, 2)}
           </pre>
         </div>
       )}
