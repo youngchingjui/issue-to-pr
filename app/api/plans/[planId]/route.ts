@@ -33,7 +33,7 @@ export async function PATCH(
     const { planId } = params
     const { status } = await request.json()
 
-    if (!status || !["draft", "approved", "rejected"].includes(status)) {
+    if (!status || !["draft", "approved", "implemented", "rejected"].includes(status)) {
       return NextResponse.json(
         { error: "Invalid status provided" },
         { status: 400 }

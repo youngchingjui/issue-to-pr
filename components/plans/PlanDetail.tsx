@@ -13,20 +13,7 @@ import { PlanProperties } from "@/lib/types/plan"
 import { WorkflowMetadata } from "@/lib/types/workflow"
 
 interface Props {
-  plan: {
-    id: string
-    status: PlanProperties["status"]
-    type: string
-    createdAt: Date
-    message: {
-      id: string
-      type: "llm_response"
-      timestamp: string
-      data: {
-        content: string
-        model: string
-      }
-    }
+  plan: PlanProperties & {
     workflow?: {
       id: string
       metadata: WorkflowMetadata
@@ -40,11 +27,11 @@ interface Props {
 }
 
 export function PlanDetail({ plan, showStatusUpdater = true }: Props) {
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | string) => {
     return new Intl.DateTimeFormat("en-US", {
       dateStyle: "medium",
       timeStyle: "short",
-    }).format(date)
+    }).format(typeof date === "string" ? new Date(date) : date)
   }
 
   return (
@@ -54,7 +41,7 @@ export function PlanDetail({ plan, showStatusUpdater = true }: Props) {
           <div>
             <CardTitle>Plan Details</CardTitle>
             <CardDescription>
-              Created on {formatDate(plan.createdAt)}
+              Created on {plan.createdAt ? formatDate(plan.createdAt) : "-"}
             </CardDescription>
           </div>
           {showStatusUpdater && (
@@ -66,7 +53,7 @@ export function PlanDetail({ plan, showStatusUpdater = true }: Props) {
         <div>
           <h3 className="text-lg font-semibold mb-2">Plan Content</h3>
           <div className="prose prose-sm dark:prose-invert max-w-none rounded-lg bg-muted p-4">
-            <ReactMarkdown>{plan.message.data.content}</ReactMarkdown>
+            <ReactMarkdown>{plan.content || "(No content)"}</ReactMarkdown>
           </div>
         </div>
 
@@ -112,7 +99,7 @@ export function PlanDetail({ plan, showStatusUpdater = true }: Props) {
                 <strong>Plan ID:</strong> {plan.id}
               </p>
               <p>
-                <strong>Model:</strong> {plan.message.data.model}
+                <strong>Model:</strong> {plan.model || "-"}
               </p>
             </div>
           </div>

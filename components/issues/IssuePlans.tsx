@@ -17,11 +17,11 @@ export default async function IssuePlans({ repoFullName, issueNumber }: Props) {
     return null
   }
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | string) => {
     return new Intl.DateTimeFormat("en-US", {
       dateStyle: "medium",
       timeStyle: "short",
-    }).format(date)
+    }).format(typeof date === "string" ? new Date(date) : date)
   }
 
   return (
@@ -32,7 +32,7 @@ export default async function IssuePlans({ repoFullName, issueNumber }: Props) {
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            Created on {formatDate(plan.createdAt)}
+            Created on {plan.createdAt ? formatDate(plan.createdAt) : "-"}
           </div>
           <Link href={`/${repoFullName}/issues/${issueNumber}/plan/${plan.id}`}>
             <div className="flex items-center gap-2 text-sm text-primary hover:underline">
@@ -44,7 +44,7 @@ export default async function IssuePlans({ repoFullName, issueNumber }: Props) {
         <div className="text-sm">
           <div className="font-medium mb-2">Status: {plan.status}</div>
           <div className="whitespace-pre-wrap rounded-lg bg-muted p-4 max-h-48 overflow-y-auto">
-            {plan.message.data.content}
+            {plan.content || "(No content)"}
           </div>
         </div>
       </CardContent>
