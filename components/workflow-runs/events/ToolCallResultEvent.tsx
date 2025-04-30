@@ -1,16 +1,16 @@
+"use server"
+
 import { ArrowDownLeft } from "lucide-react"
 
 import { CollapsibleContent } from "@/components/ui/collapsible-content"
 import { EventTime } from "@/components/workflow-runs/events"
-import { ToolResponseEvent as ToolResponseEventType } from "@/lib/types/workflow"
+import { ToolCallResult } from "@/lib/types/neo4j"
 
-export interface ToolResponseEventProps {
-  event: ToolResponseEventType
+export interface Props {
+  event: ToolCallResult
 }
 
-export function ToolResponseEvent({ event }: ToolResponseEventProps) {
-  const { data, timestamp } = event
-
+export async function ToolCallResultEvent({ event }: Props) {
   const headerContent = (
     <div className="flex items-center justify-between w-full">
       <div className="flex items-center gap-2">
@@ -18,10 +18,10 @@ export function ToolResponseEvent({ event }: ToolResponseEventProps) {
         <div className="flex items-center gap-1.5 text-xs">
           <span className="font-medium text-green-500">Tool Response</span>
           <span className="text-muted-foreground">/</span>
-          <span className="font-medium">{data.toolName}</span>
+          <span className="font-medium">{event.toolName}</span>
         </div>
       </div>
-      <EventTime timestamp={timestamp} />
+      <EventTime timestamp={event.createdAt} />
     </div>
   )
 
@@ -31,13 +31,7 @@ export function ToolResponseEvent({ event }: ToolResponseEventProps) {
       className="border-l-2 border-green-500 dark:border-green-400 hover:bg-muted/50"
     >
       <div className="font-mono text-sm overflow-x-auto">
-        {typeof data.response === "string" ? (
-          <div className="whitespace-pre-wrap">{data.response}</div>
-        ) : (
-          <pre className="text-sm">
-            {JSON.stringify(data.response, null, 2)}
-          </pre>
-        )}
+        <div className="whitespace-pre-wrap">{event.content}</div>
       </div>
     </CollapsibleContent>
   )

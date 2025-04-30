@@ -2,11 +2,11 @@
 
 import { format, isToday } from "date-fns"
 
-interface EventTimeProps {
+interface Props {
   timestamp: Date
 }
 
-export function EventTime({ timestamp }: EventTimeProps) {
+export function EventTime({ timestamp }: Props) {
   const date = new Date(timestamp)
   const formattedTime = isToday(date)
     ? format(date, "HH:mm:ss")

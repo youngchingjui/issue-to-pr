@@ -1,4 +1,7 @@
 // Core Entity Types
+// TODO: Use zod to create schemas, then export types from schemas
+// TODO: Define baseline application-level schemas, then extend database schemas from there
+// TODO: move this file to /types/db/neo4j.ts
 
 export type User = {
   id: string // Maps to PostgreSQL users.id
@@ -20,6 +23,7 @@ export type Issue = {
   number: number // Issue number
   id: string // GitHub issue ID
   createdAt: Date // Creation timestamp
+  repoFullName: string // Repository name
   // Mutable properties from GitHub API - not stored in Neo4j
   title?: string
   body?: string
@@ -55,54 +59,97 @@ export type WorkflowType =
 export type WorkflowRun = {
   id: string
   workflowType: WorkflowType
-  created_at: Date
-  result?: string
+  created_at: Date // TODO: Change to `createdAt`
+  // status - need this for application level, but not stored in Neo4j
 }
 
 // Event Types
 
-// Base Event properties that all events will have
-export type Event = {
+// Define the possible event types
+type EventType =
+  | "status"
+  | "message"
+  | "toolCall"
+  | "toolCallResult"
+  | "workflowState"
+  | "reviewComment"
+  | "systemPrompt"
+  | "userMessage"
+  | "llmResponse"
+  | "error"
+
+// Base Event properties for all events
+export interface BaseEvent {
   id: string
   createdAt: Date
   workflowId: string
+  content?: string
+  type: EventType
 }
 
-// Message Events (:Event:Message)
-export type MessageRole = "user" | "system" | "assistant"
-export type Message = Event & {
+// Basic Event
+export interface StatusEvent extends BaseEvent {
+  type: "status"
+}
+
+// Message Events
+export interface SystemPrompt extends BaseEvent {
+  type: "systemPrompt"
   content: string
-  role: MessageRole
 }
 
-// Tool Events (:Event:ToolCall and :Event:ToolResult)
-export type ToolCall = Event & {
+export interface UserMessage extends BaseEvent {
+  type: "userMessage"
+  content: string
+}
+
+export interface LLMResponse extends BaseEvent {
+  type: "llmResponse"
+  content: string
+}
+
+// Tool Events
+export interface ToolCall extends BaseEvent {
+  type: "toolCall"
   toolName: string
-  parameters: Record<string, unknown>
+  toolCallId: string
+  arguments: string
 }
 
-export type ToolCallResult = Event & {
+export interface ToolCallResult extends BaseEvent {
+  type: "toolCallResult"
+  toolCallId: string
   toolName: string
-  result: string
-  isError: boolean
-  errorMessage?: string
+  content: string
 }
 
-// Workflow State Events - track the overall state of the workflow
+// Workflow State Events
 export type WorkflowRunState = "running" | "completed" | "error"
-export type WorkflowState = Event & {
+export interface WorkflowState extends BaseEvent {
+  type: "workflowState"
   state: WorkflowRunState
-  details?: string
 }
 
-// Workflow Status Events
-export type WorkflowStatus = Event & {
-  message: string
+// Review Events
+export interface ReviewComment extends BaseEvent {
+  type: "reviewComment"
+  content: string
+  planId: string
+}
+
+export interface ErrorEvent extends BaseEvent {
+  type: "error"
+  content: string
 }
 
 // Plan
-type PlanStatus = "pending_review" | "approved" | "rejected" | "implemented"
+export type PlanStatus =
+  | "pendingReview"
+  | "approved"
+  | "rejected"
+  | "implemented"
 export type Plan = {
+  id: string
   content: string
   status: PlanStatus
   version: number
@@ -110,11 +157,17 @@ export type Plan = {
   editMessage?: string
 }
 
-// Review Events (:Event:Review)
-export type ReviewComment = Event & {
-  content: string
-  planId: string
-}
+// Union type for all event types
+export type AnyEvent =
+  | StatusEvent
+  | SystemPrompt
+  | UserMessage
+  | LLMResponse
+  | ToolCall
+  | ToolCallResult
+  | WorkflowState
+  | ReviewComment
+  | ErrorEvent
 
 // Relationship Types
 
@@ -126,28 +179,27 @@ export type RelationshipTypes =
   // Issue Relationships
   | "BELONGS_TO"
   | "CREATED_BY"
-  | "HAS_COMMENTS"
   // Workflow run Relationships
   | "STARTS_WITH" // Links WorkflowRun to its first event
+  | "BASED_ON_ISSUE" // Links WorkflowRun to its Issue
+  | "LAUNCHED_BY" // Links WorkflowRun to the User that launched it
   // PullRequest Relationships
   | "RESOLVES"
-  | "GENERATED_BY"
+  | "OPENED_BY"
   // Event Relationships
   | "NEXT" // Links events in chronological order
   | "REFERENCES" // Event referencing another node (Issue, PR, etc)
   | "COMMENTS_ON" // Review comments on plans
   // User Relationships
-  | "HAS_ACCESS_TO"
-  | "AUTHORIZED_FOR"
-  | "OWNS"
-  | "EDITED_BY"
-  | "REVIEWS"
-  | "APPROVES"
-  | "REJECTS"
+  | "OWNED_BY"
+  | "DRAFTED_BY"
+  | "POSTED"
+  | "CREATED_BY"
+  | "LAUNCHED_BY"
   // Plan Relationships
-  | "PREVIOUS_VERSION"
+  | "NEXT_VERSION"
   | "IMPLEMENTS"
-  | "RESULTS_IN"
+  | "DRAFTED_BY"
 
 export type Relationship = {
   type: RelationshipTypes

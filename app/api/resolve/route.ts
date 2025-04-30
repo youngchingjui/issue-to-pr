@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
         await n4j.createWorkflowStateEvent({
           workflowId: jobId,
           state: "error",
-          details: error instanceof Error ? error.message : String(error),
+          content: error instanceof Error ? error.message : String(error),
         })
       }
     })()

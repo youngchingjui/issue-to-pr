@@ -1,14 +1,16 @@
+"use server"
+
 import { Code2 } from "lucide-react"
 
 import { EventTime } from "@/components/workflow-runs/events"
-import { ToolCallEvent as ToolCallEventType } from "@/lib/types/workflow"
+import { ToolCall } from "@/lib/types/neo4j"
 
-export interface ToolCallEventProps {
-  event: ToolCallEventType
+export interface Props {
+  event: ToolCall
 }
 
-export function ToolCallEvent({ event }: ToolCallEventProps) {
-  const { data, timestamp } = event
+export async function ToolCallEvent({ event }: Props) {
+  const args = JSON.parse(event.arguments)
 
   return (
     <div className="rounded-lg border bg-card p-3 sm:p-4 hover:bg-muted/50 transition-colors">
@@ -18,15 +20,15 @@ export function ToolCallEvent({ event }: ToolCallEventProps) {
           <div className="flex items-center gap-1.5 text-xs">
             <span className="font-medium text-blue-500">Tool Call</span>
             <span className="text-muted-foreground">/</span>
-            <span className="font-medium">{data.toolName}</span>
+            <span className="font-medium">{event.toolName}</span>
           </div>
         </div>
-        <EventTime timestamp={timestamp} />
+        <EventTime timestamp={event.createdAt} />
       </div>
 
-      {Object.entries(data.arguments).length > 0 && (
+      {Object.entries(args).length > 0 && (
         <div className="mt-2 space-y-1.5">
-          {Object.entries(data.arguments).map(([key, value]) => (
+          {Object.entries(args).map(([key, value]) => (
             <div key={key} className="text-sm">
               <span className="font-medium text-muted-foreground">{key}:</span>{" "}
               <span className="font-mono">

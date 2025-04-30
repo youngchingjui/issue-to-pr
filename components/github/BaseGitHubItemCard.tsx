@@ -4,15 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { GitHubItem } from "@/lib/types/github"
 import { getRepoFullNameFromIssue } from "@/lib/utils/utils-common"
 
-interface BaseGitHubItemCardProps {
+interface Props {
   item: GitHubItem
   children?: React.ReactNode // Optional slot for additional content
 }
 
-export default function BaseGitHubItemCard({
-  item,
-  children,
-}: BaseGitHubItemCardProps) {
+export default function BaseGitHubItemCard({ item, children }: Props) {
   // Get repository full name using the utility function
   const repoFullName = getRepoFullNameFromIssue(item)
 

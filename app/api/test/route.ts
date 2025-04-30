@@ -18,14 +18,14 @@ export async function POST(request: Request) {
     const event1 = await n4j.createWorkflowStateEvent({
       workflowId,
       state: "running",
-      details: "Starting workflow test",
+      content: "Starting workflow test",
     })
 
     // Create second event linked to first
     const event2 = await n4j.createWorkflowStateEvent({
       workflowId,
       state: "running",
-      details: "Processing task 1",
+      content: "Processing task 1",
       parentId: event1.id,
     })
 
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     const event3 = await n4j.createWorkflowStateEvent({
       workflowId,
       state: "completed",
-      details: "Workflow test completed",
+      content: "Workflow test completed",
       parentId: event2.id,
     })
 
