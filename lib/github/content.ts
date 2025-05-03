@@ -288,3 +288,27 @@ export function combineRepositories<T extends { id: number }>(
   // Convert the Map values back to an array and sort by id
   return Array.from(repoMap.values()).sort((a, b) => b.id - a.id)
 }
+
+export async function getReposSortedByRecentCommit(): Promise<AuthenticatedUserRepository[]> {
+  const octokit = await getOctokit()
+  const user = await getGithubUser()
+
+  // Fetch user's repositories
+  const { repositories } = await getUserRepositories(user.login)
+
+  // Map each repository to a promise to fetch its latest commit
+  const commitPromises = repositories.map(async (repo) => {
+    const commits = await octokit.repos.listCommits({
+      owner: user.login,
+      repo: repo.name,
+      per_page: 1, // Get only the latest commit
+    })
+    return { ...repo, latestCommitDate: new Date(commits.data[0].commit.committer.date) }
+  })
+
+  // Wait for all commit dates to be fetched
+  const reposWithCommits = await Promise.all(commitPromises)
+
+  // Sort repositories by latest commit date in descending order
+  return reposWithCommits.sort((a, b) => b.latestCommitDate.getTime() - a.latestCommitDate.getTime())
+}
