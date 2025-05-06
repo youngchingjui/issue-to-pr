@@ -255,6 +255,9 @@ export class n4jService {
   // EVENT MANAGEMENT
   // Helper methods for managing events and their relationships
 
+  /**
+   * @deprecated Use the equivalent function in lib/neo4j/event.ts instead.
+   */
   private async findFirstEvent(workflowId: string): Promise<string | null> {
     const session = await this.client.getSession()
     try {
@@ -272,6 +275,9 @@ export class n4jService {
     }
   }
 
+  /**
+   * @deprecated Use the equivalent function in lib/neo4j/event.ts instead.
+   */
   private async findLastEvent(workflowId: string): Promise<string | null> {
     const session = await this.client.getSession()
     try {
@@ -290,6 +296,9 @@ export class n4jService {
     }
   }
 
+  /**
+   * @deprecated Use the equivalent function in lib/neo4j/event.ts instead.
+   */
   private async createStartsWithRelationship(
     workflowId: string,
     eventId: string
@@ -309,6 +318,9 @@ export class n4jService {
     }
   }
 
+  /**
+   * @deprecated Use the equivalent function in lib/neo4j/event.ts instead.
+   */
   private async createNextRelationship(
     fromEventId: string,
     toEventId: string
@@ -328,6 +340,9 @@ export class n4jService {
     }
   }
 
+  /**
+   * @deprecated Use the equivalent function in lib/neo4j/event.ts instead.
+   */
   private async connectEventToWorkflow(
     workflowId: string,
     eventId: string,
@@ -358,7 +373,9 @@ export class n4jService {
     }
   }
 
-  // Base method for creating any type of event node
+  /**
+   * @deprecated Use the equivalent function in lib/neo4j/event.ts instead.
+   */
   private async createBaseEventNode<T extends BaseEvent>({
     id = uuidv4(),
     content,

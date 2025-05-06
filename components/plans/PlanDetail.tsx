@@ -59,7 +59,7 @@ export function PlanDetail({ plan }: Props) {
             <h3 className="text-lg font-semibold mb-2">Workflow Information</h3>
             <div>
               <p>
-                <strong>Type:</strong> {plan.workflow.workflowType}
+                <strong>Type:</strong> {plan.workflow.type}
               </p>
               <p>
                 <strong>ID:</strong> {plan.workflow.id}

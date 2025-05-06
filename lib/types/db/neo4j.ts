@@ -10,8 +10,7 @@ import {
   planSchema as appPlanSchema,
   ReviewComment,
   reviewCommentSchema,
-  StatusEvent,
-  statusEventSchema,
+  statusEventSchema as appStatusEventSchema,
   SystemPrompt,
   systemPromptSchema,
   ToolCall,
@@ -32,7 +31,6 @@ export {
   errorEventSchema,
   issueSchema,
   reviewCommentSchema,
-  statusEventSchema,
   systemPromptSchema,
   toolCallResultSchema,
   toolCallSchema,
@@ -44,7 +42,6 @@ export type {
   ErrorEvent,
   Issue,
   ReviewComment,
-  StatusEvent,
   SystemPrompt,
   ToolCall,
   ToolCallResult,
@@ -54,7 +51,6 @@ export type {
 }
 
 // Neo4j data model schemas
-
 export const workflowRunSchema = appWorkflowRunSchema.merge(
   z.object({
     createdAt: z.instanceof(DateTime),
@@ -67,6 +63,17 @@ export const planSchema = appPlanSchema.merge(
     createdAt: z.instanceof(DateTime),
   })
 )
+
+// Event schemas
+export const statusEventSchema = appStatusEventSchema
+  .merge(
+    z.object({
+      createdAt: z.instanceof(DateTime),
+    })
+  )
+  .omit({
+    workflowId: true,
+  })
 
 export const llmResponseSchema = appLLMResponseSchema
   .omit({
@@ -101,6 +108,7 @@ export type AnyEvent = z.infer<typeof anyEventSchema>
 export type LLMResponse = z.infer<typeof llmResponseSchema>
 export type LLMResponseWithPlan = z.infer<typeof llmResponseWithPlanSchema>
 export type Plan = z.infer<typeof planSchema>
+export type StatusEvent = z.infer<typeof statusEventSchema>
 export type WorkflowRun = z.infer<typeof workflowRunSchema>
 
 export function isLLMResponseWithPlan(

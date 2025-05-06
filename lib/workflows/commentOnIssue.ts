@@ -7,11 +7,12 @@ import {
   updateIssueComment,
 } from "@/lib/github/issues"
 import { langfuse } from "@/lib/langfuse"
+import { createStatusEvent, createWorkflowRun } from "@/lib/neo4j"
 import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceService"
 import GetFileContentTool from "@/lib/tools/GetFileContent"
 import RipgrepSearchTool from "@/lib/tools/RipgrepSearchTool"
+import { BaseEvent as appBaseEvent } from "@/lib/types"
 import { GitHubRepository } from "@/lib/types/github"
-import { WorkflowMetadata } from "@/lib/types/workflow"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 
 interface GitHubError extends Error {
@@ -34,12 +35,18 @@ export default async function commentOnIssue(
   let initialCommentId: number | null = null
   const persistenceService = new WorkflowPersistenceService()
 
+  let latestEvent: appBaseEvent | null = null
+
   try {
-    await persistenceService.saveEvent({
-      type: "status",
+    await createWorkflowRun({
+      id: jobId,
+      type: "commentOnIssue",
+      postToGithub,
+    })
+
+    latestEvent = await createStatusEvent({
+      content: "Authenticating and retrieving token",
       workflowId: jobId,
-      data: { status: "Authenticating and retrieving token" },
-      timestamp: new Date(),
     })
 
     // Get the issue
@@ -57,22 +64,10 @@ export default async function commentOnIssue(
       )
     })
 
-    // Initialize workflow with metadata
-    const workflowMetadata: WorkflowMetadata = {
-      workflowType: "commentOnIssue",
-      postToGithub,
-    }
-
-    await persistenceService.initializeWorkflow(jobId, workflowMetadata, {
-      number: issueNumber,
-      repoFullName: repo.full_name,
-    })
-
-    await persistenceService.saveEvent({
-      type: "status",
+    latestEvent = await createStatusEvent({
+      content: "Issue retrieved successfully",
       workflowId: jobId,
-      data: { status: "Issue retrieved successfully" },
-      timestamp: new Date(),
+      parentId: latestEvent.id,
     })
 
     // Only post to GitHub if postToGithub is true

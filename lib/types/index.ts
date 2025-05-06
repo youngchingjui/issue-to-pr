@@ -39,8 +39,9 @@ export const workflowTypeEnum = z.enum([
 
 export const workflowRunSchema = z.object({
   id: z.string(),
-  workflowType: workflowTypeEnum,
+  type: workflowTypeEnum,
   createdAt: z.date(),
+  postToGithub: z.boolean().optional(),
 })
 
 // Plans
@@ -78,7 +79,8 @@ const eventTypes = z.enum([
   "llmResponse",
   "llmResponseWithPlan",
 ])
-const baseEventSchema = z.object({
+
+export const baseEventSchema = z.object({
   id: z.string(),
   createdAt: z.date(),
   workflowId: z.string(),
@@ -103,6 +105,7 @@ export const llmResponseWithPlanSchema = baseEventSchema.merge(
 
 export const statusEventSchema = baseEventSchema.extend({
   type: z.literal("status"),
+  content: z.string(),
 })
 
 export const systemPromptSchema = baseEventSchema.extend({
