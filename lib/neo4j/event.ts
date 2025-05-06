@@ -5,9 +5,13 @@ import { ZodTypeAny } from "zod"
 import { n4j } from "@/lib/neo4j/client"
 import {
   BaseEvent as appBaseEvent,
+  ErrorEvent as appErrorEvent,
   StatusEvent as appStatusEvent,
 } from "@/lib/types"
-import { statusEventSchema as n4jStatusEventSchema } from "@/lib/types/db/neo4j"
+import {
+  errorEventSchema as n4jErrorEventSchema,
+  statusEventSchema as n4jStatusEventSchema,
+} from "@/lib/types/db/neo4j"
 
 // EVENT MANAGEMENT
 // Helper methods for managing events and their relationships
@@ -193,6 +197,36 @@ export async function createStatusEvent({
     >(n4jStatusEventSchema, {
       content,
       type: "status",
+    })
+
+    // Connect it to the workflow
+    await connectEventToWorkflow(workflowId, event.id, parentId)
+
+    return {
+      ...event,
+      workflowId,
+    }
+  } catch (e) {
+    console.error(e)
+    throw e
+  }
+}
+
+export async function createErrorEvent({
+  content,
+  workflowId,
+  parentId,
+}: Omit<appErrorEvent, "id" | "createdAt" | "type"> & {
+  parentId?: string
+}): Promise<appErrorEvent> {
+  try {
+    // Create the event node
+    const event = await createBaseEventNode<
+      appErrorEvent,
+      typeof n4jErrorEventSchema
+    >(n4jErrorEventSchema, {
+      content,
+      type: "error",
     })
 
     // Connect it to the workflow

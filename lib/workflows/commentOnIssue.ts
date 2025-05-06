@@ -7,7 +7,11 @@ import {
   updateIssueComment,
 } from "@/lib/github/issues"
 import { langfuse } from "@/lib/langfuse"
-import { createStatusEvent, createWorkflowRun } from "@/lib/neo4j"
+import {
+  createErrorEvent,
+  createStatusEvent,
+  createWorkflowRun,
+} from "@/lib/neo4j"
 import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceService"
 import GetFileContentTool from "@/lib/tools/GetFileContent"
 import RipgrepSearchTool from "@/lib/tools/RipgrepSearchTool"
@@ -72,11 +76,10 @@ export default async function commentOnIssue(
 
     // Only post to GitHub if postToGithub is true
     if (postToGithub) {
-      await persistenceService.saveEvent({
-        type: "status",
+      latestEvent = await createStatusEvent({
+        content: "Posting initial processing comment",
         workflowId: jobId,
-        data: { status: "Posting initial processing comment" },
-        timestamp: new Date(),
+        parentId: latestEvent.id,
       })
 
       try {
@@ -122,11 +125,10 @@ export default async function commentOnIssue(
       }
     }
 
-    await persistenceService.saveEvent({
-      type: "status",
+    latestEvent = await createStatusEvent({
+      content: "Setting up the local repository",
       workflowId: jobId,
-      data: { status: "Setting up the local repository" },
-      timestamp: new Date(),
+      parentId: latestEvent.id,
     })
 
     // Setup local repository using setupLocalRepository
@@ -141,20 +143,13 @@ export default async function commentOnIssue(
       throw new Error(`Failed to setup local repository: ${error.message}`)
     })
 
-    await persistenceService.saveEvent({
-      type: "status",
+    latestEvent = await createStatusEvent({
+      content: "Repository setup completed",
       workflowId: jobId,
-      data: { status: "Repository setup completed" },
-      timestamp: new Date(),
+      parentId: latestEvent.id,
     })
 
     const tree = await createDirectoryTree(dirPath)
-    await persistenceService.saveEvent({
-      type: "status",
-      workflowId: jobId,
-      data: { status: "Directory tree created" },
-      timestamp: new Date(),
-    })
 
     // Prepare the tools
     const getFileContentTool = new GetFileContentTool(dirPath)
@@ -182,11 +177,10 @@ export default async function commentOnIssue(
       })
     }
 
-    await persistenceService.saveEvent({
-      type: "status",
+    latestEvent = await createStatusEvent({
+      content: "Reviewing issue and codebase",
       workflowId: jobId,
-      data: { status: "Reviewing issue and codebase" },
-      timestamp: new Date(),
+      parentId: latestEvent.id,
     })
 
     const response = await thinker.runWithFunctions()
@@ -216,11 +210,10 @@ export default async function commentOnIssue(
 
     // Only update GitHub comment if postToGithub is true
     if (postToGithub && initialCommentId) {
-      await persistenceService.saveEvent({
-        type: "status",
+      latestEvent = await createStatusEvent({
+        content: "Updating initial comment with final response",
         workflowId: jobId,
-        data: { status: "Updating initial comment with final response" },
-        timestamp: new Date(),
+        parentId: latestEvent.id,
       })
 
       if (typeof lastAssistantMessage.content !== "string") {
@@ -244,11 +237,10 @@ export default async function commentOnIssue(
         throw new Error(`Failed to update comment: ${error.message}`)
       })
 
-      await persistenceService.saveEvent({
-        type: "status",
+      latestEvent = await createStatusEvent({
+        content: "Comment updated successfully",
         workflowId: jobId,
-        data: { status: "Comment updated successfully" },
-        timestamp: new Date(),
+        parentId: latestEvent.id,
       })
     }
 
@@ -284,11 +276,10 @@ export default async function commentOnIssue(
       }
     }
 
-    await persistenceService.saveEvent({
-      type: "error",
+    await createErrorEvent({
       workflowId: jobId,
-      data: { error: errorMessage },
-      timestamp: new Date(),
+      content: errorMessage,
+      parentId: latestEvent?.id,
     })
 
     throw githubError // Re-throw the error to be handled by the caller

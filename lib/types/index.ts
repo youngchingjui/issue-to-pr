@@ -68,16 +68,17 @@ export const planWithDetailsSchema = planSchema.merge(
 
 // Events
 const eventTypes = z.enum([
-  "status",
-  "message",
-  "toolCall",
-  "toolCallResult",
-  "workflowState",
-  "reviewComment",
-  "systemPrompt",
-  "userMessage",
+  "error",
   "llmResponse",
   "llmResponseWithPlan",
+  "message",
+  "reviewComment",
+  "status",
+  "systemPrompt",
+  "toolCall",
+  "toolCallResult",
+  "userMessage",
+  "workflowState",
 ])
 
 export const baseEventSchema = z.object({

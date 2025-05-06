@@ -2,8 +2,7 @@ import { DateTime, Integer } from "neo4j-driver"
 import { z } from "zod"
 
 import {
-  ErrorEvent,
-  errorEventSchema,
+  errorEventSchema as appErrorEventSchema,
   Issue,
   issueSchema,
   llmResponseSchema as appLLMResponseSchema,
@@ -28,7 +27,6 @@ import {
 
 // Re-export for Neo4j DB layer
 export {
-  errorEventSchema,
   issueSchema,
   reviewCommentSchema,
   systemPromptSchema,
@@ -39,7 +37,6 @@ export {
   workflowTypeEnum,
 }
 export type {
-  ErrorEvent,
   Issue,
   ReviewComment,
   SystemPrompt,
@@ -65,6 +62,16 @@ export const planSchema = appPlanSchema.merge(
 )
 
 // Event schemas
+export const errorEventSchema = appErrorEventSchema
+  .merge(
+    z.object({
+      createdAt: z.instanceof(DateTime),
+    })
+  )
+  .omit({
+    workflowId: true,
+  })
+
 export const statusEventSchema = appStatusEventSchema
   .merge(
     z.object({
@@ -105,6 +112,7 @@ export const anyEventSchema = z.discriminatedUnion("type", [
 ])
 
 export type AnyEvent = z.infer<typeof anyEventSchema>
+export type ErrorEvent = z.infer<typeof errorEventSchema>
 export type LLMResponse = z.infer<typeof llmResponseSchema>
 export type LLMResponseWithPlan = z.infer<typeof llmResponseWithPlanSchema>
 export type Plan = z.infer<typeof planSchema>
