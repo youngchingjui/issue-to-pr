@@ -91,6 +91,9 @@ export const anyEventSchema = z.discriminatedUnion("type", [
 ])
 
 // WorkflowRun Schema
+/**
+ * @deprecated Use workflowRunSchema in /lib/types/index.ts instead
+ */
 export const workflowRunSchema = z.object({
   id: z.string(),
   workflowType: z.enum([
@@ -103,6 +106,9 @@ export const workflowRunSchema = z.object({
 })
 
 // Issue Schema
+/**
+ * @deprecated Use issueSchema in /lib/types/index.ts instead
+ */
 export const issueSchema = z.object({
   number: z.number(),
   id: z.string().optional(),
@@ -114,13 +120,4 @@ export const issueSchema = z.object({
   labels: z.array(z.string()).optional(),
   assignees: z.array(z.string()).optional(),
   updatedAt: z.date().optional(),
-})
-
-// Response Schema for getWorkflowRunWithDetails
-export const workflowRunWithDetailsSchema = z.object({
-  workflow: workflowRunSchema,
-  events: z.array(
-    anyEventSchema.and(z.object({ labels: z.array(z.string()) }))
-  ),
-  issue: issueSchema,
 })

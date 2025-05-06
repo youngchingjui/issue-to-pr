@@ -15,17 +15,55 @@ export type AgentConstructorParams = {
   apiKey?: string
 }
 
+// Issue
+export const issueSchema = z.object({
+  number: z.number(),
+  id: z.string().optional(),
+  createdAt: z.date().optional(),
+  repoFullName: z.string(),
+  title: z.string().optional(),
+  body: z.string().optional(),
+  state: z.enum(["open", "closed"]).optional(),
+  labels: z.array(z.string()).optional(),
+  assignees: z.array(z.string()).optional(),
+  updatedAt: z.date().optional(),
+})
+
+// WorkflowRun
+export const workflowTypeEnum = z.enum([
+  "commentOnIssue",
+  "resolveIssue",
+  "identifyPRGoal",
+  "reviewPullRequest",
+])
+
+export const workflowRunSchema = z.object({
+  id: z.string(),
+  workflowType: workflowTypeEnum,
+  createdAt: z.date(),
+})
+
 // Plans
 export const planSchema = z.object({
   id: z.string(),
   content: z.string(),
   status: z.enum(["pendingReview", "approved", "rejected", "implemented"]),
   version: z.number(),
-  editedAt: z.date().optional(),
+  createdAt: z.date(),
   editMessage: z.string().optional(),
 })
 
-export const planMetaSchema = planSchema.omit({ content: true })
+export const planMetaSchema = planSchema.omit({
+  content: true,
+  createdAt: true,
+})
+
+export const planWithDetailsSchema = planSchema.merge(
+  z.object({
+    workflow: workflowRunSchema,
+    issue: issueSchema,
+  })
+)
 
 // Events
 const eventTypes = z.enum([
@@ -38,6 +76,7 @@ const eventTypes = z.enum([
   "systemPrompt",
   "userMessage",
   "llmResponse",
+  "llmResponseWithPlan",
 ])
 const baseEventSchema = z.object({
   id: z.string(),
@@ -51,7 +90,14 @@ export const llmResponseSchema = baseEventSchema.merge(
   z.object({
     type: z.literal("llmResponse"),
     content: z.string(),
-    plan: planMetaSchema.optional(),
+  })
+)
+
+export const llmResponseWithPlanSchema = baseEventSchema.merge(
+  z.object({
+    type: z.literal("llmResponseWithPlan"),
+    content: z.string(),
+    plan: planMetaSchema,
   })
 )
 
@@ -100,29 +146,35 @@ export const errorEventSchema = baseEventSchema.extend({
 })
 
 export const anyEventSchema = z.discriminatedUnion("type", [
+  errorEventSchema,
+  llmResponseSchema,
+  llmResponseWithPlanSchema,
+  reviewCommentSchema,
   statusEventSchema,
   systemPromptSchema,
-  userMessageSchema,
-  llmResponseSchema,
-  toolCallSchema,
   toolCallResultSchema,
+  toolCallSchema,
+  userMessageSchema,
   workflowStateSchema,
-  reviewCommentSchema,
-  errorEventSchema,
 ])
 
 // Type exports
+export type AnyEvent = z.infer<typeof anyEventSchema>
+export type BaseEvent = z.infer<typeof baseEventSchema>
+export type ErrorEvent = z.infer<typeof errorEventSchema>
+export type EventTypes = z.infer<typeof eventTypes>
+export type Issue = z.infer<typeof issueSchema>
+export type LLMResponse = z.infer<typeof llmResponseSchema>
+export type LLMResponseWithPlan = z.infer<typeof llmResponseWithPlanSchema>
 export type Plan = z.infer<typeof planSchema>
 export type PlanMeta = z.infer<typeof planMetaSchema>
-export type EventTypes = z.infer<typeof eventTypes>
-export type BaseEvent = z.infer<typeof baseEventSchema>
+export type PlanWithDetails = z.infer<typeof planWithDetailsSchema>
+export type ReviewComment = z.infer<typeof reviewCommentSchema>
 export type StatusEvent = z.infer<typeof statusEventSchema>
 export type SystemPrompt = z.infer<typeof systemPromptSchema>
-export type UserMessage = z.infer<typeof userMessageSchema>
 export type ToolCall = z.infer<typeof toolCallSchema>
 export type ToolCallResult = z.infer<typeof toolCallResultSchema>
+export type UserMessage = z.infer<typeof userMessageSchema>
+export type WorkflowRun = z.infer<typeof workflowRunSchema>
 export type WorkflowState = z.infer<typeof workflowStateSchema>
-export type ReviewComment = z.infer<typeof reviewCommentSchema>
-export type ErrorEvent = z.infer<typeof errorEventSchema>
-export type AnyEvent = z.infer<typeof anyEventSchema>
-export type LLMResponse = z.infer<typeof llmResponseSchema>
+export type WorkflowType = z.infer<typeof workflowTypeEnum>

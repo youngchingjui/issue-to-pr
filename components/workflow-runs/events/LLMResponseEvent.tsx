@@ -9,11 +9,11 @@ import { Button } from "@/components/ui/button"
 import { CollapsibleContent } from "@/components/ui/collapsible-content"
 import { EventTime } from "@/components/workflow-runs/events"
 import { CopyMarkdownButton } from "@/components/workflow-runs/events/CopyMarkdownButton"
-import { LLMResponse } from "@/lib/types"
+import { LLMResponse, LLMResponseWithPlan } from "@/lib/types"
 
 // Some LLM response event nodes will also be a Plan node
 export interface Props {
-  event: LLMResponse
+  event: LLMResponse | LLMResponseWithPlan
   issue?: { number: number; repoFullName: string }
 }
 
@@ -27,10 +27,10 @@ export async function LLMResponseEvent({ event, issue }: Props) {
         <EventTime timestamp={event.createdAt} />
       </div>
       <div className="flex items-center gap-2">
-        {issue && event.plan && (
+        {issue && event.type === "llmResponseWithPlan" && (
           <>
             <Link
-              href={`/${issue.repoFullName}/issues/${issue.number}/plan/${event.id}`}
+              href={`/${issue.repoFullName}/issues/${issue.number}/plan/${event.plan.id}`}
             >
               <Button variant="ghost" size="sm" className="gap-2">
                 <ExternalLink className="h-4 w-4" />

@@ -2,9 +2,10 @@ import { DateTime, Integer, Node } from "neo4j-driver"
 import { v4 as uuidv4 } from "uuid"
 
 import { Neo4jClient } from "@/lib/neo4j/client"
+import * as appTypes from "@/lib/types"
 import * as n4jTypes from "@/lib/types/db/neo4j"
+import { isLLMResponseWithPlan } from "@/lib/types/db/neo4j"
 import {
-  AnyEvent,
   BaseEvent,
   Issue,
   LLMResponse,
@@ -18,7 +19,6 @@ import {
   WorkflowRunState,
   WorkflowState,
 } from "@/lib/types/neo4j"
-import { workflowRunWithDetailsSchema } from "@/lib/types/schemas"
 
 export class n4jService {
   private static instance: n4jService
@@ -133,7 +133,7 @@ export class n4jService {
     workflowRunId: string
   }): Promise<{
     workflow: WorkflowRun
-    events: (AnyEvent & { labels: string[] })[]
+    events: (appTypes.AnyEvent & { labels: string[] })[]
     issue: Issue
   }> {
     const session = await this.client.getSession()
@@ -164,6 +164,7 @@ export class n4jService {
         { workflowRunId }
       )
 
+      // TODO: Use zod to validate database data
       const workflowProps = result.records[0]?.get("w")?.properties
       const workflow = {
         ...workflowProps,
@@ -193,57 +194,41 @@ export class n4jService {
         const eventProps = item.event.properties
         const labels = item.labels
 
-        // Create base event with common properties and convert dates
-        const baseEvent = {
-          ...eventProps,
-          labels,
-          workflowId: workflow.id,
-          createdAt:
-            eventProps.createdAt instanceof DateTime
-              ? eventProps.createdAt.toStandardDate()
-              : eventProps.createdAt,
-        }
-
-        // Make necessary data transformations to convert neo4j data models to application data models
-        switch (baseEvent.type) {
-          case "llmResponse":
-            if ("status" in baseEvent) {
-              // This is a plan
-              return {
-                id: baseEvent.id,
-                createdAt: baseEvent.createdAt,
-                workflowId: baseEvent.workflowId,
-                content: baseEvent.content,
-                type: baseEvent.type,
-                labels: baseEvent.labels,
-                plan: {
-                  id: baseEvent.id,
-                  status: baseEvent.status,
-                  version: baseEvent.version,
-                  editedAt: baseEvent.editedAt,
-                  editMessage: baseEvent.editMessage,
-                },
-              }
-            } else {
-              return baseEvent
-            }
-          default:
-            return baseEvent
+        // Use the type guard on the raw Neo4j properties
+        if (
+          eventProps.type === "llmResponse" &&
+          isLLMResponseWithPlan(eventProps)
+        ) {
+          // eventProps is now LLMResponseWithPlan (with all required fields)
+          return {
+            id: eventProps.id,
+            createdAt: eventProps.createdAt.toStandardDate(),
+            workflowId: workflow.id,
+            content: eventProps.content,
+            type: "llmResponseWithPlan" as const,
+            labels,
+            plan: {
+              id: eventProps.id,
+              status: eventProps.status,
+              version: eventProps.version.toNumber(),
+              editMessage: eventProps.editMessage,
+            },
+          }
+        } else {
+          // Plain llmResponse or other event type
+          return {
+            ...eventProps,
+            labels,
+            workflowId: workflow.id,
+            createdAt:
+              eventProps.createdAt instanceof DateTime
+                ? eventProps.createdAt.toStandardDate()
+                : eventProps.createdAt,
+          }
         }
       })
 
-      const response = { workflow, events, issue }
-
-      // Validate the response against our schema
-      try {
-        workflowRunWithDetailsSchema.parse(response)
-      } catch (error) {
-        throw new Error(
-          `Data from Neo4j does not match expected schema: ${error}`
-        )
-      }
-
-      return response
+      return { workflow, events, issue }
     } finally {
       session.close()
     }
@@ -629,6 +614,48 @@ export class n4jService {
     } catch (error) {
       console.error(error)
       throw error
+    }
+  }
+
+  public async getPlanWithDetails(
+    planId: string
+  ): Promise<appTypes.PlanWithDetails | null> {
+    const session = await this.client.getSession()
+    try {
+      const result = await session.run<{
+        p: Node<Integer, n4jTypes.Plan>
+        w: Node<Integer, n4jTypes.WorkflowRun>
+        i: Node<Integer, n4jTypes.Issue>
+      }>(
+        `
+        MATCH (p:Plan {id: $planId})-[:IMPLEMENTS]->(i:Issue)<-[:BASED_ON_ISSUE]-(w:WorkflowRun)
+        RETURN p, w, i
+        `,
+        { planId }
+      )
+
+      const plan = n4jTypes.planSchema.parse(
+        result.records[0]?.get("p")?.properties
+      )
+      const workflow = n4jTypes.workflowRunSchema.parse(
+        result.records[0]?.get("w")?.properties
+      )
+      const issue = n4jTypes.issueSchema.parse(
+        result.records[0]?.get("i")?.properties
+      )
+
+      return {
+        ...plan,
+        version: plan.version.toNumber(),
+        createdAt: plan.createdAt.toStandardDate(),
+        workflow: {
+          ...workflow,
+          createdAt: workflow.createdAt.toStandardDate(),
+        },
+        issue,
+      }
+    } finally {
+      session.close()
     }
   }
 }

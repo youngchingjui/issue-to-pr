@@ -1,7 +1,6 @@
 import Link from "next/link"
 import ReactMarkdown from "react-markdown"
 
-import { PlanStatusUpdater } from "@/components/plans/PlanStatusUpdater"
 import {
   Card,
   CardContent,
@@ -9,37 +8,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { PlanProperties } from "@/lib/types/plan"
-import { WorkflowMetadata } from "@/lib/types/workflow"
+import { PlanWithDetails } from "@/lib/types"
 
 interface Props {
-  plan: {
-    id: string
-    status: PlanProperties["status"]
-    type: string
-    createdAt: Date
-    message: {
-      id: string
-      type: "llm_response"
-      timestamp: string
-      data: {
-        content: string
-        model: string
-      }
-    }
-    workflow?: {
-      id: string
-      metadata: WorkflowMetadata
-    }
-    issue?: {
-      number: number
-      repoFullName: string
-    }
-  }
-  showStatusUpdater?: boolean
+  plan: PlanWithDetails
 }
 
-export function PlanDetail({ plan, showStatusUpdater = true }: Props) {
+export function PlanDetail({ plan }: Props) {
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat("en-US", {
       dateStyle: "medium",
@@ -57,16 +32,13 @@ export function PlanDetail({ plan, showStatusUpdater = true }: Props) {
               Created on {formatDate(plan.createdAt)}
             </CardDescription>
           </div>
-          {showStatusUpdater && (
-            <PlanStatusUpdater planId={plan.id} initialStatus={plan.status} />
-          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
         <div>
           <h3 className="text-lg font-semibold mb-2">Plan Content</h3>
           <div className="prose prose-sm dark:prose-invert max-w-none rounded-lg bg-muted p-4">
-            <ReactMarkdown>{plan.message.data.content}</ReactMarkdown>
+            <ReactMarkdown>{plan.content}</ReactMarkdown>
           </div>
         </div>
 
@@ -87,7 +59,7 @@ export function PlanDetail({ plan, showStatusUpdater = true }: Props) {
             <h3 className="text-lg font-semibold mb-2">Workflow Information</h3>
             <div>
               <p>
-                <strong>Type:</strong> {plan.workflow.metadata.workflowType}
+                <strong>Type:</strong> {plan.workflow.workflowType}
               </p>
               <p>
                 <strong>ID:</strong> {plan.workflow.id}
@@ -101,9 +73,6 @@ export function PlanDetail({ plan, showStatusUpdater = true }: Props) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p>
-                <strong>Type:</strong> {plan.type}
-              </p>
-              <p>
                 <strong>Status:</strong> {plan.status}
               </p>
             </div>
@@ -112,7 +81,7 @@ export function PlanDetail({ plan, showStatusUpdater = true }: Props) {
                 <strong>Plan ID:</strong> {plan.id}
               </p>
               <p>
-                <strong>Model:</strong> {plan.message.data.model}
+                <strong>Version:</strong> {plan.version}
               </p>
             </div>
           </div>

@@ -15,8 +15,8 @@ import {
 } from "@/components/workflow-runs/events"
 import { getIssue } from "@/lib/github/issues"
 import { n4j } from "@/lib/neo4j/service"
+import { AnyEvent, Issue } from "@/lib/types"
 import { GitHubIssue } from "@/lib/types/github"
-import { AnyEvent, Issue } from "@/lib/types/neo4j"
 
 function EventRenderer({
   event,
@@ -35,6 +35,7 @@ function EventRenderer({
     case "userMessage":
       return <UserMessageEvent event={event} />
     case "llmResponse":
+    case "llmResponseWithPlan":
       return <LLMResponseEvent event={event} issue={issue} />
     case "toolCall":
       return <ToolCallEvent event={event} />
@@ -47,7 +48,7 @@ function EventRenderer({
     case "error":
       return <ErrorEvent event={event} />
     default:
-      console.error(`Unrecognized event: ${event}`)
+      console.error(`Unrecognized event: ${JSON.stringify(event)}`)
       return null
   }
 }
