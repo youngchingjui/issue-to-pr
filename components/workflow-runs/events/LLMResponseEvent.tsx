@@ -9,11 +9,11 @@ import { Button } from "@/components/ui/button"
 import { CollapsibleContent } from "@/components/ui/collapsible-content"
 import { EventTime } from "@/components/workflow-runs/events"
 import { CopyMarkdownButton } from "@/components/workflow-runs/events/CopyMarkdownButton"
-import { LLMResponse, Plan } from "@/lib/types/neo4j"
+import { LLMResponse } from "@/lib/types"
 
 // Some LLM response event nodes will also be a Plan node
 export interface Props {
-  event: LLMResponse & Partial<Plan> & { labels: string[] }
+  event: LLMResponse
   issue?: { number: number; repoFullName: string }
 }
 
@@ -27,7 +27,7 @@ export async function LLMResponseEvent({ event, issue }: Props) {
         <EventTime timestamp={event.createdAt} />
       </div>
       <div className="flex items-center gap-2">
-        {issue && event.labels.includes("Plan") && (
+        {issue && event.plan && (
           <>
             <Link
               href={`/${issue.repoFullName}/issues/${issue.number}/plan/${event.id}`}

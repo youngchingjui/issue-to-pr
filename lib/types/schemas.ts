@@ -3,6 +3,9 @@ import { z } from "zod"
 import { WorkflowType } from "./neo4j"
 
 // Base Event Schema
+/**
+ * @deprecated Use index.ts instead
+ */
 const baseEventSchema = z.object({
   id: z.string(),
   createdAt: z.date(),
@@ -36,6 +39,9 @@ export const userMessageSchema = baseEventSchema.extend({
   content: z.string(),
 })
 
+/**
+ * @deprecated Use index.ts instead
+ */
 export const llmResponseSchema = baseEventSchema.extend({
   type: z.literal("llmResponse"),
   content: z.string(),

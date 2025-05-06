@@ -2,10 +2,10 @@ import { DateTime, Integer, Node } from "neo4j-driver"
 import { v4 as uuidv4 } from "uuid"
 
 import { Neo4jClient } from "@/lib/neo4j/client"
+import * as n4jTypes from "@/lib/types/db/neo4j"
 import {
   AnyEvent,
   BaseEvent,
-  ErrorEvent,
   Issue,
   LLMResponse,
   ReviewComment,
@@ -142,7 +142,7 @@ export class n4jService {
         w: Node<Integer, WorkflowRun, "WorkflowRun">
         i: Node<Integer, Issue, "Issue">
         eventData: {
-          event: Node<Integer, AnyEvent, "Event">
+          event: Node<Integer, n4jTypes.AnyEvent, "Event">
           labels: string[]
         }[]
       }>(
@@ -204,73 +204,31 @@ export class n4jService {
               : eventProps.createdAt,
         }
 
-        // Based on the type, return the appropriate typed event
-        switch (eventProps.type) {
-          case "systemPrompt":
-            return {
-              ...baseEvent,
-              type: "systemPrompt",
-              content: eventProps.content,
-            } as SystemPrompt & { labels: string[] }
-          case "userMessage":
-            return {
-              ...baseEvent,
-              type: "userMessage",
-              content: eventProps.content,
-            } as UserMessage & { labels: string[] }
-          // TODO: Some of these LLM Responses might also have the 'Plan' label
-          // Need to build interface that reflects combination of LLMResponse and Plan
+        // Make necessary data transformations to convert neo4j data models to application data models
+        switch (baseEvent.type) {
           case "llmResponse":
-            return {
-              ...baseEvent,
-              type: "llmResponse",
-              content: eventProps.content,
-            } as LLMResponse & { labels: string[] }
-          case "toolCall":
-            return {
-              ...baseEvent,
-              type: "toolCall",
-              toolName: eventProps.toolName,
-              toolCallId: eventProps.toolCallId,
-              arguments: eventProps.arguments,
-            } as ToolCall & { labels: string[] }
-          case "toolCallResult":
-            return {
-              ...baseEvent,
-              type: "toolCallResult",
-              toolCallId: eventProps.toolCallId,
-              toolName: eventProps.toolName,
-              content: eventProps.content,
-            } as ToolCallResult & { labels: string[] }
-          case "workflowState":
-            return {
-              ...baseEvent,
-              type: "workflowState",
-              state: eventProps.state,
-            } as WorkflowState & { labels: string[] }
-          case "reviewComment":
-            return {
-              ...baseEvent,
-              type: "reviewComment",
-              content: eventProps.content,
-              planId: eventProps.planId,
-            } as ReviewComment & { labels: string[] }
-          case "status":
-            return {
-              ...baseEvent,
-              type: "status",
-              content: eventProps.content,
-            } as StatusEvent & { labels: string[] }
-          case "error":
-            return {
-              ...baseEvent,
-              type: "error",
-              content: eventProps.content,
-            } as ErrorEvent & { labels: string[] }
+            if ("status" in baseEvent) {
+              // This is a plan
+              return {
+                id: baseEvent.id,
+                createdAt: baseEvent.createdAt,
+                workflowId: baseEvent.workflowId,
+                content: baseEvent.content,
+                type: baseEvent.type,
+                labels: baseEvent.labels,
+                plan: {
+                  id: baseEvent.id,
+                  status: baseEvent.status,
+                  version: baseEvent.version,
+                  editedAt: baseEvent.editedAt,
+                  editMessage: baseEvent.editMessage,
+                },
+              }
+            } else {
+              return baseEvent
+            }
           default:
-            throw new Error(
-              `Unknown event type. Event: ${JSON.stringify(item)}`
-            )
+            return baseEvent
         }
       })
 
@@ -280,8 +238,9 @@ export class n4jService {
       try {
         workflowRunWithDetailsSchema.parse(response)
       } catch (error) {
-        console.error("Data validation failed:", error)
-        throw new Error("Data from Neo4j does not match expected schema")
+        throw new Error(
+          `Data from Neo4j does not match expected schema: ${error}`
+        )
       }
 
       return response

@@ -1,3 +1,5 @@
+import { LLMResponse as LLMResponseNew } from "@/lib/types"
+
 // Core Entity Types
 // TODO: Use zod to create schemas, then export types from schemas
 // TODO: Define baseline application-level schemas, then extend database schemas from there
@@ -79,6 +81,9 @@ type EventType =
   | "error"
 
 // Base Event properties for all events
+/**
+ * @deprecated Use the Zod schema and inferred type from lib/types/index.ts instead.
+ */
 export interface BaseEvent {
   id: string
   createdAt: Date
@@ -88,27 +93,42 @@ export interface BaseEvent {
 }
 
 // Basic Event
+/**
+ * @deprecated Use the Zod schema and inferred type from lib/types/index.ts instead.
+ */
 export interface StatusEvent extends BaseEvent {
   type: "status"
 }
 
 // Message Events
+/**
+ * @deprecated Use the Zod schema and inferred type from lib/types/index.ts instead.
+ */
 export interface SystemPrompt extends BaseEvent {
   type: "systemPrompt"
   content: string
 }
 
+/**
+ * @deprecated Use the Zod schema and inferred type from lib/types/index.ts instead.
+ */
 export interface UserMessage extends BaseEvent {
   type: "userMessage"
   content: string
 }
 
+/**
+ * @deprecated Use the Zod schema and inferred type from lib/types/index.ts instead.
+ */
 export interface LLMResponse extends BaseEvent {
   type: "llmResponse"
   content: string
 }
 
 // Tool Events
+/**
+ * @deprecated Use the Zod schema and inferred type from lib/types/index.ts instead.
+ */
 export interface ToolCall extends BaseEvent {
   type: "toolCall"
   toolName: string
@@ -116,6 +136,9 @@ export interface ToolCall extends BaseEvent {
   arguments: string
 }
 
+/**
+ * @deprecated Use the Zod schema and inferred type from lib/types/index.ts instead.
+ */
 export interface ToolCallResult extends BaseEvent {
   type: "toolCallResult"
   toolCallId: string
@@ -125,29 +148,45 @@ export interface ToolCallResult extends BaseEvent {
 
 // Workflow State Events
 export type WorkflowRunState = "running" | "completed" | "error"
+/**
+ * @deprecated Use the Zod schema and inferred type from lib/types/index.ts instead.
+ */
 export interface WorkflowState extends BaseEvent {
   type: "workflowState"
   state: WorkflowRunState
 }
 
 // Review Events
+/**
+ * @deprecated Use the Zod schema and inferred type from lib/types/index.ts instead.
+ */
 export interface ReviewComment extends BaseEvent {
   type: "reviewComment"
   content: string
   planId: string
 }
 
+/**
+ * @deprecated Use the Zod schema and inferred type from lib/types/index.ts instead.
+ */
 export interface ErrorEvent extends BaseEvent {
   type: "error"
   content: string
 }
 
 // Plan
+/**
+ * @deprecated Use index.ts instead
+ */
 export type PlanStatus =
   | "pendingReview"
   | "approved"
   | "rejected"
   | "implemented"
+
+/**
+ * @deprecated Use index.ts instead
+ */
 export type Plan = {
   id: string
   content: string
@@ -162,12 +201,12 @@ export type AnyEvent =
   | StatusEvent
   | SystemPrompt
   | UserMessage
-  | LLMResponse
   | ToolCall
   | ToolCallResult
   | WorkflowState
   | ReviewComment
   | ErrorEvent
+  | LLMResponseNew
 
 // Relationship Types
 
