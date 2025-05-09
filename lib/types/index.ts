@@ -48,7 +48,7 @@ export const workflowRunSchema = z.object({
 export const planSchema = z.object({
   id: z.string(),
   content: z.string(),
-  status: z.enum(["pendingReview", "approved", "rejected", "implemented"]),
+  status: z.enum(["draft", "approved", "rejected"]),
   version: z.number(),
   createdAt: z.date(),
   editMessage: z.string().optional(),
@@ -149,16 +149,20 @@ export const errorEventSchema = baseEventSchema.extend({
   content: z.string(),
 })
 
-export const anyEventSchema = z.discriminatedUnion("type", [
-  errorEventSchema,
+export const messageEventSchema = z.discriminatedUnion("type", [
+  userMessageSchema,
+  systemPromptSchema,
   llmResponseSchema,
   llmResponseWithPlanSchema,
+  toolCallSchema,
+  toolCallResultSchema,
+])
+
+export const anyEventSchema = z.discriminatedUnion("type", [
+  ...messageEventSchema.options,
+  errorEventSchema,
   reviewCommentSchema,
   statusEventSchema,
-  systemPromptSchema,
-  toolCallResultSchema,
-  toolCallSchema,
-  userMessageSchema,
   workflowStateSchema,
 ])
 
@@ -170,6 +174,7 @@ export type EventTypes = z.infer<typeof eventTypes>
 export type Issue = z.infer<typeof issueSchema>
 export type LLMResponse = z.infer<typeof llmResponseSchema>
 export type LLMResponseWithPlan = z.infer<typeof llmResponseWithPlanSchema>
+export type MessageEvent = z.infer<typeof messageEventSchema>
 export type Plan = z.infer<typeof planSchema>
 export type PlanMeta = z.infer<typeof planMetaSchema>
 export type PlanWithDetails = z.infer<typeof planWithDetailsSchema>

@@ -140,6 +140,12 @@ WHERE p.createdAt IS NULL AND p.timestamp IS NOT NULL
 SET p.createdAt = p.timestamp
 RETURN p
 
+
+// Convert (i:Issue).id to Integers. Currently, they are floats.
+MATCH (i:Issue)
+SET i.number = toInteger(i.number)
+RETURN i, i.number, apoc.meta.cypher.type(i.number)
+
 // After everything is working, you can slowly clean up unused and deprecated nodes, properties and relationships
 Get rid of:
 - [:BELONGS_TO_WORKFLOW]

@@ -3,8 +3,7 @@ import { z } from "zod"
 
 import {
   errorEventSchema as appErrorEventSchema,
-  Issue,
-  issueSchema,
+  issueSchema as appIssueSchema,
   llmResponseSchema as appLLMResponseSchema,
   planSchema as appPlanSchema,
   ReviewComment,
@@ -27,7 +26,6 @@ import {
 
 // Re-export for Neo4j DB layer
 export {
-  issueSchema,
   reviewCommentSchema,
   systemPromptSchema,
   toolCallResultSchema,
@@ -37,7 +35,6 @@ export {
   workflowTypeEnum,
 }
 export type {
-  Issue,
   ReviewComment,
   SystemPrompt,
   ToolCall,
@@ -48,6 +45,14 @@ export type {
 }
 
 // Neo4j data model schemas
+export const issueSchema = appIssueSchema.merge(
+  z.object({
+    number: z.instanceof(Integer),
+    createdAt: z.instanceof(DateTime).optional(),
+    updatedAt: z.instanceof(DateTime).optional(),
+  })
+)
+
 export const workflowRunSchema = appWorkflowRunSchema.merge(
   z.object({
     createdAt: z.instanceof(DateTime),
@@ -87,9 +92,6 @@ export const llmResponseSchema = appLLMResponseSchema
     workflowId: true,
   })
   .merge(
-    planSchema.omit({ content: true, id: true, createdAt: true }).partial()
-  )
-  .merge(
     z.object({
       createdAt: z.instanceof(DateTime),
     })
@@ -113,6 +115,7 @@ export const anyEventSchema = z.discriminatedUnion("type", [
 
 export type AnyEvent = z.infer<typeof anyEventSchema>
 export type ErrorEvent = z.infer<typeof errorEventSchema>
+export type Issue = z.infer<typeof issueSchema>
 export type LLMResponse = z.infer<typeof llmResponseSchema>
 export type LLMResponseWithPlan = z.infer<typeof llmResponseWithPlanSchema>
 export type Plan = z.infer<typeof planSchema>

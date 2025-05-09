@@ -12,7 +12,7 @@ import {
   createStatusEvent,
   createWorkflowRun,
 } from "@/lib/neo4j"
-import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceService"
+import { tagMessageAsPlan } from "@/lib/neo4j/services/plan"
 import GetFileContentTool from "@/lib/tools/GetFileContent"
 import RipgrepSearchTool from "@/lib/tools/RipgrepSearchTool"
 import { BaseEvent as appBaseEvent } from "@/lib/types"
@@ -37,7 +37,6 @@ export default async function commentOnIssue(
 ) {
   const trace = langfuse.trace({ name: "commentOnIssue" })
   let initialCommentId: number | null = null
-  const persistenceService = new WorkflowPersistenceService()
 
   let latestEvent: appBaseEvent | null = null
 
@@ -196,14 +195,23 @@ export default async function commentOnIssue(
       .pop()
 
     if (!lastAssistantMessage) {
-      throw new Error("No valid assistant message found in the response")
+      throw new Error(
+        "No valid assistant message found in the response: " +
+          JSON.stringify(response.messages)
+      )
+    }
+
+    if (!lastAssistantMessage.id) {
+      throw new Error(
+        "No message id found in the last assistant message: " +
+          JSON.stringify(lastAssistantMessage)
+      )
     }
 
     // The response is the final Plan.
-    // Create a Plan node linked to this response
-    await persistenceService.createPlan({
+    await tagMessageAsPlan({
+      eventId: lastAssistantMessage.id,
       workflowId: jobId,
-      messageId: lastAssistantMessage.id,
       issueNumber: issueNumber,
       repoFullName: repo.full_name,
     })

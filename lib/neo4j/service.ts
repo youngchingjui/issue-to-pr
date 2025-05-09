@@ -256,7 +256,7 @@ export class n4jService {
   // Helper methods for managing events and their relationships
 
   /**
-   * @deprecated Use the equivalent function in lib/neo4j/event.ts instead.
+   * @deprecated This function will be migrated to the repositories and services folders (see /lib/neo4j/repositories and /lib/neo4j/services).
    */
   private async findFirstEvent(workflowId: string): Promise<string | null> {
     const session = await this.client.getSession()
@@ -276,7 +276,7 @@ export class n4jService {
   }
 
   /**
-   * @deprecated Use the equivalent function in lib/neo4j/event.ts instead.
+   * @deprecated This function will be migrated to the repositories and services folders (see /lib/neo4j/repositories and /lib/neo4j/services).
    */
   private async findLastEvent(workflowId: string): Promise<string | null> {
     const session = await this.client.getSession()
@@ -297,7 +297,7 @@ export class n4jService {
   }
 
   /**
-   * @deprecated Use the equivalent function in lib/neo4j/event.ts instead.
+   * @deprecated This function will be migrated to the repositories and services folders (see /lib/neo4j/repositories and /lib/neo4j/services).
    */
   private async createStartsWithRelationship(
     workflowId: string,
@@ -319,7 +319,7 @@ export class n4jService {
   }
 
   /**
-   * @deprecated Use the equivalent function in lib/neo4j/event.ts instead.
+   * @deprecated This function will be migrated to the repositories and services folders (see /lib/neo4j/repositories and /lib/neo4j/services).
    */
   private async createNextRelationship(
     fromEventId: string,
@@ -341,7 +341,7 @@ export class n4jService {
   }
 
   /**
-   * @deprecated Use the equivalent function in lib/neo4j/event.ts instead.
+   * @deprecated This function will be migrated to the repositories and services folders (see /lib/neo4j/repositories and /lib/neo4j/services).
    */
   private async connectEventToWorkflow(
     workflowId: string,
@@ -374,7 +374,7 @@ export class n4jService {
   }
 
   /**
-   * @deprecated Use the equivalent function in lib/neo4j/event.ts instead.
+   * @deprecated This function will be migrated to the repositories and services folders (see /lib/neo4j/repositories and /lib/neo4j/services).
    */
   private async createBaseEventNode<T extends BaseEvent>({
     id = uuidv4(),
@@ -440,6 +440,9 @@ export class n4jService {
   // Event creation methods
 
   // Public method to create a basic event
+  /**
+   * @deprecated This function will be migrated to the repositories and services folders (see /lib/neo4j/repositories and /lib/neo4j/services).
+   */
   public async createEvent({
     content,
     workflowId,
@@ -470,6 +473,9 @@ export class n4jService {
   }
 
   // Create a specialized workflow state event
+  /**
+   * @deprecated This function will be migrated to the repositories and services folders (see /lib/neo4j/repositories and /lib/neo4j/services).
+   */
   public async createWorkflowStateEvent({
     workflowId,
     state,
@@ -500,6 +506,9 @@ export class n4jService {
   }
 
   // Create a message event (user, system, llm response, tool call, tool result)
+  /**
+   * @deprecated This function will be migrated to the repositories and services folders (see /lib/neo4j/repositories and /lib/neo4j/services).
+   */
   public async createMessageEvent(
     params: (
       | SystemPrompt
@@ -536,6 +545,9 @@ export class n4jService {
   }
 
   // Create a tool call event
+  /**
+   * @deprecated This function will be migrated to the repositories and services folders (see /lib/neo4j/repositories and /lib/neo4j/services).
+   */
   public async createToolCallEvent({
     workflowId,
     toolName,
@@ -572,6 +584,9 @@ export class n4jService {
   }
 
   // Create a tool call result event
+  /**
+   * @deprecated This function will be migrated to the repositories and services folders (see /lib/neo4j/repositories and /lib/neo4j/services).
+   */
   public async createToolResultEvent({
     workflowId,
     toolName,
@@ -605,6 +620,9 @@ export class n4jService {
   }
 
   // Create a review comment event
+  /**
+   * @deprecated This function will be migrated to the repositories and services folders (see /lib/neo4j/repositories and /lib/neo4j/services).
+   */
   public async createReviewCommentEvent({
     workflowId,
     content,
@@ -634,6 +652,9 @@ export class n4jService {
     }
   }
 
+  /**
+   * @deprecated This function will be migrated to the repositories and services folders (see /lib/neo4j/repositories and /lib/neo4j/services).
+   */
   public async getPlanWithDetails(
     planId: string
   ): Promise<appTypes.PlanWithDetails | null> {

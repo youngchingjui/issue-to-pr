@@ -15,6 +15,9 @@ import {
 
 // EVENT MANAGEMENT
 // Helper methods for managing events and their relationships
+/**
+ * @deprecated This function will be migrated to the repositories and services folders.
+ */
 async function findFirstEvent(workflowId: string): Promise<string | null> {
   const session = await n4j.getSession()
   try {
@@ -32,6 +35,9 @@ async function findFirstEvent(workflowId: string): Promise<string | null> {
   }
 }
 
+/**
+ * @deprecated This function will be migrated to the repositories and services folders.
+ */
 async function findLastEvent(workflowId: string): Promise<string | null> {
   const session = await n4j.getSession()
   try {
@@ -50,6 +56,9 @@ async function findLastEvent(workflowId: string): Promise<string | null> {
   }
 }
 
+/**
+ * @deprecated This function will be migrated to the repositories and services folders.
+ */
 async function createStartsWithRelationship(
   workflowId: string,
   eventId: string
@@ -69,6 +78,9 @@ async function createStartsWithRelationship(
   }
 }
 
+/**
+ * @deprecated This function will be migrated to the repositories and services folders.
+ */
 async function createNextRelationship(
   fromEventId: string,
   toEventId: string
@@ -88,6 +100,9 @@ async function createNextRelationship(
   }
 }
 
+/**
+ * @deprecated This function will be migrated to the repositories and services folders.
+ */
 async function connectEventToWorkflow(
   workflowId: string,
   eventId: string,
@@ -118,6 +133,9 @@ async function connectEventToWorkflow(
   }
 }
 
+/**
+ * @deprecated This function will be migrated to the repositories and services folders.
+ */
 async function createBaseEventNode<
   T extends appBaseEvent,
   U extends ZodTypeAny,
@@ -182,6 +200,9 @@ async function createBaseEventNode<
   }
 }
 
+/**
+ * @deprecated This function will be migrated to the repositories and services folders.
+ */
 export async function createStatusEvent({
   content,
   workflowId,
@@ -212,6 +233,9 @@ export async function createStatusEvent({
   }
 }
 
+/**
+ * @deprecated This function will be migrated to the repositories and services folders.
+ */
 export async function createErrorEvent({
   content,
   workflowId,

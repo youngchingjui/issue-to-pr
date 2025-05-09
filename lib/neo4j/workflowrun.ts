@@ -4,6 +4,9 @@ import { n4j } from "@/lib/neo4j/client"
 import { WorkflowRun as appWorkflowRun, WorkflowType } from "@/lib/types"
 import { WorkflowRun as n4jWorkflowRun } from "@/lib/types/db/neo4j"
 
+/**
+ * @deprecated This function will be migrated to the repositories and services folders.
+ */
 export async function createWorkflowRun({
   id,
   type,
