@@ -14,7 +14,7 @@ import {
   UserMessageEvent,
 } from "@/components/workflow-runs/events"
 import { getIssue } from "@/lib/github/issues"
-import { n4j } from "@/lib/neo4j/service"
+import { getWorkflowRunWithDetails } from "@/lib/neo4j/services/workflow"
 import { AnyEvent, Issue } from "@/lib/types"
 import { GitHubIssue } from "@/lib/types/github"
 
@@ -60,9 +60,7 @@ export default async function WorkflowRunDetailPage({
 }) {
   const { traceId } = params
 
-  const { workflow, events, issue } = await n4j.getWorkflowRunWithDetails({
-    workflowRunId: traceId,
-  })
+  const { workflow, events, issue } = await getWorkflowRunWithDetails(traceId)
 
   let githubIssue: GitHubIssue | null = null
   if (issue) {
@@ -77,7 +75,7 @@ export default async function WorkflowRunDetailPage({
     notFound()
   }
 
-  if (!workflow.workflowType) {
+  if (!workflow.type) {
     console.error(
       `Workflow type not found. WorkflowRun: ${JSON.stringify(workflow)}`
     )
@@ -101,12 +99,12 @@ export default async function WorkflowRunDetailPage({
           <h1 className="text-2xl font-bold">
             {issue?.title || `Workflow Run: ${traceId}`}
           </h1>
-          {workflow.workflowType && (
+          {workflow.type && (
             <p className="text-sm text-muted-foreground">
               Workflow Type:{" "}
-              {workflow.workflowType === "commentOnIssue"
+              {workflow.type === "commentOnIssue"
                 ? "Comment on Issue"
-                : workflow.workflowType}
+                : workflow.type}
             </p>
           )}
         </div>

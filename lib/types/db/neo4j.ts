@@ -6,37 +6,21 @@ import {
   issueSchema as appIssueSchema,
   llmResponseSchema as appLLMResponseSchema,
   planSchema as appPlanSchema,
-  ReviewComment,
-  reviewCommentSchema,
+  reviewCommentSchema as appReviewCommentSchema,
   statusEventSchema as appStatusEventSchema,
   systemPromptSchema as appSystemPromptSchema,
-  ToolCall,
-  ToolCallResult,
-  toolCallResultSchema,
-  toolCallSchema,
+  toolCallResultSchema as appToolCallResultSchema,
+  toolCallSchema as appToolCallSchema,
   userMessageSchema as appUserMessageSchema,
   workflowRunSchema as appWorkflowRunSchema,
-  WorkflowState,
-  workflowStateSchema,
+  workflowStateSchema as appWorkflowStateSchema,
   WorkflowType,
   workflowTypeEnum,
 } from "@/lib/types"
 
 // Re-export for Neo4j DB layer
-export {
-  reviewCommentSchema,
-  toolCallResultSchema,
-  toolCallSchema,
-  workflowStateSchema,
-  workflowTypeEnum,
-}
-export type {
-  ReviewComment,
-  ToolCall,
-  ToolCallResult,
-  WorkflowState,
-  WorkflowType,
-}
+export { workflowTypeEnum }
+export type { WorkflowType }
 
 // Neo4j data model schemas
 export const issueSchema = appIssueSchema
@@ -89,6 +73,10 @@ export const statusEventSchema = appStatusEventSchema
     workflowId: true,
   })
 
+export const workflowStateSchema = appWorkflowStateSchema.merge(
+  z.object({ createdAt: z.instanceof(DateTime) })
+)
+
 export const systemPromptSchema = appSystemPromptSchema
   .omit({ workflowId: true })
   .merge(z.object({ createdAt: z.instanceof(DateTime) }))
@@ -105,16 +93,28 @@ export const llmResponseWithPlanSchema = llmResponseSchema.merge(
   planSchema.omit({ createdAt: true })
 )
 
+export const toolCallSchema = appToolCallSchema
+  .omit({ workflowId: true })
+  .merge(z.object({ createdAt: z.instanceof(DateTime) }))
+
+export const toolCallResultSchema = appToolCallResultSchema
+  .omit({ workflowId: true })
+  .merge(z.object({ createdAt: z.instanceof(DateTime) }))
+
+export const reviewCommentSchema = appReviewCommentSchema
+  .omit({ workflowId: true })
+  .merge(z.object({ createdAt: z.instanceof(DateTime) }))
+
 export const anyEventSchema = z.discriminatedUnion("type", [
+  errorEventSchema,
+  llmResponseSchema,
+  reviewCommentSchema,
   statusEventSchema,
   systemPromptSchema,
-  userMessageSchema,
-  llmResponseSchema,
-  toolCallSchema,
   toolCallResultSchema,
+  toolCallSchema,
+  userMessageSchema,
   workflowStateSchema,
-  reviewCommentSchema,
-  errorEventSchema,
 ])
 
 export type AnyEvent = z.infer<typeof anyEventSchema>
@@ -123,10 +123,14 @@ export type Issue = z.infer<typeof issueSchema>
 export type LLMResponse = z.infer<typeof llmResponseSchema>
 export type LLMResponseWithPlan = z.infer<typeof llmResponseWithPlanSchema>
 export type Plan = z.infer<typeof planSchema>
+export type ReviewComment = z.infer<typeof reviewCommentSchema>
 export type StatusEvent = z.infer<typeof statusEventSchema>
 export type SystemPrompt = z.infer<typeof systemPromptSchema>
+export type ToolCall = z.infer<typeof toolCallSchema>
+export type ToolCallResult = z.infer<typeof toolCallResultSchema>
 export type UserMessage = z.infer<typeof userMessageSchema>
 export type WorkflowRun = z.infer<typeof workflowRunSchema>
+export type WorkflowState = z.infer<typeof workflowStateSchema>
 
 export function isLLMResponseWithPlan(
   event: LLMResponse

@@ -1,8 +1,17 @@
 import { int, Integer, ManagedTransaction, Node } from "neo4j-driver"
+import { ZodError } from "zod"
 
 import { WorkflowRun as AppWorkflowRun } from "@/lib/types"
-import { WorkflowRun, workflowRunSchema } from "@/lib/types/db/neo4j"
-import { Issue, issueSchema } from "@/lib/types/db/neo4j"
+import {
+  AnyEvent,
+  anyEventSchema,
+  Issue,
+  issueSchema,
+  LLMResponseWithPlan,
+  llmResponseWithPlanSchema,
+  WorkflowRun,
+  workflowRunSchema,
+} from "@/lib/types/db/neo4j"
 
 export async function create(
   tx: ManagedTransaction,
@@ -51,6 +60,59 @@ export async function linkToIssue(
     { workflowId, issueId: int(issueId), repoFullName }
   )
   return result
+}
+
+/**
+ * Helper function to parse AnyEvent + LLMResponseWithPlan
+ * LLMResponseWithPlan is a superset of LLMResponse, so it needs to be parsed first.
+ */
+function parseEventWithPlan(event: AnyEvent | LLMResponseWithPlan) {
+  try {
+    return llmResponseWithPlanSchema.parse(event)
+  } catch (e) {
+    if (e instanceof ZodError) {
+      return anyEventSchema.parse(event)
+    }
+    throw e
+  }
+}
+
+/**
+ * Retrieves a WorkflowRun with its associated events and issue, including
+ * the labels for each event.
+ */
+export async function getWithDetails(
+  tx: ManagedTransaction,
+  workflowRunId: string
+): Promise<{
+  workflow: WorkflowRun
+  issue?: Issue
+  events: (AnyEvent | LLMResponseWithPlan)[]
+}> {
+  const result = await tx.run<{
+    w: Node<Integer, WorkflowRun, "WorkflowRun">
+    i: Node<Integer, Issue, "Issue">
+    events: Node<Integer, AnyEvent | LLMResponseWithPlan, "Event">[]
+  }>(
+    `
+      MATCH (w:WorkflowRun {id: $workflowRunId})
+      OPTIONAL MATCH (i:Issue)<-[:BASED_ON_ISSUE]-(w)
+      OPTIONAL MATCH (w)-[:STARTS_WITH|NEXT*]-(e:Event)
+      WITH w, i, collect(e) as events
+      RETURN w, i, events
+      `,
+    { workflowRunId }
+  )
+  const record = result.records[0]
+  return {
+    workflow: workflowRunSchema.parse(record.get("w").properties),
+    issue: record.get("i")?.properties
+      ? issueSchema.parse(record.get("i").properties)
+      : undefined,
+    events: record
+      .get("events")
+      .map((item) => parseEventWithPlan(item.properties)),
+  }
 }
 
 export async function mergeIssueLink(

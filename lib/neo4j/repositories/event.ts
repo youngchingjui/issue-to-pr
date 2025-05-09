@@ -1,8 +1,10 @@
 import { Integer, ManagedTransaction, Node } from "neo4j-driver"
 
+import { AnyEvent as appAnyEvent } from "@/lib/types"
 import {
   AnyEvent,
   anyEventSchema,
+  isLLMResponseWithPlan,
   LLMResponse,
   llmResponseSchema,
   SystemPrompt,
@@ -190,4 +192,29 @@ export async function deleteEventNode(
     `,
     { eventId }
   )
+}
+
+export async function toAppEvent(
+  dbEvent: AnyEvent,
+  workflowId: string
+): Promise<appAnyEvent> {
+  if (dbEvent.type === "llmResponse" && isLLMResponseWithPlan(dbEvent)) {
+    return {
+      ...dbEvent,
+      createdAt: dbEvent.createdAt.toStandardDate(),
+      type: "llmResponseWithPlan",
+      workflowId,
+      plan: {
+        id: dbEvent.id,
+        status: dbEvent.status,
+        version: dbEvent.version.toNumber(),
+        editMessage: dbEvent.editMessage,
+      },
+    }
+  }
+  return {
+    ...dbEvent,
+    createdAt: dbEvent.createdAt.toStandardDate(),
+    workflowId,
+  }
 }
