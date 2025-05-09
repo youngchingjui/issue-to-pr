@@ -7,17 +7,14 @@ import {
   updateIssueComment,
 } from "@/lib/github/issues"
 import { langfuse } from "@/lib/langfuse"
-import {
-  createErrorEvent,
-  createStatusEvent,
-  createWorkflowRun,
-} from "@/lib/neo4j"
+import { createErrorEvent, createStatusEvent } from "@/lib/neo4j"
 import { tagMessageAsPlan } from "@/lib/neo4j/services/plan"
 import GetFileContentTool from "@/lib/tools/GetFileContent"
 import RipgrepSearchTool from "@/lib/tools/RipgrepSearchTool"
 import { BaseEvent as appBaseEvent } from "@/lib/types"
 import { GitHubRepository } from "@/lib/types/github"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
+import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
 
 interface GitHubError extends Error {
   status?: number
@@ -41,9 +38,11 @@ export default async function commentOnIssue(
   let latestEvent: appBaseEvent | null = null
 
   try {
-    await createWorkflowRun({
+    await initializeWorkflowRun({
       id: jobId,
       type: "commentOnIssue",
+      issueNumber,
+      repoFullName: repo.full_name,
       postToGithub,
     })
 
@@ -154,6 +153,12 @@ export default async function commentOnIssue(
     const getFileContentTool = new GetFileContentTool(dirPath)
     const searchCodeTool = new RipgrepSearchTool(dirPath)
 
+    latestEvent = await createStatusEvent({
+      content: "Beginning to review issue and codebase",
+      workflowId: jobId,
+      parentId: latestEvent.id,
+    })
+
     // Create and initialize the thinker agent
     const thinker = new ThinkerAgent({ apiKey })
     thinker.addJobId(jobId) // Set jobId before any messages are added
@@ -175,12 +180,6 @@ export default async function commentOnIssue(
         content: `Here is the codebase's tree directory:\n${tree.join("\n")}`,
       })
     }
-
-    latestEvent = await createStatusEvent({
-      content: "Reviewing issue and codebase",
-      workflowId: jobId,
-      parentId: latestEvent.id,
-    })
 
     const response = await thinker.runWithFunctions()
     span.end()

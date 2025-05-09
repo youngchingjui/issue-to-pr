@@ -19,7 +19,7 @@ export async function create(
   issue: DbIssue
 ): Promise<DbIssue> {
   const result = await tx.run(
-    `CREATE (i:Issue {number: $number, repoFullName: $repo, createdAt: datetime()}) RETURN i`,
+    `CREATE (i:Issue {number: $number, repoFullName: $repo}) RETURN i`,
     { number: issue.number, repo: issue.repoFullName }
   )
   return issueSchema.parse(result.records[0].get("i").properties)
@@ -31,7 +31,6 @@ export async function getOrCreate(
 ): Promise<DbIssue> {
   const result = await tx.run(
     `MERGE (i:Issue {number: $number, repoFullName: $repo})
-     ON CREATE SET i.createdAt = datetime()
      RETURN i`,
     { number: issue.number, repo: issue.repoFullName }
   )
@@ -42,7 +41,5 @@ export const toAppIssue = (dbIssue: DbIssue): AppIssue => {
   return {
     ...dbIssue,
     number: dbIssue.number.toNumber(),
-    createdAt: dbIssue.createdAt?.toStandardDate(),
-    updatedAt: dbIssue.updatedAt?.toStandardDate(),
   }
 }

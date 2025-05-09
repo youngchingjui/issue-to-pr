@@ -1,0 +1,189 @@
+import { ManagedTransaction } from "neo4j-driver"
+import { v4 as uuidv4 } from "uuid"
+
+import { n4j } from "@/lib/neo4j/client"
+import {
+  connectToWorkflow,
+  get as repoGet,
+  findPrevAndNextEvent,
+  createNext,
+  deleteEventNode,
+} from "@/lib/neo4j/repositories/event"
+import {
+  createLLMResponseEvent as dbCreateLLMResponseEvent,
+  createSystemPromptEvent as dbCreateSystemPromptEvent,
+  createUserResponseEvent as dbCreateUserResponseEvent,
+} from "@/lib/neo4j/repositories/event"
+import { LLMResponse, SystemPrompt, UserMessage } from "@/lib/types"
+
+// This function creates a message event node and connects it to the workflow event chain.
+// If a parentId is provided, the event is connected to the parent node using a NEXT relationship.
+// Otherwise, it is attached to the end of the event chain of the specified workflowRun.
+
+// Note: I'm making individual functions for each event type for now.
+// Later, I'll refactor to use a single function for all event types.
+export async function createSystemPromptEvent({
+  id = uuidv4(),
+  workflowId,
+  content,
+  parentId,
+}: {
+  id?: string
+  workflowId: string
+  content: string
+  parentId?: string
+}): Promise<SystemPrompt> {
+  const session = await n4j.getSession()
+  try {
+    const result = await session.executeWrite(
+      async (tx: ManagedTransaction) => {
+        // Create the event node
+        const eventNode = await dbCreateSystemPromptEvent(tx, {
+          id,
+          content,
+          type: "systemPrompt",
+        })
+
+        // Attach it to the workflow
+        await connectToWorkflow(tx, workflowId, id, parentId)
+
+        return eventNode
+      }
+    )
+
+    return {
+      ...result,
+      createdAt: result.createdAt.toStandardDate(),
+      workflowId,
+    }
+  } catch (e) {
+    console.error(e)
+    throw e
+  }
+}
+
+export async function createLLMResponseEvent({
+  id = uuidv4(),
+  workflowId,
+  content,
+  parentId,
+  model,
+}: {
+  id?: string
+  workflowId: string
+  content: string
+  parentId?: string
+  model?: string
+}): Promise<LLMResponse> {
+  const session = await n4j.getSession()
+  try {
+    const result = await session.executeWrite(
+      async (tx: ManagedTransaction) => {
+        // Create the event node
+        const eventNode = await dbCreateLLMResponseEvent(tx, {
+          id,
+          content,
+          model,
+          type: "llmResponse",
+        })
+
+        // Attach it to the workflow
+        await connectToWorkflow(tx, workflowId, id, parentId)
+
+        return eventNode
+      }
+    )
+
+    return {
+      ...result,
+      createdAt: result.createdAt.toStandardDate(),
+      workflowId,
+    }
+  } catch (e) {
+    console.error(e)
+    throw e
+  }
+}
+
+export async function createUserResponseEvent({
+  id = uuidv4(),
+  workflowId,
+  content,
+  parentId,
+}: {
+  id?: string
+  workflowId: string
+  content: string
+  parentId?: string
+}): Promise<UserMessage> {
+  const session = await n4j.getSession()
+  try {
+    const result = await session.executeWrite(
+      async (tx: ManagedTransaction) => {
+        // Create the event node
+        const eventNode = await dbCreateUserResponseEvent(tx, {
+          id,
+          content,
+          type: "userMessage",
+        })
+
+        // Attach it to the workflow
+        await connectToWorkflow(tx, workflowId, id, parentId)
+
+        return eventNode
+      }
+    )
+
+    return {
+      ...result,
+      createdAt: result.createdAt.toStandardDate(),
+      workflowId,
+    }
+  } catch (e) {
+    console.error(e)
+    throw e
+  }
+}
+
+// Service-layer function to get an event by id
+export async function getEventById(eventId: string) {
+  const session = await n4j.getSession()
+  try {
+    let event
+    await session.executeRead(async (tx: ManagedTransaction) => {
+      event = await repoGet(tx, eventId)
+    })
+    return event
+  } finally {
+    await session.close()
+  }
+}
+
+/**
+ * Deletes an event node from the Neo4j database by its event ID.
+ *
+ * This function removes the specified event node (`Event` label) and its direct
+ * relationships in the event chain. If the event is part of a sequence (i.e., it has
+ * both a previous and a next event), it will reconnect the previous and next events
+ * directly to maintain the chain integrity.
+ *
+ * The operation is performed within a write transaction. If the event does not exist,
+ * the function completes silently.
+ */
+export async function deleteEvent(eventId: string) {
+  const session = await n4j.getSession()
+  try {
+    await session.executeWrite(async (tx: ManagedTransaction) => {
+      // Find previous and next event, if they exist
+      const { prevId, nextId } = await findPrevAndNextEvent(tx, eventId)
+      // Delete the event and any NEXT relationships
+      await deleteEventNode(tx, eventId)
+      // If both previous and next exist, connect them
+      if (prevId && nextId) {
+        await createNext(tx, prevId, nextId)
+      }
+    })
+  } finally {
+    await session.close()
+  }
+}

@@ -9,14 +9,12 @@ import {
   ReviewComment,
   reviewCommentSchema,
   statusEventSchema as appStatusEventSchema,
-  SystemPrompt,
-  systemPromptSchema,
+  systemPromptSchema as appSystemPromptSchema,
   ToolCall,
   ToolCallResult,
   toolCallResultSchema,
   toolCallSchema,
-  UserMessage,
-  userMessageSchema,
+  userMessageSchema as appUserMessageSchema,
   workflowRunSchema as appWorkflowRunSchema,
   WorkflowState,
   workflowStateSchema,
@@ -27,31 +25,35 @@ import {
 // Re-export for Neo4j DB layer
 export {
   reviewCommentSchema,
-  systemPromptSchema,
   toolCallResultSchema,
   toolCallSchema,
-  userMessageSchema,
   workflowStateSchema,
   workflowTypeEnum,
 }
 export type {
   ReviewComment,
-  SystemPrompt,
   ToolCall,
   ToolCallResult,
-  UserMessage,
   WorkflowState,
   WorkflowType,
 }
 
 // Neo4j data model schemas
-export const issueSchema = appIssueSchema.merge(
-  z.object({
-    number: z.instanceof(Integer),
-    createdAt: z.instanceof(DateTime).optional(),
-    updatedAt: z.instanceof(DateTime).optional(),
+export const issueSchema = appIssueSchema
+  .omit({
+    createdAt: true,
+    updatedAt: true,
+    title: true,
+    body: true,
+    state: true,
+    labels: true,
+    assignees: true,
   })
-)
+  .merge(
+    z.object({
+      number: z.instanceof(Integer),
+    })
+  )
 
 export const workflowRunSchema = appWorkflowRunSchema.merge(
   z.object({
@@ -87,15 +89,17 @@ export const statusEventSchema = appStatusEventSchema
     workflowId: true,
   })
 
+export const systemPromptSchema = appSystemPromptSchema
+  .omit({ workflowId: true })
+  .merge(z.object({ createdAt: z.instanceof(DateTime) }))
+
+export const userMessageSchema = appUserMessageSchema
+  .omit({ workflowId: true })
+  .merge(z.object({ createdAt: z.instanceof(DateTime) }))
+
 export const llmResponseSchema = appLLMResponseSchema
-  .omit({
-    workflowId: true,
-  })
-  .merge(
-    z.object({
-      createdAt: z.instanceof(DateTime),
-    })
-  )
+  .omit({ workflowId: true })
+  .merge(z.object({ createdAt: z.instanceof(DateTime) }))
 
 export const llmResponseWithPlanSchema = llmResponseSchema.merge(
   planSchema.omit({ createdAt: true })
@@ -120,6 +124,8 @@ export type LLMResponse = z.infer<typeof llmResponseSchema>
 export type LLMResponseWithPlan = z.infer<typeof llmResponseWithPlanSchema>
 export type Plan = z.infer<typeof planSchema>
 export type StatusEvent = z.infer<typeof statusEventSchema>
+export type SystemPrompt = z.infer<typeof systemPromptSchema>
+export type UserMessage = z.infer<typeof userMessageSchema>
 export type WorkflowRun = z.infer<typeof workflowRunSchema>
 
 export function isLLMResponseWithPlan(

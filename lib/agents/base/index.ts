@@ -18,6 +18,12 @@ import {
   ToolCallData,
   ToolResponseData,
 } from "@/lib/types/workflow"
+import {
+  createLLMResponseEvent,
+  createSystemPromptEvent,
+  createUserResponseEvent,
+  deleteEvent,
+} from "@/lib/neo4j/services/event"
 
 interface ToolCallInProgress extends ChatCompletionMessageToolCall {
   index: number
@@ -66,32 +72,27 @@ export class Agent {
     let eventId: string | undefined
 
     if (message.role === "system" && typeof message.content === "string") {
-      eventId = await this.workflowService.saveEvent({
-        type: "system_prompt",
+      const event = await createSystemPromptEvent({
         workflowId: this.jobId,
-        data: { content: message.content },
-        timestamp: new Date(),
+        content: message.content,
       })
+      eventId = event.id
     } else if (message.role === "user" && typeof message.content === "string") {
-      eventId = await this.workflowService.saveEvent({
-        type: "user_message",
+      const event = await createUserResponseEvent({
         workflowId: this.jobId,
-        data: { content: message.content },
-        timestamp: new Date(),
+        content: message.content,
       })
+      eventId = event.id
     } else if (
       message.role === "assistant" &&
       typeof message.content === "string"
     ) {
-      eventId = await this.workflowService.saveEvent({
-        type: "llm_response",
+      const event = await createLLMResponseEvent({
         workflowId: this.jobId,
-        data: {
-          content: message.content,
-          model: this.model,
-        },
-        timestamp: new Date(),
+        content: message.content,
+        model: this.model,
       })
+      eventId = event.id
     }
 
     return eventId
@@ -114,9 +115,7 @@ export class Agent {
         (message) => message.role === "system"
       )
       for (const message of oldSystemMessages) {
-        if ("id" in message) {
-          await this.workflowService.deleteEvent(message.id)
-        }
+        message.id && (await deleteEvent(message.id))
       }
     }
 

@@ -2,23 +2,23 @@ import { zodFunction } from "openai/helpers/zod"
 import { ChatModel } from "openai/resources"
 import { z } from "zod"
 
-// Other
+// Tools
 export interface Tool<T extends z.ZodType, U = unknown> {
   tool: ReturnType<typeof zodFunction>
   parameters: T
   handler: (params: z.infer<T>, ...args: U[]) => Promise<string>
 }
 
+// Agents
 export type AgentConstructorParams = {
   model?: ChatModel
   systemPrompt?: string
   apiKey?: string
 }
 
-// Issue
+// Issues
 export const issueSchema = z.object({
   number: z.number(),
-  id: z.string().optional(),
   createdAt: z.date().optional(),
   repoFullName: z.string(),
   title: z.string().optional(),
@@ -29,7 +29,7 @@ export const issueSchema = z.object({
   updatedAt: z.date().optional(),
 })
 
-// WorkflowRun
+// WorkflowRuns
 export const workflowTypeEnum = z.enum([
   "commentOnIssue",
   "resolveIssue",
@@ -93,6 +93,10 @@ export const llmResponseSchema = baseEventSchema.merge(
   z.object({
     type: z.literal("llmResponse"),
     content: z.string(),
+    model: z
+      .string()
+      .optional()
+      .describe("String description of LLM model used to generate response"),
   })
 )
 
