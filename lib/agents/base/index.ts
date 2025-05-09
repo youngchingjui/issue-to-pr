@@ -9,6 +9,12 @@ import {
 } from "openai/resources/chat/completions"
 import { z } from "zod"
 
+import {
+  createLLMResponseEvent,
+  createSystemPromptEvent,
+  createUserResponseEvent,
+  deleteEvent,
+} from "@/lib/neo4j/services/event"
 import WorkflowEventEmitter from "@/lib/services/EventEmitter"
 import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceService"
 import { AgentConstructorParams, Tool } from "@/lib/types"
@@ -18,12 +24,6 @@ import {
   ToolCallData,
   ToolResponseData,
 } from "@/lib/types/workflow"
-import {
-  createLLMResponseEvent,
-  createSystemPromptEvent,
-  createUserResponseEvent,
-  deleteEvent,
-} from "@/lib/neo4j/services/event"
 
 interface ToolCallInProgress extends ChatCompletionMessageToolCall {
   index: number
@@ -115,7 +115,9 @@ export class Agent {
         (message) => message.role === "system"
       )
       for (const message of oldSystemMessages) {
-        message.id && (await deleteEvent(message.id))
+        if (message.id) {
+          await deleteEvent(message.id)
+        }
       }
     }
 

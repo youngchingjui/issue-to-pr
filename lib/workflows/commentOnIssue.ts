@@ -9,12 +9,12 @@ import {
 import { langfuse } from "@/lib/langfuse"
 import { createErrorEvent, createStatusEvent } from "@/lib/neo4j"
 import { tagMessageAsPlan } from "@/lib/neo4j/services/plan"
+import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
 import GetFileContentTool from "@/lib/tools/GetFileContent"
 import RipgrepSearchTool from "@/lib/tools/RipgrepSearchTool"
 import { BaseEvent as appBaseEvent } from "@/lib/types"
 import { GitHubRepository } from "@/lib/types/github"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
-import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
 
 interface GitHubError extends Error {
   status?: number
@@ -161,7 +161,7 @@ export default async function commentOnIssue(
 
     // Create and initialize the thinker agent
     const thinker = new ThinkerAgent({ apiKey })
-    thinker.addJobId(jobId) // Set jobId before any messages are added
+    await thinker.addJobId(jobId) // Set jobId before any messages are added
     const span = trace.span({ name: "generateComment" })
     thinker.addSpan({ span, generationName: "commentOnIssue" })
     thinker.addTool(getFileContentTool)
