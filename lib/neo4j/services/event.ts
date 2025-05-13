@@ -13,9 +13,16 @@ import {
   createLLMResponseEvent as dbCreateLLMResponseEvent,
   createSystemPromptEvent as dbCreateSystemPromptEvent,
   createToolCallEvent as dbCreateToolCallEvent,
+  createToolCallResultEvent as dbCreateToolCallResultEvent,
   createUserResponseEvent as dbCreateUserResponseEvent,
 } from "@/lib/neo4j/repositories/event"
-import { LLMResponse, SystemPrompt, ToolCall, UserMessage } from "@/lib/types"
+import {
+  LLMResponse,
+  SystemPrompt,
+  ToolCall,
+  ToolCallResult,
+  UserMessage,
+} from "@/lib/types"
 
 // This function creates a message event node and connects it to the workflow event chain.
 // If a parentId is provided, the event is connected to the parent node using a NEXT relationship.
@@ -172,6 +179,52 @@ export async function createToolCallEvent({
           toolCallId,
           args,
           type: "toolCall",
+        })
+
+        // Attach it to the workflow
+        await connectToWorkflow(tx, workflowId, id, parentId)
+
+        return eventNode
+      }
+    )
+
+    return {
+      ...result,
+      createdAt: result.createdAt.toStandardDate(),
+      workflowId,
+    }
+  } catch (e) {
+    console.error(e)
+    throw e
+  }
+}
+
+export async function createToolCallResultEvent({
+  id = uuidv4(),
+  workflowId,
+  toolCallId,
+  toolName,
+  content,
+  parentId,
+}: {
+  id?: string
+  workflowId: string
+  toolCallId: string
+  toolName: string
+  content: string
+  parentId?: string
+}): Promise<ToolCallResult> {
+  const session = await n4j.getSession()
+  try {
+    const result = await session.executeWrite(
+      async (tx: ManagedTransaction) => {
+        // Create the event node
+        const eventNode = await dbCreateToolCallResultEvent(tx, {
+          id,
+          toolCallId,
+          toolName,
+          content,
+          type: "toolCallResult",
         })
 
         // Attach it to the workflow

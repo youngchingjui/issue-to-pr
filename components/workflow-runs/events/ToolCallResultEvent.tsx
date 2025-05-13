@@ -4,7 +4,7 @@ import { ArrowDownLeft } from "lucide-react"
 
 import { CollapsibleContent } from "@/components/ui/collapsible-content"
 import { EventTime } from "@/components/workflow-runs/events"
-import { ToolCallResult } from "@/lib/types/neo4j"
+import { ToolCallResult } from "@/lib/types"
 
 export interface Props {
   event: ToolCallResult

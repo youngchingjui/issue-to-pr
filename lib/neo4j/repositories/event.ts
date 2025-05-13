@@ -10,6 +10,8 @@ import {
   SystemPrompt,
   systemPromptSchema,
   ToolCall,
+  ToolCallResult,
+  toolCallResultSchema,
   toolCallSchema,
   UserMessage,
   userMessageSchema,
@@ -89,6 +91,21 @@ export async function createToolCallEvent(
     { id, type, toolName, toolCallId, args }
   )
   return toolCallSchema.parse(result.records[0]?.get("e")?.properties)
+}
+
+export async function createToolCallResultEvent(
+  tx: ManagedTransaction,
+  event: Omit<ToolCallResult, "createdAt" | "workflowId">
+): Promise<ToolCallResult> {
+  const { id, type, toolCallId, toolName, content } = event
+  const result = await tx.run<{ e: Node<Integer, ToolCallResult, "Event"> }>(
+    `
+      CREATE (e:Event:Message {id: $id, createdAt: datetime(), type: $type, toolCallId: $toolCallId, toolName: $toolName, content: $content})
+      RETURN e
+      `,
+    { id, type, toolCallId, toolName, content }
+  )
+  return toolCallResultSchema.parse(result.records[0]?.get("e")?.properties)
 }
 
 export async function findFirst(

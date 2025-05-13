@@ -13,6 +13,7 @@ import {
   createLLMResponseEvent,
   createSystemPromptEvent,
   createToolCallEvent,
+  createToolCallResultEvent,
   createUserResponseEvent,
   deleteEvent,
 } from "@/lib/neo4j/services/event"
@@ -255,16 +256,14 @@ export class Agent {
 
           const toolResponse = await tool.handler(validationResult.data)
 
-          // Track tool response event
+          // First track message here, instead of this.trackMessage (inside this.addMessage)
+          // Because ChatCompletionMessageParam does not have `toolName` property
           if (this.jobId) {
-            await this.workflowService.saveEvent({
-              type: "tool_response",
+            await createToolCallResultEvent({
               workflowId: this.jobId,
-              data: {
-                toolName: toolCall.function.name,
-                response: toolResponse,
-              },
-              timestamp: new Date(),
+              toolCallId: toolCall.id,
+              toolName: toolCall.function.name,
+              content: toolResponse,
             })
           }
 
