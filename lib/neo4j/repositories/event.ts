@@ -9,6 +9,8 @@ import {
   llmResponseSchema,
   SystemPrompt,
   systemPromptSchema,
+  ToolCall,
+  toolCallSchema,
   UserMessage,
   userMessageSchema,
 } from "@/lib/types/db/neo4j"
@@ -72,6 +74,21 @@ export async function createUserResponseEvent(
     { id, type, content }
   )
   return userMessageSchema.parse(result.records[0]?.get("e")?.properties)
+}
+
+export async function createToolCallEvent(
+  tx: ManagedTransaction,
+  event: Omit<ToolCall, "createdAt" | "workflowId">
+): Promise<ToolCall> {
+  const { id, type, toolName, toolCallId, args } = event
+  const result = await tx.run<{ e: Node<Integer, ToolCall, "Event"> }>(
+    `
+      CREATE (e:Event:Message {id: $id, createdAt: datetime(), type: $type, toolName: $toolName, toolCallId: $toolCallId, args: $args})
+      RETURN e
+      `,
+    { id, type, toolName, toolCallId, args }
+  )
+  return toolCallSchema.parse(result.records[0]?.get("e")?.properties)
 }
 
 export async function findFirst(

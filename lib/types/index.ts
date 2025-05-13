@@ -127,7 +127,7 @@ export const toolCallSchema = baseEventSchema.extend({
   type: z.literal("toolCall"),
   toolName: z.string(),
   toolCallId: z.string(),
-  arguments: z.string(),
+  args: z.string(),
 })
 
 export const toolCallResultSchema = baseEventSchema.extend({

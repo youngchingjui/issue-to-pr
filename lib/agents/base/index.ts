@@ -12,6 +12,7 @@ import { z } from "zod"
 import {
   createLLMResponseEvent,
   createSystemPromptEvent,
+  createToolCallEvent,
   createUserResponseEvent,
   deleteEvent,
 } from "@/lib/neo4j/services/event"
@@ -220,14 +221,11 @@ export class Agent {
         if (tool) {
           // Track tool call event
           if (this.jobId) {
-            await this.workflowService.saveEvent({
-              type: "tool_call",
+            await createToolCallEvent({
               workflowId: this.jobId,
-              data: {
-                toolName: toolCall.function.name,
-                arguments: JSON.parse(toolCall.function.arguments),
-              },
-              timestamp: new Date(),
+              toolName: toolCall.function.name,
+              toolCallId: toolCall.id,
+              args: toolCall.function.arguments,
             })
           }
 
