@@ -146,6 +146,10 @@ export interface StatusEvent extends BaseEventFields {
  * Use WorkflowEvent from /lib/neo4j/service.ts instead
  */
 
+/**
+ * @deprecated
+ * Use types from /lib/types or /lib/types/db/neo4j instead
+ */
 export type WorkflowEvent =
   | WorkflowStartEvent
   | SystemPromptEvent
@@ -158,7 +162,7 @@ export type WorkflowEvent =
 
 /**
  * @deprecated
- * Use WorkflowEvent from /lib/neo4j/service.ts instead
+ * Use types from /lib/types or /lib/types/db/neo4j instead
  */
 export interface WorkflowWithEvents {
   id: string
@@ -169,6 +173,10 @@ export interface WorkflowWithEvents {
   issue?: { number: number; repoFullName: string }
 }
 
+/**
+ * @deprecated
+ * Use types from /lib/types or /lib/types/db/neo4j instead
+ */
 export interface WorkflowMetadata {
   workflowType: string
   postToGithub: boolean

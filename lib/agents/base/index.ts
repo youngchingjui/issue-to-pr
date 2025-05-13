@@ -10,6 +10,7 @@ import {
 import { z } from "zod"
 
 import {
+  createErrorEvent,
   createLLMResponseEvent,
   createSystemPromptEvent,
   createToolCallEvent,
@@ -21,7 +22,6 @@ import WorkflowEventEmitter from "@/lib/services/EventEmitter"
 import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceService"
 import { AgentConstructorParams, Tool } from "@/lib/types"
 import {
-  ErrorData,
   StatusData,
   ToolCallData,
   ToolResponseData,
@@ -240,15 +240,9 @@ export class Agent {
 
             // Track error event
             if (this.jobId) {
-              await this.workflowService.saveEvent({
-                type: "error",
+              await createErrorEvent({
                 workflowId: this.jobId,
-                data: {
-                  toolName: toolCall.function.name,
-                  error: validationResult.error.message,
-                  recoverable: true,
-                },
-                timestamp: new Date(),
+                content: validationResult.error.message,
               })
             }
             continue
@@ -276,14 +270,9 @@ export class Agent {
           console.error(`Tool ${toolCall.function.name} not found`)
           // Track error event
           if (this.jobId) {
-            await this.workflowService.saveEvent({
-              type: "error",
+            await createErrorEvent({
               workflowId: this.jobId,
-              data: {
-                error: `Tool ${toolCall.function.name} not found`,
-                recoverable: false,
-              },
-              timestamp: new Date(),
+              content: `Tool ${toolCall.function.name} not found`,
             })
           }
         }
@@ -442,31 +431,17 @@ export class Agent {
               })
             } else {
               if (this.jobId) {
-                const eventData: ErrorData = {
-                  error: validationResult.error.message,
-                  toolName: toolCall.function.name,
-                  recoverable: true,
-                }
-                await this.workflowService.saveEvent({
-                  type: "error",
+                await createErrorEvent({
                   workflowId: this.jobId,
-                  data: eventData,
-                  timestamp: new Date(),
+                  content: validationResult.error.message,
                 })
               }
             }
           } catch (error) {
             if (this.jobId) {
-              const eventData: ErrorData = {
-                error:
-                  error instanceof Error ? error : new Error(String(error)),
-                recoverable: true,
-              }
-              await this.workflowService.saveEvent({
-                type: "error",
+              await createErrorEvent({
                 workflowId: this.jobId,
-                data: eventData,
-                timestamp: new Date(),
+                content: String(error),
               })
             }
           }

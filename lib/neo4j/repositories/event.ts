@@ -4,6 +4,8 @@ import { AnyEvent as appAnyEvent } from "@/lib/types"
 import {
   AnyEvent,
   anyEventSchema,
+  ErrorEvent,
+  errorEventSchema,
   isLLMResponseWithPlan,
   LLMResponse,
   llmResponseSchema,
@@ -106,6 +108,21 @@ export async function createToolCallResultEvent(
     { id, type, toolCallId, toolName, content }
   )
   return toolCallResultSchema.parse(result.records[0]?.get("e")?.properties)
+}
+
+export async function createErrorEvent(
+  tx: ManagedTransaction,
+  event: Omit<ErrorEvent, "createdAt" | "workflowId">
+): Promise<ErrorEvent> {
+  const { id, type, content } = event
+  const result = await tx.run<{ e: Node<Integer, ErrorEvent, "Event"> }>(
+    `
+      CREATE (e:Event {id: $id, createdAt: datetime(), type: $type, content: $content})
+      RETURN e
+      `,
+    { id, type, content }
+  )
+  return errorEventSchema.parse(result.records[0]?.get("e")?.properties)
 }
 
 export async function findFirst(
