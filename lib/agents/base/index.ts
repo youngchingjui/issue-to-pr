@@ -16,7 +16,6 @@ import {
   createUserResponseEvent,
   deleteEvent,
 } from "@/lib/neo4j/services/event"
-import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceService"
 import { AgentConstructorParams, Tool } from "@/lib/types"
 
 type EnhancedMessage = ChatCompletionMessageParam & {
@@ -39,7 +38,6 @@ export class Agent {
   llm: OpenAI
   model: ChatModel = "gpt-4.1"
   jobId?: string
-  private workflowService: WorkflowPersistenceService
 
   constructor({ model, systemPrompt, apiKey }: AgentConstructorParams) {
     if (model) {
@@ -48,7 +46,6 @@ export class Agent {
     if (apiKey) {
       this.addApiKey(apiKey)
     }
-    this.workflowService = new WorkflowPersistenceService()
     if (systemPrompt) {
       this.setSystemPrompt(systemPrompt)
     }
