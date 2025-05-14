@@ -12,6 +12,7 @@ import {
 import {
   createErrorEvent as dbCreateErrorEvent,
   createLLMResponseEvent as dbCreateLLMResponseEvent,
+  createStatusEvent as dbCreateStatusEvent,
   createSystemPromptEvent as dbCreateSystemPromptEvent,
   createToolCallEvent as dbCreateToolCallEvent,
   createToolCallResultEvent as dbCreateToolCallResultEvent,
@@ -21,6 +22,7 @@ import {
 import {
   ErrorEvent,
   LLMResponse,
+  StatusEvent,
   SystemPrompt,
   ToolCall,
   ToolCallResult,
@@ -230,6 +232,45 @@ export async function createToolCallResultEvent({
           toolName,
           content,
           type: "toolCallResult",
+        })
+
+        // Attach it to the workflow
+        await connectToWorkflow(tx, workflowId, id, parentId)
+
+        return eventNode
+      }
+    )
+
+    return {
+      ...result,
+      createdAt: result.createdAt.toStandardDate(),
+      workflowId,
+    }
+  } catch (e) {
+    console.error(e)
+    throw e
+  }
+}
+
+export async function createStatusEvent({
+  id = uuidv4(),
+  workflowId,
+  content,
+  parentId,
+}: {
+  id?: string
+  workflowId: string
+  content: string
+  parentId?: string
+}): Promise<StatusEvent> {
+  const session = await n4j.getSession()
+  try {
+    const result = await session.executeWrite(
+      async (tx: ManagedTransaction) => {
+        // Create the event node
+        const eventNode = await dbCreateStatusEvent(tx, {
+          id,
+          content,
         })
 
         // Attach it to the workflow

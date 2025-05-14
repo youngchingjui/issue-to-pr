@@ -9,6 +9,8 @@ import {
   isLLMResponseWithPlan,
   LLMResponse,
   llmResponseSchema,
+  StatusEvent,
+  statusEventSchema,
   SystemPrompt,
   systemPromptSchema,
   ToolCall,
@@ -110,6 +112,21 @@ export async function createToolCallResultEvent(
     { id, type, toolCallId, toolName, content }
   )
   return toolCallResultSchema.parse(result.records[0]?.get("e")?.properties)
+}
+
+export async function createStatusEvent(
+  tx: ManagedTransaction,
+  event: Omit<StatusEvent, "createdAt" | "workflowId" | "type">
+): Promise<StatusEvent> {
+  const { id, content } = event
+  const result = await tx.run<{ e: Node<Integer, StatusEvent, "Event"> }>(
+    `
+      CREATE (e:Event {id: $id, createdAt: datetime(), type: 'status', content: $content})
+      RETURN e
+      `,
+    { id, content }
+  )
+  return statusEventSchema.parse(result.records[0]?.get("e")?.properties)
 }
 
 export async function createErrorEvent(
