@@ -4,6 +4,7 @@ import { n4j } from "@/lib/neo4j/client"
 import { toAppEvent } from "@/lib/neo4j/repositories/event"
 import { toAppIssue } from "@/lib/neo4j/repositories/issue"
 import {
+  create,
   getWithDetails,
   listAll,
   listForIssue,
@@ -39,30 +40,46 @@ export async function initializeWorkflowRun({
 }: {
   id: string
   type: WorkflowType
-  issueNumber: number
-  repoFullName: string
+  issueNumber?: number
+  repoFullName?: string
   postToGithub?: boolean
-}): Promise<{ issue: AppIssue; run: AppWorkflowRun }> {
+}): Promise<{ issue?: AppIssue; run: AppWorkflowRun }> {
   const session = await n4j.getSession()
   try {
-    return await session.executeWrite(async (tx) => {
-      const { run, issue } = await mergeIssueLink(tx, {
-        workflowRun: {
-          id,
-          type,
-          postToGithub,
-        },
-        issue: {
-          repoFullName,
-          number: int(issueNumber),
-        },
-      })
+    // Handle database operations within transaction
+    const result = await session.executeWrite(async (tx) => {
+      // If we have both issueNumber and repoFullName, create and link the issue
+      if (issueNumber && repoFullName) {
+        return await mergeIssueLink(tx, {
+          workflowRun: {
+            id,
+            type,
+            postToGithub,
+          },
+          issue: {
+            repoFullName,
+            number: int(issueNumber),
+          },
+        })
+      }
 
+      // Otherwise just create the workflow run without an issue
+      const run = await create(tx, {
+        id,
+        type,
+        postToGithub,
+      })
       return {
-        issue: toAppIssue(issue),
-        run: toAppWorkflowRun(run),
+        run,
+        issue: null,
       }
     })
+
+    // Transform database models to application models outside the transaction
+    return {
+      run: toAppWorkflowRun(result.run),
+      ...(result.issue && { issue: toAppIssue(result.issue) }),
+    }
   } finally {
     await session.close()
   }

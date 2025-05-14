@@ -9,8 +9,11 @@ import {
   getPullRequestReviews,
 } from "@/lib/github/pullRequests"
 import { langfuse } from "@/lib/langfuse"
-import WorkflowEventEmitter from "@/lib/services/EventEmitter"
-import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceService"
+import {
+  createStatusEvent,
+  createWorkflowStateEvent,
+} from "@/lib/neo4j/services/event"
+import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
 import { SearchCodeTool } from "@/lib/tools"
 import { GetFileContentTool } from "@/lib/tools"
 import {
@@ -18,7 +21,6 @@ import {
   IssueComment,
   PullRequestReview,
 } from "@/lib/types/github"
-import { WorkflowEvent } from "@/lib/types/workflow"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 
 interface ReviewPullRequestParams {
@@ -41,7 +43,6 @@ export async function reviewPullRequest({
   jobId,
 }: ReviewPullRequestParams) {
   const workflowId = jobId || uuidv4()
-  const persistenceService = new WorkflowPersistenceService()
 
   try {
     // This workflow takes in a Pull Request or git diff
@@ -66,22 +67,19 @@ export async function reviewPullRequest({
       )
     }
 
-    // Emit workflow start event
-    await persistenceService.saveEvent({
-      type: "status",
-      workflowId,
-      data: {
-        status: "Starting PR review",
-      },
-      timestamp: new Date(),
+    // Initialize workflow
+    await initializeWorkflowRun({
+      id: workflowId,
+      type: "reviewPullRequest",
+      issueNumber: issue?.number || undefined,
+      repoFullName: repoFullName,
+      postToGithub: false,
     })
 
-    WorkflowEventEmitter.emit(workflowId, {
-      type: "llm_response",
-      data: {
-        content: `Starting PR review for ${pullNumber ? `PR #${pullNumber}` : "provided diff"} in ${repoFullName}`,
-      },
-      timestamp: new Date(),
+    // Emit workflow start event
+    await createWorkflowStateEvent({
+      workflowId,
+      state: "running",
     })
 
     // Start a trace for this workflow
@@ -112,17 +110,15 @@ export async function reviewPullRequest({
 
     // Initialize LLM
     const reviewer = new ReviewerAgent({ apiKey })
+    await reviewer.addJobId(workflowId)
+    reviewer.addSpan({ span, generationName: "Review pull request" })
 
     let finalDiff: string
     // Identify the diff
     if (pullNumber) {
-      await persistenceService.saveEvent({
-        type: "status",
+      await createStatusEvent({
         workflowId,
-        data: {
-          status: "fetching_pr_diff",
-        },
-        timestamp: new Date(),
+        content: "Fetching PR diff",
       })
 
       finalDiff = await getPullRequestDiff({
@@ -137,13 +133,9 @@ export async function reviewPullRequest({
 
     let updatedBaseDir = baseDir
     if (!baseDir) {
-      await persistenceService.saveEvent({
-        type: "status",
+      await createStatusEvent({
         workflowId,
-        data: {
-          status: "setting_up_local_repo",
-        },
-        timestamp: new Date(),
+        content: "Setting up local repository",
       })
 
       const repo = await getRepoFromString(repoFullName)
@@ -209,68 +201,29 @@ export async function reviewPullRequest({
     reviewer.addTool(getFileContentTool)
     reviewer.addTool(searchCodeTool)
 
-    // Attach span to LLM
-    reviewer.addSpan({ span, generationName: "Review pull request" })
-
     // Run the LLM
-    await persistenceService.saveEvent({
-      type: "llm_response",
+    await createStatusEvent({
       workflowId,
-      data: {
-        content: "Starting PR review analysis",
-      },
-      timestamp: new Date(),
+      content: "Starting PR review analysis",
     })
 
     const response = await reviewer.runWithFunctions()
 
     // Emit completion event
-    await persistenceService.saveEvent({
-      type: "status",
+    await createWorkflowStateEvent({
       workflowId,
-      data: {
-        status: "completed",
-        success: true,
-      },
-      timestamp: new Date(),
-    })
-
-    WorkflowEventEmitter.emit(workflowId, {
-      type: "status",
-      data: {
-        status: "completed",
-        success: true,
-      },
-      timestamp: new Date(),
+      state: "completed",
     })
 
     return response
   } catch (error) {
-    // Emit error event
-    const errorEvent: WorkflowEvent = {
-      id: uuidv4(),
-      type: "error" as const,
+    // End with error event
+    await createWorkflowStateEvent({
       workflowId,
-      data: {
-        error: error instanceof Error ? error : new Error(String(error)),
-        recoverable: false,
-      },
-      timestamp: new Date(),
-    }
-
-    await persistenceService.saveEvent({
-      ...errorEvent,
-      workflowId,
+      state: "error",
+      content: String(error),
     })
 
-    WorkflowEventEmitter.emit(workflowId, {
-      type: "error",
-      data: {
-        error: error instanceof Error ? error : new Error(String(error)),
-        recoverable: false,
-      },
-      timestamp: new Date(),
-    })
     throw error
   }
 }
