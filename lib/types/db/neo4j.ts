@@ -73,9 +73,9 @@ export const statusEventSchema = appStatusEventSchema
     workflowId: true,
   })
 
-export const workflowStateSchema = appWorkflowStateSchema.merge(
-  z.object({ createdAt: z.instanceof(DateTime) })
-)
+export const workflowStateSchema = appWorkflowStateSchema
+  .omit({ workflowId: true })
+  .merge(z.object({ createdAt: z.instanceof(DateTime) }))
 
 export const systemPromptSchema = appSystemPromptSchema
   .omit({ workflowId: true })

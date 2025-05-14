@@ -137,6 +137,7 @@ export const toolCallResultSchema = baseEventSchema.extend({
   content: z.string(),
 })
 
+// TODO: Change 'running' to 'inProgress'
 export const workflowStateSchema = baseEventSchema.extend({
   type: z.literal("workflowState"),
   state: z.enum(["running", "completed", "error"]),

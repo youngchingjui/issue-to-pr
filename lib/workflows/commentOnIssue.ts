@@ -7,7 +7,8 @@ import {
   updateIssueComment,
 } from "@/lib/github/issues"
 import { langfuse } from "@/lib/langfuse"
-import { createErrorEvent, createStatusEvent } from "@/lib/neo4j"
+import { createStatusEvent } from "@/lib/neo4j"
+import { createWorkflowStateEvent } from "@/lib/neo4j/services/event"
 import { tagMessageAsPlan } from "@/lib/neo4j/services/plan"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
 import GetFileContentTool from "@/lib/tools/GetFileContent"
@@ -44,6 +45,11 @@ export default async function commentOnIssue(
       issueNumber,
       repoFullName: repo.full_name,
       postToGithub,
+    })
+
+    latestEvent = await createWorkflowStateEvent({
+      workflowId: jobId,
+      state: "running",
     })
 
     latestEvent = await createStatusEvent({
@@ -182,6 +188,7 @@ export default async function commentOnIssue(
     }
 
     const response = await thinker.runWithFunctions()
+
     span.end()
 
     const lastAssistantMessage = response.messages
@@ -251,6 +258,11 @@ export default async function commentOnIssue(
       })
     }
 
+    await createWorkflowStateEvent({
+      workflowId: jobId,
+      state: "completed",
+    })
+
     // Return the comment
     return { status: "complete", issueComment: response }
   } catch (error) {
@@ -283,10 +295,10 @@ export default async function commentOnIssue(
       }
     }
 
-    await createErrorEvent({
+    await createWorkflowStateEvent({
       workflowId: jobId,
+      state: "error",
       content: errorMessage,
-      parentId: latestEvent?.id,
     })
 
     throw githubError // Re-throw the error to be handled by the caller

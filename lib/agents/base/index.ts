@@ -279,19 +279,6 @@ export class Agent {
       }
       return await this.runWithFunctions()
     } else {
-      // Only emit status event to mark the end of the agent's execution
-      if (this.jobId) {
-        await this.workflowService.saveEvent({
-          workflowId: this.jobId,
-          timestamp: new Date(),
-          type: "status",
-          data: {
-            status: "completed",
-            success: true,
-          },
-        })
-      }
-
       return {
         jobId: this.jobId,
         startTime,

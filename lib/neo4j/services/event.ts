@@ -16,6 +16,7 @@ import {
   createToolCallEvent as dbCreateToolCallEvent,
   createToolCallResultEvent as dbCreateToolCallResultEvent,
   createUserResponseEvent as dbCreateUserResponseEvent,
+  createWorkflowStateEvent as dbCreateWorkflowStateEvent,
 } from "@/lib/neo4j/repositories/event"
 import {
   ErrorEvent,
@@ -24,6 +25,7 @@ import {
   ToolCall,
   ToolCallResult,
   UserMessage,
+  WorkflowState,
 } from "@/lib/types"
 
 // This function creates a message event node and connects it to the workflow event chain.
@@ -271,6 +273,46 @@ export async function createErrorEvent({
 
         // Attach it to the workflow
         await connectToWorkflow(tx, workflowId, id, parentId)
+
+        return eventNode
+      }
+    )
+
+    return {
+      ...result,
+      createdAt: result.createdAt.toStandardDate(),
+      workflowId,
+    }
+  } catch (e) {
+    console.error(e)
+    throw e
+  }
+}
+
+export async function createWorkflowStateEvent({
+  id = uuidv4(),
+  workflowId,
+  state,
+  content,
+}: {
+  id?: string
+  workflowId: string
+  state: WorkflowState["state"]
+  content?: string
+}): Promise<WorkflowState> {
+  const session = await n4j.getSession()
+  try {
+    const result = await session.executeWrite(
+      async (tx: ManagedTransaction) => {
+        // Create the event node
+        const eventNode = await dbCreateWorkflowStateEvent(tx, {
+          id,
+          state,
+          content,
+        })
+
+        // Attach it to the workflow
+        await connectToWorkflow(tx, workflowId, id)
 
         return eventNode
       }
