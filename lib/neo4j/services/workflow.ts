@@ -85,10 +85,12 @@ export async function listWorkflowRuns(issue?: {
       return await listAll(tx)
     })
 
-    return result.map((run) => ({
-      ...toAppWorkflowRun(run),
-      state: run.state,
-    }))
+    return result
+      .map((run) => ({
+        ...toAppWorkflowRun(run),
+        state: run.state,
+      }))
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
   } finally {
     await session.close()
   }
