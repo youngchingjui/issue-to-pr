@@ -1,13 +1,16 @@
 import { int, ManagedTransaction } from "neo4j-driver"
 
 import { n4j } from "@/lib/neo4j/client"
+import { toAppIssue } from "@/lib/neo4j/repositories/issue"
 import {
   createPlanImplementsIssue,
+  getPlanWithDetails as dbGetPlanWithDetails,
   labelEventAsPlan,
   listPlansForIssue as dbListPlansForIssue,
   toAppPlan,
 } from "@/lib/neo4j/repositories/plan"
-import { LLMResponseWithPlan } from "@/lib/types"
+import { toAppWorkflowRun } from "@/lib/neo4j/repositories/workflowRun"
+import { Issue, LLMResponseWithPlan, Plan, WorkflowRun } from "@/lib/types"
 
 export async function listPlansForIssue({
   repoFullName,
@@ -80,6 +83,25 @@ export async function tagMessageAsPlan({
       content: result.content,
       type: "llmResponseWithPlan",
       createdAt: result.createdAt.toStandardDate(),
+    }
+  } finally {
+    await session.close()
+  }
+}
+
+export async function getPlanWithDetails(
+  planId: string
+): Promise<{ plan: Plan; workflow: WorkflowRun; issue: Issue }> {
+  const session = await n4j.getSession()
+  try {
+    const result = await session.executeRead(async (tx: ManagedTransaction) => {
+      return await dbGetPlanWithDetails(tx, { planId })
+    })
+
+    return {
+      plan: toAppPlan(result.plan),
+      workflow: toAppWorkflowRun(result.workflow),
+      issue: toAppIssue(result.issue),
     }
   } finally {
     await session.close()

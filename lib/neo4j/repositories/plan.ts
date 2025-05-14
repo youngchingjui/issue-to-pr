@@ -9,6 +9,8 @@ import {
   llmResponseWithPlanSchema,
   Plan,
   planSchema,
+  WorkflowRun,
+  workflowRunSchema,
 } from "@/lib/types/db/neo4j"
 
 // Retrieve Event node by id
@@ -97,5 +99,31 @@ export const toAppPlan = (dbPlan: Plan): AppPlan => {
     ...dbPlan,
     version: dbPlan.version.toNumber(),
     createdAt: dbPlan.createdAt.toStandardDate(),
+  }
+}
+
+// Get Plan and related nodes by planId
+export async function getPlanWithDetails(
+  tx: ManagedTransaction,
+  { planId }: { planId: string }
+) {
+  const result = await tx.run<{
+    p: Node<Integer, Plan | LLMResponseWithPlan, "Plan">
+    w: Node<Integer, WorkflowRun, "WorkflowRun">
+    i: Node<Integer, Issue, "Issue">
+  }>(
+    `
+    MATCH (p:Plan {id: $planId})-[:IMPLEMENTS]->(i:Issue)<-[:BASED_ON_ISSUE]-(w:WorkflowRun)
+    RETURN p, w, i
+    `,
+    { planId }
+  )
+
+  const raw = result.records[0]
+
+  return {
+    plan: planSchema.parse(raw.get("p")?.properties),
+    workflow: workflowRunSchema.parse(raw.get("w")?.properties),
+    issue: issueSchema.parse(raw.get("i")?.properties),
   }
 }

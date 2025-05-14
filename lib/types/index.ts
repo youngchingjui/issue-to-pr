@@ -59,13 +59,6 @@ export const planMetaSchema = planSchema.omit({
   createdAt: true,
 })
 
-export const planWithDetailsSchema = planSchema.merge(
-  z.object({
-    workflow: workflowRunSchema,
-    issue: issueSchema,
-  })
-)
-
 // Events
 const eventTypes = z.enum([
   "error",
@@ -184,7 +177,6 @@ export type LLMResponseWithPlan = z.infer<typeof llmResponseWithPlanSchema>
 export type MessageEvent = z.infer<typeof messageEventSchema>
 export type Plan = z.infer<typeof planSchema>
 export type PlanMeta = z.infer<typeof planMetaSchema>
-export type PlanWithDetails = z.infer<typeof planWithDetailsSchema>
 export type ReviewComment = z.infer<typeof reviewCommentSchema>
 export type StatusEvent = z.infer<typeof statusEventSchema>
 export type SystemPrompt = z.infer<typeof systemPromptSchema>
