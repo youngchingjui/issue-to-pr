@@ -19,6 +19,26 @@ export async function getEventById(
   //TODO: Implement this
 }
 
+export async function listPlansForIssue(
+  tx: ManagedTransaction,
+  { repoFullName, issueNumber }: { repoFullName: string; issueNumber: number }
+) {
+  const result = await tx.run<{
+    p: Node<Integer, Plan | LLMResponseWithPlan, "Plan">
+  }>(
+    `
+    MATCH (p:Plan)-[:IMPLEMENTS]->(i:Issue {number: $issueNumber, repoFullName: $repoFullName})
+    RETURN p
+    `,
+    { repoFullName, issueNumber }
+  )
+
+  return result.records.map((record) => {
+    const raw = record.get("p")?.properties
+    return z.union([planSchema, llmResponseWithPlanSchema]).parse(raw)
+  })
+}
+
 // Add :Plan label and properties to Event node
 export async function labelEventAsPlan(
   tx: ManagedTransaction,

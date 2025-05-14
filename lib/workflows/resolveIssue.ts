@@ -13,8 +13,8 @@ import {
   createStatusEvent,
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
+import { listPlansForIssue } from "@/lib/neo4j/services/plan"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
-import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceService"
 import {
   BranchTool,
   CommitTool,
@@ -43,7 +43,6 @@ interface ResolveIssueParams {
 export const resolveIssue = async (params: ResolveIssueParams) => {
   const { issue, repository, apiKey, jobId, createPR } = params
   const workflowId = jobId // Keep workflowId alias for clarity if preferred
-  const persistenceService = new WorkflowPersistenceService()
 
   let userPermissions: RepoPermissions | null = null
 
@@ -179,18 +178,24 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
     }
 
     // Check for existing plan
-    const plan = await persistenceService.getPlanForIssue(
-      issue.number,
-      repository.full_name
-    )
+    const plans = await listPlansForIssue({
+      repoFullName: repository.full_name,
+      issueNumber: issue.number,
+    })
+    plans.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+
+    // Take the latest plan for now.
+    // TODO: Add a UI to allow the user to select a plan
+    const plan = plans[0]
 
     if (plan) {
       // Inject the plan itself as a user message (for clarity, before issue/comments/tree)
       await coder.addMessage({
         role: "user",
-        content: `Implementation plan for this issue (from previous workflow):
-
-${plan.message.data.content || "PLAN CONTENT UNAVAILABLE"}`,
+        content: `
+Implementation plan for this issue (from previous workflow):
+${plan.content}
+`,
       })
     }
 

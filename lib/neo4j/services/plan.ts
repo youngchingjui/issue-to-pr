@@ -1,8 +1,35 @@
 import { int, ManagedTransaction } from "neo4j-driver"
 
 import { n4j } from "@/lib/neo4j/client"
-import * as planRepo from "@/lib/neo4j/repositories/plan"
+import {
+  createPlanImplementsIssue,
+  labelEventAsPlan,
+  listPlansForIssue as dbListPlansForIssue,
+  toAppPlan,
+} from "@/lib/neo4j/repositories/plan"
 import { LLMResponseWithPlan } from "@/lib/types"
+
+export async function listPlansForIssue({
+  repoFullName,
+  issueNumber,
+}: {
+  repoFullName: string
+  issueNumber: number
+}) {
+  const session = await n4j.getSession()
+
+  try {
+    const result = await session.executeRead(async (tx: ManagedTransaction) => {
+      return await dbListPlansForIssue(tx, {
+        repoFullName,
+        issueNumber,
+      })
+    })
+    return result.map(toAppPlan)
+  } finally {
+    await session.close()
+  }
+}
 
 /**
  * Finds an existing event by eventId and labels it as a Plan, attaching default plan metadata (status, version, etc).
@@ -24,14 +51,14 @@ export async function tagMessageAsPlan({
     const result = await session.executeWrite(
       async (tx: ManagedTransaction) => {
         // Label as Plan
-        const planNode = await planRepo.labelEventAsPlan(tx, {
+        const planNode = await labelEventAsPlan(tx, {
           eventId,
           status: "draft",
           version: int(1),
         })
 
         // Create relationship
-        await planRepo.createPlanImplementsIssue(tx, {
+        await createPlanImplementsIssue(tx, {
           eventId,
           issueNumber: int(issueNumber),
           repoFullName,
