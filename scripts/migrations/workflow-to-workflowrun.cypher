@@ -23,13 +23,25 @@ MATCH (w:WorkflowRun)-[r:BELONGS_TO_WORKFLOW]->(e:Event)
 WHERE NOT ( (e)<-[:NEXT]-(:Event) )
 CREATE (w)-[r2:STARTS_WITH]->(e)
 
-// Set w.workflowType
+// Set w.type
 MATCH (w:WorkflowRun)
 WHERE w.metadata CONTAINS 'workflowType'
 WITH w, apoc.convert.fromJsonMap(w.metadata) AS meta
 WHERE meta.workflowType IS NOT NULL
-SET w.workflowType = meta['workflowType']
-RETURN w.id, w.workflowType 
+SET w.type = meta['workflowType']
+RETURN w.id, w.type 
+
+// And if some workflows don't have existing workflowType, just set it as "commentOnIssue"
+MATCH (w:WorkflowRun)
+WHERE w.type IS NULL
+SET w.type = 'commentOnIssue'
+RETURN w, w.type
+
+// Convert w.type from "resolve_issue" to "resolveIssue" (if exists)
+MATCH (w:WorkflowRun {type: 'resolve_issue'})
+SET w.type = 'resolveIssue'
+RETURN w, w.type
+
 
 // Find any Workflow Runs that don't have `createdAt` and do something about it, ie:
 MATCH (w:WorkflowRun)

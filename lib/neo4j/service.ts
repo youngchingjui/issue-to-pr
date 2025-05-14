@@ -36,61 +36,9 @@ export class n4jService {
   }
 
   // WORKFLOW RUNS
-  // TODO: Migrate 'status' to 'state' in database
-  public async listWorkflowRuns({
-    issue,
-  }: { issue?: { repoFullName: string; issueNumber: number } } = {}): Promise<
-    (WorkflowRun & { state: WorkflowRunState })[]
-  > {
-    const session = await this.client.getSession()
-    try {
-      const result = await session.run<{
-        w: Node<Integer, WorkflowRun>
-        lastStatus: string | null
-      }>(
-        `
-        MATCH (w:WorkflowRun)
-        ${issue ? `MATCH (w)-[:BASED_ON_ISSUE]->(i:Issue {number: $issue.issueNumber, repoFullName: $issue.repoFullName})` : ""}
-        OPTIONAL MATCH (status:Message {type: 'status'})-[:PART_OF]->(w)
-        OPTIONAL MATCH (error:Message {type: 'error'})-[:PART_OF]->(w)
-        WITH w, collect(status) as statusNodes, collect(error) as errorNodes
-        
-        // Determine the final status based on priority
-        WITH w,
-             [node in statusNodes WHERE apoc.convert.fromJsonMap(node.data).status = 'completed'][0] as completedStatus,
-             [node in statusNodes WHERE apoc.convert.fromJsonMap(node.data).status = 'running'][0] as runningStatus,
-             size(errorNodes) > 0 as hasError
-        
-        WITH w, 
-             CASE
-               WHEN completedStatus IS NOT NULL 
-                 THEN 'completed'
-               WHEN hasError 
-                 THEN 'error'
-               WHEN runningStatus IS NOT NULL 
-                 THEN 'running'
-               ELSE null
-             END as lastStatus
-        
-        RETURN w, lastStatus
-        ORDER BY w.created_at DESC
-        `,
-        { issue }
-      )
-      const workflows = result.records.map((record) => record.get("w"))
-      const lastStatus = result.records.map((record) =>
-        record.get("lastStatus")
-      )
-
-      return workflows.map((workflow, index) => ({
-        ...workflow.properties,
-        state: lastStatus[index] as WorkflowRunState,
-      }))
-    } finally {
-      await session.close()
-    }
-  }
-
+  /**
+   * @deprecated This function will be migrated to the repositories and services folders (see /lib/neo4j/repositories and /lib/neo4j/services).
+   */
   public async getWorkflow(workflowId: string): Promise<WorkflowRun | null> {
     const session = await this.client.getSession()
     try {
@@ -110,6 +58,9 @@ export class n4jService {
   }
 
   // EVENTS
+  /**
+   * @deprecated This function will be migrated to the repositories and services folders (see /lib/neo4j/repositories and /lib/neo4j/services).
+   */
   public async listEventsForWorkflow(workflowId: string): Promise<Event[]> {
     const session = await this.client.getSession()
     try {

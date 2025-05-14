@@ -10,6 +10,9 @@ export type User = {
   displayName: string // Cached display name for convenient querying
 }
 
+/**
+ * @deprecated Use the Zod schema and inferred type from lib/types/index.ts instead.
+ */
 export type Repository = {
   name: string // Repository name
   owner: string // Repository owner
@@ -21,6 +24,9 @@ export type Repository = {
   visibility?: "public" | "private"
 }
 
+/**
+ * @deprecated Use the Zod schema and inferred type from lib/types/index.ts instead.
+ */
 export type Issue = {
   number: number // Issue number
   id: string // GitHub issue ID
@@ -35,6 +41,9 @@ export type Issue = {
   updatedAt?: Date
 }
 
+/**
+ * @deprecated Use the Zod schema and inferred type from lib/types/index.ts instead.
+ */
 export type PullRequest = {
   number: number // PR number
   id: string // GitHub PR ID
@@ -147,6 +156,9 @@ export interface ToolCallResult extends BaseEvent {
 }
 
 // Workflow State Events
+/**
+ * @deprecated Use the Zod schema and inferred type from lib/types/index.ts instead.
+ */
 export type WorkflowRunState = "running" | "completed" | "error"
 /**
  * @deprecated Use the Zod schema and inferred type from lib/types/index.ts instead.

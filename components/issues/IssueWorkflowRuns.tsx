@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { n4j } from "@/lib/neo4j/service"
+import { listWorkflowRuns } from "@/lib/neo4j/services/workflow"
 
 interface Props {
   repoFullName: string
@@ -24,9 +24,7 @@ export default async function IssueWorkflowRuns({
   repoFullName,
   issueNumber,
 }: Props) {
-  const runs = await n4j.listWorkflowRuns({
-    issue: { repoFullName, issueNumber },
-  })
+  const runs = await listWorkflowRuns({ repoFullName, issueNumber })
 
   if (runs.length === 0) {
     return null // Don't show anything if no workflows
@@ -69,8 +67,8 @@ export default async function IssueWorkflowRuns({
                   </Badge>
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {run.created_at
-                    ? formatDistanceToNow(run.created_at, {
+                  {run.createdAt
+                    ? formatDistanceToNow(run.createdAt, {
                         addSuffix: true,
                       })
                     : "N/A"}

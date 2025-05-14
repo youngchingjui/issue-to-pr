@@ -138,9 +138,11 @@ export const toolCallResultSchema = baseEventSchema.extend({
 })
 
 // TODO: Change 'running' to 'inProgress'
-export const workflowStateSchema = baseEventSchema.extend({
+export const workflowRunStateSchema = z.enum(["running", "completed", "error"])
+
+export const workflowStateEventSchema = baseEventSchema.extend({
   type: z.literal("workflowState"),
-  state: z.enum(["running", "completed", "error"]),
+  state: workflowRunStateSchema,
 })
 
 export const reviewCommentSchema = baseEventSchema.extend({
@@ -168,7 +170,7 @@ export const anyEventSchema = z.discriminatedUnion("type", [
   errorEventSchema,
   reviewCommentSchema,
   statusEventSchema,
-  workflowStateSchema,
+  workflowStateEventSchema,
 ])
 
 // Type exports
@@ -190,5 +192,6 @@ export type ToolCall = z.infer<typeof toolCallSchema>
 export type ToolCallResult = z.infer<typeof toolCallResultSchema>
 export type UserMessage = z.infer<typeof userMessageSchema>
 export type WorkflowRun = z.infer<typeof workflowRunSchema>
-export type WorkflowState = z.infer<typeof workflowStateSchema>
+export type WorkflowStateEvent = z.infer<typeof workflowStateEventSchema>
+export type WorkflowRunState = z.infer<typeof workflowRunStateSchema>
 export type WorkflowType = z.infer<typeof workflowTypeEnum>

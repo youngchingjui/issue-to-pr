@@ -17,8 +17,8 @@ import {
   toolCallSchema,
   UserMessage,
   userMessageSchema,
-  WorkflowState,
-  workflowStateSchema,
+  WorkflowStateEvent,
+  workflowStateEventSchema,
 } from "@/lib/types/db/neo4j"
 
 export async function get(
@@ -129,17 +129,19 @@ export async function createErrorEvent(
 
 export async function createWorkflowStateEvent(
   tx: ManagedTransaction,
-  event: Omit<WorkflowState, "createdAt" | "workflowId" | "type">
-): Promise<WorkflowState> {
+  event: Omit<WorkflowStateEvent, "createdAt" | "workflowId" | "type">
+): Promise<WorkflowStateEvent> {
   const { id, state, content } = event
-  const result = await tx.run<{ e: Node<Integer, WorkflowState, "Event"> }>(
+  const result = await tx.run<{
+    e: Node<Integer, WorkflowStateEvent, "Event">
+  }>(
     `
       CREATE (e:Event {id: $id, createdAt: datetime(), type: $type, state: $state, content: $content})
       RETURN e
       `,
     { id, type: "workflowState", state, content: content || null }
   )
-  return workflowStateSchema.parse(result.records[0]?.get("e")?.properties)
+  return workflowStateEventSchema.parse(result.records[0]?.get("e")?.properties)
 }
 
 export async function findFirst(

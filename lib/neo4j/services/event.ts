@@ -25,7 +25,8 @@ import {
   ToolCall,
   ToolCallResult,
   UserMessage,
-  WorkflowState,
+  WorkflowRunState,
+  WorkflowStateEvent,
 } from "@/lib/types"
 
 // This function creates a message event node and connects it to the workflow event chain.
@@ -297,9 +298,9 @@ export async function createWorkflowStateEvent({
 }: {
   id?: string
   workflowId: string
-  state: WorkflowState["state"]
+  state: WorkflowRunState
   content?: string
-}): Promise<WorkflowState> {
+}): Promise<WorkflowStateEvent> {
   const session = await n4j.getSession()
   try {
     const result = await session.executeWrite(

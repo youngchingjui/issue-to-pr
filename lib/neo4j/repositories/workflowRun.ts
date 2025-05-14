@@ -11,6 +11,8 @@ import {
   llmResponseWithPlanSchema,
   WorkflowRun,
   workflowRunSchema,
+  WorkflowRunState,
+  workflowRunStateSchema,
 } from "@/lib/types/db/neo4j"
 
 export async function create(
@@ -41,6 +43,54 @@ export async function get(
   )
   const raw = result.records[0]?.get("w")?.properties
   return raw ? workflowRunSchema.parse(raw) : null
+}
+
+export async function listAll(
+  tx: ManagedTransaction
+): Promise<(WorkflowRun & { state: WorkflowRunState })[]> {
+  const result = await tx.run<{
+    w: Node<Integer, WorkflowRun, "WorkflowRun">
+    state: WorkflowRunState
+  }>(
+    `MATCH (w:WorkflowRun)
+    OPTIONAL MATCH (w)-[:STARTS_WITH|NEXT*]->(e:Event {type: 'workflowState'})
+    WITH w, e
+    ORDER BY e.createdAt DESC
+    WITH w, collect(e)[0] as latestWorkflowState
+    RETURN w, latestWorkflowState.state AS state
+    `
+  )
+
+  return result.records.map((record) => {
+    const run = workflowRunSchema.parse(record.get("w").properties)
+    const state = workflowRunStateSchema.safeParse(record.get("state"))
+    return { ...run, state: state.success ? state.data : "completed" }
+  })
+}
+
+export async function listForIssue(
+  tx: ManagedTransaction,
+  issue: Issue
+): Promise<(WorkflowRun & { state: WorkflowRunState })[]> {
+  const result = await tx.run<{
+    w: Node<Integer, WorkflowRun, "WorkflowRun">
+    state: WorkflowRunState
+  }>(
+    `MATCH (w:WorkflowRun)-[:BASED_ON_ISSUE]->(i:Issue {number: $issue.number, repoFullName: $issue.repoFullName})
+    OPTIONAL MATCH (w)-[:STARTS_WITH|NEXT*]->(e:Event {type: 'workflowState'})
+    WITH w, e
+    ORDER BY e.createdAt DESC
+    WITH w, collect(e)[0] as latestWorkflowState
+    RETURN w, latestWorkflowState.state AS state
+    `,
+    { issue }
+  )
+
+  return result.records.map((record) => {
+    const run = workflowRunSchema.parse(record.get("w").properties)
+    const state = workflowRunStateSchema.safeParse(record.get("state"))
+    return { ...run, state: state.success ? state.data : "completed" }
+  })
 }
 
 export async function linkToIssue(

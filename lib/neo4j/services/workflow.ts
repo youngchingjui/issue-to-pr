@@ -5,6 +5,8 @@ import { toAppEvent } from "@/lib/neo4j/repositories/event"
 import { toAppIssue } from "@/lib/neo4j/repositories/issue"
 import {
   getWithDetails,
+  listAll,
+  listForIssue,
   mergeIssueLink,
   toAppWorkflowRun,
 } from "@/lib/neo4j/repositories/workflowRun"
@@ -12,6 +14,7 @@ import {
   AnyEvent,
   Issue as AppIssue,
   WorkflowRun as AppWorkflowRun,
+  WorkflowRunState,
   WorkflowType,
 } from "@/lib/types"
 
@@ -60,6 +63,32 @@ export async function initializeWorkflowRun({
         run: toAppWorkflowRun(run),
       }
     })
+  } finally {
+    await session.close()
+  }
+}
+
+export async function listWorkflowRuns(issue?: {
+  repoFullName: string
+  issueNumber: number
+}): Promise<(AppWorkflowRun & { state: WorkflowRunState })[]> {
+  const session = await n4j.getSession()
+  try {
+    const result = await session.executeRead(async (tx) => {
+      if (issue) {
+        return await listForIssue(tx, {
+          repoFullName: issue.repoFullName,
+          number: int(issue.issueNumber),
+        })
+      }
+
+      return await listAll(tx)
+    })
+
+    return result.map((run) => ({
+      ...toAppWorkflowRun(run),
+      state: run.state,
+    }))
   } finally {
     await session.close()
   }

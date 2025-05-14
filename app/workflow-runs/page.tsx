@@ -13,10 +13,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { n4j } from "@/lib/neo4j/service"
+import { listWorkflowRuns } from "@/lib/neo4j/services/workflow"
 
 export default async function WorkflowRunsPage() {
-  const workflows = await n4j.listWorkflowRuns()
+  const workflows = await listWorkflowRuns()
 
   return (
     <main className="container mx-auto p-4">
@@ -63,8 +63,8 @@ export default async function WorkflowRunsPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="py-4 text-muted-foreground">
-                      {workflow.created_at
-                        ? formatDistanceToNow(workflow.created_at, {
+                      {workflow.createdAt
+                        ? formatDistanceToNow(workflow.createdAt, {
                             addSuffix: true,
                           })
                         : "N/A"}

@@ -13,14 +13,16 @@ import {
   toolCallSchema as appToolCallSchema,
   userMessageSchema as appUserMessageSchema,
   workflowRunSchema as appWorkflowRunSchema,
-  workflowStateSchema as appWorkflowStateSchema,
+  WorkflowRunState,
+  workflowRunStateSchema,
+  workflowStateEventSchema as appWorkflowStateEventSchema,
   WorkflowType,
   workflowTypeEnum,
 } from "@/lib/types"
 
 // Re-export for Neo4j DB layer
-export { workflowTypeEnum }
-export type { WorkflowType }
+export { workflowRunStateSchema, workflowTypeEnum }
+export type { WorkflowRunState, WorkflowType }
 
 // Neo4j data model schemas
 export const issueSchema = appIssueSchema
@@ -73,7 +75,7 @@ export const statusEventSchema = appStatusEventSchema
     workflowId: true,
   })
 
-export const workflowStateSchema = appWorkflowStateSchema
+export const workflowStateEventSchema = appWorkflowStateEventSchema
   .omit({ workflowId: true })
   .merge(z.object({ createdAt: z.instanceof(DateTime) }))
 
@@ -114,7 +116,7 @@ export const anyEventSchema = z.discriminatedUnion("type", [
   toolCallResultSchema,
   toolCallSchema,
   userMessageSchema,
-  workflowStateSchema,
+  workflowStateEventSchema,
 ])
 
 export type AnyEvent = z.infer<typeof anyEventSchema>
@@ -130,7 +132,7 @@ export type ToolCall = z.infer<typeof toolCallSchema>
 export type ToolCallResult = z.infer<typeof toolCallResultSchema>
 export type UserMessage = z.infer<typeof userMessageSchema>
 export type WorkflowRun = z.infer<typeof workflowRunSchema>
-export type WorkflowState = z.infer<typeof workflowStateSchema>
+export type WorkflowStateEvent = z.infer<typeof workflowStateEventSchema>
 
 export function isLLMResponseWithPlan(
   event: LLMResponse

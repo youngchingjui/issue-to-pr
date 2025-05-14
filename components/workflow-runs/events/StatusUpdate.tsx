@@ -3,10 +3,10 @@
 import { CheckCircle2 } from "lucide-react"
 
 import { EventTime } from "@/components/workflow-runs/events"
-import { StatusEvent, WorkflowState } from "@/lib/types"
+import { StatusEvent, WorkflowStateEvent } from "@/lib/types"
 
 interface Props {
-  event: StatusEvent | WorkflowState
+  event: StatusEvent | WorkflowStateEvent
 }
 
 export async function StatusUpdate({ event }: Props) {
