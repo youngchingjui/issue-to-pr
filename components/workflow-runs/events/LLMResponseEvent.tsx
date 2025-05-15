@@ -9,12 +9,12 @@ import { Button } from "@/components/ui/button"
 import { CollapsibleContent } from "@/components/ui/collapsible-content"
 import { EventTime } from "@/components/workflow-runs/events"
 import { CopyMarkdownButton } from "@/components/workflow-runs/events/CopyMarkdownButton"
-import { LLMResponse, LLMResponseWithPlan } from "@/lib/types"
+import { Issue, LLMResponse, LLMResponseWithPlan } from "@/lib/types"
 
 // Some LLM response event nodes will also be a Plan node
 export interface Props {
   event: LLMResponse | LLMResponseWithPlan
-  issue?: { number: number; repoFullName: string }
+  issue?: Issue
 }
 
 export async function LLMResponseEvent({ event, issue }: Props) {

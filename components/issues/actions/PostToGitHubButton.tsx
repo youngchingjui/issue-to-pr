@@ -4,14 +4,12 @@ import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { toast } from "@/lib/hooks/use-toast"
+import { Issue } from "@/lib/types"
 import { PostPlanRequest } from "@/lib/types/api/schemas"
 
 interface Props {
   content: string
-  issue: {
-    number: number
-    repoFullName: string
-  }
+  issue: Issue
 }
 
 export function PostToGitHubButton({ content, issue }: Props) {
