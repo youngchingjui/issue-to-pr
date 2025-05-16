@@ -9,14 +9,12 @@ WHERE w.metadata IS NOT NULL
 SET w:WorkflowRun
 REMOVE w:Workflow;
 
-// Step 2: Add Message label to Event nodes (without removing Event label)
-// TODO: Review if this is still necessary
-MATCH (e:Event)
-SET e:Message;
+// Step 2: Add Message label to SystemMessage, UserMessage, LLMResponse, ToolCall, ToolCallResponse Event nodes (without removing Event label)
+// TODO: Review
 
 // Create [:NEXT] relationships between chain of events
 MATCH (e1: Event )-[r:NEXT_EVENT]->(e2:Event)
-CREATE (e1)-[r2:NEXT]->(e2)
+MERGE (e1)-[r2:NEXT]->(e2)
 
 // Create [:STARTS_WITH] relationships between WorkflowRuns and first Event
 MATCH (w:WorkflowRun)-[r:BELONGS_TO_WORKFLOW]->(e:Event)
@@ -48,6 +46,13 @@ MATCH (w:WorkflowRun)
 WHERE w.createdAt IS NULL AND w.created_at IS NOT NULL
 SET w.createdAt = w.created_at
 RETURN w
+
+
+// EVENTS
+
+// Use this to get an overview of current event nodes
+MATCH (e:Event)
+RETURN e.type, labels(e), COUNT(*)
 
 // Set .createdAt property for (:Event) nodes
 MATCH (e:Event)
@@ -82,9 +87,15 @@ RETURN e
 MATCH (e:Event {type: 'tool_call'})
 WITH e, apoc.convert.fromJsonMap(e.data) AS data
 SET e.toolName = data.toolName
-SET e.arguments = apoc.convert.toJson(data.arguments)
+SET e.args = apoc.convert.toJson(data.arguments)
 SET e.type = 'toolCall'
 RETURN e
+
+// If (e:Event {type: 'toolCall'}) doesn't have .toolCallId, just set it as .id. This is saved properly moving forward
+MATCH (e:Event {type: 'toolCall'})
+WHERE e.toolCallId IS NULL
+SET e.toolCallId = e.id
+RETURN e.toolCallId
 
 // Clean up toolCallResult
 MATCH (e:Event {type: 'tool_response'})
@@ -93,6 +104,12 @@ SET e.content = data.response
 SET e.toolName = data.toolName
 SET e.type = 'toolCallResult'
 RETURN e
+
+// If (e:Event {type: 'toolCallResult'}) doesn't have .toolCallId, just set it as .id. This is saved properly moving forward
+MATCH (e:Event {type: 'toolCallResult'})
+WHERE e.toolCallId IS NULL
+SET e.toolCallId = e.id
+RETURN e.id
 
 // Clean up Status Messages
 MATCH (e:Event {type: 'status'})
@@ -116,7 +133,7 @@ RETURN e, errorString
 // Now, attach existing Plan nodes to their connected messages
 MATCH (p: Plan)-[r:GENERATED_FROM]->(e:Event)
 SET e:Plan
-SET e.status = 'pendingReview'
+SET e.status = 'draft'
 SET e.version = 1
 RETURN p, r, e
 
@@ -130,16 +147,21 @@ RETURN p
 // Then, identify how they are currently connected to their issues
 
 // Create the [:IMPLEMENTS] relationship once you find those Plan/Issue pairs
-MATCH (p:Plan)-[r]-(i:Issue)
-CREATE (p)-[r2:IMPLEMENTS]->(i)
-RETURN p, r, i, r2
+MATCH (i:Issue)-[r1:HAS_PLAN]->(p:Plan)-[r2:GENERATED_FROM]->(e:Event)
+MERGE (e)-[r3:IMPLEMENTS]->(i)
+RETURN i, p, e, r1, r2, r3
 
+// OR
 MATCH (p:Plan)-[r1]-(w:WorkflowRun)-[r2]-(i:Issue)
 WHERE NOT (p)-[:IMPLEMENTS]-(i)
 WITH p, i, w, r1, r2
 CREATE (p)-[r3:IMPLEMENTS]->(i)
 RETURN p, w, i, r1, r2, r3
 
+// Remove the old-school single Plan that was (p:Plan)-[:GENERATED_FROM]->(e:Event)
+MATCH (p:Plan)
+WHERE NOT p:Event
+DETACH DELETE p
 
 // Ensure all Plans have a version
 MATCH (p:Plan)
@@ -158,8 +180,55 @@ MATCH (i:Issue)
 SET i.number = toInteger(i.number)
 RETURN i, i.number, apoc.meta.cypher.type(i.number)
 
-// After everything is working, you can slowly clean up unused and deprecated nodes, properties and relationships
-Get rid of:
-- [:BELONGS_TO_WORKFLOW]
-- [:PART_OF]
-- [:NEXT_EVENT]
+// Delete redundant [:NEXT_EVENT] relationship between (e:Event) nodes
+MATCH (e1:Event)-[r1:NEXT]->(e2:Event)
+MATCH (e1)-[r2:NEXT_EVENT]->(e2)
+DELETE r2
+
+// Delete unusued [:BELONGS_TO_WORKFLOW] and [:PART_OF] relationship between (w:WorkflowRun) and (e:Event)
+MATCH (w:WorkflowRun)-[r:BELONGS_TO_WORKFLOW]-(e:Event)
+WITH w, r, e
+MATCH (e)-[r2:NEXT|STARTS_WITH]-()
+DELETE r
+RETURN w, e, r2
+
+
+MATCH (w:WorkflowRun)-[r:PART_OF]-(e:Event)
+WITH w, r, e
+MATCH (e)-[r2:NEXT|STARTS_WITH]-()
+DELETE r
+RETURN w, e, r2
+
+
+// Convert e.type = 'complete' events to e.type = 'workflowState'
+MATCH (e:Event { type: 'complete'})
+WITH e, apoc.convert.fromJsonMap(e.data) AS data
+SET e.content = data.content
+SET e.type = 'workflowState'
+SET e.state = 'completed'
+RETURN e
+
+// Convert e.type = 'workflow_start' to e.type = 'workflowState'
+MATCH (e:Event { type: 'workflow_start'})
+WITH e, apoc.convert.fromJsonMap(e.data) AS data
+SET e.content = data.content
+SET e.type = 'workflowState'
+SET e.state = 'running'
+RETURN e
+
+// Remove 'Message' label from events that shouldn't have them:
+- workflowState
+- error
+- status
+
+MATCH (e:Event:Message {type: 'error'})
+REMOVE e:Message
+RETURN e
+
+MATCH (e:Event:Message {type: 'status'})
+REMOVE e:Message
+RETURN e
+
+MATCH (e:Event:Message {type: 'workflowState'})
+REMOVE e:Message
+RETURN e
