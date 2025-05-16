@@ -15,24 +15,18 @@ REMOVE w:Workflow;
 // Create [:NEXT] relationships between chain of events
 MATCH (e1: Event )-[r:NEXT_EVENT]->(e2:Event)
 MERGE (e1)-[r2:NEXT]->(e2)
+DELETE r
+RETURN e1, e2, r2
 
 // Create [:STARTS_WITH] relationships between WorkflowRuns and first Event
 MATCH (w:WorkflowRun)-[r:BELONGS_TO_WORKFLOW]->(e:Event)
 WHERE NOT ( (e)<-[:NEXT]-(:Event) )
 CREATE (w)-[r2:STARTS_WITH]->(e)
 
-// Set w.type
+// Set w.type. If w.metadata.workflowType is NULL, set as 'commentOnIssue'
 MATCH (w:WorkflowRun)
-WHERE w.metadata CONTAINS 'workflowType'
 WITH w, apoc.convert.fromJsonMap(w.metadata) AS meta
-WHERE meta.workflowType IS NOT NULL
-SET w.type = meta['workflowType']
-RETURN w.id, w.type 
-
-// And if some workflows don't have existing workflowType, just set it as "commentOnIssue"
-MATCH (w:WorkflowRun)
-WHERE w.type IS NULL
-SET w.type = 'commentOnIssue'
+SET w.type = COALESCE(meta.workflowType, 'commentOnIssue')
 RETURN w, w.type
 
 // Convert w.type from "resolve_issue" to "resolveIssue" (if exists)
@@ -40,19 +34,17 @@ MATCH (w:WorkflowRun {type: 'resolve_issue'})
 SET w.type = 'resolveIssue'
 RETURN w, w.type
 
-
 // Find any Workflow Runs that don't have `createdAt` and do something about it, ie:
 MATCH (w:WorkflowRun)
 WHERE w.createdAt IS NULL AND w.created_at IS NOT NULL
 SET w.createdAt = w.created_at
 RETURN w
 
-
 // EVENTS
 
 // Use this to get an overview of current event nodes
 MATCH (e:Event)
-RETURN e.type, labels(e), COUNT(*)
+RETURN e.type, labels(e), COUNT(\*)
 
 // Set .createdAt property for (:Event) nodes
 MATCH (e:Event)
@@ -118,17 +110,19 @@ SET e.content = data.status
 RETURN e
 
 // Clean up errors messages
+
+```cypher
 MATCH (e:Event {type: 'error'})
 WITH e, apoc.convert.fromJsonMap(e.data) AS data
 WITH e, data.error AS errorVal
-WITH e, 
-     CASE 
-         WHEN apoc.meta.cypher.type(errorVal) = 'MAP' THEN apoc.convert.toJson(errorVal)
-         ELSE errorVal
-     END AS errorString
+WITH e,
+    CASE
+        WHEN apoc.meta.cypher.type(errorVal) = 'MAP' THEN apoc.convert.toJson(errorVal)
+        ELSE errorVal
+    END AS errorString
 SET e.content = errorString
 RETURN e, errorString
-
+```
 
 // Now, attach existing Plan nodes to their connected messages
 MATCH (p: Plan)-[r:GENERATED_FROM]->(e:Event)
@@ -136,7 +130,6 @@ SET e:Plan
 SET e.status = 'draft'
 SET e.version = 1
 RETURN p, r, e
-
 
 // Make sure all (:Plan) have [:IMPLEMENTS] relationship with (i:Issue)
 // First, take stock take of how many plans there arguments
@@ -174,7 +167,6 @@ WHERE p.createdAt IS NULL AND p.timestamp IS NOT NULL
 SET p.createdAt = p.timestamp
 RETURN p
 
-
 // Convert (i:Issue).id to Integers. Currently, they are floats.
 MATCH (i:Issue)
 SET i.number = toInteger(i.number)
@@ -192,13 +184,11 @@ MATCH (e)-[r2:NEXT|STARTS_WITH]-()
 DELETE r
 RETURN w, e, r2
 
-
 MATCH (w:WorkflowRun)-[r:PART_OF]-(e:Event)
 WITH w, r, e
 MATCH (e)-[r2:NEXT|STARTS_WITH]-()
 DELETE r
 RETURN w, e, r2
-
 
 // Convert e.type = 'complete' events to e.type = 'workflowState'
 MATCH (e:Event { type: 'complete'})
@@ -217,6 +207,7 @@ SET e.state = 'running'
 RETURN e
 
 // Remove 'Message' label from events that shouldn't have them:
+
 - workflowState
 - error
 - status
