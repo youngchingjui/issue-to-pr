@@ -21,7 +21,7 @@ if [ ! -f "$BACKUP_DIR/neo4j_data.tar.gz" ]; then
 fi
 
 echo "Stopping Neo4j container..."
-docker compose stop neo4j
+docker compose -f docker/docker-compose.yml stop neo4j
 
 echo "Restoring from backup: $BACKUP_DIR/neo4j_data.tar.gz"
 docker run --rm \
@@ -31,6 +31,6 @@ docker run --rm \
   sh -c "cd / && tar xzf /backup/neo4j_data.tar.gz"
 
 echo "Starting Neo4j container..."
-docker compose start neo4j
+docker compose -f docker/docker-compose.yml start neo4j
 
 echo "Restore completed successfully!" 
