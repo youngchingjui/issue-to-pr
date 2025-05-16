@@ -1,21 +1,22 @@
+"use server"
+
 import ReactMarkdown from "react-markdown"
 
 import { CollapsibleContent } from "@/components/ui/collapsible-content"
 import { EventTime } from "@/components/workflow-runs/events"
-import { UserMessageEvent as UserMessageEventType } from "@/lib/types/workflow"
+import { ReviewComment, UserMessage } from "@/lib/types"
 
-export interface UserMessageEventProps {
-  event: UserMessageEventType
-  timestamp: Date
+export interface Props {
+  event: UserMessage | ReviewComment
 }
 
-export function UserMessageEvent({ event, timestamp }: UserMessageEventProps) {
+export async function UserMessageEvent({ event }: Props) {
   const headerContent = (
     <>
       <div className="text-xs font-medium text-muted-foreground">
         User Message
       </div>
-      <EventTime timestamp={timestamp} />
+      <EventTime timestamp={event.createdAt} />
     </>
   )
 
@@ -25,7 +26,7 @@ export function UserMessageEvent({ event, timestamp }: UserMessageEventProps) {
       className="hover:bg-muted/50"
     >
       <div className="prose prose-sm dark:prose-invert max-w-none">
-        <ReactMarkdown>{event.data.content}</ReactMarkdown>
+        <ReactMarkdown>{event.content}</ReactMarkdown>
       </div>
     </CollapsibleContent>
   )

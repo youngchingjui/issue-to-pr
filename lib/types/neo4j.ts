@@ -1,10 +1,18 @@
+import { LLMResponse as LLMResponseNew } from "@/lib/types"
+
 // Core Entity Types
+// TODO: Use zod to create schemas, then export types from schemas
+// TODO: Define baseline application-level schemas, then extend database schemas from there
+// TODO: move this file to /types/db/neo4j.ts
 
 export type User = {
   id: string // Maps to PostgreSQL users.id
   displayName: string // Cached display name for convenient querying
 }
 
+/**
+ * @deprecated Use the Zod schema and inferred type from lib/types/index.ts instead.
+ */
 export type Repository = {
   name: string // Repository name
   owner: string // Repository owner
@@ -16,10 +24,14 @@ export type Repository = {
   visibility?: "public" | "private"
 }
 
+/**
+ * @deprecated Use the Zod schema and inferred type from lib/types/index.ts instead.
+ */
 export type Issue = {
   number: number // Issue number
   id: string // GitHub issue ID
   createdAt: Date // Creation timestamp
+  repoFullName: string // Repository name
   // Mutable properties from GitHub API - not stored in Neo4j
   title?: string
   body?: string
@@ -29,6 +41,9 @@ export type Issue = {
   updatedAt?: Date
 }
 
+/**
+ * @deprecated Use the Zod schema and inferred type from lib/types/index.ts instead.
+ */
 export type PullRequest = {
   number: number // PR number
   id: string // GitHub PR ID
@@ -55,62 +70,155 @@ export type WorkflowType =
 export type WorkflowRun = {
   id: string
   workflowType: WorkflowType
-  startedAt: Date
-  completedAt?: Date
-  status: "running" | "completed" | "failed"
-  result?: string
-  metadata: Record<string, unknown> // Additional run-specific data
+  created_at: Date // TODO: Change to `createdAt`
+  // status - need this for application level, but not stored in Neo4j
 }
 
-// Message Types
+// Event Types
 
-export type MessageRole =
-  | "user"
-  | "system"
-  | "assistant"
-  | "tool_call"
-  | "tool_result"
+// Define the possible event types
+type EventType =
+  | "status"
+  | "message"
+  | "toolCall"
+  | "toolCallResult"
+  | "workflowState"
+  | "reviewComment"
+  | "systemPrompt"
+  | "userMessage"
+  | "llmResponse"
+  | "error"
 
-export type BaseMessage = {
+// Base Event properties for all events
+/**
+ * @deprecated Use the Zod schema and inferred type from lib/types/index.ts instead.
+ */
+export interface BaseEvent {
+  id: string
+  createdAt: Date
+  workflowId: string
+  content?: string
+  type: EventType
+}
+
+// Basic Event
+/**
+ * @deprecated Use the Zod schema and inferred type from lib/types/index.ts instead.
+ */
+export interface StatusEvent extends BaseEvent {
+  type: "status"
+}
+
+// Message Events
+/**
+ * @deprecated Use the Zod schema and inferred type from lib/types/index.ts instead.
+ */
+export interface SystemPrompt extends BaseEvent {
+  type: "systemPrompt"
+  content: string
+}
+
+/**
+ * @deprecated Use the Zod schema and inferred type from lib/types/index.ts instead.
+ */
+export interface UserMessage extends BaseEvent {
+  type: "userMessage"
+  content: string
+}
+
+/**
+ * @deprecated Use the Zod schema and inferred type from lib/types/index.ts instead.
+ */
+export interface LLMResponse extends BaseEvent {
+  type: "llmResponse"
+  content: string
+}
+
+// Tool Events
+/**
+ * @deprecated Use the Zod schema and inferred type from lib/types/index.ts instead.
+ */
+export interface ToolCall extends BaseEvent {
+  type: "toolCall"
+  toolName: string
+  toolCallId: string
+  arguments: string
+}
+
+/**
+ * @deprecated Use the Zod schema and inferred type from lib/types/index.ts instead.
+ */
+export interface ToolCallResult extends BaseEvent {
+  type: "toolCallResult"
+  toolCallId: string
+  toolName: string
+  content: string
+}
+
+// Workflow State Events
+/**
+ * @deprecated Use the Zod schema and inferred type from lib/types/index.ts instead.
+ */
+export type WorkflowRunState = "running" | "completed" | "error"
+/**
+ * @deprecated Use the Zod schema and inferred type from lib/types/index.ts instead.
+ */
+export interface WorkflowState extends BaseEvent {
+  type: "workflowState"
+  state: WorkflowRunState
+}
+
+// Review Events
+/**
+ * @deprecated Use the Zod schema and inferred type from lib/types/index.ts instead.
+ */
+export interface ReviewComment extends BaseEvent {
+  type: "reviewComment"
+  content: string
+  planId: string
+}
+
+/**
+ * @deprecated Use the Zod schema and inferred type from lib/types/index.ts instead.
+ */
+export interface ErrorEvent extends BaseEvent {
+  type: "error"
+  content: string
+}
+
+// Plan
+/**
+ * @deprecated Use index.ts instead
+ */
+export type PlanStatus =
+  | "pendingReview"
+  | "approved"
+  | "rejected"
+  | "implemented"
+
+/**
+ * @deprecated Use index.ts instead
+ */
+export type Plan = {
   id: string
   content: string
-  timestamp: Date
-  role: MessageRole
-  metadata: Record<string, unknown>
-}
-
-export type ToolCall = {
-  role: "tool_call"
-  metadata: {
-    toolName: string
-    status: "initiated" | "executing" | "completed" | "failed"
-    parameters: Record<string, unknown>
-  }
-}
-
-export type ToolResult = {
-  role: "tool_result"
-  metadata: {
-    toolName: string
-    isError: boolean
-    errorMessage?: string
-  }
-}
-
-export type Plan = {
-  status: "pending_review" | "approved" | "rejected" | "implemented"
+  status: PlanStatus
   version: number
   editedAt?: Date
   editMessage?: string
 }
 
-export type ReviewComment = {
-  role: "user"
-  metadata: {
-    userId: string
-    reviewContext: Record<string, unknown>
-  }
-}
+// Union type for all event types
+export type AnyEvent =
+  | StatusEvent
+  | SystemPrompt
+  | UserMessage
+  | ToolCall
+  | ToolCallResult
+  | WorkflowState
+  | ReviewComment
+  | ErrorEvent
+  | LLMResponseNew
 
 // Relationship Types
 
@@ -122,27 +230,27 @@ export type RelationshipTypes =
   // Issue Relationships
   | "BELONGS_TO"
   | "CREATED_BY"
-  | "HAS_COMMENTS"
-  | "HAS_RUNS"
+  // Workflow run Relationships
+  | "STARTS_WITH" // Links WorkflowRun to its first event
+  | "BASED_ON_ISSUE" // Links WorkflowRun to its Issue
+  | "LAUNCHED_BY" // Links WorkflowRun to the User that launched it
   // PullRequest Relationships
   | "RESOLVES"
-  | "GENERATED_BY"
-  // Message Relationships
-  | "NEXT"
-  | "PART_OF"
-  | "COMMENTS_ON"
+  | "OPENED_BY"
+  // Event Relationships
+  | "NEXT" // Links events in chronological order
+  | "REFERENCES" // Event referencing another node (Issue, PR, etc)
+  | "COMMENTS_ON" // Review comments on plans
   // User Relationships
-  | "HAS_ACCESS_TO"
-  | "AUTHORIZED_FOR"
-  | "OWNS"
-  | "EDITED_BY"
-  | "REVIEWS"
-  | "APPROVES"
-  | "REJECTS"
+  | "OWNED_BY"
+  | "DRAFTED_BY"
+  | "POSTED"
+  | "CREATED_BY"
+  | "LAUNCHED_BY"
   // Plan Relationships
-  | "PREVIOUS_VERSION"
+  | "NEXT_VERSION"
   | "IMPLEMENTS"
-  | "RESULTS_IN"
+  | "DRAFTED_BY"
 
 export type Relationship = {
   type: RelationshipTypes

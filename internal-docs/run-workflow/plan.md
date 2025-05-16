@@ -68,24 +68,12 @@ This document outlines the implementation plan for creating a dedicated issue de
 
 ### 4. Workflow Integration
 
-1. Update `components/workflow-runs/WorkflowRunDetail.tsx`
-
-   - Add issue context to workflow display
-   - Enhance event visualization
-   - Add navigation back to issue
-
 2. Create new file `components/issues/IssueWorkflowStatus.tsx`
 
    - Add real-time workflow status
    - Add progress indicators
    - Add error states
    - Integrate with existing workflow events
-
-3. Update `components/workflow/WorkflowRunner.tsx`
-   - Add simple comment toggle control
-   - Pass comment preference to workflow execution
-   - Add visual confirmation of selected preference
-   - Maintain default of no auto-posting
 
 ### 5. User Experience
 

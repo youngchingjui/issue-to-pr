@@ -4,10 +4,54 @@ import { notFound } from "next/navigation"
 
 import BaseGitHubItemCard from "@/components/github/BaseGitHubItemCard"
 import { Button } from "@/components/ui/button"
-import WorkflowRunDetail from "@/components/workflow-runs/WorkflowRunDetail"
+import {
+  ErrorEvent,
+  LLMResponseEvent,
+  StatusUpdate,
+  SystemPromptEvent,
+  ToolCallEvent,
+  ToolCallResultEvent,
+  UserMessageEvent,
+} from "@/components/workflow-runs/events"
 import { getIssue } from "@/lib/github/issues"
-import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceService"
-import { WorkflowWithEvents } from "@/lib/types/workflow"
+import { getWorkflowRunWithDetails } from "@/lib/neo4j/services/workflow"
+import { AnyEvent, Issue } from "@/lib/types"
+import { GitHubIssue } from "@/lib/types/github"
+
+function EventRenderer({
+  event,
+  issue,
+}: {
+  event: AnyEvent
+  issue?: Issue
+}): React.ReactNode {
+  // Basic event
+
+  switch (event.type) {
+    case "status":
+      return <StatusUpdate event={event} />
+    case "systemPrompt":
+      return <SystemPromptEvent event={event} />
+    case "userMessage":
+      return <UserMessageEvent event={event} />
+    case "llmResponse":
+    case "llmResponseWithPlan":
+      return <LLMResponseEvent event={event} issue={issue} />
+    case "toolCall":
+      return <ToolCallEvent event={event} />
+    case "toolCallResult":
+      return <ToolCallResultEvent event={event} />
+    case "workflowState":
+      return <StatusUpdate event={event} />
+    case "reviewComment":
+      return <UserMessageEvent event={event} />
+    case "error":
+      return <ErrorEvent event={event} />
+    default:
+      console.error(`Unrecognized event: ${JSON.stringify(event)}`)
+      return null
+  }
+}
 
 export default async function WorkflowRunDetailPage({
   params,
@@ -16,23 +60,26 @@ export default async function WorkflowRunDetailPage({
 }) {
   const { traceId } = params
 
-  const workflow: WorkflowWithEvents | null =
-    await new WorkflowPersistenceService()
-      .getWorkflowEvents(traceId)
-      .catch(() => null)
+  const { workflow, events, issue } = await getWorkflowRunWithDetails(traceId)
+
+  let githubIssue: GitHubIssue | null = null
+  if (issue) {
+    githubIssue = await getIssue({
+      fullName: issue.repoFullName,
+      issueNumber: issue.number,
+    })
+  }
 
   // If no workflow was found
   if (!workflow) {
     notFound()
   }
 
-  // Fetch issue details if issue exists
-  const issue = workflow.issue
-    ? await getIssue({
-        fullName: workflow.issue.repoFullName,
-        issueNumber: workflow.issue.number,
-      }).catch(() => null)
-    : null
+  if (!workflow.type) {
+    console.error(
+      `Workflow type not found. WorkflowRun: ${JSON.stringify(workflow)}`
+    )
+  }
 
   return (
     <main className="container mx-auto p-4">
@@ -52,36 +99,39 @@ export default async function WorkflowRunDetailPage({
           <h1 className="text-2xl font-bold">
             {issue?.title || `Workflow Run: ${traceId}`}
           </h1>
-          {workflow.metadata?.workflowType && (
+          {workflow.type && (
             <p className="text-sm text-muted-foreground">
               Workflow Type:{" "}
-              {workflow.metadata.workflowType === "commentOnIssue"
+              {workflow.type === "commentOnIssue"
                 ? "Comment on Issue"
-                : workflow.metadata.workflowType}
+                : workflow.type}
             </p>
           )}
         </div>
 
         {/* Context Section - Only show if issue exists */}
-        {issue && (
+        {githubIssue && (
           <div className="space-y-3">
             <h2 className="text-lg font-semibold">Associated Issue</h2>
             <div className="max-w-2xl">
-              <BaseGitHubItemCard
-                item={{
-                  ...issue,
-                  type: "issue",
-                }}
-              />
+              <BaseGitHubItemCard item={{ ...githubIssue, type: "issue" }} />
             </div>
           </div>
         )}
 
         {/* Timeline Section */}
-        <div className="space-y-3">
-          <h2 className="text-lg font-semibold">Timeline</h2>
-          <WorkflowRunDetail events={workflow.events} issue={workflow.issue} />
-        </div>
+        {events && (
+          <div className="space-y-3">
+            <h2 className="text-lg font-semibold">Timeline</h2>
+            <div className="bg-card border rounded-lg overflow-hidden">
+              {events.map((event) => (
+                <div key={event.id} className="p-3 sm:p-4">
+                  <EventRenderer event={event} issue={issue} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </main>
   )

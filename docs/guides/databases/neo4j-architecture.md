@@ -28,89 +28,25 @@ This document details the Neo4j-specific implementation of our workflow storage 
 
 ### 1. Core Entities (Primary Nodes)
 
+Our core entities are defined in `lib/types/neo4j.ts`. Below are the key nodes and their relationships. For detailed type definitions, please refer to the TypeScript interfaces.
+
 #### User
 
-Users in Neo4j primarily serve as connection points for relationships in the graph, while detailed user data is stored in PostgreSQL.
-
-```cypher
-CREATE (:User {
-    id: string,           // Maps to PostgreSQL users.id
-    displayName: string   // Cached display name for convenient querying
-})
-```
-
-Key relationships:
-
-```cypher
-// GitHub-related
-(:User)-[:HAS_ACCESS_TO]->(:GitHubAppInstallation)
-(:User)-[:AUTHORIZED_FOR]->(:Repository)
-(:User)-[:OWNS]->(:Repository)
-
-// Content-related
-(:User)-[:EDITED_BY]->(:Plan)
-(:User)-[:REVIEWS|:APPROVES|:REJECTS]->(:Plan)
-(:User)-[:AUTHORED]->(:Message {role: "user"})
-```
+Users in Neo4j primarily serve as connection points for relationships in the graph, while detailed user data is stored in PostgreSQL. See `User` type in `neo4j.ts`.
 
 Note: Core user data (OAuth config, subscription status, preferences) is stored in PostgreSQL. The Neo4j User node serves primarily as an anchor point for graph relationships.
 
 #### Repository
 
-```cypher
-CREATE (:Repository {
-    // Immutable properties stored in Neo4j
-    name: string,           // Repository name
-    owner: string,         // Repository owner
-    id: string,           // GitHub repository ID
-
-    // Mutable properties fetched from GitHub API
-    // - description
-    // - defaultBranch
-    // - settings
-    // - visibility
-})
-```
+See `Repository` type in `neo4j.ts` for full property definitions.
 
 #### Issue
 
-```cypher
-CREATE (:Issue {
-    // Immutable properties stored in Neo4j
-    number: integer,       // Issue number
-    id: string,           // GitHub issue ID
-    createdAt: datetime(), // Creation timestamp
-
-    // Mutable properties fetched from GitHub API
-    // - title
-    // - body
-    // - state
-    // - labels
-    // - assignees
-    // - updatedAt
-})
-```
+See `Issue` type in `neo4j.ts` for full property definitions.
 
 #### PullRequest
 
-```cypher
-CREATE (:PullRequest {
-    // Immutable properties stored in Neo4j
-    number: integer,      // PR number
-    id: string,          // GitHub PR ID
-    createdAt: datetime(), // Creation timestamp
-
-    // Mutable properties fetched from GitHub API
-    // - title
-    // - body
-    // - state
-    // - branch
-    // - reviewers
-    // - labels
-    // - mergeable
-    // - updatedAt
-})
-```
+See `PullRequest` type in `neo4j.ts` for full property definitions.
 
 ### Helper Functions
 
@@ -150,35 +86,15 @@ RETURN r.name, description, defaultBranch, visibility
 
 #### WorkflowRun
 
-```cypher
-CREATE (:WorkflowRun {
-    id: string,
-    workflowType: string,    // e.g., "commentOnIssue", "createPR"
-    startedAt: datetime(),
-    completedAt: datetime(),
-    status: string,          // running, completed, failed, etc.
-    result: string,
-    metadata: map           // Additional run-specific data
-})
-```
+See `WorkflowRun` type in `neo4j.ts` for full property definitions.
 
 ### 3. Execution Sequence Nodes
 
 #### Message
 
-Messages in our system represent all types of communication and content. Each message has a role that defines its source and purpose.
+Messages in our system represent all types of communication and content. Each message has a role that defines its source and purpose. See `BaseMessage` type and its extensions (`ToolCall`, `ToolResult`, `Plan`, `ReviewComment`) in `neo4j.ts`.
 
-```cypher
-CREATE (:Message {
-    id: string,
-    content: string,      // The actual message content
-    timestamp: datetime(),
-    role: string,         // "user" | "system" | "assistant" | "tool_call" | "tool_result"
-    metadata: map         // Role-specific metadata (e.g., token usage, source, userId, model)
-})
-```
-
-The `role` property indicates the source and purpose of the message:
+The `role` property (defined by `MessageRole` type) indicates the source and purpose of the message:
 
 - `"user"` - Messages from users (inputs, comments, edit suggestions)
 - `"system"` - System prompts and instructions
@@ -193,180 +109,9 @@ Messages can have additional labels to indicate special purposes:
 
 Example message types:
 
-```cypher
-// Tool call message
-CREATE (:Message {
-    id: string,
-    content: string,      // Serialized tool call parameters
-    timestamp: datetime(),
-    role: "tool_call",
-    metadata: {
-        toolName: string,     // e.g., "codebase_search"
-        status: string,       // initiated, executing, completed, failed
-        parameters: map       // The parameters passed to the tool
-    }
-})
-
-// Tool result message
-CREATE (:Message {
-    id: string,
-    content: string,      // The tool's output
-    timestamp: datetime(),
-    role: "tool_result",
-    metadata: {
-        toolName: string,     // Matching the tool call
-        isError: boolean,     // Whether the tool execution resulted in error
-        errorMessage: string  // Present if isError is true
-    }
-})
-
-// Original AI-generated Plan (v1)
-CREATE (:Message:Plan {
-    id: string,
-    content: string,
-    timestamp: datetime(),
-    role: "assistant",    // Original plan is from AI
-    metadata: {
-        model: string,
-        tokenUsage: map
-    },
-    // Plan-specific properties
-    status: string,       // pending_review, approved, rejected, implemented
-    version: 1,          // First version
-})
-
-// User-edited version of a Plan (v2 onwards)
-// 1. Create the new plan node
-CREATE (newPlan:Plan {          // Note: Not a Message node since it's a user edit
-    id: string,
-    content: string,     // Updated plan content
-    timestamp: datetime(),
-    role: "user",        // Edited by user
-    metadata: map,       // Any additional metadata about the edit
-    // Plan-specific properties
-    status: "pending_review",  // Reset to pending review after edit
-    version: 2,               // Incremented version
-    editedAt: datetime(),
-    editMessage: string      // Why the edit was made
-})
-
-// 2. Link to the previous version
-WITH newPlan
-MATCH (previousPlan:Plan {id: $previousPlanId})
-CREATE (newPlan)-[:PREVIOUS_VERSION]->(previousPlan)
-
-// 3. Link to the editing user
-WITH newPlan
-MATCH (user:User {id: $userId})
-CREATE (newPlan)-[:EDITED_BY]->(user)
-
-// Review comment on a plan
-CREATE (:Message:ReviewComment {
-    id: string,
-    content: string,
-    timestamp: datetime(),
-    role: "user",
-    metadata: {
-        userId: string,
-        reviewContext: map
-    }
-})
-```
-
 ### Core Relationships
 
-```cypher
-// Repository Relationships
-(:Repository)-[:HAS_ISSUES]->(:Issue)
-(:Repository)-[:HAS_PRS]->(:PullRequest)
-(:Repository)-[:OWNED_BY]->(:User)
-
-// Issue Relationships
-(:Issue)-[:BELONGS_TO]->(:Repository)
-(:Issue)-[:CREATED_BY]->(:User)
-(:Issue)-[:HAS_COMMENTS]->(:Comment)
-(:Issue)-[:HAS_RUNS]->(:WorkflowRun)  // Direct relationship to WorkflowRun
-
-// PullRequest Relationships
-(:PullRequest)-[:RESOLVES]->(:Issue)
-(:PullRequest)-[:BELONGS_TO]->(:Repository)
-(:PullRequest)-[:CREATED_BY]->(:User)
-(:PullRequest)-[:GENERATED_BY]->(:WorkflowRun)
-
-// Message Relationships
-(:Message)-[:NEXT]->(:Message)  // Sequential order in conversation
-(:Message)-[:PART_OF]->(:WorkflowRun)  // Belongs to workflow
-(:Message)-[:COMMENTS_ON]->(:Message)  // For review comments on plans
-
-// Versioning and Plan Relationships
-(:Plan)-[:PREVIOUS_VERSION]->(:Plan)         // Links plan versions
-(:Plan)-[:EDITED_BY]->(:User)                // Indicates which user edited a plan
-(:User)-[:REVIEWS|:APPROVES|:REJECTS]->(:Message:Plan) // User actions on plans
-(:Message:Plan)-[:IMPLEMENTS]->(:Issue)
-(:Message:Plan)-[:RESULTS_IN]->(:PullRequest)
-```
-
-## Common Queries
-
-### Get All Runs for a Specific Workflow Type
-
-```cypher
-MATCH (run:WorkflowRun {workflowType: $workflowType})
-RETURN run
-ORDER BY run.startedAt DESC
-```
-
-### Get Latest Runs for an Issue
-
-```cypher
-MATCH (i:Issue {number: $issueNumber})-[:HAS_RUNS]->(run:WorkflowRun)
-RETURN run.workflowType, run.status, run.startedAt, run.completedAt
-ORDER BY run.startedAt DESC
-LIMIT 5
-```
-
-### Get Full Workflow Path
-
-```cypher
-MATCH (startNode) WHERE id(startNode) = $startNodeId
-MATCH path = (startNode)-[:NEXT*0..]->(endNode)
-WHERE NOT (endNode)-[:NEXT]->()  // Find the end of the path
-RETURN path
-```
-
-### Get Complete Sequence for a WorkflowRun
-
-```cypher
-MATCH (run:WorkflowRun {id: $workflowRunId})
-MATCH (node)-[:PART_OF]->(run)
-RETURN node.id,
-       labels(node)[0] as type,  // Message, ToolCall, ToolResult, or Plan
-       node.timestamp,
-       CASE
-         WHEN 'Message' IN labels(node) THEN node.content
-         WHEN 'ToolCall' IN labels(node) THEN node.toolName
-         WHEN 'ToolResult' IN labels(node) THEN node.content
-         WHEN 'Plan' IN labels(node) THEN 'Plan: ' + node.status
-       END as content
-ORDER BY node.timestamp
-```
-
-### Get Tool Call with its Result
-
-```cypher
-MATCH (call:Message {role: "tool_call"})-[:NEXT]->(result:Message {role: "tool_result"})
-WHERE call.metadata.toolName = $toolName
-RETURN call, result
-```
-
-### Get Plan Review History
-
-```cypher
-MATCH (plan:Plan {id: $planId})
-MATCH (user:User)-[review:REVIEWS|APPROVES|REJECTS|EDITS]->(plan)
-RETURN user.name, type(review) as action, review.timestamp
-ORDER BY review.timestamp DESC
-```
+All relationship types are defined in the `RelationshipTypes` type in `neo4j.ts`. Here are the key relationships:
 
 ## Performance Considerations
 
@@ -429,133 +174,13 @@ Some nodes in our system can have multiple labels to represent their different p
    - Combine labels for complex role combinations
    - Efficient indexing on frequently queried properties
 
-Example multi-label queries:
-
-```cypher
-// Find all assistant messages that are plans
-MATCH (m:Message:Plan)
-WHERE m.role = 'assistant'
-RETURN m
-ORDER BY m.timestamp
-
-// Get plan version history
-MATCH (m:Message:Plan {id: $planId})
-MATCH path = (m)-[:PREVIOUS_VERSION*0..]->(prev:Message:Plan)
-RETURN path
-
-// Find user review comments on plans
-MATCH (p:Message:Plan)<-[:COMMENTS_ON]-(c:Message:ReviewComment)
-WHERE c.role = 'user'
-RETURN p, c
-ORDER BY c.timestamp
-```
-
 ### Message Chains and Conversation Context
 
-Messages can be organized into chains for conversation context while maintaining their other roles through labels and relationships.
+Messages can be organized into chains for conversation context while maintaining their other roles through labels and relationships. All message types are defined in `neo4j.ts`.
 
 #### Chain Relationships
 
-```cypher
-// Sequential message chain
-(:Message)-[:NEXT]->(:Message)
-
-// Workflow context
-(:Message)-[:PART_OF]->(:WorkflowRun)
-
-// Response relationships
-(:Message)-[:RESPONDS_TO]->(:Message)
-
-// Context relationships
-(:Message)-[:REFERENCES]->(:Issue)
-(:Message)-[:COMMENTS_ON]->(:Plan)
-(:Message)-[:SUGGESTS_EDIT_TO]->(:Plan)
-```
-
-#### Common Chain Queries
-
-```cypher
-// Get complete conversation chain including tool calls
-MATCH (w:WorkflowRun {id: $workflowId})
-MATCH (m:Message)-[:PART_OF]->(w)
-RETURN m.role, m.content, m.metadata
-ORDER BY m.timestamp
-
-// Get tool call with its result
-MATCH (call:Message {role: "tool_call"})-[:NEXT]->(result:Message {role: "tool_result"})
-WHERE call.metadata.toolName = $toolName
-RETURN call, result
-
-// Get conversation without tool calls (just user and assistant messages)
-MATCH (w:WorkflowRun {id: $workflowId})
-MATCH (m:Message)-[:PART_OF]->(w)
-WHERE m.role IN ["user", "assistant", "system"]
-RETURN m.role, m.content
-ORDER BY m.timestamp
-
-// Get plan version history (from latest to original)
-MATCH (latest:Plan)
-WHERE latest.id = $planId
-MATCH path = (latest)-[:PREVIOUS_VERSION*0..]->(original:Message:Plan)
-WHERE original.originalVersion = true
-RETURN path
-
-// Find latest version of a plan
-MATCH (p:Plan)
-WHERE p.id = $planId
-AND NOT (:Plan)-[:PREVIOUS_VERSION]->(p)
-RETURN p
-
-// Find all plans edited by a specific user
-MATCH (u:User {id: $userId})<-[:EDITED_BY]-(p:Plan)
-RETURN p
-ORDER BY p.timestamp DESC
-
-// Find the user who edited a specific plan version
-MATCH (p:Plan {id: $planVersionId})-[:EDITED_BY]->(u:User)
-RETURN u
-
-// Find original AI-generated plans
-MATCH (p:Message:Plan)
-WHERE p.role = 'assistant' AND p.originalVersion = true
-RETURN p
-ORDER BY p.timestamp DESC
-```
-
-#### Chain Management
-
-1. **Adding to Chain**
-
-   ```cypher
-   // Add new message to conversation
-   MATCH (prev:Message {id: $prevMessageId})
-   MATCH (new:Message {id: $newMessageId})
-   CREATE (prev)-[:NEXT]->(new)
-   ```
-
-2. **Creating Review Thread**
-
-   ```cypher
-   // Add review comment
-   MATCH (p:Message:Plan {id: $planId})
-   MATCH (m:Message:ReviewComment {id: $commentId})
-   CREATE (m)-[:COMMENTS_ON]->(p)
-   ```
-
-3. **Version Management**
-   ```cypher
-   // Create new version of plan
-   MATCH (original:Message:Plan {id: $originalPlanId})
-   CREATE (new:Message:Plan {
-       id: $newId,
-       content: $newContent,
-       version: original.version + 1,
-       originalVersion: false,
-       editedAt: datetime(),
-       editedBy: $userId
-   })
-   CREATE (new)-[:PREVIOUS_VERSION]->(original)
-   ```
+All relationship types are defined in the `RelationshipTypes` type in `neo4j.ts`:
 
 ### Integration with PostgreSQL
 
@@ -580,29 +205,3 @@ Our system uses a hybrid database approach where:
    - User nodes in Neo4j are created/updated when corresponding PostgreSQL users are modified
    - Both databases use the same user IDs for consistency
    - Relationships in Neo4j reference PostgreSQL entities by ID
-
-Example queries involving users:
-
-```cypher
-// Find all plans reviewed by a specific user
-MATCH (u:User {id: $userId})-[:REVIEWS]->(p:Plan)
-RETURN p
-ORDER BY p.timestamp DESC
-
-// Find all repositories a user has access to
-MATCH (u:User {id: $userId})-[:HAS_ACCESS_TO]->(install:GitHubAppInstallation)
-MATCH (install)-[:INSTALLED_ON]->(repo:Repository)
-RETURN repo
-
-// Find users who have edited high-impact plans
-MATCH (u:User)<-[:EDITED_BY]-(p:Plan)
-WHERE p.status = 'implemented'
-RETURN DISTINCT u.displayName, COUNT(p) as editCount
-ORDER BY editCount DESC
-
-// Find collaboration patterns between users
-MATCH (u1:User)<-[:EDITED_BY]-(p:Plan)<-[:REVIEWS]-(u2:User)
-WHERE u1 <> u2
-RETURN u1.displayName, u2.displayName, COUNT(p) as collaborationCount
-ORDER BY collaborationCount DESC
-```

@@ -6,7 +6,12 @@ import {
   getPullRequestDiff,
 } from "@/lib/github/pullRequests"
 import { langfuse } from "@/lib/langfuse"
-import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceService"
+import {
+  createErrorEvent,
+  createStatusEvent,
+  createWorkflowStateEvent,
+} from "@/lib/neo4j/services/event"
+import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
 import { GetIssueTool } from "@/lib/tools"
 import { GitHubIssue } from "@/lib/types/github"
 
@@ -25,7 +30,6 @@ export async function identifyPRGoal({
   jobId,
 }: IdentifyPRGoalParams): Promise<string> {
   const workflowId = jobId
-  const persistenceService = new WorkflowPersistenceService()
 
   try {
     // Start a trace for this workflow
@@ -34,34 +38,28 @@ export async function identifyPRGoal({
     })
     const span = trace.span({ name: "identify_goal" })
 
-    // Emit workflow start event
-    await persistenceService.saveEvent({
-      type: "status",
-      workflowId,
-      data: {
-        status: `Starting identifyPRGoal workflow for PR #${pullNumber} in ${repoFullName}`,
-      },
-      timestamp: new Date(),
+    // Initialize workflow
+    await initializeWorkflowRun({
+      id: workflowId,
+      type: "identifyPRGoal",
+      repoFullName,
     })
 
-    await persistenceService.saveEvent({
-      type: "status",
+    await createWorkflowStateEvent({
       workflowId,
-      data: {
-        status: "fetching_repo",
-      },
-      timestamp: new Date(),
+      state: "running",
+    })
+
+    await createStatusEvent({
+      workflowId,
+      content: "fetching_repo",
     })
 
     const repo = await getRepoFromString(repoFullName)
 
-    await persistenceService.saveEvent({
-      type: "status",
+    await createStatusEvent({
       workflowId,
-      data: {
-        status: "fetching_pr_details",
-      },
-      timestamp: new Date(),
+      content: "Fetching PR details",
     })
 
     const pr = await getPullRequest({ repoFullName, pullNumber })
@@ -71,6 +69,8 @@ export async function identifyPRGoal({
     const agent = new GoalIdentifierAgent({
       apiKey,
     })
+    await agent.addJobId(workflowId)
+    agent.addSpan({ span, generationName: "identify_goal" })
 
     // Add the get_issue tool
     const getIssueTool = new GetIssueTool({
@@ -78,7 +78,6 @@ export async function identifyPRGoal({
     })
 
     agent.addTool(getIssueTool)
-    agent.addSpan({ span, generationName: "identify_goal" })
 
     // Add initial message with PR details
     const initialMessage = {
@@ -102,26 +101,17 @@ Available tools:
 
     await agent.addMessage(initialMessage)
 
-    await persistenceService.saveEvent({
-      type: "llm_response",
+    await createStatusEvent({
       workflowId,
-      data: {
-        content: "Starting PR goal analysis",
-      },
-      timestamp: new Date(),
+      content: "Starting PR goal analysis",
     })
 
     const result = await agent.runWithFunctions()
 
     // Emit completion event
-    await persistenceService.saveEvent({
-      type: "status",
+    await createWorkflowStateEvent({
       workflowId,
-      data: {
-        status: "completed",
-        success: true,
-      },
-      timestamp: new Date(),
+      state: "completed",
     })
 
     const lastMessage = result.messages[result.messages.length - 1]
@@ -135,18 +125,9 @@ Available tools:
     return lastMessage.content
   } catch (error) {
     // Emit error event
-    const errorEvent = {
-      type: "error" as const,
-      data: {
-        error: error instanceof Error ? error : new Error(String(error)),
-        recoverable: false,
-      },
-      timestamp: new Date(),
-    }
-
-    await persistenceService.saveEvent({
-      ...errorEvent,
+    await createErrorEvent({
       workflowId,
+      content: String(error),
     })
 
     throw error

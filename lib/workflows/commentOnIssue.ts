@@ -7,11 +7,14 @@ import {
   updateIssueComment,
 } from "@/lib/github/issues"
 import { langfuse } from "@/lib/langfuse"
-import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceService"
+import { createStatusEvent } from "@/lib/neo4j/services/event"
+import { createWorkflowStateEvent } from "@/lib/neo4j/services/event"
+import { tagMessageAsPlan } from "@/lib/neo4j/services/plan"
+import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
 import GetFileContentTool from "@/lib/tools/GetFileContent"
 import RipgrepSearchTool from "@/lib/tools/RipgrepSearchTool"
+import { BaseEvent as appBaseEvent } from "@/lib/types"
 import { GitHubRepository } from "@/lib/types/github"
-import { WorkflowMetadata } from "@/lib/types/workflow"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 
 interface GitHubError extends Error {
@@ -32,14 +35,26 @@ export default async function commentOnIssue(
 ) {
   const trace = langfuse.trace({ name: "commentOnIssue" })
   let initialCommentId: number | null = null
-  const persistenceService = new WorkflowPersistenceService()
+
+  let latestEvent: appBaseEvent | null = null
 
   try {
-    await persistenceService.saveEvent({
-      type: "status",
+    await initializeWorkflowRun({
+      id: jobId,
+      type: "commentOnIssue",
+      issueNumber,
+      repoFullName: repo.full_name,
+      postToGithub,
+    })
+
+    latestEvent = await createWorkflowStateEvent({
       workflowId: jobId,
-      data: { status: "Authenticating and retrieving token" },
-      timestamp: new Date(),
+      state: "running",
+    })
+
+    latestEvent = await createStatusEvent({
+      content: "Authenticating and retrieving token",
+      workflowId: jobId,
     })
 
     // Get the issue
@@ -57,31 +72,18 @@ export default async function commentOnIssue(
       )
     })
 
-    // Initialize workflow with metadata
-    const workflowMetadata: WorkflowMetadata = {
-      workflowType: "commentOnIssue",
-      postToGithub,
-    }
-
-    await persistenceService.initializeWorkflow(jobId, workflowMetadata, {
-      number: issueNumber,
-      repoFullName: repo.full_name,
-    })
-
-    await persistenceService.saveEvent({
-      type: "status",
+    latestEvent = await createStatusEvent({
+      content: "Issue retrieved successfully",
       workflowId: jobId,
-      data: { status: "Issue retrieved successfully" },
-      timestamp: new Date(),
+      parentId: latestEvent.id,
     })
 
     // Only post to GitHub if postToGithub is true
     if (postToGithub) {
-      await persistenceService.saveEvent({
-        type: "status",
+      latestEvent = await createStatusEvent({
+        content: "Posting initial processing comment",
         workflowId: jobId,
-        data: { status: "Posting initial processing comment" },
-        timestamp: new Date(),
+        parentId: latestEvent.id,
       })
 
       try {
@@ -127,11 +129,10 @@ export default async function commentOnIssue(
       }
     }
 
-    await persistenceService.saveEvent({
-      type: "status",
+    latestEvent = await createStatusEvent({
+      content: "Setting up the local repository",
       workflowId: jobId,
-      data: { status: "Setting up the local repository" },
-      timestamp: new Date(),
+      parentId: latestEvent.id,
     })
 
     // Setup local repository using setupLocalRepository
@@ -146,28 +147,27 @@ export default async function commentOnIssue(
       throw new Error(`Failed to setup local repository: ${error.message}`)
     })
 
-    await persistenceService.saveEvent({
-      type: "status",
+    latestEvent = await createStatusEvent({
+      content: "Repository setup completed",
       workflowId: jobId,
-      data: { status: "Repository setup completed" },
-      timestamp: new Date(),
+      parentId: latestEvent.id,
     })
 
     const tree = await createDirectoryTree(dirPath)
-    await persistenceService.saveEvent({
-      type: "status",
-      workflowId: jobId,
-      data: { status: "Directory tree created" },
-      timestamp: new Date(),
-    })
 
     // Prepare the tools
     const getFileContentTool = new GetFileContentTool(dirPath)
     const searchCodeTool = new RipgrepSearchTool(dirPath)
 
+    latestEvent = await createStatusEvent({
+      content: "Beginning to review issue and codebase",
+      workflowId: jobId,
+      parentId: latestEvent.id,
+    })
+
     // Create and initialize the thinker agent
     const thinker = new ThinkerAgent({ apiKey })
-    thinker.addJobId(jobId) // Set jobId before any messages are added
+    await thinker.addJobId(jobId) // Set jobId before any messages are added
     const span = trace.span({ name: "generateComment" })
     thinker.addSpan({ span, generationName: "commentOnIssue" })
     thinker.addTool(getFileContentTool)
@@ -187,14 +187,8 @@ export default async function commentOnIssue(
       })
     }
 
-    await persistenceService.saveEvent({
-      type: "status",
-      workflowId: jobId,
-      data: { status: "Reviewing issue and codebase" },
-      timestamp: new Date(),
-    })
-
     const response = await thinker.runWithFunctions()
+
     span.end()
 
     const lastAssistantMessage = response.messages
@@ -207,25 +201,33 @@ export default async function commentOnIssue(
       .pop()
 
     if (!lastAssistantMessage) {
-      throw new Error("No valid assistant message found in the response")
+      throw new Error(
+        "No valid assistant message found in the response: " +
+          JSON.stringify(response.messages)
+      )
+    }
+
+    if (!lastAssistantMessage.id) {
+      throw new Error(
+        "No message id found in the last assistant message: " +
+          JSON.stringify(lastAssistantMessage)
+      )
     }
 
     // The response is the final Plan.
-    // Create a Plan node linked to this response
-    await persistenceService.createPlan({
+    await tagMessageAsPlan({
+      eventId: lastAssistantMessage.id,
       workflowId: jobId,
-      messageId: lastAssistantMessage.id,
       issueNumber: issueNumber,
       repoFullName: repo.full_name,
     })
 
     // Only update GitHub comment if postToGithub is true
     if (postToGithub && initialCommentId) {
-      await persistenceService.saveEvent({
-        type: "status",
+      latestEvent = await createStatusEvent({
+        content: "Updating initial comment with final response",
         workflowId: jobId,
-        data: { status: "Updating initial comment with final response" },
-        timestamp: new Date(),
+        parentId: latestEvent.id,
       })
 
       if (typeof lastAssistantMessage.content !== "string") {
@@ -249,13 +251,17 @@ export default async function commentOnIssue(
         throw new Error(`Failed to update comment: ${error.message}`)
       })
 
-      await persistenceService.saveEvent({
-        type: "status",
+      latestEvent = await createStatusEvent({
+        content: "Comment updated successfully",
         workflowId: jobId,
-        data: { status: "Comment updated successfully" },
-        timestamp: new Date(),
+        parentId: latestEvent.id,
       })
     }
+
+    await createWorkflowStateEvent({
+      workflowId: jobId,
+      state: "completed",
+    })
 
     // Return the comment
     return { status: "complete", issueComment: response }
@@ -289,11 +295,10 @@ export default async function commentOnIssue(
       }
     }
 
-    await persistenceService.saveEvent({
-      type: "error",
+    await createWorkflowStateEvent({
       workflowId: jobId,
-      data: { error: errorMessage },
-      timestamp: new Date(),
+      state: "error",
+      content: errorMessage,
     })
 
     throw githubError // Re-throw the error to be handled by the caller

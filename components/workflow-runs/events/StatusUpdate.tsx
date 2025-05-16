@@ -1,21 +1,28 @@
+"use server"
+
 import { CheckCircle2 } from "lucide-react"
 
 import { EventTime } from "@/components/workflow-runs/events"
-import { StatusEvent } from "@/lib/types/workflow"
+import { StatusEvent, WorkflowStateEvent } from "@/lib/types"
 
-interface StatusUpdateProps {
-  event: StatusEvent
-  timestamp: Date
+interface Props {
+  event: StatusEvent | WorkflowStateEvent
 }
 
-export function StatusUpdate({ event, timestamp }: StatusUpdateProps) {
+export async function StatusUpdate({ event }: Props) {
+  let displayText: string | undefined
+  if (event.type === "status") {
+    displayText = event.content
+  } else if (event.type === "workflowState") {
+    displayText = event.state
+  }
   return (
     <div className="flex items-center gap-2">
       <div className="w-4 h-4 flex items-center">
         <CheckCircle2 className="w-4 h-4 text-green-500" />
       </div>
-      <span className="text-sm text-muted-foreground">{event.data.status}</span>
-      <EventTime timestamp={timestamp} />
+      <span className="text-sm text-muted-foreground">{displayText}</span>
+      <EventTime timestamp={event.createdAt} />
     </div>
   )
 }

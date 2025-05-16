@@ -8,7 +8,13 @@ import { createDirectoryTree } from "@/lib/fs"
 import { getIssueComments } from "@/lib/github/issues"
 import { checkRepoPermissions } from "@/lib/github/users"
 import { langfuse } from "@/lib/langfuse"
-import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceService"
+import {
+  createErrorEvent,
+  createStatusEvent,
+  createWorkflowStateEvent,
+} from "@/lib/neo4j/services/event"
+import { listPlansForIssue } from "@/lib/neo4j/services/plan"
+import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
 import {
   BranchTool,
   CommitTool,
@@ -37,19 +43,22 @@ interface ResolveIssueParams {
 export const resolveIssue = async (params: ResolveIssueParams) => {
   const { issue, repository, apiKey, jobId, createPR } = params
   const workflowId = jobId // Keep workflowId alias for clarity if preferred
-  const persistenceService = new WorkflowPersistenceService()
 
   let userPermissions: RepoPermissions | null = null
 
   try {
     // Emit workflow start event
-    await persistenceService.saveEvent({
-      type: "status",
+    await initializeWorkflowRun({
+      id: workflowId,
+      type: "resolveIssue",
+      issueNumber: issue.number,
+      repoFullName: repository.full_name,
+      postToGithub: createPR,
+    })
+
+    await createStatusEvent({
       workflowId,
-      data: {
-        status: `Starting workflow for issue #${issue.number} in ${repository.full_name}`,
-      },
-      timestamp: new Date(),
+      content: `Starting workflow for issue #${issue.number} in ${repository.full_name}`,
     })
 
     // Check permissions if PR creation is intended
@@ -57,30 +66,14 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
       userPermissions = await checkRepoPermissions(repository.full_name)
       if (!userPermissions.canPush || !userPermissions.canCreatePR) {
         // Log a warning instead of throwing an error
-        await persistenceService.saveEvent({
-          type: "status", // Or maybe a 'warning' type if we add one later
+        await createStatusEvent({
           workflowId,
-          data: {
-            status: `Warning: Insufficient permissions to create PR (${userPermissions.reason}). Code will be generated locally only.`,
-          },
-          timestamp: new Date(),
+          content: `Warning: Insufficient permissions to create PR (${userPermissions.reason}). Code will be generated locally only.`,
         })
+
         // Proceed with the workflow, but PR won't be created
       }
     }
-
-    // Initialize workflow with metadata and issue information
-    await persistenceService.initializeWorkflow(
-      workflowId,
-      {
-        workflowType: "resolveIssue",
-        postToGithub: createPR,
-      },
-      {
-        number: issue.number,
-        repoFullName: repository.full_name,
-      }
-    )
 
     // Setup local repository
     const baseDir = await setupLocalRepository({
@@ -107,8 +100,8 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
     const coder = new CoderAgent({
       apiKey,
     })
-
-    coder.addJobId(jobId)
+    await coder.addJobId(jobId)
+    coder.addSpan({ span, generationName: "resolveIssue" })
 
     // Load base tools
     const getFileContentTool = new GetFileContentTool(baseDir)
@@ -137,24 +130,16 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
       coder.addTool(syncBranchTool)
       coder.addTool(createPRTool)
 
-      await persistenceService.saveEvent({
-        type: "status",
+      await createStatusEvent({
         workflowId,
-        data: {
-          status:
-            "You have permissions to push commits and create pull requests on this repository.",
-        },
-        timestamp: new Date(),
+        content:
+          "You have permissions to push commits and create pull requests on this repository.",
       })
     } else if (createPR) {
-      await persistenceService.saveEvent({
-        type: "status",
+      await createStatusEvent({
         workflowId,
-        data: {
-          status:
-            "You don't have sufficient permissions to push commits or create pull requests on this repository. Changes will only be made locally.",
-        },
-        timestamp: new Date(),
+        content:
+          "You don't have sufficient permissions to push commits or create pull requests on this repository. Changes will only be made locally.",
       })
     }
 
@@ -174,7 +159,7 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
         content: `Github issue comments:\n${comments
           .map(
             (comment) => `
-- **User**: ${comment.user.login}
+- **User**: ${comment.user?.login}
 - **Created At**: ${new Date(comment.created_at).toLocaleString()}
 - **Reactions**: ${comment.reactions ? comment.reactions.total_count : 0}
 - **Comment**: ${comment.body}
@@ -193,59 +178,50 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
     }
 
     // Check for existing plan
-    const plan = await persistenceService.getPlanForIssue(
-      issue.number,
-      repository.full_name
-    )
+    const plans = await listPlansForIssue({
+      repoFullName: repository.full_name,
+      issueNumber: issue.number,
+    })
+    plans.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+
+    // Take the latest plan for now.
+    // TODO: Add a UI to allow the user to select a plan
+    const plan = plans[0]
 
     if (plan) {
       // Inject the plan itself as a user message (for clarity, before issue/comments/tree)
       await coder.addMessage({
         role: "user",
-        content: `Implementation plan for this issue (from previous workflow):
-
-${plan.message.data.content || "PLAN CONTENT UNAVAILABLE"}`,
+        content: `
+Implementation plan for this issue (from previous workflow):
+${plan.content}
+`,
       })
     }
 
     // Run the persistent coder to implement changes
-    await persistenceService.saveEvent({
-      type: "status",
+
+    await createStatusEvent({
       workflowId,
-      data: {
-        status: "Starting code implementation",
-      },
-      timestamp: new Date(),
+      content: "Starting code implementation",
     })
 
     const coderResult = await coder.runWithFunctions()
 
     // Emit completion event
-    await persistenceService.saveEvent({
-      type: "status",
+
+    await createWorkflowStateEvent({
       workflowId,
-      data: {
-        status: "completed",
-        success: true,
-      },
-      timestamp: new Date(),
+      state: "completed",
     })
 
     return coderResult
   } catch (error) {
     // Emit error event
-    const errorEvent = {
-      type: "error" as const,
-      data: {
-        error: error instanceof Error ? error : new Error(String(error)),
-        recoverable: false,
-      },
-      timestamp: new Date(),
-    }
 
-    await persistenceService.saveEvent({
-      ...errorEvent,
+    await createErrorEvent({
       workflowId,
+      content: String(error),
     })
 
     throw error

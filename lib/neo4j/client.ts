@@ -79,3 +79,5 @@ export class Neo4jClient {
     }
   }
 }
+
+export const n4j = Neo4jClient.getInstance()

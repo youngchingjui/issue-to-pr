@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 
 import { createIssueComment } from "@/lib/github/issues"
-import { PostPlanRequestSchema } from "@/lib/types/schemas"
+import { PostPlanRequestSchema } from "@/lib/types/api/schemas"
 
 export async function POST(
   req: NextRequest,

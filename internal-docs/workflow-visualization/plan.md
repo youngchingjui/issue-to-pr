@@ -77,7 +77,7 @@ Each commit should be:
 
 - [ ] Enhance Existing Workflow Visualization
 
-  - [ ] Add visual timeline/graph view to `WorkflowRunDetail`
+  - [ ] Add visual timeline/graph view to `WorkflowRunDetails Page`
     - [ ] Start with simple top-to-bottom timeline
     - [ ] Show event relationships using arrows
     - [ ] Color-code different event types
@@ -226,20 +226,7 @@ Each commit should be:
   - Update all parameter references in codebase from `traceId` to `workflowId`
   - Ensure backward compatibility during transition
 - [ ] Service naming considerations:
-  - Evaluate alternatives: `WorkflowService`, `WorkflowStateManager`, `WorkflowEventStore`
   - Document service responsibilities and interfaces
-- [ ] Service Separation Implementation:
-  - Split `WorkflowEventEmitter` into two services:
-    1. `StreamingService`: Handles real-time UI updates
-       - Manages WebSocket/SSE connections
-       - Buffers and debounces token streams
-       - Handles temporary subscriptions
-       - Memory-only, no persistence
-    2. `WorkflowPersistenceService`: Manages Neo4j storage
-       - Stores complete, meaningful events
-       - Maintains workflow state/history
-       - Handles relationships between events
-       - Ensures data integrity
   - Update Agent class to use both services appropriately
   - Ensure proper error handling and recovery in both services
   - Add separate monitoring metrics for each service

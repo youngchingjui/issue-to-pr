@@ -1,8 +1,10 @@
+"use server"
+
 import { ExternalLink } from "lucide-react"
 import Link from "next/link"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceService"
+import { listPlansForIssue } from "@/lib/neo4j/services/plan"
 
 interface Props {
   repoFullName: string
@@ -10,12 +12,19 @@ interface Props {
 }
 
 export default async function IssuePlans({ repoFullName, issueNumber }: Props) {
-  const service = new WorkflowPersistenceService()
-  const plan = await service.getPlanForIssue(issueNumber, repoFullName)
+  const plans = await listPlansForIssue({
+    repoFullName,
+    issueNumber,
+  })
 
-  if (!plan) {
+  if (plans.length === 0) {
     return null
   }
+
+  // Just get the latest plan (for now)
+  const plan = plans.sort(
+    (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+  )[0]
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat("en-US", {
@@ -44,7 +53,7 @@ export default async function IssuePlans({ repoFullName, issueNumber }: Props) {
         <div className="text-sm">
           <div className="font-medium mb-2">Status: {plan.status}</div>
           <div className="whitespace-pre-wrap rounded-lg bg-muted p-4 max-h-48 overflow-y-auto">
-            {plan.message.data.content}
+            {plan.content}
           </div>
         </div>
       </CardContent>

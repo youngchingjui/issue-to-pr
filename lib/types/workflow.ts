@@ -1,11 +1,23 @@
+/**
+ * @deprecated
+ * Use WorkflowEvent from /lib/neo4j/service.ts instead
+ */
 export interface SystemPromptData {
   content: string
 }
 
+/**
+ * @deprecated
+ * Use WorkflowEvent from /lib/neo4j/service.ts instead
+ */
 export interface UserMessageData {
   content: string
 }
 
+/**
+ * @deprecated
+ * Use WorkflowEvent from /lib/neo4j/service.ts instead
+ */
 export interface LLMResponseData {
   content: string
   model?: string
@@ -17,16 +29,28 @@ export interface LLMResponseData {
   }
 }
 
+/**
+ * @deprecated
+ * Use WorkflowEvent from /lib/neo4j/service.ts instead
+ */
 export interface ToolCallData {
   toolName: string
   arguments: Record<string, unknown>
 }
 
+/**
+ * @deprecated
+ * Use WorkflowEvent from /lib/neo4j/service.ts instead
+ */
 export interface ToolResponseData {
   toolName: string
   response: unknown
 }
 
+/**
+ * @deprecated
+ * Use WorkflowEvent from /lib/neo4j/service.ts instead
+ */
 export interface ErrorData {
   error: string | Error
   recoverable?: boolean
@@ -34,11 +58,19 @@ export interface ErrorData {
   toolName?: string
 }
 
+/**
+ * @deprecated
+ * Use WorkflowEvent from /lib/neo4j/service.ts instead
+ */
 export interface StatusData {
   status: string
   success?: boolean
 }
 
+/**
+ * @deprecated
+ * Use WorkflowEvent from /lib/neo4j/service.ts instead
+ */
 export type WorkflowEventType =
   | "workflow_start"
   | "system_prompt"
@@ -49,6 +81,10 @@ export type WorkflowEventType =
   | "error"
   | "status"
 
+/**
+ * @deprecated
+ * Use WorkflowEvent from /lib/neo4j/service.ts instead
+ */
 export type WorkflowEventData =
   | SystemPromptData
   | UserMessageData
@@ -105,6 +141,15 @@ export interface StatusEvent extends BaseEventFields {
   data: StatusData
 }
 
+/**
+ * @deprecated
+ * Use WorkflowEvent from /lib/neo4j/service.ts instead
+ */
+
+/**
+ * @deprecated
+ * Use types from /lib/types or /lib/types/db/neo4j instead
+ */
 export type WorkflowEvent =
   | WorkflowStartEvent
   | SystemPromptEvent
@@ -115,6 +160,10 @@ export type WorkflowEvent =
   | ErrorEvent
   | StatusEvent
 
+/**
+ * @deprecated
+ * Use types from /lib/types or /lib/types/db/neo4j instead
+ */
 export interface WorkflowWithEvents {
   id: string
   events: WorkflowEvent[]
@@ -124,6 +173,10 @@ export interface WorkflowWithEvents {
   issue?: { number: number; repoFullName: string }
 }
 
+/**
+ * @deprecated
+ * Use types from /lib/types or /lib/types/db/neo4j instead
+ */
 export interface WorkflowMetadata {
   workflowType: string
   postToGithub: boolean

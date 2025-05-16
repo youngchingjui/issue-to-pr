@@ -4,20 +4,15 @@ import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { toast } from "@/lib/hooks/use-toast"
-import { PostPlanRequest } from "@/lib/types/schemas"
+import { Issue } from "@/lib/types"
+import { PostPlanRequest } from "@/lib/types/api/schemas"
 
-interface PostToGitHubButtonProps {
+interface Props {
   content: string
-  issue: {
-    number: number
-    repoFullName: string
-  }
+  issue: Issue
 }
 
-export function PostToGitHubButton({
-  content,
-  issue,
-}: PostToGitHubButtonProps) {
+export function PostToGitHubButton({ content, issue }: Props) {
   const [isPosting, setIsPosting] = useState(false)
 
   const handlePostToGithub = async () => {

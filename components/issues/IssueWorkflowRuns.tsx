@@ -13,9 +13,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { WorkflowPersistenceService } from "@/lib/services/WorkflowPersistenceService"
+import { listWorkflowRuns } from "@/lib/neo4j/services/workflow"
 
-interface IssueWorkflowRunsProps {
+interface Props {
   repoFullName: string
   issueNumber: number
 }
@@ -23,14 +23,10 @@ interface IssueWorkflowRunsProps {
 export default async function IssueWorkflowRuns({
   repoFullName,
   issueNumber,
-}: IssueWorkflowRunsProps) {
-  // Get workflows for this specific issue
-  const issueWorkflows = await WorkflowPersistenceService.getWorkflowsByIssue(
-    repoFullName,
-    issueNumber
-  )
+}: Props) {
+  const runs = await listWorkflowRuns({ repoFullName, issueNumber })
 
-  if (issueWorkflows.length === 0) {
+  if (runs.length === 0) {
     return null // Don't show anything if no workflows
   }
 
@@ -47,32 +43,32 @@ export default async function IssueWorkflowRuns({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {issueWorkflows.map((workflow) => (
-              <TableRow key={workflow.id}>
+            {runs.map((run) => (
+              <TableRow key={run.id}>
                 <TableCell>
                   <Link
-                    href={`/workflow-runs/${workflow.id}`}
+                    href={`/workflow-runs/${run.id}`}
                     className="text-blue-600 hover:underline font-medium"
                   >
-                    {workflow.id.slice(0, 8)}
+                    {run.id.slice(0, 8)}
                   </Link>
                 </TableCell>
                 <TableCell>
                   <Badge
                     variant={
-                      workflow.status === "completed"
+                      run.state === "completed"
                         ? "default"
-                        : workflow.status === "error"
+                        : run.state === "error"
                           ? "destructive"
                           : "secondary"
                     }
                   >
-                    {workflow.status}
+                    {run.state}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {workflow.lastEventTimestamp
-                    ? formatDistanceToNow(workflow.lastEventTimestamp, {
+                  {run.createdAt
+                    ? formatDistanceToNow(run.createdAt, {
                         addSuffix: true,
                       })
                     : "N/A"}
