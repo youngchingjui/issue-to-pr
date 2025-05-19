@@ -107,6 +107,7 @@ export class LibrarianAgent {
 
       throw new Error("Invalid content format received from GitHub")
     } catch (error) {
+      span.tag('error', true);
       console.error("Error getting file content:", error)
       throw error
     } finally {
