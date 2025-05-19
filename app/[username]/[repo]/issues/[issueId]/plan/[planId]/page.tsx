@@ -10,6 +10,13 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { getPlanWithDetails } from "@/lib/neo4j/services/plan"
+import dynamic from "next/dynamic"
+
+// Dynamically import as this is a client component
+const ResolveIssueController = dynamic(
+  () => import("@/components/issues/controllers/ResolveIssueController"),
+  { ssr: false }
+)
 
 interface PageProps {
   params: {
@@ -57,6 +64,14 @@ export default async function PlanPage({ params }: PageProps) {
                 #{issue.number}
               </Link>
             </div>
+          )}
+
+          {/* Resolve Issue button here (only if issue exists) */}
+          {issue && (
+            <ResolveIssueController
+              issueNumber={issue.number}
+              repoFullName={issue.repoFullName}
+            />
           )}
 
           {workflow && (
