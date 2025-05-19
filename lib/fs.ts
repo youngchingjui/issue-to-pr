@@ -3,6 +3,20 @@ import { promises as fs } from "fs"
 import os from "os"
 import * as path from "path"
 
+export class DirectoryCreationError extends Error {
+  public dirPath: string;
+  public originalError: Error;
+  constructor(dirPath: string, originalError: any) {
+    super(`Failed to create directory '${dirPath}': ${originalError?.message || originalError}`);
+    this.name = "DirectoryCreationError";
+    this.dirPath = dirPath;
+    this.originalError = originalError instanceof Error ? originalError : new Error(String(originalError));
+    if (originalError?.stack) {
+      this.stack = originalError.stack;
+    }
+  }
+}
+
 export async function createDirectoryTree(
   dir: string,
   baseDir: string = dir
@@ -57,7 +71,7 @@ export async function getLocalRepoDir(repo_full_name: string) {
     await fs.mkdir(dirPath, { recursive: true })
   } catch (error) {
     console.error(`[ERROR] Failed to create directory: ${error}`)
-    throw error
+    throw new DirectoryCreationError(dirPath, error)
   }
 
   return dirPath
@@ -71,7 +85,12 @@ export async function getFileContent(filePath: string) {
 export async function writeFile(fullPath: string, content: string) {
   // Ensure the directory exists
   const dirPath = path.dirname(fullPath)
-  await fs.mkdir(dirPath, { recursive: true })
+  try {
+    await fs.mkdir(dirPath, { recursive: true })
+  } catch (error) {
+    console.error(`[ERROR] Failed to create directory (writeFile): ${error}`)
+    throw new DirectoryCreationError(dirPath, error)
+  }
 
   // Write the file
   await fs.writeFile(fullPath, content, "utf-8")
