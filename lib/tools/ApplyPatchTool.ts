@@ -1,77 +1,74 @@
-import { z } from "zod";
-import { createTool } from "@/lib/tools/helper";
+import path from "path"
+import { z } from "zod"
 
-const APPLY_PATCH_TOOL_DESC = `This is a custom utility that makes it more convenient to add, remove, move, or edit code files. `apply_patch` effectively allows you to execute a diff/patch against a file, but the format of the diff specification is unique to this task, so pay careful attention to these instructions. To use the `apply_patch` command, you should pass a message of the following structure as "input":
+import { getFileContent } from "@/lib/fs"
+import { applyPatch } from "@/lib/patch"
+import { createTool } from "@/lib/tools/helper"
 
-%%bash
-apply_patch <<"EOF"
-*** Begin Patch
-[YOUR_PATCH]
-*** End Patch
-EOF
+const APPLY_PATCH_TOOL_DESC = `
+This tool applies UPDATE patches to a single file at a time. It does NOT support adding or deleting files, and does not use any bash or CLI commands. The input should be a V4A diff/patch string for a single file update only (no headers or multi-file patches).
 
-Where [YOUR_PATCH] is the actual content of your patch, specified in the following V4A diff format.
+Patch format:
+- The input is a V4A patch string describing the changes to be made to the file.
+- Each change block uses @@ markers for context, and lines starting with '-' are removed, '+' are added, and others are context.
+- By default, show 3 lines of code immediately above and 3 lines immediately below each change. If a change is within 3 lines of a previous change, do NOT duplicate the first change's [context_after] lines in the second change's [context_before] lines.
+- If 3 lines of context is insufficient to uniquely identify the snippet of code within the file, use the @@ operator to indicate the class or function to which the snippet belongs.
+- No line numbers are used; context and @@ markers are used to identify the location.
 
-*** [ACTION] File: [path/to/file] -> ACTION can be one of Add, Update, or Delete.
-For each snippet of code that needs to be changed, repeat the following:
-[context_before] -> See below for further instructions on context.
-- [old_code] -> Precede the old code with a minus sign.
-+ [new_code] -> Precede the new, replacement code with a plus sign.
-[context_after] -> See below for further instructions on context.
-
-For instructions on [context_before] and [context_after]:
-- By default, show 3 lines of code immediately above and 3 lines immediately below each change. If a change is within 3 lines of a previous change, do NOT duplicate the first change’s [context_after] lines in the second change’s [context_before] lines.
-- If 3 lines of context is insufficient to uniquely identify the snippet of code within the file, use the @@ operator to indicate the class or function to which the snippet belongs. For instance, we might have:
-@@ class BaseClass
-[3 lines of pre-context]
-- [old_code]
-+ [new_code]
-[3 lines of post-context]
-
-- If a code block is repeated so many times in a class or function such that even a single @@ statement and 3 lines of context cannot uniquely identify the snippet of code, you can use multiple `@@` statements to jump to the right context. For instance:
-
-@@ class BaseClass
-@@     def method():
-[3 lines of pre-context]
-- [old_code]
-+ [new_code]
-[3 lines of post-context]
-
-Note, then, that we do not use line numbers in this diff format, as the context is enough to uniquely identify code. An example of a message that you might pass as "input" to this function, in order to apply a patch, is shown below.
-
-%%bash
-apply_patch <<"EOF"
-*** Begin Patch
-*** Update File: pygorithm/searching/binary_search.py
+Example input:
 @@ class BaseClass
 @@     def search():
--          pass
-+          raise NotImplementedError()
+    def search(self, arr, target):
+        left, right = 0, len(arr) - 1
+-        pass
++        raise NotImplementedError()
+        # end of method
 
 @@ class Subclass
 @@     def search():
--          pass
-+          raise NotImplementedError()
+    def search(self, arr, target):
+-        pass
++        raise NotImplementedError()
+        # end of method
 
-*** End Patch
-EOF
-`;
+This tool will only update one file per call. To update multiple files, call this tool once for each file.
+`
 
 const applyPatchToolParameters = z.object({
-  input: z.string().describe("The apply_patch command that you wish to execute."),
-});
+  filePath: z
+    .string()
+    .describe("The relative path to the file to update (relative to baseDir)."),
+  patch: z.string().describe("The V4A patch string to apply to the file."),
+})
 
-export const createApplyPatchTool = () =>
+export const createApplyPatchTool = (baseDir: string) =>
   createTool({
     name: "apply_patch",
     description: APPLY_PATCH_TOOL_DESC,
     schema: applyPatchToolParameters,
-    handler: async (params: { input: string }) => {
-      // No actual execution; stub/ack for interface completeness.
-      return {
-        status: "ok",
-        message: "Patch command received. Execution functionality not implemented in this stub.",
-        input: params.input,
-      };
+    handler: async (params: { filePath: string; patch: string }) => {
+      const { filePath, patch } = params
+      const fullPath = path.join(baseDir, filePath)
+      let fileContent = ""
+      try {
+        fileContent = await getFileContent(fullPath)
+      } catch (e) {
+        return {
+          status: "error",
+          message: `File not found: ${fullPath}`,
+        }
+      }
+      try {
+        await applyPatch({ filePath: fullPath, patch }, fileContent)
+        return {
+          status: "ok",
+          message: `Patch successfully applied to ${fullPath}.`,
+        }
+      } catch (e: unknown) {
+        return {
+          status: "error",
+          message: e instanceof Error ? e.message : "Failed to apply patch.",
+        }
+      }
     },
-  });
+  })
