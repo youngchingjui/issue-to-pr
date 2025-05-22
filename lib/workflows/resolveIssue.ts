@@ -16,13 +16,13 @@ import {
 import { listPlansForIssue } from "@/lib/neo4j/services/plan"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
 import {
-  BranchTool,
-  CommitTool,
-  CreatePRTool,
-  GetFileContentTool,
-  RipgrepSearchTool,
-  SyncBranchTool,
-  WriteFileContentTool,
+  createBranchTool,
+  createCommitTool,
+  createCreatePRTool,
+  createGetFileContentTool,
+  createRipgrepSearchTool,
+  createSyncBranchTool,
+  createWriteFileContentTool,
 } from "@/lib/tools"
 import {
   createRepoFullName,
@@ -104,11 +104,11 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
     coder.addSpan({ span, generationName: "resolveIssue" })
 
     // Load base tools
-    const getFileContentTool = new GetFileContentTool(baseDir)
-    const searchCodeTool = new RipgrepSearchTool(baseDir)
-    const writeFileTool = new WriteFileContentTool(baseDir)
-    const branchTool = new BranchTool(baseDir)
-    const commitTool = new CommitTool(baseDir, repository.default_branch)
+    const getFileContentTool = createGetFileContentTool(baseDir)
+    const searchCodeTool = createRipgrepSearchTool(baseDir)
+    const writeFileTool = createWriteFileContentTool(baseDir)
+    const branchTool = createBranchTool(baseDir)
+    const commitTool = createCommitTool(baseDir, repository.default_branch)
 
     // Add base tools to persistent coder
     coder.addTool(getFileContentTool)
@@ -118,14 +118,14 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
     coder.addTool(commitTool)
 
     // Add sync and PR tools only if createPR is true AND permissions are sufficient
-    let syncBranchTool: SyncBranchTool | undefined
-    let createPRTool: CreatePRTool | undefined
+    let syncBranchTool: ReturnType<typeof createSyncBranchTool> | undefined
+    let createPRTool: ReturnType<typeof createCreatePRTool> | undefined
     if (createPR && userPermissions?.canPush && userPermissions?.canCreatePR) {
-      syncBranchTool = new SyncBranchTool(
+      syncBranchTool = createSyncBranchTool(
         createRepoFullName(repository.full_name),
         baseDir
       )
-      createPRTool = new CreatePRTool(repository, issue.number)
+      createPRTool = createCreatePRTool(repository, issue.number)
 
       coder.addTool(syncBranchTool)
       coder.addTool(createPRTool)
