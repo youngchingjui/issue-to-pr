@@ -10,7 +10,7 @@ import { resolveIssue } from "@/lib/workflows/resolveIssue"
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { issueNumber, repoFullName, apiKey, createPR } =
+    const { issueNumber, repoFullName, apiKey, createPR, planId } =
       ResolveRequestSchema.parse(body)
 
     // Generate a unique job ID
@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
           apiKey,
           jobId,
           createPR,
+          planId, // Pass planId if present
         })
       } catch (error) {
         // Save error status

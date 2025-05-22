@@ -68,10 +68,12 @@ export const CommentRequestSchema = z.object({
   postToGithub: z.boolean().default(false),
 })
 
+// MODIFIED: planId is now supported (optional)
 export const ResolveRequestSchema = z.object({
   issueNumber: z.number(),
   repoFullName: z.string(),
   apiKey: z.string(),
   postToGithub: z.boolean().default(false),
   createPR: z.boolean().default(false),
+  planId: z.string().optional(),
 })

@@ -38,10 +38,11 @@ interface ResolveIssueParams {
   apiKey: string
   jobId: string
   createPR?: boolean
+  planId?: string // Added support for explicit planId
 }
 
 export const resolveIssue = async (params: ResolveIssueParams) => {
-  const { issue, repository, apiKey, jobId, createPR } = params
+  const { issue, repository, apiKey, jobId, createPR, planId } = params
   const workflowId = jobId // Keep workflowId alias for clarity if preferred
 
   let userPermissions: RepoPermissions | null = null
@@ -177,16 +178,20 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
       })
     }
 
-    // Check for existing plan
+    // --- PLAN SELECTION (modified): Use provided planId if present, else fallback to latest plan ---
     const plans = await listPlansForIssue({
       repoFullName: repository.full_name,
       issueNumber: issue.number,
     })
     plans.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
 
-    // Take the latest plan for now.
-    // TODO: Add a UI to allow the user to select a plan
-    const plan = plans[0]
+    let plan = undefined
+    if (planId) {
+      plan = plans.find((p) => p.id === planId)
+    }
+    if (!plan) {
+      plan = plans[0]
+    }
 
     if (plan) {
       // Inject the plan itself as a user message (for clarity, before issue/comments/tree)

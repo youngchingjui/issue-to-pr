@@ -9,7 +9,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { getPlanWithDetails } from "@/lib/neo4j/services/plan"
+
+// We need to use "use client" for the button logic.
+import dynamic from "next/dynamic"
+const ResolveButton = dynamic(() => import("@/components/issues/ResolvePlanButton"), { ssr: false })
 
 interface PageProps {
   params: {
@@ -46,6 +51,17 @@ export default async function PlanPage({ params }: PageProps) {
               <ReactMarkdown>{plan.content}</ReactMarkdown>
             </div>
           </div>
+
+          {/* --- RESOLVE BUTTON --- */}
+          {plan && issue && (
+            <div className="my-4">
+              <ResolveButton
+                planId={plan.id}
+                issueNumber={issue.number}
+                repoFullName={issue.repoFullName}
+              />
+            </div>
+          )}
 
           {issue && (
             <div>
