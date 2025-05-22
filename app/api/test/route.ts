@@ -10,7 +10,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    return NextResponse.json({ message: "Test API is working" })
+    // Any test code can be put here.
+    const result = null
+    return NextResponse.json(result)
   } catch (error) {
     console.error("Test API error:", error)
     return NextResponse.json(

@@ -1,3 +1,4 @@
+export { createApplyPatchTool } from "./ApplyPatchTool"
 export { createBranchTool } from "./Branch"
 export { createCommitTool } from "./Commit"
 export { createCreatePRTool } from "./CreatePRTool"

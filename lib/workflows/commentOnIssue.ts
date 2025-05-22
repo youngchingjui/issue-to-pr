@@ -250,7 +250,7 @@ export default async function commentOnIssue(
         throw new Error(`Failed to update comment: ${error.message}`)
       })
 
-      latestEvent = await createStatusEvent({
+      await createStatusEvent({
         content: "Comment updated successfully",
         workflowId: jobId,
         parentId: latestEvent.id,
