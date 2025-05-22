@@ -11,8 +11,7 @@ import { createStatusEvent } from "@/lib/neo4j/services/event"
 import { createWorkflowStateEvent } from "@/lib/neo4j/services/event"
 import { tagMessageAsPlan } from "@/lib/neo4j/services/plan"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
-import GetFileContentTool from "@/lib/tools/GetFileContent"
-import RipgrepSearchTool from "@/lib/tools/RipgrepSearchTool"
+import { createGetFileContentTool, createRipgrepSearchTool } from "@/lib/tools"
 import { BaseEvent as appBaseEvent } from "@/lib/types"
 import { GitHubRepository } from "@/lib/types/github"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
@@ -156,8 +155,8 @@ export default async function commentOnIssue(
     const tree = await createDirectoryTree(dirPath)
 
     // Prepare the tools
-    const getFileContentTool = new GetFileContentTool(dirPath)
-    const searchCodeTool = new RipgrepSearchTool(dirPath)
+    const getFileContentTool = createGetFileContentTool(dirPath)
+    const searchCodeTool = createRipgrepSearchTool(dirPath)
 
     latestEvent = await createStatusEvent({
       content: "Beginning to review issue and codebase",

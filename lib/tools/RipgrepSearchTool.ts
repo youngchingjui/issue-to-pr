@@ -1,11 +1,14 @@
 import { exec } from "child_process"
-import { zodFunction } from "openai/helpers/zod"
 import { promisify } from "util"
 import { z } from "zod"
 
-import { Tool } from "@/lib/types"
+import { createTool } from "@/lib/tools/helper"
 
 const execPromise = promisify(exec)
+
+const name = "ripgrep_search"
+const description =
+  "Searches for code in the local file system using ripgrep. Returns snippets of code containing the search term with 3 lines of context before and after each match. Note: These are just snippets - to fully understand the code's context, you should use a file reading tool to examine the complete file contents."
 
 const searchParameters = z.object({
   query: z
@@ -33,60 +36,51 @@ const searchParameters = z.object({
     ),
 })
 
-class RipgrepSearchTool implements Tool<typeof searchParameters> {
-  private baseDir: string
+type RipgrepSearchParameters = z.infer<typeof searchParameters>
 
-  constructor(baseDir: string) {
-    this.baseDir = baseDir
-  }
+async function fnHandler(
+  baseDir: string,
+  params: RipgrepSearchParameters
+): Promise<string> {
+  const { query, ignoreCase, hidden, follow } = params
 
-  parameters = searchParameters
+  // Set default values if parameters are null
+  const isIgnoreCase = ignoreCase ?? false
+  const includeHidden = hidden ?? false
+  const followSymlinks = follow ?? false
 
-  async handler(params: z.infer<typeof searchParameters>): Promise<string> {
-    const { query, ignoreCase, hidden, follow } = params
+  // Construct the ripgrep command with mandatory options
+  // Using baseDir instead of './' to search in the specified directory
+  let command = `cd "${baseDir}" && rg --line-number --max-filesize 200K -C 3 --heading -n '${query}' ./`
 
-    // Set default values if parameters are null
-    const isIgnoreCase = ignoreCase ?? false
-    const includeHidden = hidden ?? false
-    const followSymlinks = follow ?? false
+  // Add optional parameters based on user input
+  if (isIgnoreCase) command += " -i"
+  if (includeHidden) command += " --hidden"
+  if (followSymlinks) command += " -L"
 
-    // Construct the ripgrep command with mandatory options
-    // Using baseDir instead of './' to search in the specified directory
-    let command = `cd "${this.baseDir}" && rg --line-number --max-filesize 200K -C 3 --heading -n '${query}' ./`
-
-    // Add optional parameters based on user input
-    if (isIgnoreCase) command += " -i"
-    if (includeHidden) command += " --hidden"
-    if (followSymlinks) command += " -L"
-
-    try {
-      const { stdout } = await execPromise(command)
-      return stdout
-    } catch (error) {
-      // Check exit code to determine the appropriate response
-      if (error.code === 1) {
-        // Exit code 1 means no matches were found (not an error)
+  try {
+    const { stdout } = await execPromise(command)
+    return stdout
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error) {
+      const code = (error as { code: number }).code
+      if (code === 1) {
         return "No matching results found in the codebase."
-      } else if (error.code === 2) {
-        // Exit code 2 indicates a real error occurred
-        console.error("Error executing ripgrep search:", error)
-        throw new Error(
-          `Ripgrep search failed: ${error.message || "Unknown error"}`
-        )
+      } else if (code === 2) {
+        throw new Error(`Ripgrep search failed: ${error || "Unknown error"}`)
       } else {
-        // Handle any other unexpected errors
-        console.error("Unexpected error during ripgrep search:", error)
-        throw error
+        console.error("Unexpected ripgrep exit code:", error)
+        throw new Error(`Unexpected ripgrep exit code: ${code}`)
       }
     }
+    throw error
   }
-
-  tool = zodFunction({
-    name: "ripgrep_search",
-    parameters: searchParameters,
-    description:
-      "Searches for code in the local file system using ripgrep. Returns snippets of code containing the search term with 3 lines of context before and after each match. Note: These are just snippets - to fully understand the code's context, you should use a file reading tool to examine the complete file contents.",
-  })
 }
 
-export default RipgrepSearchTool
+export const createRipgrepSearchTool = (baseDir: string) =>
+  createTool({
+    name,
+    description,
+    schema: searchParameters,
+    handler: (params: RipgrepSearchParameters) => fnHandler(baseDir, params),
+  })

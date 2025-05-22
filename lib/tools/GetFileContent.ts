@@ -1,45 +1,41 @@
-import { zodFunction } from "openai/helpers/zod"
 import path from "path"
 import { z } from "zod"
 
 import { getFileContent } from "@/lib/fs"
-import { Tool } from "@/lib/types"
+import { createTool } from "@/lib/tools/helper"
 
-const getFileContentParameters = z.object({
+const name = "get_file_content"
+const description = "Retrieves the file contents from local repository"
+
+const getFileContentschema = z.object({
   relativePath: z
     .string()
     .describe("The relative path of the file to retrieve"),
 })
 
-class GetFileContentTool implements Tool<typeof getFileContentParameters> {
-  parameters = getFileContentParameters
-  tool = zodFunction({
-    name: "get_file_content",
-    parameters: getFileContentParameters,
-    description: "Retrieves the file contents from local repository",
-  })
+type getFileContentParameters = z.infer<typeof getFileContentschema>
 
-  baseDir: string
+async function fnHandler(
+  baseDir: string,
+  params: getFileContentParameters
+): Promise<string> {
+  const { relativePath } = params
 
-  constructor(baseDir: string) {
-    this.baseDir = baseDir
-  }
-
-  async handler(
-    params: z.infer<typeof getFileContentParameters>
-  ): Promise<string> {
-    const { relativePath } = params
-
-    try {
-      return await getFileContent(path.join(this.baseDir, relativePath))
-    } catch (error) {
-      if (error.code === "ENOENT") {
-        return error.message
-      }
-      console.error("Error getting file content:", error)
-      throw error
+  try {
+    return await getFileContent(path.join(baseDir, relativePath))
+  } catch (error) {
+    if (error instanceof Error && error.message === "ENOENT") {
+      return error.message
     }
+    console.error("Error getting file content:", error)
+    throw error
   }
 }
 
-export default GetFileContentTool
+export const createGetFileContentTool = (baseDir: string) =>
+  createTool({
+    name,
+    description,
+    schema: getFileContentschema,
+    handler: (params: getFileContentParameters) => fnHandler(baseDir, params),
+  })
