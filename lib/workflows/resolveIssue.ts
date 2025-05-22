@@ -99,6 +99,9 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
     // Initialize the persistent coder agent
     const coder = new CoderAgent({
       apiKey,
+      createPR: Boolean(
+        createPR && userPermissions?.canPush && userPermissions?.canCreatePR
+      ),
     })
     await coder.addJobId(jobId)
     coder.addSpan({ span, generationName: "resolveIssue" })
