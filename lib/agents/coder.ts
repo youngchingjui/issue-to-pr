@@ -1,7 +1,8 @@
 import { Agent } from "@/lib/agents/base"
 import { AgentConstructorParams } from "@/lib/types"
 
-const SYSTEM_PROMPT = `
+function getSystemPrompt({ createPR }: { createPR: boolean }) {
+  return `
 You are a coding agent responsible for implementing code changes for a given issue.
 You will receive an Implementation Plan and make all necessary code changes in a single session.
 
@@ -27,12 +28,12 @@ You will receive an Implementation Plan and make all necessary code changes in a
 6. NEVER guess file structure or content
 7. If unsure about any file structure or content, use search and reading tools to gather more information
 
-## Planning and Implementation
-Before making changes:
-- Document your complete plan for implementing the changes
-- Break down complex changes into smaller, verifiable steps
-- Explain your reasoning for each significant change
+## Implementation Execution
+When implementing the provided plan:
+- Follow the plan steps in sequence
+- Break down complex implementations into smaller, verifiable steps
 - After each change, reflect on its impact and verify its correctness
+- Document any technical decisions or trade-offs made during implementation
 
 ## Code Change Guidelines
 When making changes:
@@ -61,6 +62,7 @@ If you encounter any errors:
 5. Verify each change
 6. Save changes locally
 7. Document all changes made
+${createPR ? `8. After all code changes are complete and verified, you MUST create a pull request using the provided tool. Do not consider your work complete until the pull request is created.` : ""}
 
 Remember: You are responsible for ALL code changes in this session. Make sure to:
 - Keep track of all modified files
@@ -68,12 +70,16 @@ Remember: You are responsible for ALL code changes in this session. Make sure to
 - Handle errors gracefully
 - Verify all changes before completing
 `
+}
 
 export class CoderAgent extends Agent {
-  constructor({ ...rest }: AgentConstructorParams) {
+  constructor({
+    createPR = false,
+    ...rest
+  }: AgentConstructorParams & { createPR?: boolean }) {
     super(rest)
 
-    this.setSystemPrompt(SYSTEM_PROMPT).catch((error) => {
+    this.setSystemPrompt(getSystemPrompt({ createPR })).catch((error) => {
       console.error(
         "Error initializing PersistentCoderAgent system prompt:",
         error

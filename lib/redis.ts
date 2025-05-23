@@ -26,7 +26,9 @@ class RedisManager {
     try {
       await client.ping()
     } catch (error) {
-      throw new Error(`Failed to connect to Redis: ${error.message}`)
+      throw new Error(
+        `Failed to connect to Redis: ${error instanceof Error ? error.message : String(error)}`
+      )
     }
 
     return client

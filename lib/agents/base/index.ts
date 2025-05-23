@@ -5,7 +5,7 @@ import {
   ChatCompletionCreateParamsNonStreaming,
   ChatCompletionMessageParam,
 } from "openai/resources/chat/completions"
-import { z } from "zod"
+import { ZodType } from "zod"
 
 import {
   createErrorEvent,
@@ -16,7 +16,7 @@ import {
   createUserResponseEvent,
   deleteEvent,
 } from "@/lib/neo4j/services/event"
-import { AgentConstructorParams, Tool } from "@/lib/types"
+import { AgentConstructorParams, Tool2 as Tool } from "@/lib/types"
 
 type EnhancedMessage = ChatCompletionMessageParam & {
   id?: string
@@ -34,7 +34,7 @@ export class Agent {
   REQUIRED_TOOLS: string[] = []
   messages: EnhancedMessage[] = []
   private untrackedMessages: EnhancedMessage[] = [] // Queue for untracked messages
-  tools: Tool<z.ZodType>[] = []
+  tools: Tool<ZodType, unknown>[] = []
   llm: OpenAI
   model: ChatModel = "gpt-4.1"
   jobId?: string
@@ -137,8 +137,11 @@ export class Agent {
     this.messages.push(enhancedMessage)
   }
 
-  addTool<T extends z.ZodType>(toolConfig: Tool<T>) {
-    this.tools.push(toolConfig)
+  // Best I could do to avoid type errors
+  addTool<ToolSchema extends ZodType, ToolOutput>(
+    tool: Tool<ToolSchema, ToolOutput>
+  ) {
+    this.tools.push(tool as unknown as Tool<ZodType, unknown>)
   }
 
   addApiKey(apiKey: string) {
@@ -157,7 +160,7 @@ export class Agent {
 
   checkTools() {
     for (const tool of this.REQUIRED_TOOLS) {
-      if (!this.tools.some((t) => t.tool.function.name === tool)) {
+      if (!this.tools.some((t) => t.function.name === tool)) {
         console.error(`Agent does not have the ${tool} tool`)
         return false
       }
@@ -188,9 +191,8 @@ export class Agent {
     }
 
     if (this.tools.length > 0) {
-      params.tools = this.tools.map((tool) => tool.tool)
+      params.tools = this.tools
     }
-
     const response = await this.llm.chat.completions.create(params)
     console.log(
       `[DEBUG] response: ${JSON.stringify(response.choices[0].message)}`
@@ -202,7 +204,7 @@ export class Agent {
     if (response.choices[0].message.tool_calls) {
       for (const toolCall of response.choices[0].message.tool_calls) {
         const tool = this.tools.find(
-          (t) => t.tool.function.name === toolCall.function.name
+          (t) => t.function.name === toolCall.function.name
         )
         if (tool) {
           // Track tool call event
@@ -215,7 +217,7 @@ export class Agent {
             })
           }
 
-          const validationResult = tool.parameters.safeParse(
+          const validationResult = tool.schema.safeParse(
             JSON.parse(toolCall.function.arguments)
           )
           if (!validationResult.success) {
@@ -234,6 +236,18 @@ export class Agent {
           }
 
           const toolResponse = await tool.handler(validationResult.data)
+
+          if (typeof toolResponse !== "string") {
+            const errorMessage = `Tool ${toolCall.function.name} returned non-string response: ${JSON.stringify(toolResponse)}`
+            console.error(errorMessage)
+            if (this.jobId) {
+              await createErrorEvent({
+                workflowId: this.jobId,
+                content: errorMessage,
+              })
+            }
+            throw new Error(errorMessage)
+          }
 
           // First track message here, instead of this.trackMessage (inside this.addMessage)
           // Because ChatCompletionMessageParam does not have `toolName` property

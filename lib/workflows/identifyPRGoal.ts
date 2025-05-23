@@ -12,7 +12,7 @@ import {
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
-import { GetIssueTool } from "@/lib/tools"
+import { createGetIssueTool } from "@/lib/tools"
 import { GitHubIssue } from "@/lib/types/github"
 
 interface IdentifyPRGoalParams {
@@ -73,9 +73,7 @@ export async function identifyPRGoal({
     agent.addSpan({ span, generationName: "identify_goal" })
 
     // Add the get_issue tool
-    const getIssueTool = new GetIssueTool({
-      repo,
-    })
+    const getIssueTool = createGetIssueTool(repo)
 
     agent.addTool(getIssueTool)
 

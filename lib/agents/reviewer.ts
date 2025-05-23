@@ -1,12 +1,7 @@
 import { Agent } from "@/lib/agents/base"
 import { AgentConstructorParams } from "@/lib/types"
 
-export class ReviewerAgent extends Agent {
-  private initialSystemPrompt: string
-  REQUIRED_TOOLS = ["get_file_content", "search_code"]
-
-  constructor({ ...rest }: AgentConstructorParams) {
-    const initialSystemPrompt = `
+const SYSTEM_PROMPT = `
 ## Instructions
 You are the lead software engineer on a team. 
 You are given a Github Pull Request or a git diff, and your job is to review the changes. 
@@ -40,11 +35,16 @@ You will need to generate an assessment of the PR or git diff that addresses the
 ## Output
 Your output should be an assessment of the PR or git diff that addresses the questions above. Please output in markdown.
 `
-    super({
-      systemPrompt: initialSystemPrompt,
-      ...rest,
-    })
 
-    this.initialSystemPrompt = initialSystemPrompt
+export class ReviewerAgent extends Agent {
+  constructor({ ...rest }: AgentConstructorParams) {
+    super(rest)
+
+    this.setSystemPrompt(SYSTEM_PROMPT).catch((error) => {
+      console.error(
+        "Error initializing PersistentCoderAgent system prompt:",
+        error
+      )
+    })
   }
 }

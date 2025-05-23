@@ -14,8 +14,7 @@ import {
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
-import { SearchCodeTool } from "@/lib/tools"
-import { GetFileContentTool } from "@/lib/tools"
+import { createGetFileContentTool, createRipgrepSearchTool } from "@/lib/tools"
 import {
   GitHubIssue,
   IssueComment,
@@ -105,8 +104,8 @@ export async function reviewPullRequest({
     const span = trace.span({ name: traceName })
 
     // Initialize tools
-    const getFileContentTool = new GetFileContentTool(baseDir || "")
-    const searchCodeTool = new SearchCodeTool(repoFullName)
+    const getFileContentTool = createGetFileContentTool(baseDir || "")
+    const searchCodeTool = createRipgrepSearchTool(repoFullName)
 
     // Initialize LLM
     const reviewer = new ReviewerAgent({ apiKey })

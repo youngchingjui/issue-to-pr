@@ -1,6 +1,9 @@
 import { Integer, ManagedTransaction, Node } from "neo4j-driver"
 
-import { AnyEvent as appAnyEvent } from "@/lib/types"
+import {
+  AnyEvent as appAnyEvent,
+  MessageEvent as appMessageEvent,
+} from "@/lib/types"
 import {
   AnyEvent,
   anyEventSchema,
@@ -9,6 +12,8 @@ import {
   isLLMResponseWithPlan,
   LLMResponse,
   llmResponseSchema,
+  MessageEvent,
+  messageEventSchema,
   StatusEvent,
   statusEventSchema,
   SystemPrompt,
@@ -281,10 +286,52 @@ export async function deleteEventNode(
   )
 }
 
+export async function getMessagesForWorkflowRun(
+  tx: ManagedTransaction,
+  workflowRunId: string
+): Promise<MessageEvent[]> {
+  const result = await tx.run<{ e: Node<Integer, MessageEvent, "Event"> }>(
+    `
+    MATCH (w:WorkflowRun {id: $workflowRunId})-[:STARTS_WITH|NEXT*]->(e:Event:Message)
+    RETURN e
+    ORDER BY e.createdAt ASC
+    `,
+    { workflowRunId }
+  )
+  return result.records.map((record) =>
+    messageEventSchema.parse(record.get("e").properties)
+  )
+}
+
 export async function toAppEvent(
   dbEvent: AnyEvent,
   workflowId: string
 ): Promise<appAnyEvent> {
+  if (dbEvent.type === "llmResponse" && isLLMResponseWithPlan(dbEvent)) {
+    return {
+      ...dbEvent,
+      createdAt: dbEvent.createdAt.toStandardDate(),
+      type: "llmResponseWithPlan",
+      workflowId,
+      plan: {
+        id: dbEvent.id,
+        status: dbEvent.status,
+        version: dbEvent.version.toNumber(),
+        editMessage: dbEvent.editMessage,
+      },
+    }
+  }
+  return {
+    ...dbEvent,
+    createdAt: dbEvent.createdAt.toStandardDate(),
+    workflowId,
+  }
+}
+
+export async function toAppMessageEvent(
+  dbEvent: MessageEvent,
+  workflowId: string
+): Promise<appMessageEvent> {
   if (dbEvent.type === "llmResponse" && isLLMResponseWithPlan(dbEvent)) {
     return {
       ...dbEvent,

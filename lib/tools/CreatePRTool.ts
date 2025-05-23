@@ -1,11 +1,10 @@
-import { zodFunction } from "openai/helpers/zod"
 import { z } from "zod"
 
 import {
   createPullRequest,
   getPullRequestOnBranch,
 } from "@/lib/github/pullRequests"
-import { Tool } from "@/lib/types"
+import { createTool } from "@/lib/tools/helper"
 import { GitHubRepository } from "@/lib/types/github"
 
 const createPRParameters = z.object({
@@ -16,59 +15,55 @@ const createPRParameters = z.object({
   body: z.string().describe("The body/description of the pull request"),
 })
 
-class CreatePRTool implements Tool<typeof createPRParameters> {
-  repository: GitHubRepository
-  issueNumber: number
+type CreatePRParams = z.infer<typeof createPRParameters>
 
-  constructor(repository: GitHubRepository, issueNumber: number) {
-    this.repository = repository
-    this.issueNumber = issueNumber
-  }
-
-  parameters = createPRParameters
-  tool = zodFunction({
-    name: "create_pull_request",
-    parameters: createPRParameters,
-    description:
-      "Creates a pull request from an existing remote branch. The branch must already exist on GitHub and contain the changes you want to include in the PR.",
+async function fnHandler(
+  repository: GitHubRepository,
+  issueNumber: number,
+  params: CreatePRParams
+): Promise<string> {
+  const { branch, title, body } = params
+  // Check if PR on branch already exists
+  const existingPR = await getPullRequestOnBranch({
+    repoFullName: repository.full_name,
+    branch,
   })
-
-  async handler(params: z.infer<typeof createPRParameters>) {
-    const { branch, title, body } = params
-
-    // Check if PR on branch already exists
-    const existingPR = await getPullRequestOnBranch({
-      repoFullName: this.repository.full_name,
-      branch,
+  if (existingPR) {
+    return JSON.stringify({
+      status: "error",
+      message: `A pull request already exists for branch '${branch}'. PR: ${existingPR}`,
     })
-    if (existingPR) {
-      return JSON.stringify({
-        status: "error",
-        message: `A pull request already exists for branch '${branch}'. PR: ${existingPR}`,
-      })
-    }
-
-    // Create the pull request
-    try {
-      const pr = await createPullRequest({
-        repoFullName: this.repository.full_name,
-        branch,
-        title,
-        body,
-        issueNumber: this.issueNumber,
-      })
-
-      return JSON.stringify({
-        status: "success",
-        pullRequest: pr,
-      })
-    } catch (error) {
-      return JSON.stringify({
-        status: "error",
-        message: `Failed to create pull request: ${error.message || error}`,
-      })
-    }
+  }
+  // Create the pull request
+  try {
+    const pr = await createPullRequest({
+      repoFullName: repository.full_name,
+      branch,
+      title,
+      body,
+      issueNumber,
+    })
+    return JSON.stringify({
+      status: "success",
+      pullRequest: pr,
+    })
+  } catch (error: unknown) {
+    return JSON.stringify({
+      status: "error",
+      message: `Failed to create pull request: ${error instanceof Error ? error.message : String(error)}`,
+    })
   }
 }
 
-export default CreatePRTool
+export const createCreatePRTool = (
+  repository: GitHubRepository,
+  issueNumber: number
+) =>
+  createTool({
+    name: "create_pull_request",
+    description:
+      "Creates a pull request from an existing remote branch. The branch must already exist on GitHub and contain the changes you want to include in the PR.",
+    schema: createPRParameters,
+    handler: (params: CreatePRParams) =>
+      fnHandler(repository, issueNumber, params),
+  })

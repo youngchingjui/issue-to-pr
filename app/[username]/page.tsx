@@ -6,6 +6,7 @@ import {
 } from "@/lib/github/content"
 import { GitHubError } from "@/lib/github/content"
 import { getGithubUser } from "@/lib/github/users"
+import { AuthenticatedUserRepository } from "@/lib/types/github"
 
 export default async function Repositories({
   params,
@@ -20,7 +21,7 @@ export default async function Repositories({
   try {
     // First, get the authenticated user to check if we're viewing our own profile
     const authUser = await getGithubUser()
-    let repositories = []
+    let repositories: AuthenticatedUserRepository[] = []
     let maxPage = 1
 
     if (authUser?.login === params.username) {

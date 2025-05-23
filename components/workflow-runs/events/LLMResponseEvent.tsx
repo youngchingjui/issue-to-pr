@@ -4,6 +4,7 @@ import { ExternalLink } from "lucide-react"
 import Link from "next/link"
 import ReactMarkdown from "react-markdown"
 
+import { FeedbackButton } from "@/components/common/FeedbackButton"
 import { PostToGitHubButton } from "@/components/issues/actions/PostToGitHubButton"
 import { Button } from "@/components/ui/button"
 import { CollapsibleContent } from "@/components/ui/collapsible-content"
@@ -41,6 +42,7 @@ export async function LLMResponseEvent({ event, issue }: Props) {
           </>
         )}
         <CopyMarkdownButton content={event.content} />
+        <FeedbackButton />
       </div>
     </div>
   )

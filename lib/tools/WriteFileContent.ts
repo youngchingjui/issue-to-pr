@@ -1,9 +1,8 @@
-import { zodFunction } from "openai/helpers/zod"
 import path from "path"
 import { z } from "zod"
 
 import { writeFile } from "@/lib/fs"
-import { Tool } from "@/lib/types"
+import { createTool } from "@/lib/tools/helper"
 
 const writeFileContentParameters = z.object({
   relativePath: z
@@ -12,28 +11,22 @@ const writeFileContentParameters = z.object({
   content: z.string().describe("The content to write to the file"),
 })
 
-export default class WriteFileContentTool
-  implements Tool<typeof writeFileContentParameters>
-{
-  baseDir: string
+type WriteFileContentParams = z.infer<typeof writeFileContentParameters>
 
-  constructor(baseDir: string) {
-    this.baseDir = baseDir
-  }
-
-  parameters = writeFileContentParameters
-  tool = zodFunction({
-    name: "write_file",
-    parameters: writeFileContentParameters,
-    description: "Writes content to a file in the repository",
-  })
-
-  async handler(
-    params: z.infer<typeof writeFileContentParameters>
-  ): Promise<string> {
-    const { relativePath, content } = params
-    const fullPath = path.join(this.baseDir, relativePath)
-    await writeFile(fullPath, content)
-    return `File written successfully to ${relativePath}`
-  }
+async function fnHandler(
+  baseDir: string,
+  params: WriteFileContentParams
+): Promise<string> {
+  const { relativePath, content } = params
+  const fullPath = path.join(baseDir, relativePath)
+  await writeFile(fullPath, content)
+  return `File written successfully to ${relativePath}`
 }
+
+export const createWriteFileContentTool = (baseDir: string) =>
+  createTool({
+    name: "write_file",
+    description: "Writes content to a file in the repository",
+    schema: writeFileContentParameters,
+    handler: (params: WriteFileContentParams) => fnHandler(baseDir, params),
+  })

@@ -107,6 +107,17 @@ export const reviewCommentSchema = appReviewCommentSchema
   .omit({ workflowId: true })
   .merge(z.object({ createdAt: z.instanceof(DateTime) }))
 
+export const messageEventSchema = z.union([
+  llmResponseWithPlanSchema,
+  z.discriminatedUnion("type", [
+    userMessageSchema,
+    systemPromptSchema,
+    llmResponseSchema,
+    toolCallSchema,
+    toolCallResultSchema,
+  ]),
+])
+
 export const anyEventSchema = z.discriminatedUnion("type", [
   errorEventSchema,
   llmResponseSchema,
@@ -124,6 +135,7 @@ export type ErrorEvent = z.infer<typeof errorEventSchema>
 export type Issue = z.infer<typeof issueSchema>
 export type LLMResponse = z.infer<typeof llmResponseSchema>
 export type LLMResponseWithPlan = z.infer<typeof llmResponseWithPlanSchema>
+export type MessageEvent = z.infer<typeof messageEventSchema>
 export type Plan = z.infer<typeof planSchema>
 export type ReviewComment = z.infer<typeof reviewCommentSchema>
 export type StatusEvent = z.infer<typeof statusEventSchema>
