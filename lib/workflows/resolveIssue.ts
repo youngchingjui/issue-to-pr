@@ -56,6 +56,12 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
       postToGithub: createPR,
     })
 
+    // Emit workflow "running" state event
+    await createWorkflowStateEvent({
+      workflowId,
+      state: "running",
+    })
+
     await createStatusEvent({
       workflowId,
       content: `Starting workflow for issue #${issue.number} in ${repository.full_name}`,
