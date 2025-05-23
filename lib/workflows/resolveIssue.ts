@@ -40,6 +40,20 @@ interface ResolveIssueParams {
   createPR?: boolean
 }
 
+// Utility to extract branch name from tool call messages if possible
+type ToolMessage = {
+  role: string
+  content?: string | null
+  tool_call_id?: string
+}
+
+type ToolCallType = {
+  function?: {
+    name?: string
+    arguments?: string
+  }
+}
+
 export const resolveIssue = async (params: ResolveIssueParams) => {
   const { issue, repository, apiKey, jobId, createPR } = params
   const workflowId = jobId // Keep workflowId alias for clarity if preferred
@@ -211,8 +225,103 @@ ${plan.content}
 
     const coderResult = await coder.runWithFunctions()
 
-    // Emit completion event
+    /**************************************/
+    // FALLBACK: Guarantee Pull Request Creation
+    /**************************************/
+    if (
+      createPR &&
+      userPermissions?.canPush &&
+      userPermissions?.canCreatePR &&
+      createPRTool
+    ) {
+      // Try to find a message from the create_pull_request tool in the coder's messages
+      const prCreated = !!coder.messages.find(
+        (msg: any) =>
+          msg.role === "tool" &&
+          typeof msg.content === "string" &&
+          // For safety, check via function name in previous tool call, or tool_call_id association
+          (msg.tool_call_id &&
+            coder.messages.find(
+              (c: any) =>
+                (c.role === "assistant" || c.role === "tool_call") &&
+                c.tool_calls &&
+                Array.isArray(c.tool_calls) &&
+                c.tool_calls.some(
+                  (tc: any) =>
+                    tc.id === msg.tool_call_id &&
+                    tc.function &&
+                    tc.function.name === "create_pull_request"
+                )
+            ))
+      )
+      // Only continue if not detected as PR created
+      if (!prCreated) {
+        // Try to get the branch from the last commit, sync, or branch tool call
+        let usedBranch: string | undefined = undefined
+        // Scan from the end to the start for the most likely-used branch
+        for (let i = coder.messages.length - 1; i >= 0; i--) {
+          const msg = coder.messages[i]
+          if (msg.role === "tool" && typeof msg.content === "string") {
+            // See if this is a commit, branch, or sync_branch tool result and try to parse the branch name
+            try {
+              const parsed = JSON.parse(msg.content)
+              if (parsed && parsed.branch) {
+                usedBranch = parsed.branch
+                break
+              }
+            } catch {
+              // Could not parse, continue
+            }
+          }
+        }
+        if (!usedBranch) {
+          // Fallback to repository.default_branch or inform error
+          usedBranch = repository.default_branch || "main"
+        }
+        // Title and body for fallback PR
+        const prTitle = issue.title || `Automated code changes for Issue #${issue.number}`
+        let prBody = `This pull request implements the plan for resolving issue #${issue.number}.\n`;
+        if (plan) {
+          prBody += `\n## Implementation Plan\n${plan.content}`
+        }
+        // Actually attempt PR creation via tool handler:
+        try {
+          const prResult = await createPRTool.handler({
+            branch: usedBranch,
+            title: prTitle,
+            body: prBody
+          })
+          let parsedResult = prResult
+          try {
+            parsedResult = JSON.parse(prResult)
+          } catch {
+            // If handler didn't return JSON, wrap as error
+            parsedResult = { status: "error", message: prResult }
+          }
+          if (parsedResult.status === "success") {
+            await createStatusEvent({
+              workflowId,
+              content: `Fallback: Pull request successfully created from branch '${usedBranch}'.`,
+            })
+          } else {
+            await createErrorEvent({
+              workflowId,
+              content: `Fallback PR creation failed: ${parsedResult.message}`,
+            })
+          }
+        } catch (prError: any) {
+          await createErrorEvent({
+            workflowId,
+            content: `Fallback PR creation threw error: ${prError?.message || prError}`,
+          })
+        }
+      }
+    }
+    /**************************************/
+    // End Fallback
+    /**************************************/
 
+    // Emit completion event
     await createWorkflowStateEvent({
       workflowId,
       state: "completed",
