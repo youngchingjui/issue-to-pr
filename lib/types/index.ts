@@ -1,4 +1,3 @@
-import { zodFunction } from "openai/helpers/zod"
 import { ChatModel } from "openai/resources"
 import { z, ZodType } from "zod"
 
