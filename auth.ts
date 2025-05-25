@@ -32,7 +32,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       authorization: {
         url: "https://github.com/login/oauth/authorize",
         params: {
-          scope: "read:user user:email repo",
+          scope: "read:user user:email repo workflow",
           redirect_uri: `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/callback/github-oauth`,
         },
       },
