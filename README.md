@@ -58,6 +58,12 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 For detailed feature documentation, see our [User Guide](docs/guides/user-guide.md).
 
+---
+
+## Continuous Integration
+
+Jest tests are now automatically run on every PR and push via GitHub Actions. PRs will show a 'Checks' status based on test results.
+
 ## Contributing
 
 Please read our [Contributing Guide](docs/guides/contributing.md) for details on our code of conduct and development process.
