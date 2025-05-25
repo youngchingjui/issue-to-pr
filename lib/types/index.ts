@@ -1,19 +1,8 @@
-import { zodFunction } from "openai/helpers/zod"
 import { ChatModel } from "openai/resources"
 import { z, ZodType } from "zod"
 
 // Tools
-/*
- * @deprecated Use the new Tool interface instead
- */
-export interface Tool<T extends z.ZodType, U = unknown> {
-  tool: ReturnType<typeof zodFunction>
-  parameters: T
-  handler: (params: z.infer<T>, ...args: U[]) => Promise<string>
-}
-
-// Temporarily named until we can remove the old tool interface
-export interface Tool2<Schema extends ZodType, Output> {
+export interface Tool<Schema extends ZodType, Output> {
   type: "function"
   function: {
     name: string

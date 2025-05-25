@@ -16,7 +16,7 @@ import {
   createUserResponseEvent,
   deleteEvent,
 } from "@/lib/neo4j/services/event"
-import { AgentConstructorParams, Tool2 as Tool } from "@/lib/types"
+import { AgentConstructorParams, Tool } from "@/lib/types"
 
 type EnhancedMessage = ChatCompletionMessageParam & {
   id?: string
