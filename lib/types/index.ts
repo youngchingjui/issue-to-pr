@@ -191,3 +191,40 @@ export type WorkflowRun = z.infer<typeof workflowRunSchema>
 export type WorkflowStateEvent = z.infer<typeof workflowStateEventSchema>
 export type WorkflowRunState = z.infer<typeof workflowRunStateSchema>
 export type WorkflowType = z.infer<typeof workflowTypeEnum>
+
+// ---- Settings Schemas ----
+
+/**
+ * User-level settings schema.
+ * All properties optional. Add more user-specific settings as needed.
+ */
+export const userSettingsSchema = z.object({
+  /**
+   * OpenAI API key used throughout the application (user-specific, optional).
+   */
+  openAIApiKey: z.string().optional(),
+
+  /**
+   * If true, the system will auto-post plans to GitHub issues for this user.
+   */
+  autoPostPlanToGitHubIssue: z.boolean().optional(),
+
+  // Add more user-specific settings here as needed
+});
+
+export type UserSettings = z.infer<typeof userSettingsSchema>;
+
+/**
+ * Repo-level settings schema.
+ * All properties optional. Add repo-scoped settings as needed.
+ */
+export const repoSettingsSchema = z.object({
+  /**
+   * If true, the system will auto-post plans to GitHub issues for this repository.
+   */
+  autoPostPlanToGitHubIssue: z.boolean().optional(),
+
+  // Add more repo-level settings here as needed
+});
+
+export type RepoSettings = z.infer<typeof repoSettingsSchema>;
