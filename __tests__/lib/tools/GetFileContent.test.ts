@@ -21,7 +21,7 @@ describe("GetFileContent tool", () => {
       errorCaught = err
     }
 
-    expect(errorCaught).toBeNull()
+    expect(errorCaught).toBeUndefined()
     expect(typeof result).toBe("string")
     expect(result).toMatch(/no such file|ENOENT|not found/i) // Node ENOENT msg
   })
