@@ -134,7 +134,7 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
         createRepoFullName(repository.full_name),
         baseDir
       )
-      createPRTool = createCreatePRTool(repository, issue.number)
+      createPRTool = createCreatePRTool(repository, issue.number, true) // Pass flag to add AI generated label
 
       coder.addTool(syncBranchTool)
       coder.addTool(createPRTool)

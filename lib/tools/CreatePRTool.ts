@@ -13,6 +13,8 @@ const createPRParameters = z.object({
     .describe("The branch name to create the pull request from"),
   title: z.string().describe("The title of the pull request"),
   body: z.string().describe("The body/description of the pull request"),
+  // Optionally allow switching off label in the future, but it's hidden from user in tool schema (for AI only)
+  // addAIGeneratedLabel?: boolean
 })
 
 type CreatePRParams = z.infer<typeof createPRParameters>
@@ -20,7 +22,8 @@ type CreatePRParams = z.infer<typeof createPRParameters>
 async function fnHandler(
   repository: GitHubRepository,
   issueNumber: number,
-  params: CreatePRParams
+  params: CreatePRParams,
+  addAIGeneratedLabel: boolean = false // default, override in workflow
 ): Promise<string> {
   const { branch, title, body } = params
   // Check if PR on branch already exists
@@ -42,6 +45,7 @@ async function fnHandler(
       title,
       body,
       issueNumber,
+      addAIGeneratedLabel,
     })
     return JSON.stringify({
       status: "success",
@@ -57,7 +61,8 @@ async function fnHandler(
 
 export const createCreatePRTool = (
   repository: GitHubRepository,
-  issueNumber: number
+  issueNumber: number,
+  addAIGeneratedLabel: boolean = false
 ) =>
   createTool({
     name: "create_pull_request",
@@ -65,5 +70,5 @@ export const createCreatePRTool = (
       "Creates a pull request from an existing remote branch. The branch must already exist on GitHub and contain the changes you want to include in the PR.",
     schema: createPRParameters,
     handler: (params: CreatePRParams) =>
-      fnHandler(repository, issueNumber, params),
+      fnHandler(repository, issueNumber, params, addAIGeneratedLabel),
   })

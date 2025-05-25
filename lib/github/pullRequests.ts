@@ -42,12 +42,14 @@ export async function createPullRequest({
   title,
   body,
   issueNumber,
+  addAIGeneratedLabel = false,
 }: {
   repoFullName: string
   branch: string
   title: string
   body: string
   issueNumber?: number
+  addAIGeneratedLabel?: boolean
 }) {
   const octokit = await getOctokit()
   if (!octokit) {
@@ -72,6 +74,25 @@ export async function createPullRequest({
     head: branch,
     base: "main",
   })
+
+  // Optionally add the AI generated label
+  if (addAIGeneratedLabel && pullRequest?.data?.number) {
+    try {
+      await octokit.issues.addLabels({
+        owner,
+        repo,
+        issue_number: pullRequest.data.number,
+        labels: ["AI generated"],
+      })
+    } catch (e) {
+      // not fatal to PR; log error
+      // eslint-disable-next-line no-console
+      console.error(
+        `Failed to add \"AI generated\" label to PR #${pullRequest.data.number}:`,
+        e
+      )
+    }
+  }
 
   return pullRequest
 }
