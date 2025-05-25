@@ -233,6 +233,17 @@ ${plan.content}
       content: String(error),
     })
 
+    // Emit workflow state event for error status
+    await createWorkflowStateEvent({
+      workflowId,
+      state: "error",
+      content: String(error),
+    })
+
+    /*
+      Consistency note: On error, both an error event and a workflow state error event
+      are emitted. This ensures all consumers (frontend/infra) get proper error status updates.
+    */
     throw error
   }
 }
