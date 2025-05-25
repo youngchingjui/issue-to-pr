@@ -167,7 +167,12 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
         role: "user",
         content: `Github issue comments:\n${comments
           .map(
-            (comment) => `\n- **User**: ${comment.user?.login}\n- **Created At**: ${new Date(comment.created_at).toLocaleString()}\n- **Reactions**: ${comment.reactions ? comment.reactions.total_count : 0}\n- **Comment**: ${comment.body}\n`
+            (comment) => `
+- **User**: ${comment.user?.login}
+- **Created At**: ${new Date(comment.created_at).toLocaleString()}
+- **Reactions**: ${comment.reactions ? comment.reactions.total_count : 0}
+- **Comment**: ${comment.body}
+`
           )
           .join("\n")}`,
       })
@@ -196,7 +201,10 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
       // Inject the plan itself as a user message (for clarity, before issue/comments/tree)
       await coder.addMessage({
         role: "user",
-        content: `\nImplementation plan for this issue (from previous workflow):\n${plan.content}\n`,
+        content: `
+Implementation plan for this issue (from previous workflow):
+${plan.content}
+`,
       })
     }
 
@@ -231,7 +239,7 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
       state: "error",
       content: String(error),
     })
-    
+
     /*
       Consistency note: On error, both an error event and a workflow state error event
       are emitted. This ensures all consumers (frontend/infra) get proper error status updates.
