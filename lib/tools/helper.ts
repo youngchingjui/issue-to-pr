@@ -1,7 +1,7 @@
 import { z, ZodType } from "zod"
 import { zodToJsonSchema } from "zod-to-json-schema"
 
-import { Tool2 as Tool } from "@/lib/types"
+import { Tool } from "@/lib/types"
 
 export const createTool = <Schema extends ZodType, Output>({
   name,
