@@ -170,6 +170,42 @@ export const anyEventSchema = z.discriminatedUnion("type", [
   workflowStateEventSchema,
 ])
 
+// ---- Settings Schemas ----
+
+/**
+ * User-level settings schema.
+ * All properties optional. Add more user-specific settings as needed.
+ */
+export const userSettingsSchema = z.object({
+  openAIApiKey: z
+    .string()
+    .optional()
+    .describe(
+      "OpenAI API key used throughout the application (user-specific, optional)."
+    ),
+  autoPostPlanToGitHubIssue: z
+    .boolean()
+    .optional()
+    .describe(
+      "If true, the system will auto-post plans to GitHub issues for this user."
+    ),
+  // Add more user-specific settings here as needed
+})
+
+/**
+ * Repo-level settings schema.
+ * All properties optional. Add repo-scoped settings as needed.
+ */
+export const repoSettingsSchema = z.object({
+  autoPostPlanToGitHubIssue: z
+    .boolean()
+    .optional()
+    .describe(
+      "If true, the system will auto-post plans to GitHub issues for this repository."
+    ),
+  // Add more repo-level settings here as needed
+})
+
 // Type exports
 export type AnyEvent = z.infer<typeof anyEventSchema>
 export type BaseEvent = z.infer<typeof baseEventSchema>
@@ -181,50 +217,15 @@ export type LLMResponseWithPlan = z.infer<typeof llmResponseWithPlanSchema>
 export type MessageEvent = z.infer<typeof messageEventSchema>
 export type Plan = z.infer<typeof planSchema>
 export type PlanMeta = z.infer<typeof planMetaSchema>
+export type RepoSettings = z.infer<typeof repoSettingsSchema>
 export type ReviewComment = z.infer<typeof reviewCommentSchema>
 export type StatusEvent = z.infer<typeof statusEventSchema>
 export type SystemPrompt = z.infer<typeof systemPromptSchema>
 export type ToolCall = z.infer<typeof toolCallSchema>
 export type ToolCallResult = z.infer<typeof toolCallResultSchema>
 export type UserMessage = z.infer<typeof userMessageSchema>
+export type UserSettings = z.infer<typeof userSettingsSchema>
 export type WorkflowRun = z.infer<typeof workflowRunSchema>
-export type WorkflowStateEvent = z.infer<typeof workflowStateEventSchema>
 export type WorkflowRunState = z.infer<typeof workflowRunStateSchema>
+export type WorkflowStateEvent = z.infer<typeof workflowStateEventSchema>
 export type WorkflowType = z.infer<typeof workflowTypeEnum>
-
-// ---- Settings Schemas ----
-
-/**
- * User-level settings schema.
- * All properties optional. Add more user-specific settings as needed.
- */
-export const userSettingsSchema = z.object({
-  /**
-   * OpenAI API key used throughout the application (user-specific, optional).
-   */
-  openAIApiKey: z.string().optional(),
-
-  /**
-   * If true, the system will auto-post plans to GitHub issues for this user.
-   */
-  autoPostPlanToGitHubIssue: z.boolean().optional(),
-
-  // Add more user-specific settings here as needed
-});
-
-export type UserSettings = z.infer<typeof userSettingsSchema>;
-
-/**
- * Repo-level settings schema.
- * All properties optional. Add repo-scoped settings as needed.
- */
-export const repoSettingsSchema = z.object({
-  /**
-   * If true, the system will auto-post plans to GitHub issues for this repository.
-   */
-  autoPostPlanToGitHubIssue: z.boolean().optional(),
-
-  // Add more repo-level settings here as needed
-});
-
-export type RepoSettings = z.infer<typeof repoSettingsSchema>;
