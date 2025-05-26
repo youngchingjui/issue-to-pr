@@ -4,6 +4,8 @@ import { getRepoFromString } from "@/lib/github/content"
 import { updateJobStatus } from "@/lib/redis-old"
 import commentOnIssue from "@/lib/workflows/commentOnIssue"
 
+const POST_TO_GITHUB_SETTING = true // TODO: Set setting in database
+
 // Subscribed events for Github App
 enum GitHubEvent {
   Create = "create",
@@ -34,6 +36,10 @@ export const routeWebhookHandler = async ({
   }
 
   if (event === GitHubEvent.Issues) {
+    if (typeof process.env.OPENAI_API_KEY !== "string") {
+      throw new Error("OPENAI_API_KEY is not set")
+    }
+
     const action = payload["action"]
     if (action === "opened") {
       // Generate a unique job ID
@@ -48,7 +54,8 @@ export const routeWebhookHandler = async ({
         payload["issue"]["number"],
         repo,
         process.env.OPENAI_API_KEY, // TODO: Pull API key from user account
-        jobId
+        jobId,
+        POST_TO_GITHUB_SETTING
       )
     }
   } else {
