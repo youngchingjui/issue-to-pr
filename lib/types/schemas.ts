@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { repoFullNameSchema } from "../schemas/repoFullName"
 
 import { WorkflowType } from "./neo4j"
 
@@ -113,7 +114,7 @@ export const issueSchema = z.object({
   number: z.number(),
   id: z.string().optional(),
   createdAt: z.date().optional(),
-  repoFullName: z.string(),
+  repoFullName: repoFullNameSchema,
   title: z.string().optional(),
   body: z.string().optional(),
   state: z.enum(["open", "closed"]).optional(),

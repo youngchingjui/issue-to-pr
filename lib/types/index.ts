@@ -1,5 +1,6 @@
 import { ChatModel } from "openai/resources"
 import { z, ZodType } from "zod"
+import { repoFullNameSchema } from "../schemas/repoFullName"
 
 // Tools
 export interface Tool<Schema extends ZodType, Output> {
@@ -24,7 +25,7 @@ export type AgentConstructorParams = {
 export const issueSchema = z.object({
   number: z.number(),
   createdAt: z.date().optional(),
-  repoFullName: z.string(),
+  repoFullName: repoFullNameSchema,
   title: z.string().optional(),
   body: z.string().optional(),
   state: z.enum(["open", "closed"]).optional(),

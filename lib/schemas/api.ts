@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { repoFullNameSchema } from "./repoFullName"
 
 export const GitHubURLSchema = z
   .string({
@@ -63,14 +64,14 @@ export const FetchGitHubItemRequestSchema = z.object({
 
 export const CommentRequestSchema = z.object({
   issueNumber: z.number(),
-  repoFullName: z.string().min(1),
+  repoFullName: repoFullNameSchema,
   apiKey: z.string().min(1),
   postToGithub: z.boolean().default(false),
 })
 
 export const ResolveRequestSchema = z.object({
   issueNumber: z.number(),
-  repoFullName: z.string(),
+  repoFullName: repoFullNameSchema,
   apiKey: z.string(),
   postToGithub: z.boolean().default(false),
   createPR: z.boolean().default(false),
