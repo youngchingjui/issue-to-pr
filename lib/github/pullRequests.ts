@@ -202,3 +202,28 @@ export async function getPullRequest({
 
   return response.data
 }
+
+export async function addLabelsToPullRequest({
+  repoFullName,
+  pullNumber,
+  labels,
+}: {
+  repoFullName: string
+  pullNumber: number
+  labels: string[]
+}): Promise<void> {
+  const octokit = await getOctokit()
+  if (!octokit) {
+    throw new Error("No octokit found")
+  }
+  const [owner, repo] = repoFullName.split("/")
+  if (!owner || !repo) {
+    throw new Error("Invalid repository format. Expected 'owner/repo'")
+  }
+  await octokit.issues.addLabels({
+    owner,
+    repo,
+    issue_number: pullNumber,
+    labels,
+  })
+}
