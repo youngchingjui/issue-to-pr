@@ -1,5 +1,6 @@
 import { z } from "zod"
-import { repoFullNameSchema } from "./repoFullName"
+
+import { repoFullNameSchema } from "@/lib/types"
 
 export const GitHubURLSchema = z
   .string({

@@ -1,7 +1,13 @@
 import { z } from "zod"
-import { repoFullNameSchema } from "../schemas/repoFullName"
 
-import { WorkflowType } from "./neo4j"
+import { repoFullNameSchema } from "@/lib/types/github"
+import { WorkflowType } from "@/lib/types/neo4j"
+
+/**
+ * @deprecated
+ * All schemas in this file are deprecated in favor of Zod-based schemas/types in concern-based files (e.g., event.ts, plan.ts, workflow.ts).
+ * This file will be removed after migration is complete.
+ */
 
 // Base Event Schema
 /**

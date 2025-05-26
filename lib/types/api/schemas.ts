@@ -1,7 +1,8 @@
 // TODO: Move API route schemas here, can be used by both client and server
 
 import { z } from "zod"
-import { repoFullNameSchema } from "../../schemas/repoFullName"
+
+import { repoFullNameSchema } from "@/lib/types"
 
 export const PostPlanRequestSchema = z.object({
   issueNumber: z.number(),
