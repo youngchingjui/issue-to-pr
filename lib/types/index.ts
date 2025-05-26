@@ -173,10 +173,13 @@ export const anyEventSchema = z.discriminatedUnion("type", [
 // ---- Settings Schemas ----
 
 /**
- * User-level settings schema.
+ * Base settings schema.
  * All properties optional. Add more user-specific settings as needed.
  */
-export const userSettingsSchema = z.object({
+export const settingsTypeEnum = z.enum(["user", "repo"])
+
+export const settingsSchema = z.object({
+  type: settingsTypeEnum,
   openAIApiKey: z
     .string()
     .optional()
@@ -189,21 +192,11 @@ export const userSettingsSchema = z.object({
     .describe(
       "If true, the system will auto-post plans to GitHub issues for this user."
     ),
+  lastUpdated: z
+    .date()
+    .describe("The date and time when the settings were last updated.")
+    .default(new Date()),
   // Add more user-specific settings here as needed
-})
-
-/**
- * Repo-level settings schema.
- * All properties optional. Add repo-scoped settings as needed.
- */
-export const repoSettingsSchema = z.object({
-  autoPostPlanToGitHubIssue: z
-    .boolean()
-    .optional()
-    .describe(
-      "If true, the system will auto-post plans to GitHub issues for this repository."
-    ),
-  // Add more repo-level settings here as needed
 })
 
 // Type exports
@@ -217,14 +210,14 @@ export type LLMResponseWithPlan = z.infer<typeof llmResponseWithPlanSchema>
 export type MessageEvent = z.infer<typeof messageEventSchema>
 export type Plan = z.infer<typeof planSchema>
 export type PlanMeta = z.infer<typeof planMetaSchema>
-export type RepoSettings = z.infer<typeof repoSettingsSchema>
 export type ReviewComment = z.infer<typeof reviewCommentSchema>
+export type Settings = z.infer<typeof settingsSchema>
+export type SettingsType = z.infer<typeof settingsTypeEnum>
 export type StatusEvent = z.infer<typeof statusEventSchema>
 export type SystemPrompt = z.infer<typeof systemPromptSchema>
 export type ToolCall = z.infer<typeof toolCallSchema>
 export type ToolCallResult = z.infer<typeof toolCallResultSchema>
 export type UserMessage = z.infer<typeof userMessageSchema>
-export type UserSettings = z.infer<typeof userSettingsSchema>
 export type WorkflowRun = z.infer<typeof workflowRunSchema>
 export type WorkflowRunState = z.infer<typeof workflowRunStateSchema>
 export type WorkflowStateEvent = z.infer<typeof workflowStateEventSchema>
