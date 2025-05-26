@@ -212,7 +212,7 @@ export async function addLabelsToPullRequest({
   pullNumber: number
   labels: string[]
 }): Promise<void> {
-  const octokit = await getOctokit();
+  const octokit = await getOctokit()
   if (!octokit) {
     throw new Error("No octokit found")
   }

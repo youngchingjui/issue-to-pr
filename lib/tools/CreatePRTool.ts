@@ -1,9 +1,9 @@
 import { z } from "zod"
 
 import {
+  addLabelsToPullRequest,
   createPullRequest,
   getPullRequestOnBranch,
-  addLabelsToPullRequest,
 } from "@/lib/github/pullRequests"
 import { createTool } from "@/lib/tools/helper"
 import { GitHubRepository } from "@/lib/types/github"
@@ -45,7 +45,7 @@ async function fnHandler(
       body,
       issueNumber,
     })
-    let labelWarning = null
+    let labelWarning: string | undefined
     try {
       // Add the "AI generated" label
       await addLabelsToPullRequest({
@@ -53,8 +53,8 @@ async function fnHandler(
         pullNumber: pr.data.number,
         labels: ["AI generated"],
       })
-    } catch (labelError: any) {
-      labelWarning = `Warning: PR created, but failed to add 'AI generated' label: ${labelError?.message || labelError}`
+    } catch (labelError) {
+      labelWarning = `Warning: PR created, but failed to add 'AI generated' label: ${String(labelError)}`
       // Optionally, could log here too
     }
     return JSON.stringify({
