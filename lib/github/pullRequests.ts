@@ -227,3 +227,33 @@ export async function addLabelsToPullRequest({
     labels,
   })
 }
+
+// Added: Count AI-generated merged PRs to production (main)
+export async function countAIMergedPRs({ repoFullName, baseBranch = "main" }: { repoFullName: string; baseBranch?: string }): Promise<number> {
+  const octokit = await getOctokit()
+  if (!octokit) {
+    throw new Error("No octokit found")
+  }
+  const [owner, repo] = repoFullName.split("/")
+  let totalCount = 0
+  let page = 1
+  let per_page = 100
+  let hasMore = true
+  while (hasMore) {
+    const res = await octokit.rest.pulls.list({
+      owner,
+      repo,
+      state: "closed",
+      base: baseBranch,
+      per_page,
+      page,
+    })
+    const filtered = res.data.filter(
+      pr => pr.labels && pr.labels.some(l => l.name === "AI generated") && pr.merged_at
+    )
+    totalCount += filtered.length
+    hasMore = res.data.length === per_page
+    page++
+  }
+  return totalCount
+}
