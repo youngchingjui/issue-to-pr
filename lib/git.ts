@@ -125,24 +125,45 @@ export async function resetToOrigin(
   return executeGitCommand(command, dir)
 }
 
+/**
+ * Enhanced cleanCheckout:
+ * - Guarantees that a local branch exists, tracking origin/<branchName>
+ * - Switches to the branch
+ * - Cleans, resets, and guarantees the branch is in sync with remote
+ */
 export async function cleanCheckout(branchName: string, dir: string) {
   try {
-    // First clean any untracked files
+    // Clean untracked files
     await cleanUntrackedFiles(dir)
 
-    // Fetch latest changes
+    // Fetch latest changes from remote
     await fetchLatest(dir)
 
-    // Force clean the index before reset
+    // Check if local branch exists
+    const localExists = await checkIfLocalBranchExists(branchName, dir)
+    if (!localExists) {
+      // Create and track local branch from remote
+      // Throws error if the remote branch does not exist
+      await executeGitCommand(
+        `git checkout -b ${branchName} origin/${branchName}`,
+        dir
+      )
+      console.log(`[INFO] Created and tracked new branch: ${branchName} from origin/${branchName}`)
+    } else {
+      // Safe to check out local branch
+      await checkoutBranchQuietly(branchName, dir)
+    }
+
+    // Clean index before reset (removes files staged in index)
     await executeGitCommand("git rm --cached -r .", dir)
 
-    // Reset to origin
+    // Reset the branch to match the remote
     await resetToOrigin(branchName, dir)
 
-    // Checkout the branch
+    // Ensure we are on this branch
     await checkoutBranchQuietly(branchName, dir)
   } catch (error) {
-    console.error(`[ERROR] Failed during clean checkout: ${error.message}`)
+    console.error(`[ERROR] Failed during clean checkout: ${error instanceof Error ? error.message : String(error)}`)
     throw error
   }
 }
