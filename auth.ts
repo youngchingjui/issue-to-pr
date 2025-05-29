@@ -21,6 +21,19 @@ declare module "next-auth/jwt" {
   }
 }
 
+function getRedirectBaseUrl() {
+  // Vercel staging
+  switch (process.env.NEXT_PUBLIC_VERCEL_TARGET_ENV) {
+    case "production":
+    case "development":
+      return process.env.NEXT_PUBLIC_BASE_URL
+    case "preview":
+      return `https://${process.env.NEXT_PUBLIC_VERCEL_BRANCH_URL}`
+    default:
+      return "http://localhost:3000"
+  }
+}
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     // Traditional OAuth provider for public repository access
@@ -33,7 +46,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         url: "https://github.com/login/oauth/authorize",
         params: {
           scope: "read:user user:email repo workflow",
-          redirect_uri: `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/callback/github-oauth`,
+          redirect_uri: `${getRedirectBaseUrl()}/api/auth/callback/github-oauth`,
         },
       },
     }),
@@ -47,7 +60,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         url: "https://github.com/login/oauth/authorize",
         params: {
           client_id: process.env.GITHUB_APP_CLIENT_ID,
-          redirect_uri: `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/callback/github-app`,
+          redirect_uri: `${getRedirectBaseUrl()}/api/auth/callback/github-app`,
         },
       },
       userinfo: {
