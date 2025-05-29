@@ -1,6 +1,6 @@
 import DataTable from "@/components/common/DataTable"
 import IssueRow from "@/components/issues/IssueRow"
-import { getIssueList } from "@/lib/github/issues"
+import { getIssueListWithStatus } from "@/lib/github/issues"
 
 export default async function IssueTable({
   repoFullName,
@@ -8,7 +8,7 @@ export default async function IssueTable({
   repoFullName: string
 }) {
   try {
-    const issues = await getIssueList({
+    const issues = await getIssueListWithStatus({
       repoFullName,
       per_page: 100,
     })

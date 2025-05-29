@@ -4,7 +4,11 @@ import {
   GitHubIssueComment,
   ListForRepoParams,
 } from "@/lib/types/github"
+import { n4j } from "@/lib/neo4j/client"
+import { listPlansForIssue } from "@/lib/neo4j/repositories/plan"
+import { getPullRequestList } from "@/lib/github/pullRequests"
 
+// Existing: fetch single issue from GitHub
 export async function getIssue({
   fullName,
   issueNumber,
@@ -119,4 +123,84 @@ export async function updateIssueComment({
     console.error(`Failed to update comment: ${commentId}`, error)
     throw error
   }
+}
+
+/**
+ * Aggregates GitHub issues with Neo4j plan and PR status
+ */
+export type IssueWithStatus = GitHubIssue & {
+  hasPlan: boolean
+  hasPR: boolean
+}
+
+/**
+ * For a repo, get list of issues with hasPlan and hasPR badges.
+ */
+export async function getIssueListWithStatus({
+  repoFullName,
+  ...rest
+}: {
+  repoFullName: string
+} & Omit<ListForRepoParams, "owner" | "repo">): Promise<IssueWithStatus[]> {
+  // 1. Get issues from GitHub
+  const issues = await getIssueList({ repoFullName, ...rest })
+
+  // 2. Query Neo4j for plans. Do this in a batch for all issues.
+  // We'll use a single transaction and a Cypher query matching all issues for given repo and a set of numbers.
+  const issueNumbers = issues.map((issue) => issue.number)
+  const issuePlanStatus: Record<number, boolean> = {}
+
+  if (issueNumbers.length > 0) {
+    const session = await n4j.getSession()
+    try {
+      const cypher = `
+        MATCH (i:Issue)
+        WHERE i.repoFullName = $repoFullName AND i.number IN $issueNumbers
+        OPTIONAL MATCH (p:Plan)-[:IMPLEMENTS]->(i)
+        RETURN i.number AS number, count(p) > 0 AS hasPlan
+      `
+      const result = await session.run(cypher, {
+        repoFullName,
+        issueNumbers,
+      })
+      for (const record of result.records) {
+        issuePlanStatus[record.get("number")] = record.get("hasPlan")
+      }
+    } finally {
+      await session.close()
+    }
+  }
+
+  // 3. Get PRs from GitHub, and find for each issue if it has a PR referencing it.
+  // Convention: look for "Closes #<issueNumber>" or "Fixes #<issueNumber>" in PR body.
+  const pullRequests = await getPullRequestList({ repoFullName })
+  const issuePRStatus: Record<number, boolean> = {}
+
+  for (const issue of issues) {
+    issuePRStatus[issue.number] = false
+  }
+
+  for (const pr of pullRequests) {
+    const prBody = pr.body || ""
+    for (const issue of issues) {
+      const issueNumber = issue.number
+      // Match patterns: Closes #123 (case-insensitive)
+      const pattern = new RegExp(
+        `(Closes|Fixes|Resolves) #${issueNumber}(?=\b|\D)`,
+        "i"
+      )
+      if (pattern.test(prBody)) {
+        issuePRStatus[issueNumber] = true
+      }
+    }
+  }
+
+  // 4. Compose the final list
+  const withStatus: IssueWithStatus[] = issues.map((issue) => ({
+    ...issue,
+    hasPlan: issuePlanStatus[issue.number] || false,
+    hasPR: issuePRStatus[issue.number] || false,
+  }))
+
+  return withStatus
 }
