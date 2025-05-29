@@ -1,6 +1,6 @@
 import getOctokit from "@/lib/github"
 import { getPRLinkedIssuesMap } from "@/lib/github/pullRequests"
-import { n4j } from "@/lib/neo4j/client"
+import { getPlanStatusForIssues } from "@/lib/neo4j/services/plan"
 import {
   GitHubIssue,
   GitHubIssueComment,
@@ -144,31 +144,12 @@ export async function getIssueListWithStatus({
   // 1. Get issues from GitHub
   const issues = await getIssueList({ repoFullName, ...rest })
 
-  // 2. Query Neo4j for plans. Do this in a batch for all issues.
-  // We'll use a single transaction and a Cypher query matching all issues for given repo and a set of numbers.
+  // 2. Query Neo4j for plans using the service layer
   const issueNumbers = issues.map((issue) => issue.number)
-  const issuePlanStatus: Record<number, boolean> = {}
-
-  if (issueNumbers.length > 0) {
-    const session = await n4j.getSession()
-    try {
-      const cypher = `
-        MATCH (i:Issue)
-        WHERE i.repoFullName = $repoFullName AND i.number IN $issueNumbers
-        OPTIONAL MATCH (p:Plan)-[:IMPLEMENTS]->(i)
-        RETURN i.number AS number, count(p) > 0 AS hasPlan
-      `
-      const result = await session.run(cypher, {
-        repoFullName,
-        issueNumbers,
-      })
-      for (const record of result.records) {
-        issuePlanStatus[record.get("number")] = record.get("hasPlan")
-      }
-    } finally {
-      await session.close()
-    }
-  }
+  const issuePlanStatus = await getPlanStatusForIssues({
+    repoFullName,
+    issueNumbers,
+  })
 
   // 3. Get PRs from GitHub using GraphQL, and find for each issue if it has a PR referencing it.
   const issuePRStatus = await getPRLinkedIssuesMap(repoFullName)
