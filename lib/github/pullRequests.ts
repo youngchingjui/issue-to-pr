@@ -1,4 +1,5 @@
 import getOctokit from "@/lib/github"
+import { getGraphQLClient } from "@/lib/github"
 import {
   IssueComment,
   PullRequest,
@@ -226,4 +227,71 @@ export async function addLabelsToPullRequest({
     issue_number: pullNumber,
     labels,
   })
+}
+
+// Minimal type for the GraphQL response
+interface PRLinkedIssuesGraphQLResponse {
+  repository: {
+    pullRequests: {
+      pageInfo: {
+        hasNextPage: boolean
+        endCursor: string | null
+      }
+      nodes: Array<{
+        number: number
+        closingIssuesReferences: {
+          nodes: Array<{ number: number }>
+        }
+      }>
+    }
+  }
+}
+
+export async function getPRLinkedIssuesMap(
+  repoFullName: string
+): Promise<Record<number, boolean>> {
+  const [owner, repo] = repoFullName.split("/")
+  const graphqlWithAuth = await getGraphQLClient()
+  if (!graphqlWithAuth) throw new Error("Could not initialize GraphQL client")
+
+  let hasNextPage = true
+  let endCursor: string | null = null
+  const issuePRStatus: Record<number, boolean> = {}
+
+  while (hasNextPage) {
+    const query = `
+      query($owner: String!, $repo: String!, $after: String) {
+        repository(owner: $owner, name: $repo) {
+          pullRequests(first: 50, after: $after, states: [OPEN, MERGED, CLOSED]) {
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+            nodes {
+              number
+              closingIssuesReferences(first: 10) {
+                nodes {
+                  number
+                }
+              }
+            }
+          }
+        }
+      }
+    `
+    const variables = { owner, repo, after: endCursor }
+    const response = (await graphqlWithAuth(
+      query,
+      variables
+    )) as PRLinkedIssuesGraphQLResponse
+    const prNodes = response.repository.pullRequests.nodes
+    for (const pr of prNodes) {
+      for (const issue of pr.closingIssuesReferences.nodes) {
+        issuePRStatus[issue.number] = true
+      }
+    }
+    hasNextPage = response.repository.pullRequests.pageInfo.hasNextPage
+    endCursor = response.repository.pullRequests.pageInfo.endCursor
+  }
+  return issuePRStatus
 }

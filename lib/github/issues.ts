@@ -1,5 +1,5 @@
 import getOctokit from "@/lib/github"
-import { getPullRequestList } from "@/lib/github/pullRequests"
+import { getPRLinkedIssuesMap } from "@/lib/github/pullRequests"
 import { n4j } from "@/lib/neo4j/client"
 import {
   GitHubIssue,
@@ -170,29 +170,8 @@ export async function getIssueListWithStatus({
     }
   }
 
-  // 3. Get PRs from GitHub, and find for each issue if it has a PR referencing it.
-  // Convention: look for "Closes #<issueNumber>" or "Fixes #<issueNumber>" in PR body.
-  const pullRequests = await getPullRequestList({ repoFullName })
-  const issuePRStatus: Record<number, boolean> = {}
-
-  for (const issue of issues) {
-    issuePRStatus[issue.number] = false
-  }
-
-  for (const pr of pullRequests) {
-    const prBody = pr.body || ""
-    for (const issue of issues) {
-      const issueNumber = issue.number
-      // Match patterns: Closes #123 (case-insensitive)
-      const pattern = new RegExp(
-        `(Closes|Fixes|Resolves) #${issueNumber}(?=\b|\D)`,
-        "i"
-      )
-      if (pattern.test(prBody)) {
-        issuePRStatus[issueNumber] = true
-      }
-    }
-  }
+  // 3. Get PRs from GitHub using GraphQL, and find for each issue if it has a PR referencing it.
+  const issuePRStatus = await getPRLinkedIssuesMap(repoFullName)
 
   // 4. Compose the final list
   const withStatus: IssueWithStatus[] = issues.map((issue) => ({
