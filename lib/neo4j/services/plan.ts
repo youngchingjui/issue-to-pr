@@ -7,6 +7,7 @@ import {
   getPlanWithDetails as dbGetPlanWithDetails,
   labelEventAsPlan,
   listPlansForIssue as dbListPlansForIssue,
+  listPlanStatusForIssues as dbListPlanStatusForIssues,
   toAppPlan,
 } from "@/lib/neo4j/repositories/plan"
 import { toAppWorkflowRun } from "@/lib/neo4j/repositories/workflowRun"
@@ -103,6 +104,25 @@ export async function getPlanWithDetails(
       workflow: toAppWorkflowRun(result.workflow),
       issue: toAppIssue(result.issue),
     }
+  } finally {
+    await session.close()
+  }
+}
+
+// Batch plan status for multiple issues (service level)
+export async function getPlanStatusForIssues({
+  repoFullName,
+  issueNumbers,
+}: {
+  repoFullName: string
+  issueNumbers: number[]
+}): Promise<Record<number, boolean>> {
+  if (!issueNumbers.length) return {}
+  const session = await n4j.getSession()
+  try {
+    return await session.executeRead(async (tx: ManagedTransaction) => {
+      return await dbListPlanStatusForIssues(tx, { repoFullName, issueNumbers })
+    })
   } finally {
     await session.close()
   }

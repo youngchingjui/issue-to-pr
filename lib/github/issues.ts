@@ -1,10 +1,13 @@
 import getOctokit from "@/lib/github"
+import { getPRLinkedIssuesMap } from "@/lib/github/pullRequests"
+import { getPlanStatusForIssues } from "@/lib/neo4j/services/plan"
 import {
   GitHubIssue,
   GitHubIssueComment,
   ListForRepoParams,
 } from "@/lib/types/github"
 
+// Existing: fetch single issue from GitHub
 export async function getIssue({
   fullName,
   issueNumber,
@@ -119,4 +122,44 @@ export async function updateIssueComment({
     console.error(`Failed to update comment: ${commentId}`, error)
     throw error
   }
+}
+
+/**
+ * Aggregates GitHub issues with Neo4j plan and PR status
+ */
+export type IssueWithStatus = GitHubIssue & {
+  hasPlan: boolean
+  hasPR: boolean
+}
+
+/**
+ * For a repo, get list of issues with hasPlan and hasPR badges.
+ */
+export async function getIssueListWithStatus({
+  repoFullName,
+  ...rest
+}: {
+  repoFullName: string
+} & Omit<ListForRepoParams, "owner" | "repo">): Promise<IssueWithStatus[]> {
+  // 1. Get issues from GitHub
+  const issues = await getIssueList({ repoFullName, ...rest })
+
+  // 2. Query Neo4j for plans using the service layer
+  const issueNumbers = issues.map((issue) => issue.number)
+  const issuePlanStatus = await getPlanStatusForIssues({
+    repoFullName,
+    issueNumbers,
+  })
+
+  // 3. Get PRs from GitHub using GraphQL, and find for each issue if it has a PR referencing it.
+  const issuePRStatus = await getPRLinkedIssuesMap(repoFullName)
+
+  // 4. Compose the final list
+  const withStatus: IssueWithStatus[] = issues.map((issue) => ({
+    ...issue,
+    hasPlan: issuePlanStatus[issue.number] || false,
+    hasPR: issuePRStatus[issue.number] || false,
+  }))
+
+  return withStatus
 }
