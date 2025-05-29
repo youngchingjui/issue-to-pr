@@ -23,6 +23,7 @@ interface DataRowProps {
   isLoading?: boolean
   activeWorkflow?: string | null
   openInNewTab?: boolean // New prop with default value true for backward compatibility
+  statusIndicators?: React.ReactNode // New prop for status indicators
 }
 
 export default function DataRow({
@@ -36,6 +37,7 @@ export default function DataRow({
   isLoading = false,
   activeWorkflow = null,
   openInNewTab = true, // Default to true for backward compatibility
+  statusIndicators, // New prop
 }: DataRowProps) {
   return (
     <TableRow>
@@ -71,6 +73,9 @@ export default function DataRow({
             </span>
           </div>
         </div>
+      </TableCell>
+      <TableCell className="text-center align-middle w-12">
+        {statusIndicators}
       </TableCell>
       <TableCell className="text-right">
         <DropdownMenu>

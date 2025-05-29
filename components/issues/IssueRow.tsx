@@ -6,11 +6,12 @@ import React from "react"
 import DataRow from "@/components/common/DataRow"
 import CreatePRController from "@/components/issues/controllers/CreatePRController"
 import GenerateResolutionPlanController from "@/components/issues/controllers/GenerateResolutionPlanController"
+import StatusIndicators from "@/components/issues/StatusIndicators"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import { GitHubIssue } from "@/lib/types/github"
+import type { IssueWithStatus } from "@/lib/github/issues"
 
 interface IssueRowProps {
-  issue: GitHubIssue
+  issue: IssueWithStatus
   repoFullName: string
 }
 
@@ -67,6 +68,7 @@ export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
       isLoading={isLoading}
       activeWorkflow={activeWorkflow}
       openInNewTab={false}
+      statusIndicators={<StatusIndicators issue={issue} />}
     >
       <DropdownMenuItem onClick={generateResolutionPlan}>
         <div>
