@@ -1,12 +1,11 @@
 import getOctokit from "@/lib/github"
+import { getPullRequestList } from "@/lib/github/pullRequests"
+import { n4j } from "@/lib/neo4j/client"
 import {
   GitHubIssue,
   GitHubIssueComment,
   ListForRepoParams,
 } from "@/lib/types/github"
-import { n4j } from "@/lib/neo4j/client"
-import { listPlansForIssue } from "@/lib/neo4j/repositories/plan"
-import { getPullRequestList } from "@/lib/github/pullRequests"
 
 // Existing: fetch single issue from GitHub
 export async function getIssue({
