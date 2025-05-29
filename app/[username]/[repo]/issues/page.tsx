@@ -1,9 +1,9 @@
 import { Suspense } from "react"
 
 import IssueTable from "@/components/issues/IssueTable"
+import NewTaskInput from "@/components/issues/NewTaskInput"
 import TableSkeleton from "@/components/layout/TableSkeleton"
 import ApiKeyInput from "@/components/settings/APIKeyInput"
-import NewTaskInput from "@/components/issues/NewTaskInput"
 
 interface Props {
   params: {
