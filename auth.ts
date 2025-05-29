@@ -23,18 +23,6 @@ declare module "next-auth/jwt" {
 
 function getRedirectBaseUrl() {
   // Vercel staging
-  console.log(
-    "process.env.NEXT_PUBLIC_VERCEL_TARGET_ENV",
-    process.env.NEXT_PUBLIC_VERCEL_TARGET_ENV
-  )
-  console.log(
-    "process.env.NEXT_PUBLIC_BASE_URL",
-    process.env.NEXT_PUBLIC_BASE_URL
-  )
-  console.log(
-    "process.env.NEXT_PUBLIC_VERCEL_BRANCH_URL",
-    process.env.NEXT_PUBLIC_VERCEL_BRANCH_URL
-  )
   switch (process.env.NEXT_PUBLIC_VERCEL_TARGET_ENV) {
     case "production":
     case "development":
