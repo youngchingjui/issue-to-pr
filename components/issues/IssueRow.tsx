@@ -1,19 +1,13 @@
 "use client"
 
-import { GitPullRequest, NotebookPen } from "lucide-react"
 import { useState } from "react"
 import React from "react"
 
 import DataRow from "@/components/common/DataRow"
 import CreatePRController from "@/components/issues/controllers/CreatePRController"
 import GenerateResolutionPlanController from "@/components/issues/controllers/GenerateResolutionPlanController"
+import StatusIndicators from "@/components/issues/StatusIndicators"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
 import type { IssueWithStatus } from "@/lib/github/issues"
 
 interface IssueRowProps {
@@ -63,48 +57,6 @@ export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
   const [username, repo] = repoFullName.split("/")
   const localIssueUrl = `/${username}/${repo}/issues/${issue.number}`
 
-  // Render status indicators for plan and PR
-  function StatusIndicators() {
-    return (
-      <TooltipProvider delayDuration={200}>
-        <div className="flex flex-row gap-2">
-          {/* Plan Icon Slot */}
-          <div style={{ width: 24, display: "flex", justifyContent: "center" }}>
-            {issue.hasPlan ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="cursor-pointer">
-                    <NotebookPen
-                      className="inline align-text-bottom mr-0.5 text-blue-600"
-                      size={18}
-                    />
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">Plan ready</TooltipContent>
-              </Tooltip>
-            ) : null}
-          </div>
-          {/* PR Icon Slot */}
-          <div style={{ width: 24, display: "flex", justifyContent: "center" }}>
-            {issue.hasPR ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="cursor-pointer">
-                    <GitPullRequest
-                      className="inline align-text-bottom text-green-600"
-                      size={18}
-                    />
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">PR ready</TooltipContent>
-              </Tooltip>
-            ) : null}
-          </div>
-        </div>
-      </TooltipProvider>
-    )
-  }
-
   return (
     <DataRow
       title={issue.title}
@@ -116,7 +68,7 @@ export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
       isLoading={isLoading}
       activeWorkflow={activeWorkflow}
       openInNewTab={false}
-      statusIndicators={<StatusIndicators />}
+      statusIndicators={<StatusIndicators issue={issue} />}
     >
       <DropdownMenuItem onClick={generateResolutionPlan}>
         <div>
