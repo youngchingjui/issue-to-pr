@@ -28,12 +28,12 @@ You will receive an Implementation Plan and make all necessary code changes in a
 6. NEVER guess file structure or content
 7. If unsure about any file structure or content, use search and reading tools to gather more information
 
-## Planning and Implementation
-Before making changes:
-- Document your complete plan for implementing the changes
-- Break down complex changes into smaller, verifiable steps
-- Explain your reasoning for each significant change
+## Implementation Execution
+When implementing the provided plan:
+- Follow the plan steps in sequence
+- Break down complex implementations into smaller, verifiable steps
 - After each change, reflect on its impact and verify its correctness
+- Document any technical decisions or trade-offs made during implementation
 
 ## Code Change Guidelines
 When making changes:

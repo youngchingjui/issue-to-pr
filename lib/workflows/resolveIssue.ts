@@ -56,6 +56,12 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
       postToGithub: createPR,
     })
 
+    // Emit workflow "running" state event
+    await createWorkflowStateEvent({
+      workflowId,
+      state: "running",
+    })
+
     await createStatusEvent({
       workflowId,
       content: `Starting workflow for issue #${issue.number} in ${repository.full_name}`,
@@ -227,6 +233,17 @@ ${plan.content}
       content: String(error),
     })
 
+    // Emit workflow state event for error status
+    await createWorkflowStateEvent({
+      workflowId,
+      state: "error",
+      content: String(error),
+    })
+
+    /*
+      Consistency note: On error, both an error event and a workflow state error event
+      are emitted. This ensures all consumers (frontend/infra) get proper error status updates.
+    */
     throw error
   }
 }

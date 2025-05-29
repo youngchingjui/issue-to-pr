@@ -1,19 +1,8 @@
-import { zodFunction } from "openai/helpers/zod"
 import { ChatModel } from "openai/resources"
 import { z, ZodType } from "zod"
 
 // Tools
-/*
- * @deprecated Use the new Tool interface instead
- */
-export interface Tool<T extends z.ZodType, U = unknown> {
-  tool: ReturnType<typeof zodFunction>
-  parameters: T
-  handler: (params: z.infer<T>, ...args: U[]) => Promise<string>
-}
-
-// Temporarily named until we can remove the old tool interface
-export interface Tool2<Schema extends ZodType, Output> {
+export interface Tool<Schema extends ZodType, Output> {
   type: "function"
   function: {
     name: string
@@ -181,6 +170,35 @@ export const anyEventSchema = z.discriminatedUnion("type", [
   workflowStateEventSchema,
 ])
 
+// ---- Settings Schemas ----
+
+/**
+ * Base settings schema.
+ * All properties optional. Add more user-specific settings as needed.
+ */
+export const settingsTypeEnum = z.enum(["user", "repo"])
+
+export const settingsSchema = z.object({
+  type: settingsTypeEnum,
+  openAIApiKey: z
+    .string()
+    .optional()
+    .describe(
+      "OpenAI API key used throughout the application (user-specific, optional)."
+    ),
+  autoPostPlanToGitHubIssue: z
+    .boolean()
+    .optional()
+    .describe(
+      "If true, the system will auto-post plans to GitHub issues for this user."
+    ),
+  lastUpdated: z
+    .date()
+    .describe("The date and time when the settings were last updated.")
+    .default(new Date()),
+  // Add more user-specific settings here as needed
+})
+
 // Type exports
 export type AnyEvent = z.infer<typeof anyEventSchema>
 export type BaseEvent = z.infer<typeof baseEventSchema>
@@ -193,12 +211,14 @@ export type MessageEvent = z.infer<typeof messageEventSchema>
 export type Plan = z.infer<typeof planSchema>
 export type PlanMeta = z.infer<typeof planMetaSchema>
 export type ReviewComment = z.infer<typeof reviewCommentSchema>
+export type Settings = z.infer<typeof settingsSchema>
+export type SettingsType = z.infer<typeof settingsTypeEnum>
 export type StatusEvent = z.infer<typeof statusEventSchema>
 export type SystemPrompt = z.infer<typeof systemPromptSchema>
 export type ToolCall = z.infer<typeof toolCallSchema>
 export type ToolCallResult = z.infer<typeof toolCallResultSchema>
 export type UserMessage = z.infer<typeof userMessageSchema>
 export type WorkflowRun = z.infer<typeof workflowRunSchema>
-export type WorkflowStateEvent = z.infer<typeof workflowStateEventSchema>
 export type WorkflowRunState = z.infer<typeof workflowRunStateSchema>
+export type WorkflowStateEvent = z.infer<typeof workflowStateEventSchema>
 export type WorkflowType = z.infer<typeof workflowTypeEnum>

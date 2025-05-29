@@ -30,11 +30,15 @@ GithubProvider({
   clientSecret: process.env.GITHUB_OAUTH_SECRET,
   authorization: {
     params: {
-      scope: "read:user user:email repo",
+      scope: "read:user user:email repo workflow",
     },
   },
 })
 ```
+
+Required Permissions: `read:user`, `user:email`, `repo`, `workflow`
+
+> **Note**: After this scope change, existing users will need to re-authorize the app in GitHub to grant the new `workflow` permission. Without re-authorization, the application may not be able to perform actions on workflow files for previously authorized users.
 
 ### GitHub App Authentication
 

@@ -24,8 +24,13 @@ async function fnHandler(
   try {
     return await getFileContent(path.join(baseDir, relativePath))
   } catch (error) {
-    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-      return error.message
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === "ENOENT"
+    ) {
+      return String(error)
     }
     throw error
   }
