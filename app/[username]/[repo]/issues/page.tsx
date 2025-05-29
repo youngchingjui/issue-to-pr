@@ -3,6 +3,7 @@ import { Suspense } from "react"
 import IssueTable from "@/components/issues/IssueTable"
 import TableSkeleton from "@/components/layout/TableSkeleton"
 import ApiKeyInput from "@/components/settings/APIKeyInput"
+import NewTaskInput from "@/components/issues/NewTaskInput"
 
 interface Props {
   params: {
@@ -22,6 +23,7 @@ export default async function RepoPage({ params }: Props) {
         </h1>
         <ApiKeyInput />
       </div>
+      <NewTaskInput repoFullName={username + "/" + repo} />
       <Suspense fallback={<TableSkeleton />}>
         <IssueTable repoFullName={username + "/" + repo} />
       </Suspense>
