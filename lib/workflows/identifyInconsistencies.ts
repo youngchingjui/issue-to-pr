@@ -1,4 +1,4 @@
-import { InconsistencyIdentifierAgent } from "@/lib/agents/inconsistencyIdentifier"
+import { AlignmentAgent } from "@/lib/agents"
 import { getIssue } from "@/lib/github/issues"
 import {
   getPullRequest,
@@ -7,7 +7,8 @@ import {
   getPullRequestReviews,
 } from "@/lib/github/pullRequests"
 import { getPlanWithDetails } from "@/lib/neo4j/services/plan"
-import { AgentConstructorParams } from "@/lib/types"
+import { AgentConstructorParams, Plan } from "@/lib/types"
+import { GitHubIssue } from "@/lib/types/github"
 
 /**
  * Orchestrate fetching all necessary context, then invoke the inconsistency identifier agent/LLM for root-cause analysis.
@@ -48,29 +49,34 @@ export async function identifyInconsistencies({
     console.warn(
       "Could not determine the issue number for this PR. Inconsistency analysis will be limited."
     )
+    return {
+      success: false,
+      message:
+        "Could not determine the issue number for this PR. Require an attached issue to the PR.",
+    }
   }
 
   // 2. Fetch Issue and Plan context (optional if not found)
-  let issue = null,
-    plan = null
-  if (issueNumber) {
-    try {
-      issue = await getIssue({ fullName: repoFullName, issueNumber })
-    } catch (e) {
-      console.warn("Unable to fetch issue object:", e)
-    }
-    try {
-      const { plan: planObj } = await getPlanWithDetails(String(issueNumber))
-      plan = planObj
-    } catch (e) {
-      // Plan might not exist
-      console.warn("Unable to fetch plan details:", e)
-    }
+  let issue: GitHubIssue, plan: Plan
+
+  try {
+    issue = await getIssue({ fullName: repoFullName, issueNumber })
+  } catch (e) {
+    console.error("Unable to fetch issue object:", e)
+    throw e
+  }
+  try {
+    const { plan: planObj } = await getPlanWithDetails(String(issueNumber))
+    plan = planObj
+  } catch (e) {
+    // Plan might not exist
+    console.error("Unable to fetch plan details:", e)
+    throw e
   }
 
   // 3. Init agent
   const agentParams: AgentConstructorParams = { apiKey: openAIApiKey }
-  const agent = new InconsistencyIdentifierAgent(agentParams)
+  const agent = new AlignmentAgent(agentParams)
 
   // 4. Construct user input (context)
   const contextObject = {
