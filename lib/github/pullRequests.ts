@@ -181,10 +181,37 @@ export async function getPullRequestReviews({
   return reviewsResponse.data
 }
 
-/**
- * Fetch all reviews and (inline) review comments for a given Pull Request using GitHub GraphQL API.
- * Returns detailed review objects: each with top-level comment plus their inline/file comments/threads.
- */
+// Interface for the GraphQL response for PR reviews and comments
+interface PullRequestReviewCommentsGraphQLResponse {
+  repository: {
+    pullRequest: {
+      reviews: {
+        nodes: Array<{
+          id: string
+          author: { login: string } | null
+          state: string
+          body: string
+          submittedAt: string
+          comments: {
+            nodes: Array<{
+              id: string
+              author: { login: string } | null
+              body: string
+              path: string
+              position: number | null
+              originalPosition: number | null
+              diffHunk: string
+              createdAt: string
+              replyTo: { id: string } | null
+              pullRequestReview: { id: string } | null
+            }>
+          }
+        }>
+      }
+    }
+  }
+}
+
 export async function getPullRequestReviewCommentsGraphQL({
   repoFullName,
   pullNumber,
@@ -238,16 +265,20 @@ export async function getPullRequestReviewCommentsGraphQL({
     reviewsLimit,
     commentsPerReview,
   }
-  const response = await graphqlWithAuth(query, variables)
+  const response =
+    await graphqlWithAuth<PullRequestReviewCommentsGraphQLResponse>(
+      query,
+      variables
+    )
   // Defensive: Structure the response for easy UI/LLM consumption
   const reviews =
-    response?.repository?.pullRequest?.reviews?.nodes?.map((r: any) => ({
+    response?.repository?.pullRequest?.reviews?.nodes?.map((r) => ({
       id: r.id,
       author: r.author?.login,
       state: r.state,
       body: r.body,
       submittedAt: r.submittedAt,
-      comments: (r.comments?.nodes || []).map((c: any) => ({
+      comments: (r.comments?.nodes || []).map((c) => ({
         id: c.id,
         author: c.author?.login,
         body: c.body,

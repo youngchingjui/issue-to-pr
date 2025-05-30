@@ -23,6 +23,7 @@ import {
   IssueComment,
   PullRequest,
   PullRequestReview,
+  PullRequestReviewComment,
 } from "@/lib/types/github"
 
 type Params = {
@@ -33,7 +34,7 @@ type Params = {
   diff?: string
   comments?: IssueComment[]
   reviews?: PullRequestReview[]
-  reviewThreads?: any[]
+  reviewThreads?: PullRequestReviewComment[]
   issueNumber?: number
   plan?: Plan
   issue?: GitHubIssue
@@ -101,16 +102,12 @@ export async function alignmentCheck({
       comments = await getPullRequestComments({ repoFullName, pullNumber })
     }
     // Fetch full review+threaded comments from GraphQL
-    let graphqlReviews: any[] = []
-    try {
-      graphqlReviews = await getPullRequestReviewCommentsGraphQL({
-        repoFullName,
-        pullNumber,
-      })
-    } catch (e) {
-      // fallback: set to []
-      graphqlReviews = []
-    }
+
+    const graphqlReviewsResponse = await getPullRequestReviewCommentsGraphQL({
+      repoFullName,
+      pullNumber,
+    })
+
     // If legacy reviews not provided, fallback to REST (top-level only)
     if (!reviews) {
       reviews = await getPullRequestReviews({ repoFullName, pullNumber })
@@ -188,7 +185,7 @@ export async function alignmentCheck({
       diff,
       comments,
       reviewSummaries: reviews,
-      reviewThreads: graphqlReviews,
+      reviewThreads: graphqlReviewsResponse,
       plan,
       issue,
     }

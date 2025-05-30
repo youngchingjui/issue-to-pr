@@ -19,6 +19,8 @@ export type PullRequest = PullRequestSingle | PullRequestList[0]
 
 export type PullRequestReview =
   RestEndpointMethodTypes["pulls"]["listReviews"]["response"]["data"][0]
+export type PullRequestReviewComment =
+  RestEndpointMethodTypes["pulls"]["listReviewComments"]["response"]["data"][0]
 export type ListForRepoParams =
   RestEndpointMethodTypes["issues"]["listForRepo"]["parameters"]
 export type SearchCodeItem = components["schemas"]["code-search-result-item"]
