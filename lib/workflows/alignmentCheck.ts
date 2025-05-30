@@ -1,3 +1,5 @@
+import { v4 as uuidv4 } from "uuid"
+
 import { AlignmentAgent } from "@/lib/agents"
 import { getIssue } from "@/lib/github/issues"
 import {
@@ -7,7 +9,13 @@ import {
   getPullRequestDiff,
   getPullRequestReviews,
 } from "@/lib/github/pullRequests"
+import { langfuse } from "@/lib/langfuse"
+import {
+  createStatusEvent,
+  createWorkflowStateEvent,
+} from "@/lib/neo4j/services/event"
 import { listPlansForIssue } from "@/lib/neo4j/services/plan"
+import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
 import { AgentConstructorParams, Plan } from "@/lib/types"
 import {
   GitHubIssue,
@@ -19,7 +27,7 @@ import {
 type Params = {
   repoFullName: string
   pullNumber: number
-  openAIApiKey?: string
+  openAIApiKey: string
   pr?: PullRequest
   diff?: string
   comments?: IssueComment[]
@@ -27,6 +35,7 @@ type Params = {
   issueNumber?: number
   plan?: Plan
   issue?: GitHubIssue
+  jobId?: string
 }
 /**
  * Orchestrate fetching all necessary context, then invoke the inconsistency identifier agent/LLM for root-cause analysis.
@@ -46,96 +55,165 @@ export async function alignmentCheck({
   issueNumber,
   issue,
   plan,
+  jobId,
 }: Params) {
-  // 1. Fetch any missing data
-  if (!pr) {
-    pr = await getPullRequest({ repoFullName, pullNumber })
-  }
-  if (!diff) {
-    diff = await getPullRequestDiff({ repoFullName, pullNumber })
-  }
-  if (!comments) {
-    comments = await getPullRequestComments({ repoFullName, pullNumber })
-  }
-  if (!reviews) {
-    reviews = await getPullRequestReviews({ repoFullName, pullNumber })
-  }
-
-  // Try to infer issue number -- only from provided param or GraphQL linked issues
-  if (!issueNumber) {
-    // 1. Try to get attached issues via GraphQL
-    const linkedIssues = await getLinkedIssuesForPR({
+  const workflowId = jobId || uuidv4()
+  try {
+    // Initialize workflow run
+    await initializeWorkflowRun({
+      id: workflowId,
+      type: "alignmentCheck",
+      issueNumber,
       repoFullName,
-      pullNumber,
+      postToGithub: false,
     })
-    if (linkedIssues.length > 0) {
-      issueNumber = linkedIssues[0] // Use the first attached issue
+    await createWorkflowStateEvent({
+      workflowId,
+      state: "running",
+    })
+    await createStatusEvent({
+      workflowId,
+      content: "Starting alignment check workflow",
+    })
+    // Start a trace for this workflow
+    const trace = langfuse.trace({
+      name: `Alignment Check PR#${pullNumber}`,
+      input: {
+        repoFullName,
+        issueNumber,
+        pullNumber,
+        diff,
+      },
+    })
+    const span = trace.span({ name: `Alignment Check PR#${pullNumber}` })
+
+    // 1. Fetch any missing data
+    if (!pr) {
+      pr = await getPullRequest({ repoFullName, pullNumber })
     }
-  }
-
-  if (!issueNumber) {
-    console.warn(
-      "Could not determine the issue number for this PR. Inconsistency analysis will be limited."
-    )
-    return {
-      success: false,
-      message:
-        "Could not determine the issue number for this PR. Require an attached issue to the PR.",
+    if (!diff) {
+      diff = await getPullRequestDiff({ repoFullName, pullNumber })
     }
-  }
-
-  // 2. Fetch Issue and Plan context (optional if not found, or use provided)
-  if (!issue) {
-    try {
-      issue = await getIssue({ fullName: repoFullName, issueNumber })
-    } catch (e) {
-      console.error("Unable to fetch issue object:", e)
-      throw e
+    if (!comments) {
+      comments = await getPullRequestComments({ repoFullName, pullNumber })
     }
-  }
-  if (!plan) {
-    try {
-      // Fetch all plans for the issue and select the latest one
-      const plans = await listPlansForIssue({ repoFullName, issueNumber })
-      plans.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-      plan = plans[0] || undefined
-      // TODO: In the future, associate PRs with specific planIds (e.g., via workflow run metadata)
-    } catch (e) {
-      // Plan might not exist
-      console.error("Unable to fetch plans for issue:", e)
-      throw e
+    if (!reviews) {
+      reviews = await getPullRequestReviews({ repoFullName, pullNumber })
     }
+
+    // Try to infer issue number -- only from provided param or GraphQL linked issues
+    if (!issueNumber) {
+      // 1. Try to get attached issues via GraphQL
+      const linkedIssues = await getLinkedIssuesForPR({
+        repoFullName,
+        pullNumber,
+      })
+      if (linkedIssues.length > 0) {
+        issueNumber = linkedIssues[0] // Use the first attached issue
+      }
+    }
+
+    if (!issueNumber) {
+      await createWorkflowStateEvent({
+        workflowId,
+        state: "error",
+        content:
+          "Could not determine the issue number for this PR. Require an attached issue to the PR.",
+      })
+      return {
+        success: false,
+        message:
+          "Could not determine the issue number for this PR. Require an attached issue to the PR.",
+      }
+    }
+
+    // 2. Fetch Issue and Plan context (optional if not found, or use provided)
+    if (!issue) {
+      try {
+        issue = await getIssue({ fullName: repoFullName, issueNumber })
+      } catch (e) {
+        await createWorkflowStateEvent({
+          workflowId,
+          state: "error",
+          content: "Unable to fetch issue object",
+        })
+        throw e
+      }
+    }
+    if (!plan) {
+      try {
+        // Fetch all plans for the issue and select the latest one
+        const plans = await listPlansForIssue({ repoFullName, issueNumber })
+        plans.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+        plan = plans[0] || undefined
+        // TODO: In the future, associate PRs with specific planIds (e.g., via workflow run metadata)
+      } catch (e) {
+        await createWorkflowStateEvent({
+          workflowId,
+          state: "error",
+          content: "Unable to fetch plans for issue",
+        })
+        throw e
+      }
+    }
+
+    // 3. Init agent
+    const agentParams: AgentConstructorParams = {
+      apiKey: openAIApiKey,
+      model: "gpt-4.1",
+    }
+    const agent = new AlignmentAgent(agentParams)
+    await agent.addJobId(workflowId)
+    agent.addSpan({ span, generationName: "alignmentCheck" })
+
+    // 4. Construct user input (context)
+    const contextObject = {
+      pr,
+      diff,
+      comments,
+      reviews,
+      plan,
+      issue,
+    }
+    await agent.addMessage({
+      role: "user",
+      content: `Analyze the following context for inconsistencies between PR review comments and the Plan/Issue.\nContext: ${JSON.stringify(contextObject)}`,
+    })
+
+    // 5. Run agent
+    const response = await agent.runWithFunctions()
+
+    span.end()
+
+    // 6. Log output
+    const lastMessage = response.messages[response.messages.length - 1]
+    if (lastMessage && typeof lastMessage.content === "string") {
+      await createStatusEvent({
+        workflowId,
+        content: lastMessage.content,
+      })
+      await createWorkflowStateEvent({
+        workflowId,
+        state: "completed",
+      })
+      console.log("[AlignmentCheck] Output:", lastMessage.content)
+    } else {
+      await createWorkflowStateEvent({
+        workflowId,
+        state: "completed",
+        content: "No output generated.",
+      })
+      console.log("[AlignmentCheck] No output generated.")
+    }
+
+    // Return result for possible future use
+    return lastMessage?.content
+  } catch (error) {
+    await createWorkflowStateEvent({
+      workflowId,
+      state: "error",
+      content: String(error),
+    })
+    throw error
   }
-
-  // 3. Init agent
-  const agentParams: AgentConstructorParams = { apiKey: openAIApiKey }
-  const agent = new AlignmentAgent(agentParams)
-
-  // 4. Construct user input (context)
-  const contextObject = {
-    pr,
-    diff,
-    comments,
-    reviews,
-    plan,
-    issue,
-  }
-  await agent.addMessage({
-    role: "user",
-    content: `Analyze the following context for inconsistencies between PR review comments and the Plan/Issue.\nContext: ${JSON.stringify(contextObject)}`,
-  })
-
-  // 5. Run agent
-  const response = await agent.runWithFunctions()
-
-  // 6. Log output
-  const lastMessage = response.messages[response.messages.length - 1]
-  if (lastMessage && typeof lastMessage.content === "string") {
-    console.log("[AlignmentCheck] Output:", lastMessage.content)
-  } else {
-    console.log("[AlignmentCheck] No output generated.")
-  }
-
-  // Return result for possible future use
-  return lastMessage?.content
 }
