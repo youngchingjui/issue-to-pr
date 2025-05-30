@@ -295,3 +295,49 @@ export async function getPRLinkedIssuesMap(
   }
   return issuePRStatus
 }
+
+/**
+ * Returns the list of issue numbers that are linked (via closing keywords) to a given pull request.
+ */
+export async function getLinkedIssuesForPR({
+  repoFullName,
+  pullNumber,
+}: {
+  repoFullName: string
+  pullNumber: number
+}): Promise<number[]> {
+  const [owner, repo] = repoFullName.split("/")
+  const graphqlWithAuth = await getGraphQLClient()
+  if (!graphqlWithAuth) throw new Error("Could not initialize GraphQL client")
+
+  const query = `
+    query($owner: String!, $repo: String!, $pullNumber: Int!) {
+      repository(owner: $owner, name: $repo) {
+        pullRequest(number: $pullNumber) {
+          closingIssuesReferences(first: 10) {
+            nodes {
+              number
+            }
+          }
+        }
+      }
+    }
+  `
+  const variables = { owner, repo, pullNumber }
+  interface LinkedIssuesResponse {
+    repository: {
+      pullRequest: {
+        closingIssuesReferences: {
+          nodes: Array<{ number: number }>
+        }
+      } | null
+    } | null
+  }
+  const response = (await graphqlWithAuth(
+    query,
+    variables
+  )) as LinkedIssuesResponse
+  const nodes =
+    response.repository?.pullRequest?.closingIssuesReferences?.nodes || []
+  return nodes.map((n) => n.number)
+}

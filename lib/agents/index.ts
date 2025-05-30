@@ -1,3 +1,4 @@
+export * from "./alignmentAgent"
 export * from "./coder"
 export * from "./coordinator"
 export * from "./GoalIdentifierAgent"
