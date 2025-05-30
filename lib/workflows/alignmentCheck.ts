@@ -226,12 +226,16 @@ export async function alignmentCheck({
     }
 
     // === Post alignment assessment as a PR comment, if enabled ===
-    if (postToGithub && lastMessage && typeof lastMessage.content === "string") {
+    if (
+      postToGithub &&
+      lastMessage &&
+      typeof lastMessage.content === "string"
+    ) {
       await postAlignmentAssessment({
         alignmentResult: lastMessage.content,
         repoFullName,
         pullNumber,
-        workflowId
+        workflowId,
       })
     }
     // Return result for possible future use

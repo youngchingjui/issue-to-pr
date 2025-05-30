@@ -1,5 +1,4 @@
 import { createIssueComment, getIssueComments } from "@/lib/github/issues"
-import { RepoFullName } from "@/lib/types/github"
 
 /**
  * Format the alignment assessment output as a comment for a GitHub PR and post it.
@@ -51,10 +50,16 @@ export async function postAlignmentAssessment({
 
   // Format the comment
   let comment = `### Alignment Assessment\n\n[View alignment workflow run](${reviewUrl})\n\n[AlignmentAssessment][${workflowId}]\n\n`
-  if (parsed.inconsistencies && Array.isArray(parsed.inconsistencies) && parsed.inconsistencies.length > 0) {
+  if (
+    parsed.inconsistencies &&
+    Array.isArray(parsed.inconsistencies) &&
+    parsed.inconsistencies.length > 0
+  ) {
     comment += `Alignment Check for [this PR](${prUrl}).\n\n#### Inconsistencies\n`
     parsed.inconsistencies.forEach((inc: any, idx: number) => {
-      const reviewer = inc.comment?.author ? inc.comment.author : "Unknown reviewer"
+      const reviewer = inc.comment?.author
+        ? inc.comment.author
+        : "Unknown reviewer"
       const where = inc.rootCause || "Ambiguous"
       const summary = inc.comment?.text || inc.comment || "(No comment text)"
       const explanation = inc.explanation || "(No explanation given)"
@@ -62,12 +67,17 @@ export async function postAlignmentAssessment({
       let nextStep = "Review and update as needed."
       if (where === "Plan") nextStep = "Update the plan."
       else if (where === "Issue") nextStep = "Update the issue."
-      else if (where === "Implementation") nextStep = "Update the implementation (PR/code)."
-      else if (where === "Ambiguous") nextStep = "Clarify details in issue or plan."
+      else if (where === "Implementation")
+        nextStep = "Update the implementation (PR/code)."
+      else if (where === "Ambiguous")
+        nextStep = "Clarify details in issue or plan."
       comment += `- **Reviewer**: ${reviewer}\n- **Where**: ${where}\n- **Summary**: ${summary}\n- **Explanation**: ${explanation}\n- **Next step**: ${nextStep}\n\n`
     })
     comment += `[Full review details & context](${reviewUrl})`
-  } else if (parsed.message && parsed.message.match(/no inconsistencies|no comments/i)) {
+  } else if (
+    parsed.message &&
+    parsed.message.match(/no inconsistencies|no comments/i)
+  ) {
     comment += `✅ No inconsistencies found. [Full review details](${reviewUrl})`
   } else {
     comment += `Alignment assessment did not return expected results. Please [view details in the workflow run](${reviewUrl}).`
