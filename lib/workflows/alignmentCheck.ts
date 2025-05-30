@@ -7,8 +7,8 @@ import {
   getPullRequest,
   getPullRequestComments,
   getPullRequestDiff,
-  getPullRequestReviews,
   getPullRequestReviewCommentsGraphQL,
+  getPullRequestReviews,
 } from "@/lib/github/pullRequests"
 import { langfuse } from "@/lib/langfuse"
 import {
@@ -103,7 +103,10 @@ export async function alignmentCheck({
     // Fetch full review+threaded comments from GraphQL
     let graphqlReviews: any[] = []
     try {
-      graphqlReviews = await getPullRequestReviewCommentsGraphQL({ repoFullName, pullNumber })
+      graphqlReviews = await getPullRequestReviewCommentsGraphQL({
+        repoFullName,
+        pullNumber,
+      })
     } catch (e) {
       // fallback: set to []
       graphqlReviews = []
