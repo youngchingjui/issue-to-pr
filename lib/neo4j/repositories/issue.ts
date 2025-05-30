@@ -39,17 +39,17 @@ export async function getOrCreate(
 
 export async function update(
   tx: ManagedTransaction,
-  issueUpdate: Partial<DbIssue> & { number: number; repoFullName: string }
+  issueUpdate: DbIssue
 ): Promise<DbIssue> {
-  const { number, repoFullName, ...fields } = issueUpdate;
+  const { number, repoFullName } = issueUpdate
   const result = await tx.run(
     `MATCH (i:Issue {number: $number, repoFullName: $repoFullName})
      SET i += $fields
      RETURN i`,
-    { number, repoFullName, fields }
-  );
-  if (!result.records[0]) throw new Error('Issue not found');
-  return issueSchema.parse(result.records[0].get("i").properties);
+    { number, repoFullName }
+  )
+  if (!result.records[0]) throw new Error("Issue not found")
+  return issueSchema.parse(result.records[0].get("i").properties)
 }
 
 export const toAppIssue = (dbIssue: DbIssue): AppIssue => {
