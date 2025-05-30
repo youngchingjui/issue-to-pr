@@ -1,5 +1,5 @@
-import { Agent } from "@/lib/agents/base";
-import { AgentConstructorParams } from "@/lib/types";
+import { Agent } from "@/lib/agents/base"
+import { AgentConstructorParams } from "@/lib/types"
 
 // This prompt instructs the agent to identify and explain inconsistencies between review/comments and plan/issue context.
 const SYSTEM_PROMPT = `
@@ -45,9 +45,12 @@ Explain your reasoning clearly in the explanation field.
 
 export class InconsistencyIdentifierAgent extends Agent {
   constructor({ ...rest }: AgentConstructorParams) {
-    super(rest);
+    super(rest)
     this.setSystemPrompt(SYSTEM_PROMPT).catch((error) => {
-      console.error("Error initializing InconsistencyIdentifierAgent system prompt:", error);
-    });
+      console.error(
+        "Error initializing InconsistencyIdentifierAgent system prompt:",
+        error
+      )
+    })
   }
 }

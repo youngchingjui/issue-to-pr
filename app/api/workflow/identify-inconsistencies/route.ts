@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
-import { identifyInconsistencies } from "@/lib/workflows/identifyInconsistencies";
+import { NextRequest, NextResponse } from "next/server"
 
-export const dynamic = "force-dynamic";
+import { identifyInconsistencies } from "@/lib/workflows/identifyInconsistencies"
+
+export const dynamic = "force-dynamic"
 
 /**
  * POST /api/workflow/identify-inconsistencies
@@ -12,30 +13,34 @@ export const dynamic = "force-dynamic";
  *   }
  */
 export async function POST(request: NextRequest) {
-  let json: any;
+  let json: any
   try {
-    json = await request.json();
+    json = await request.json()
   } catch (err) {
-    return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid JSON." }, { status: 400 })
   }
 
-  const { repoFullName, pullNumber, openAIApiKey } = json;
+  const { repoFullName, pullNumber, openAIApiKey } = json
   if (!repoFullName || !pullNumber) {
     return NextResponse.json(
       { error: "Missing repoFullName or pullNumber in request body." },
       { status: 400 }
-    );
+    )
   }
 
   try {
-    const result = await identifyInconsistencies({ repoFullName, pullNumber, openAIApiKey });
-    return NextResponse.json({ success: true, result });
+    const result = await identifyInconsistencies({
+      repoFullName,
+      pullNumber,
+      openAIApiKey,
+    })
+    return NextResponse.json({ success: true, result })
   } catch (e) {
     // Log full error for debugging
-    console.error("[identify-inconsistencies] Failed to analyze:", e);
+    console.error("[identify-inconsistencies] Failed to analyze:", e)
     return NextResponse.json(
       { error: "Failed to analyze inconsistencies." },
       { status: 500 }
-    );
+    )
   }
 }
