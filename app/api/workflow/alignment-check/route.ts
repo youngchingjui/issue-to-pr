@@ -7,11 +7,11 @@ export const dynamic = "force-dynamic"
 type RequestBody = {
   repoFullName: string
   pullNumber: number
-  openAIApiKey?: string
+  openAIApiKey: string
 }
 
 /**
- * POST /api/workflow/identify-inconsistencies
+ * POST /api/workflow/alignment-check
  *   {
  *      repoFullName: string, // e.g. "owner/repo"
  *      pullNumber: number,
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     const result = await alignmentCheck({
       repoFullName,
       pullNumber,
-      openAIApiKey,
+      openAIApiKey: openAIApiKey,
     })
     return NextResponse.json({ success: true, result })
   } catch (e) {
