@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from "uuid"
 
 import { AlignmentAgent } from "@/lib/agents"
+import { postAlignmentAssessment } from "@/lib/agents/PostAlignmentAssessmentAgent"
 import { getIssue } from "@/lib/github/issues"
 import {
   getLinkedIssuesForPR,
@@ -39,13 +40,16 @@ type Params = {
   plan?: Plan
   issue?: GitHubIssue
   jobId?: string
+  postToGithub?: boolean
 }
 /**
  * Orchestrate fetching all necessary context, then invoke the inconsistency identifier agent/LLM for root-cause analysis.
+ * Will now also post an alignment assessment as a PR comment if postToGithub = true.
  * @param options
  *   - repoFullName: string
  *   - pullNumber: number
  *   - openAIApiKey (optional): string
+ *   - postToGithub: boolean (default=false)
  */
 export async function alignmentCheck({
   repoFullName,
@@ -60,6 +64,7 @@ export async function alignmentCheck({
   issue,
   plan,
   jobId,
+  postToGithub = false,
 }: Params) {
   const workflowId = jobId || uuidv4()
   try {
@@ -69,7 +74,7 @@ export async function alignmentCheck({
       type: "alignmentCheck",
       issueNumber,
       repoFullName,
-      postToGithub: false,
+      postToGithub,
     })
     await createWorkflowStateEvent({
       workflowId,
@@ -220,6 +225,15 @@ export async function alignmentCheck({
       console.log("[AlignmentCheck] No output generated.")
     }
 
+    // === Post alignment assessment as a PR comment, if enabled ===
+    if (postToGithub && lastMessage && typeof lastMessage.content === "string") {
+      await postAlignmentAssessment({
+        alignmentResult: lastMessage.content,
+        repoFullName,
+        pullNumber,
+        workflowId
+      })
+    }
     // Return result for possible future use
     return lastMessage?.content
   } catch (error) {
