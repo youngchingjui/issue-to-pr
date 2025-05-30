@@ -1,6 +1,7 @@
 import { AlignmentAgent } from "@/lib/agents"
 import { getIssue } from "@/lib/github/issues"
 import {
+  getLinkedIssuesForPR,
   getPullRequest,
   getPullRequestComments,
   getPullRequestDiff,
@@ -8,8 +9,25 @@ import {
 } from "@/lib/github/pullRequests"
 import { getPlanWithDetails } from "@/lib/neo4j/services/plan"
 import { AgentConstructorParams, Plan } from "@/lib/types"
-import { GitHubIssue } from "@/lib/types/github"
+import {
+  GitHubIssue,
+  IssueComment,
+  PullRequest,
+  PullRequestReview,
+} from "@/lib/types/github"
 
+type Params = {
+  repoFullName: string
+  pullNumber: number
+  openAIApiKey?: string
+  pr?: PullRequest
+  diff?: string
+  comments?: IssueComment[]
+  reviews?: PullRequestReview[]
+  issueNumber?: number
+  plan?: Plan
+  issue?: GitHubIssue
+}
 /**
  * Orchestrate fetching all necessary context, then invoke the inconsistency identifier agent/LLM for root-cause analysis.
  * @param options
@@ -21,28 +39,38 @@ export async function alignmentCheck({
   repoFullName,
   pullNumber,
   openAIApiKey,
-}: {
-  repoFullName: string
-  pullNumber: number
-  openAIApiKey?: string
-}) {
-  // 1. Fetch PR data
-  const pr = await getPullRequest({ repoFullName, pullNumber })
-  const diff = await getPullRequestDiff({ repoFullName, pullNumber })
-  const comments = await getPullRequestComments({ repoFullName, pullNumber })
-  const reviews = await getPullRequestReviews({ repoFullName, pullNumber })
+  pr,
+  diff,
+  comments,
+  reviews,
+  issueNumber,
+  issue,
+  plan,
+}: Params) {
+  // 1. Fetch any missing data
+  if (!pr) {
+    pr = await getPullRequest({ repoFullName, pullNumber })
+  }
+  if (!diff) {
+    diff = await getPullRequestDiff({ repoFullName, pullNumber })
+  }
+  if (!comments) {
+    comments = await getPullRequestComments({ repoFullName, pullNumber })
+  }
+  if (!reviews) {
+    reviews = await getPullRequestReviews({ repoFullName, pullNumber })
+  }
 
-  // Try to infer issue number -- look for "Closes #<issue>" in PR body, else fallback to the PR's issue_url
-  let issueNumber: number | undefined = undefined
-
-  // Try to infer from PR body
-  const closesMatch = pr.body && pr.body.match(/Closes #(\d+)/i)
-  if (closesMatch && closesMatch[1]) {
-    issueNumber = Number(closesMatch[1])
-  } else if (pr.issue_url) {
-    const parts = pr.issue_url.split("/")
-    const n = Number(parts[parts.length - 1])
-    if (!isNaN(n)) issueNumber = n
+  // Try to infer issue number -- only from provided param or GraphQL linked issues
+  if (!issueNumber) {
+    // 1. Try to get attached issues via GraphQL
+    const linkedIssues = await getLinkedIssuesForPR({
+      repoFullName,
+      pullNumber,
+    })
+    if (linkedIssues.length > 0) {
+      issueNumber = linkedIssues[0] // Use the first attached issue
+    }
   }
 
   if (!issueNumber) {
@@ -56,22 +84,24 @@ export async function alignmentCheck({
     }
   }
 
-  // 2. Fetch Issue and Plan context (optional if not found)
-  let issue: GitHubIssue, plan: Plan
-
-  try {
-    issue = await getIssue({ fullName: repoFullName, issueNumber })
-  } catch (e) {
-    console.error("Unable to fetch issue object:", e)
-    throw e
+  // 2. Fetch Issue and Plan context (optional if not found, or use provided)
+  if (!issue) {
+    try {
+      issue = await getIssue({ fullName: repoFullName, issueNumber })
+    } catch (e) {
+      console.error("Unable to fetch issue object:", e)
+      throw e
+    }
   }
-  try {
-    const { plan: planObj } = await getPlanWithDetails(String(issueNumber))
-    plan = planObj
-  } catch (e) {
-    // Plan might not exist
-    console.error("Unable to fetch plan details:", e)
-    throw e
+  if (!plan) {
+    try {
+      const { plan: planObj } = await getPlanWithDetails(String(issueNumber))
+      plan = planObj
+    } catch (e) {
+      // Plan might not exist
+      console.error("Unable to fetch plan details:", e)
+      throw e
+    }
   }
 
   // 3. Init agent
@@ -98,9 +128,9 @@ export async function alignmentCheck({
   // 6. Log output
   const lastMessage = response.messages[response.messages.length - 1]
   if (lastMessage && typeof lastMessage.content === "string") {
-    console.log("[IDENTIFIED INCONSISTENCIES]", lastMessage.content)
+    console.log("[AlignmentCheck] Output:", lastMessage.content)
   } else {
-    console.log("[IDENTIFIED INCONSISTENCIES] No output generated.")
+    console.log("[AlignmentCheck] No output generated.")
   }
 
   // Return result for possible future use
