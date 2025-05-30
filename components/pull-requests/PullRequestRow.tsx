@@ -5,6 +5,7 @@ import { useState } from "react"
 import DataRow from "@/components/common/DataRow"
 import AnalyzePRController from "@/components/pull-requests/controllers/AnalyzePRController"
 import ReviewPRController from "@/components/pull-requests/controllers/ReviewPRController"
+import AlignmentCheckController from "@/components/pull-requests/controllers/AlignmentCheckController"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { PullRequest } from "@/lib/types/github"
 
@@ -46,6 +47,23 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
     },
   })
 
+  const alignmentCheckWorkflow = AlignmentCheckController({
+    repoFullName: pr.head.repo.full_name,
+    pullNumber: pr.number,
+    onStart: () => {
+      setIsLoading(true)
+      setActiveWorkflow("Running AlignmentCheck...")
+    },
+    onComplete: () => {
+      setIsLoading(false)
+      setActiveWorkflow(null)
+    },
+    onError: () => {
+      setIsLoading(false)
+      setActiveWorkflow(null)
+    },
+  })
+
   return (
     <DataRow
       title={pr.title}
@@ -70,6 +88,14 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
           <div>Analyze PR Goals</div>
           <div className="text-xs text-muted-foreground">
             Analyze the goals and requirements
+          </div>
+        </div>
+      </DropdownMenuItem>
+      <DropdownMenuItem onClick={alignmentCheckWorkflow.execute}>
+        <div>
+          <div>Run AlignmentCheck</div>
+          <div className="text-xs text-muted-foreground">
+            Check how well this PR aligns with requirements and goals
           </div>
         </div>
       </DropdownMenuItem>
