@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 
+// Add variable constants here for testing
+
 // This route is for testing new functions. You can call any server-side function here
 export async function POST(request: Request) {
   if (process.env.NODE_ENV === "production") {
