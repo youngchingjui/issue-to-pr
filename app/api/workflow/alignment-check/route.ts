@@ -1,40 +1,22 @@
 import { NextRequest, NextResponse } from "next/server"
 
+import { AlignmentCheckRequestSchema } from "@/lib/types/api/schemas"
 import { alignmentCheck } from "@/lib/workflows"
 
 export const dynamic = "force-dynamic"
 
-type RequestBody = {
-  repoFullName: string
-  pullNumber: number
-  openAIApiKey: string
-}
-
-/**
- * POST /api/workflow/alignment-check
- *   {
- *      repoFullName: string, // e.g. "owner/repo"
- *      pullNumber: number,
- *      openAIApiKey?: string // (optional, for LLM)
- *   }
- */
 export async function POST(request: NextRequest) {
-  let json: RequestBody
   try {
-    json = await request.json()
-  } catch (err) {
-    return NextResponse.json({ error: "Invalid JSON." }, { status: 400 })
-  }
+    const json = await request.json()
+    const parseResult = AlignmentCheckRequestSchema.safeParse(json)
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: "Invalid request body.", details: parseResult.error.errors },
+        { status: 400 }
+      )
+    }
+    const { repoFullName, pullNumber, openAIApiKey } = parseResult.data
 
-  const { repoFullName, pullNumber, openAIApiKey } = json
-  if (!repoFullName || !pullNumber) {
-    return NextResponse.json(
-      { error: "Missing repoFullName or pullNumber in request body." },
-      { status: 400 }
-    )
-  }
-
-  try {
     const result = await alignmentCheck({
       repoFullName,
       pullNumber,

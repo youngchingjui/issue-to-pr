@@ -1,6 +1,7 @@
 "use client"
 
 import { toast } from "@/lib/hooks/use-toast"
+import { AlignmentCheckRequest } from "@/lib/types/api/schemas"
 import { getApiKeyFromLocalStorage } from "@/lib/utils/utils-common"
 
 interface Props {
@@ -25,24 +26,24 @@ export default function AlignmentCheckController({
       if (!key) {
         toast({
           title: "API key not found",
-          description:
-            "AlignmentCheck will run, but results will be better with an OpenAI API key. Please save one in settings if you haven't!",
+          description: "Please save an OpenAI API key in settings.",
           variant: "destructive",
         })
-        // Proceed, don't return
+        return
       }
 
       onStart()
+      const body: AlignmentCheckRequest = {
+        repoFullName,
+        pullNumber,
+        openAIApiKey: key,
+      }
       const response = await fetch("/api/workflow/alignment-check", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          repoFullName,
-          pullNumber,
-          openAIApiKey: key || undefined,
-        }),
+        body: JSON.stringify(body),
       })
 
       if (!response.ok) {
