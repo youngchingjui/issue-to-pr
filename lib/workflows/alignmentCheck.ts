@@ -8,6 +8,7 @@ import {
   getPullRequestComments,
   getPullRequestDiff,
   getPullRequestReviews,
+  getPullRequestReviewCommentsGraphQL,
 } from "@/lib/github/pullRequests"
 import { langfuse } from "@/lib/langfuse"
 import {
@@ -32,6 +33,7 @@ type Params = {
   diff?: string
   comments?: IssueComment[]
   reviews?: PullRequestReview[]
+  reviewThreads?: any[]
   issueNumber?: number
   plan?: Plan
   issue?: GitHubIssue
@@ -52,6 +54,7 @@ export async function alignmentCheck({
   diff,
   comments,
   reviews,
+  reviewThreads,
   issueNumber,
   issue,
   plan,
@@ -97,9 +100,19 @@ export async function alignmentCheck({
     if (!comments) {
       comments = await getPullRequestComments({ repoFullName, pullNumber })
     }
+    // Fetch full review+threaded comments from GraphQL
+    let graphqlReviews: any[] = []
+    try {
+      graphqlReviews = await getPullRequestReviewCommentsGraphQL({ repoFullName, pullNumber })
+    } catch (e) {
+      // fallback: set to []
+      graphqlReviews = []
+    }
+    // If legacy reviews not provided, fallback to REST (top-level only)
     if (!reviews) {
       reviews = await getPullRequestReviews({ repoFullName, pullNumber })
     }
+    // Compose both review (summary) and reviewThreads (detailed GraphQL)
 
     // Try to infer issue number -- only from provided param or GraphQL linked issues
     if (!issueNumber) {
@@ -171,7 +184,8 @@ export async function alignmentCheck({
       pr,
       diff,
       comments,
-      reviews,
+      reviewSummaries: reviews,
+      reviewThreads: graphqlReviews,
       plan,
       issue,
     }

@@ -181,6 +181,88 @@ export async function getPullRequestReviews({
   return reviewsResponse.data
 }
 
+/**
+ * Fetch all reviews and (inline) review comments for a given Pull Request using GitHub GraphQL API.
+ * Returns detailed review objects: each with top-level comment plus their inline/file comments/threads.
+ */
+export async function getPullRequestReviewCommentsGraphQL({
+  repoFullName,
+  pullNumber,
+  reviewsLimit = 50,
+  commentsPerReview = 50,
+}: {
+  repoFullName: string
+  pullNumber: number
+  reviewsLimit?: number
+  commentsPerReview?: number
+}) {
+  const [owner, repo] = repoFullName.split("/")
+  const graphqlWithAuth = await getGraphQLClient()
+  if (!graphqlWithAuth) throw new Error("Could not initialize GraphQL client")
+  // GraphQL query for reviews and review comments
+  const query = `
+    query($owner: String!, $repo: String!, $pullNumber: Int!, $reviewsLimit: Int!, $commentsPerReview: Int!) {
+      repository(owner: $owner, name: $repo) {
+        pullRequest(number: $pullNumber) {
+          reviews(first: $reviewsLimit) {
+            nodes {
+              id
+              author { login }
+              state
+              body
+              submittedAt
+              comments(first: $commentsPerReview) {
+                nodes {
+                  id
+                  author { login }
+                  body
+                  path
+                  position
+                  originalPosition
+                  diffHunk
+                  createdAt
+                  replyTo { id }
+                  pullRequestReview { id }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  `
+  const variables = {
+    owner,
+    repo,
+    pullNumber,
+    reviewsLimit,
+    commentsPerReview,
+  }
+  const response = await graphqlWithAuth(query, variables)
+  // Defensive: Structure the response for easy UI/LLM consumption
+  const reviews =
+    response?.repository?.pullRequest?.reviews?.nodes?.map((r: any) => ({
+      id: r.id,
+      author: r.author?.login,
+      state: r.state,
+      body: r.body,
+      submittedAt: r.submittedAt,
+      comments: (r.comments?.nodes || []).map((c: any) => ({
+        id: c.id,
+        author: c.author?.login,
+        body: c.body,
+        file: c.path,
+        position: c.position,
+        originalPosition: c.originalPosition,
+        diffHunk: c.diffHunk,
+        createdAt: c.createdAt,
+        replyTo: c.replyTo?.id,
+        reviewId: c.pullRequestReview?.id,
+      })),
+    })) || []
+  return reviews
+}
+
 export async function getPullRequest({
   repoFullName,
   pullNumber,
