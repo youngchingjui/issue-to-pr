@@ -27,6 +27,7 @@ import {
   PullRequestReview,
   PullRequestReviewComment,
 } from "@/lib/types/github"
+import { saveAlignmentAnalysisNode } from "@/lib/neo4j/services/alignmentAnalysis"
 
 type Params = {
   repoFullName: string
@@ -204,6 +205,7 @@ export async function alignmentCheck({
 
     // 6. Log output
     const lastMessage = response.messages[response.messages.length - 1]
+    let alignmentAnalysisNodeId: string | undefined = undefined
     if (lastMessage && typeof lastMessage.content === "string") {
       await createStatusEvent({
         workflowId,
@@ -213,6 +215,18 @@ export async function alignmentCheck({
         workflowId,
         state: "completed",
       })
+      // Persist as AlignmentAnalysis node
+      try {
+        alignmentAnalysisNodeId = await saveAlignmentAnalysisNode({
+          analysisContent: lastMessage.content,
+          workflowId,
+          relatedPlanId: plan?.id,
+          issueNumber,
+          repoFullName,
+        })
+      } catch(e) {
+        console.error("Failed to persist AlignmentAnalysis node:", e)
+      }
       console.log("[AlignmentCheck] Output:", lastMessage.content)
     } else {
       await createWorkflowStateEvent({
@@ -257,7 +271,7 @@ export async function alignmentCheck({
       await assessmentAgent.runWithFunctions()
     }
     // Return result for possible future use
-    return lastMessage?.content
+    return { content: lastMessage?.content, alignmentAnalysisNodeId }
   } catch (error) {
     await createWorkflowStateEvent({
       workflowId,
