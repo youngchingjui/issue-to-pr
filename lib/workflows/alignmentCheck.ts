@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from "uuid"
 
 import { AlignmentAgent } from "@/lib/agents"
-import { postAlignmentAssessment } from "@/lib/agents/PostAlignmentAssessmentAgent"
+import { PostAlignmentAssessmentAgent } from "@/lib/agents/PostAlignmentAssessmentAgent"
 import { getIssue } from "@/lib/github/issues"
 import {
   getLinkedIssuesForPR,
@@ -18,6 +18,7 @@ import {
 } from "@/lib/neo4j/services/event"
 import { listPlansForIssue } from "@/lib/neo4j/services/plan"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
+import { createIssueCommentTool } from "@/lib/tools"
 import { AgentConstructorParams, Plan } from "@/lib/types"
 import {
   GitHubIssue,
@@ -40,7 +41,6 @@ type Params = {
   plan?: Plan
   issue?: GitHubIssue
   jobId?: string
-  postToGithub?: boolean
 }
 /**
  * Orchestrate fetching all necessary context, then invoke the inconsistency identifier agent/LLM for root-cause analysis.
@@ -64,7 +64,6 @@ export async function alignmentCheck({
   issue,
   plan,
   jobId,
-  postToGithub = false,
 }: Params) {
   const workflowId = jobId || uuidv4()
   try {
@@ -74,7 +73,6 @@ export async function alignmentCheck({
       type: "alignmentCheck",
       issueNumber,
       repoFullName,
-      postToGithub,
     })
     await createWorkflowStateEvent({
       workflowId,
@@ -226,17 +224,37 @@ export async function alignmentCheck({
     }
 
     // === Post alignment assessment as a PR comment, if enabled ===
-    if (
-      postToGithub &&
-      lastMessage &&
-      typeof lastMessage.content === "string"
-    ) {
-      await postAlignmentAssessment({
-        alignmentResult: lastMessage.content,
-        repoFullName,
-        pullNumber,
-        workflowId,
+    if (lastMessage && typeof lastMessage.content === "string") {
+      // 1. Instantiate the agent
+      const assessmentAgent = new PostAlignmentAssessmentAgent({
+        apiKey: openAIApiKey,
+        model: "gpt-4.1",
       })
+      await assessmentAgent.addJobId(workflowId)
+      assessmentAgent.addSpan({
+        span,
+        generationName: "postAlignmentAssessment",
+      })
+
+      const issueCommentTool = createIssueCommentTool({
+        issueNumber: pr.number,
+        repoFullName,
+      })
+      assessmentAgent.addTool(issueCommentTool)
+
+      // 3. Add user message with all context needed for the agent
+      await assessmentAgent.addMessage({
+        role: "user",
+        content: JSON.stringify({
+          alignmentResult: lastMessage.content,
+          repoFullName,
+          pullNumber,
+          reviewUrl: reviews?.[0]?.html_url,
+        }),
+      })
+
+      // 4. Run the agent to get the comment and post it
+      await assessmentAgent.runWithFunctions()
     }
     // Return result for possible future use
     return lastMessage?.content
