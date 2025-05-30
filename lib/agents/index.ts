@@ -1,6 +1,6 @@
+export * from "./alignmentAgent"
 export * from "./coder"
 export * from "./coordinator"
 export * from "./GoalIdentifierAgent"
-export * from "./inconsistencyIdentifier"
 export * from "./reviewer"
 export * from "./thinker"

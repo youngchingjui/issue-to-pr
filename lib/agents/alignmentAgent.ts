@@ -43,14 +43,11 @@ Explain your reasoning clearly in the explanation field.
 \nIf no review comments are present, output: { "message": "No inconsistencies detected; no comments in review." }
 `
 
-export class InconsistencyIdentifierAgent extends Agent {
+export class AlignmentAgent extends Agent {
   constructor({ ...rest }: AgentConstructorParams) {
     super(rest)
     this.setSystemPrompt(SYSTEM_PROMPT).catch((error) => {
-      console.error(
-        "Error initializing InconsistencyIdentifierAgent system prompt:",
-        error
-      )
+      console.error("Error initializing AlignmentAgent system prompt:", error)
     })
   }
 }
