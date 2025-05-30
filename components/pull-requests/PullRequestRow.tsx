@@ -3,9 +3,9 @@
 import { useState } from "react"
 
 import DataRow from "@/components/common/DataRow"
+import AlignmentCheckController from "@/components/pull-requests/controllers/AlignmentCheckController"
 import AnalyzePRController from "@/components/pull-requests/controllers/AnalyzePRController"
 import ReviewPRController from "@/components/pull-requests/controllers/ReviewPRController"
-import AlignmentCheckController from "@/components/pull-requests/controllers/AlignmentCheckController"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { PullRequest } from "@/lib/types/github"
 

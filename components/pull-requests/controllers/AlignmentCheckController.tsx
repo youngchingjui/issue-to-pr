@@ -25,7 +25,8 @@ export default function AlignmentCheckController({
       if (!key) {
         toast({
           title: "API key not found",
-          description: "AlignmentCheck will run, but results will be better with an OpenAI API key. Please save one in settings if you haven't!",
+          description:
+            "AlignmentCheck will run, but results will be better with an OpenAI API key. Please save one in settings if you haven't!",
           variant: "destructive",
         })
         // Proceed, don't return
@@ -37,7 +38,11 @@ export default function AlignmentCheckController({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ repoFullName, pullNumber, openAIApiKey: key || undefined }),
+        body: JSON.stringify({
+          repoFullName,
+          pullNumber,
+          openAIApiKey: key || undefined,
+        }),
       })
 
       if (!response.ok) {
