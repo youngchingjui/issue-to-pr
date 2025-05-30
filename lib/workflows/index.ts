@@ -1,3 +1,4 @@
+export * from "./alignmentCheck"
 export * from "./commentOnIssue"
 export * from "./identifyInconsistencies"
 export * from "./identifyPRGoal"

@@ -17,7 +17,7 @@ import { GitHubIssue } from "@/lib/types/github"
  *   - pullNumber: number
  *   - openAIApiKey (optional): string
  */
-export async function identifyInconsistencies({
+export async function alignmentCheck({
   repoFullName,
   pullNumber,
   openAIApiKey,

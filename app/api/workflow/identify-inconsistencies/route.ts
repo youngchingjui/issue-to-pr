@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 
-import { identifyInconsistencies } from "@/lib/workflows/identifyInconsistencies"
+import { alignmentCheck } from "@/lib/workflows"
 
 export const dynamic = "force-dynamic"
+
+type RequestBody = {
+  repoFullName: string
+  pullNumber: number
+  openAIApiKey?: string
+}
 
 /**
  * POST /api/workflow/identify-inconsistencies
@@ -13,7 +19,7 @@ export const dynamic = "force-dynamic"
  *   }
  */
 export async function POST(request: NextRequest) {
-  let json: any
+  let json: RequestBody
   try {
     json = await request.json()
   } catch (err) {
@@ -29,7 +35,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const result = await identifyInconsistencies({
+    const result = await alignmentCheck({
       repoFullName,
       pullNumber,
       openAIApiKey,
@@ -37,9 +43,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, result })
   } catch (e) {
     // Log full error for debugging
-    console.error("[identify-inconsistencies] Failed to analyze:", e)
+    console.error("[alignmentCheck] Failed to analyze:", e)
     return NextResponse.json(
-      { error: "Failed to analyze inconsistencies." },
+      { error: "Failed to analyze alignment." },
       { status: 500 }
     )
   }
