@@ -7,7 +7,7 @@ import {
   getPullRequestDiff,
   getPullRequestReviews,
 } from "@/lib/github/pullRequests"
-import { getPlanWithDetails } from "@/lib/neo4j/services/plan"
+import { listPlansForIssue } from "@/lib/neo4j/services/plan"
 import { AgentConstructorParams, Plan } from "@/lib/types"
 import {
   GitHubIssue,
@@ -95,11 +95,14 @@ export async function alignmentCheck({
   }
   if (!plan) {
     try {
-      const { plan: planObj } = await getPlanWithDetails(String(issueNumber))
-      plan = planObj
+      // Fetch all plans for the issue and select the latest one
+      const plans = await listPlansForIssue({ repoFullName, issueNumber })
+      plans.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      plan = plans[0] || undefined
+      // TODO: In the future, associate PRs with specific planIds (e.g., via workflow run metadata)
     } catch (e) {
       // Plan might not exist
-      console.error("Unable to fetch plan details:", e)
+      console.error("Unable to fetch plans for issue:", e)
       throw e
     }
   }
