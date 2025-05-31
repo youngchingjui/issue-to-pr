@@ -93,6 +93,20 @@ export async function createPlanImplementsIssue(
   }
 }
 
+// Mark all plans for an issue as outdated
+export async function markPlansOutdated(
+  tx: ManagedTransaction,
+  { repoFullName, issueNumber }: { repoFullName: string; issueNumber: number }
+): Promise<void> {
+  await tx.run(
+    `
+    MATCH (p:Plan)-[:IMPLEMENTS]->(i:Issue {number: $issueNumber, repoFullName: $repoFullName})
+    SET p.status = 'outdated'
+    `,
+    { repoFullName, issueNumber }
+  );
+}
+
 // Convert db-level Plan to app-level Plan (currently passthrough, but for future-proofing)
 export const toAppPlan = (dbPlan: Plan): AppPlan => {
   return {
