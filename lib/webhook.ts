@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from "uuid"
 import { getRepoFromString } from "@/lib/github/content"
 import { updateJobStatus } from "@/lib/redis-old"
 import commentOnIssue from "@/lib/workflows/commentOnIssue"
+import { getGithubUser } from "@/lib/github/auth"  // Assuming this function exists
 
 const POST_TO_GITHUB_SETTING = true // TODO: Set setting in database
 
@@ -21,6 +22,7 @@ enum GitHubEvent {
   PullRequestReviewThread = "pull_request_review_thread",
   Push = "push",
   Repository = "repository",
+  Reaction = "reaction",  // Added reaction event type
 }
 
 export const routeWebhookHandler = async ({
@@ -57,6 +59,15 @@ export const routeWebhookHandler = async ({
         jobId,
         POST_TO_GITHUB_SETTING
       )
+    }
+  } else if (event === GitHubEvent.Reaction) {
+    const emoji = payload["reaction"]["content"]
+    const username = payload["sender"]["login"]
+
+    // Check user authorization
+    const userIsAuthorized = await getGithubUser(username) // Adjusted based on the assumed function
+    if (userIsAuthorized && ["👎", "🚀"].includes(emoji)) {
+      console.log(`Reaction received: ${emoji} from user: @${username}`)
     }
   } else {
     const repository =
