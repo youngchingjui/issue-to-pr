@@ -1,5 +1,19 @@
+/**
+ * @file
+ * This file is now intended ONLY for re-exporting schemas and types from concern-based files (e.g., plan.ts, event.ts, settings.ts, workflow.ts, github.ts).
+ *
+ * All schema/type definitions should be moved to their respective concern-based files.
+ * Do not define new schemas/types here.
+ *
+ * Migration plan: Move all definitions out, keep only re-exports.
+ */
+
+export * from "./github"
+
 import { ChatModel } from "openai/resources"
 import { z, ZodType } from "zod"
+
+import { repoFullNameSchema } from "@/lib/types"
 
 // Tools
 export interface Tool<Schema extends ZodType, Output> {
@@ -24,7 +38,7 @@ export type AgentConstructorParams = {
 export const issueSchema = z.object({
   number: z.number(),
   createdAt: z.date().optional(),
-  repoFullName: z.string(),
+  repoFullName: repoFullNameSchema,
   title: z.string().optional(),
   body: z.string().optional(),
   state: z.enum(["open", "closed"]).optional(),

@@ -1,7 +1,14 @@
+/**
+ * @deprecated
+ * This should be migrated to /lib/types/github folder,
+ * With separate files for separate concerns (e.g., repo.ts, issue.ts, etc.).
+ * This file will be removed after migration is complete.
+ */
 import { components } from "@octokit/openapi-types"
 import { RestEndpointMethodTypes } from "@octokit/rest"
 import { z } from "zod"
 
+export * from "@/lib/types/github/index" // to help with migration
 // GitHub API Types
 export type GitHubRepository = components["schemas"]["full-repository"]
 export type AuthenticatedUserRepository = components["schemas"]["repository"]
