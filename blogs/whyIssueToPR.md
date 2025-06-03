@@ -1,7 +1,7 @@
 ---
-title:
+title: Why Issue To PR?
 date: 2025-06-03
-Summary:
+Summary: Issue To PR is a Github-native application that immediately generates Pull Requests from your Github issues by analyzing your codebase, generating a Plan, and implementing those fixes.
 ---
 
 Issue To PR immediately generates Pull Requests from your Github issues by analyzing your codebase, generating a Plan, and implementing those fixes.
