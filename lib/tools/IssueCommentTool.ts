@@ -37,8 +37,10 @@ export const createIssueCommentTool = (params: Partial<IssueCommentParams>) => {
     schema: updatedSchema,
     handler: async (newParams: Partial<IssueCommentParams>) => {
       // Merge pre-provided params with new ones
-      const mergedParams = { ...params, ...newParams } as IssueCommentParams
-      const result = await createIssueCommentApi(mergedParams)
+      const mergedParams = { ...params, ...newParams }
+      // Validate all required fields
+      const parsedParams = issueCommentParameters.parse(mergedParams)
+      const result = await createIssueCommentApi(parsedParams)
       return JSON.stringify(result)
     },
   })
