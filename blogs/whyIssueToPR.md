@@ -27,6 +27,17 @@ The agents handle issues of all types, from bug fixes to full feature requests. 
 
 ## Key Features
 
+### Generates Plan for each issue
+
+Issue To PR automatically generates a Plan for each issue. This Plan includes:
+
+- Identification of the issue
+- List of evidence from the codebase
+- Detailed plan to resolve the issue
+- Highlights of assumptions made, so you can easily review and update
+
+With the Plan, the implemented PR is much more likely to be correct.
+
 ### Integrates Directly With Your Existing GitHub Workflow
 
 Issue To PR is built using GitHub's APIs and security model, providing nearly full-sync with GitHub. You continue managing your project through GitHub's Issues and PRs while Issue To PR responds automatically. It works with your existing repository permissions, branching strategies, and development workflow without requiring changes to your process.
@@ -81,3 +92,12 @@ Issue To PR transforms GitHub issues into production-ready pull requests automat
 ## Install Issue To PR to Start Generating PRs
 
 Install the Issue To PR GitHub App to enable automatic Plan and PR creation for your repositories. The app integrates seamlessly with your existing GitHub workflow and begins working immediately on new issues.
+
+## How Issue To PR Differs From IDE Agents
+
+Issue To PR operates differently from IDE agents like Cursor:
+
+- **No manual prompting required** - Issue To PR automatically executes optimized workflows without needing "continue" or "make a plan" prompts at each step.
+- **Parallel development** - Multiple issues generate PRs simultaneously rather than requiring sequential chat interactions.
+- **Focus shifts to code review** - Your primary work becomes reviewing completed PRs instead of guiding AI through implementation steps.
+- **Built-in quality assurance** - Automated unit tests eliminate uncertainty about whether code works, removing the need to explicitly request testing.
