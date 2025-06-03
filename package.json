@@ -48,6 +48,7 @@
     "date-fns": "^4.1.0",
     "exponential-backoff": "^3.1.2",
     "framer-motion": "^12.4.10",
+    "gray-matter": "^4.0.3",
     "langfuse": "^3.32.0",
     "langfuse-core": "^3.37.0",
     "lucide-react": "^0.460.0",

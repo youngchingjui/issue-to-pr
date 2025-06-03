@@ -200,9 +200,18 @@ export const settingsSchema = z.object({
   // Add more user-specific settings here as needed
 })
 
+// Blog Posts
+export const blogPostSchema = z.object({
+  slug: z.string().optional(),
+  title: z.string().optional(),
+  date: z.date().nullable().optional(),
+  summary: z.string().optional(),
+})
+
 // Type exports
 export type AnyEvent = z.infer<typeof anyEventSchema>
 export type BaseEvent = z.infer<typeof baseEventSchema>
+export type BlogPost = z.infer<typeof blogPostSchema>
 export type ErrorEvent = z.infer<typeof errorEventSchema>
 export type EventTypes = z.infer<typeof eventTypes>
 export type Issue = z.infer<typeof issueSchema>
