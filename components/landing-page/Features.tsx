@@ -6,6 +6,39 @@ import React from "react"
 import ShineButton from "../ui/shine-button"
 import TextLg from "../ui/text-lg"
 
+const features = [
+  {
+    title: "AI-Assisted, End-to-End Workflow",
+    description:
+      "Resolve GitHub issues and generate pull requests automatically, powered by transparent AI agents. No more context switching or manual repetition—the system manages the entire process from understanding the issue to forming the PR. Save time and mental energy, focusing on higher-value work while repetitive steps are handled seamlessly.",
+  },
+  {
+    title: "Unmatched Developer-in-the-Loop Control",
+    description:
+      "Intervene at any step—pause, modify, guide AI reasoning, or override actions. Unlike black-box automation, you retain full agency and can always direct the workflow as desired. Gain trust in the results and ensure changes always match your standards and business needs.",
+  },
+  {
+    title: "Real-Time Transparency & Explainability",
+    description:
+      "Visualize the AI agent’s thought process, code analysis, proposed changes, and data sources in real time. See not only what is being done, but why—complete with linked reasoning and traceability. Build confidence in automated decisions, debug issues faster, and ensure regulatory or team process compliance.",
+  },
+  {
+    title: "Collaborative, Interactive Change Management",
+    description:
+      "Review, approve, or reject granular changes pre-commit; add comments, constraints, and guidance at any point. The system adapts to your context, enabling deep collaboration between you and the AI. Achieve higher-quality outcomes and avoid misunderstandings, with less rework in code review.",
+  },
+  {
+    title: "Automated, High-Quality Pull Requests",
+    description:
+      "Automatically produces PRs with checked diffs, clear descriptions, linked issues, and QA/test results. Minimizes tedious manual steps and enforces consistency in PR metadata. Speed up team reviews and increase contribution velocity, with confidence in every submission.",
+  },
+  {
+    title: "Seamless GitHub Integration & Security",
+    description:
+      "Integrates directly with GitHub APIs, respecting repository permissions and security protocols. No tool juggling or risky manual scripts—secure automation in your trusted workflow. Onboard and scale easily, knowing your repositories and data are safe.",
+  },
+]
+
 const Features = () => {
   return (
     <div className="relative py-20 overflow-hidden">
@@ -86,65 +119,27 @@ const Features = () => {
           </span>
         </TextLg>
         <div className="flex flex-col max-w-[1300px] w-full gap-12 px-5 lg:px-10">
-          {[
-            {
-              title: "Zero Prompt Engineering",
-              description:
-                "Say goodbye to writing AI prompts. All the necessary context is already in your GitHub issues, codebase, and online resources - we'll handle the rest.",
-            },
-            {
-              title: "Built for Complex Codebases",
-              description:
-                "Unlike tools that build from scratch, Issue To PR excels at improving existing, complex codebases - making it perfect for established projects.",
-            },
-            {
-              title: "Catch Bugs Early",
-              description:
-                "Spot bugs and errors that might slip through manual reviews.",
-            },
-            {
-              title: "Improve Code Quality",
-              description:
-                "Maintain consistent, high-quality code with AI-driven analysis.",
-            },
-            {
-              title: "Reduce Development Time",
-              description: "Slash review times to deploy features faster.",
-            },
-            {
-              title: "Reduce Manual Checks",
-              description:
-                "Free your developers from routine checks to focus on innovation.",
-            },
-          ].map((item, i) => {
-            return (
-              <motion.div
-                initial={{
-                  opacity: 0,
-                }}
-                whileInView={{
-                  opacity: 1,
-                  transition: {
-                    duration: 0.6,
-                    ease: "easeOut",
-                    delay: 0.2,
-                  },
-                }}
-                viewport={{ once: true }}
-                key={`feature-item-${i}`}
-                className="w-full bg-gradient-to-br from-white/5 to-transparent p-6 rounded-xl border-2 border-black/10 hover:border-black/20 transition-all duration-300"
-              >
-                <div className="flex flex-col gap-4">
-                  <h3 className="text-2xl font-bold text-accent">
-                    {item.title}
-                  </h3>
-                  <p className="text-lg text-muted-foreground">
-                    {item.description}
-                  </p>
-                </div>
-              </motion.div>
-            )
-          })}
+          {features.map((item, i) => (
+            <motion.div
+              initial={{ opacity: 0 }}
+              whileInView={{
+                opacity: 1,
+                transition: {
+                  duration: 0.6,
+                  ease: "easeOut",
+                  delay: 0.2,
+                },
+              }}
+              viewport={{ once: true }}
+              key={`feature-item-${i}`}
+              className="w-full bg-gradient-to-br from-white/5 to-transparent p-6 rounded-xl border-2 border-black/10 hover:border-black/20 transition-all duration-300"
+            >
+              <div className="flex flex-col gap-4">
+                <h3 className="text-2xl font-bold text-accent">{item.title}</h3>
+                <p className="text-lg text-muted-foreground">{item.description}</p>
+              </div>
+            </motion.div>
+          ))}
         </div>
         <Link
           href="https://github.com/apps/issuetopr-dev"
