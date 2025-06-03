@@ -1,7 +1,9 @@
+import matter from "gray-matter"
 import Link from "next/link"
 import path from "path"
+
 import { createDirectoryTree, getFileContent } from "@/lib/fs"
-import matter from "gray-matter"
+import { BlogPost } from "@/lib/types"
 
 // List all markdown blog posts and link to each by slug
 export default async function BlogIndexPage() {
@@ -13,7 +15,7 @@ export default async function BlogIndexPage() {
   )
 
   // Fetch blog metadata
-  const blogs = await Promise.all(
+  const blogs: BlogPost[] = await Promise.all(
     blogFiles.map(async (filename) => {
       const fullPath = path.join(blogsDir, filename)
       const contents = await getFileContent(fullPath)
@@ -21,19 +23,20 @@ export default async function BlogIndexPage() {
       const slug = filename.replace(/\.md$/, "")
       return {
         slug,
-        title: data.title || slug,
-        date: data.date || null,
-        summary: data.Summary || data.summary || "",
+        title: data.title ?? slug,
+        date: data.date ? new Date(data.date) : null,
+        summary: data.Summary ?? data.summary ?? "",
       }
     })
   )
 
   // Sort by date (if available)
   blogs.sort((a, b) => {
-    if (a.date && b.date) return (a.date > b.date ? -1 : 1)
+    if (a.date && b.date) return b.date.getTime() - a.date.getTime()
     if (a.date) return -1
     if (b.date) return 1
-    return a.slug.localeCompare(b.slug)
+    if (a.slug && b.slug) return a.slug.localeCompare(b.slug)
+    return 0
   })
 
   return (
@@ -50,7 +53,7 @@ export default async function BlogIndexPage() {
             </Link>
             {blog.date && (
               <span className="block text-xs text-muted-foreground mt-1">
-                {blog.date}
+                {blog.date.toLocaleDateString()}
               </span>
             )}
             {blog.summary && (
