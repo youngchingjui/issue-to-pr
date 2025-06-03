@@ -8,76 +8,76 @@ Issue To PR immediately generates Pull Requests from your Github issues by analy
 
 ## How It Works
 
-When you have a GitHub issue, Issue To PR reads the problem description, analyzes your repository to understand the codebase structure, identifies the files that need changes, implements the fix, runs tests, and creates a pull request with detailed explanations.
+When you have a GitHub issue, Issue To PR does the following:
 
-## Github-native application
+1. **Reads the problem description** from your GitHub issue
+2. **Analyzes your repository** to understand the codebase structure and uses agentic reasoning to load files relevant to the issue
+3. **Generates a thorough Implementation Plan** that includes:
+   - Identification of the issue
+   - List of evidence from the codebase
+   - Detailed plan to resolve the issue
+4. **Implements the changes** following the plan:
+   - Creates and edits files on a new branch
+   - Automatically fixes linting errors (coming soon)
+   - Generates unit tests with a separate agent (coming soon)
+   - Iterates to ensure code passes tests (coming soon)
+5. **Creates a pull request** with detailed explanations and proper descriptions
 
-- Issue to PR is native to Github and has nearly full-sync with Github.
-- Continue managing your project through Github's Issues and PRs, and Issue To PR will respond automatically
+The agents handle issues of all types, from bug fixes to full feature requests. Larger requests start with code scaffolding that you can iterate on with additional issues.
 
-## Scanning your codebase
+## Key Features
 
-The agent is given a detailed breakdown of your codebase.
-The agent thoroughly loads files that may be relevant to the issue at hand.
+### GitHub-Native Integration
 
-## Generating a Plan
+Issue To PR is built using GitHub's APIs and security model, providing nearly full-sync with GitHub. You continue managing your project through GitHub's Issues and PRs while Issue To PR responds automatically. It works with your existing repository permissions, branching strategies, and development workflow without requiring changes to your process.
 
-The agent generates a thorough Implementation Plan that includes:
+### Simultaneous PR Generation
 
-- Identification of the issue
-- List of evidence from the codebase
-- Plan to resolve the issue
-- No need for additional prompting such as "yes, please continue with the plan" or "please generate a plan".
+Multiple PRs are generated simultaneously in the background. When you create multiple issues at the same time, they all work independently—no need to wait for responses or work on a single thread. PRs are ready for review just minutes after creating the issue.
 
-## Implementing the Plan
+### Quality Assurance
 
-- The Agent closely follows the Plan to implement the changes.
-- Changes are created on a new branch, automatically named
-- Changes will follow your linting configuration (coming soon)
-- A separate agent generates unit tests
-- The agent will iterate over the code changes so they pass your unit tests (coming soon)
-- The agent will iterate over the code changes so they pass your linting tests (coming soon)
-
-##
-
-These agents work on issues of all types. From bug fixes all the way to full feature requests.
-Larger requests will start with code scaffolding, with weaker details.
-You can continue iterating on the details of the scaffolding with further issues.
+- Unit tests are automatically generated to speed up PR review time
+- Code changes are iterated to pass your existing unit tests
+- Linting configuration is followed to maintain code standards
+- Generated PRs include proper descriptions, linked references, test results, and clear explanations of changes
 
 ## Automatically generate PRs for each new Issue
 
-## Unit tests to speed up PR review time
+Workflow runs provide detailed traces of the agents' actions. You can view the files loaded, the considerations made, and the complete decision-making process, ensuring full visibility into how your code changes were determined.
 
-## Install the Issue To PR Github App for automatic Plan and PR creation
+## Iterative Improvement
 
-## Multiple PRs are generated simultaneously
+### Automatic PR Fixes from Review Comments
 
-- No need to work on a single thread to wait for response. PRs will be ready for you just a few minutes after creating the issue. If you create multiple issues at the same time, they will all work in the background simultaneously.
+After you submit a PR review, an Issue To PR agent automatically:
 
-## Transparent Process
+- Reviews the PR and your comments
+- Examines the underlying issue and original Plan
+- Identifies discrepancies in the Plan
+- Updates the Plan to align with your review comments
+- Implements updates to the PR based on the revised plan
 
-Workflow runs provide detailed traces of the Agents' actions. You can view the files it's loaded, the consideratinos it's made, and its decision-making process.
+This workflow delivers 3x better quality and consistency compared to regular "in-chat fixes."
 
-## Automatically fix PRs with PR review comments
+### Plan Updates via Issue Comments
 
-- After submitting a review, an agent will autoamticaly review the PR, the comments, the underlying issue and Plan, and identify where in the Plan there was a discrepancy.
-- It'll then update the Plan to better align with your Review Comments.
-- With the updated plan, it'll then make updates to the PR.
-- This workflow is 3x better and more consistent in quality than regular "in-chat fixes".
+Adjust Plans directly within GitHub by posting comments on the issue and mentioning "@issue-to-pr". The agent will:
 
-## Update Plans with comments within Github issue comments
+- Review your comment and the underlying issue
+- Make adjustments to the Plan accordingly
+- Implement changes based on your feedback
 
-- If there's some details in the Plans you'd like to change, just post a comment below the plan and "@issue-to-pr".
-- The agent will review your comment, review the underlying issue, and make adjustments to the Plan.
+## Why Choose Issue To PR
 
-## Speed and Quality
+### Speed and Quality
 
-What typically takes hours of context switching, analysis, coding, and PR creation now happens in minutes. The generated PRs include proper descriptions, linked references, test results, and clear explanations of changes.
+What typically takes hours of context switching, analysis, coding, and PR creation now happens in minutes. Issue To PR automates the repetitive parts of bug fixing while keeping developers in control of important decisions. It reduces context switching and saves time without compromising code quality or security.
 
-## GitHub Integration
+### Bottom Line
 
-Built using GitHub's APIs and security model. Works with your existing repository permissions, branching strategies, and development workflow without requiring changes to your process.
+Issue To PR transforms GitHub issues into production-ready pull requests automatically, letting you focus on code review and strategic decisions rather than implementation details.
 
-## Bottom Line
+## Getting Started
 
-Issue To PR automates the repetitive parts of bug fixing while keeping developers in control of the important decisions. It reduces context switching and saves time without compromising code quality or security.
+Install the Issue To PR GitHub App to enable automatic Plan and PR creation for your repositories. The app integrates seamlessly with your existing GitHub workflow and begins working immediately on new issues.
