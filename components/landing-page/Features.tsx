@@ -3,8 +3,8 @@ import * as motion from "motion/react-client"
 import Link from "next/link"
 import React from "react"
 
-import ShineButton from "../ui/shine-button"
-import TextLg from "../ui/text-lg"
+import ShineButton from "@/components/ui/shine-button"
+import TextLg from "@/components/ui/text-lg"
 
 const features = [
   {
@@ -136,7 +136,9 @@ const Features = () => {
             >
               <div className="flex flex-col gap-4">
                 <h3 className="text-2xl font-bold text-accent">{item.title}</h3>
-                <p className="text-lg text-muted-foreground">{item.description}</p>
+                <p className="text-lg text-muted-foreground">
+                  {item.description}
+                </p>
               </div>
             </motion.div>
           ))}
