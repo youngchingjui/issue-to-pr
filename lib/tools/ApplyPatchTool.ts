@@ -52,7 +52,7 @@ export const createApplyPatchTool = (baseDir: string) =>
       let fileContent = ""
       try {
         fileContent = await getFileContent(fullPath)
-      } catch (e) {
+      } catch {
         return {
           status: "error",
           message: `File not found: ${fullPath}`,
