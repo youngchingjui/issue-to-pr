@@ -36,9 +36,7 @@ export const createIssueCommentTool = (params: Partial<IssueCommentParams>) => {
       "Posts a comment to a GitHub issue or PR (PRs are issues in the GitHub API).",
     schema: updatedSchema,
     handler: async (newParams: Partial<IssueCommentParams>) => {
-      // Merge pre-provided params with new ones
       const mergedParams = { ...params, ...newParams }
-      // Validate all required fields
       const parsedParams = issueCommentParameters.parse(mergedParams)
       const result = await createIssueCommentApi(parsedParams)
       return JSON.stringify(result)
