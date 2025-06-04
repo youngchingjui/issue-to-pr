@@ -135,6 +135,14 @@ export default function DynamicNavigation({
           >
             <Link href="/contribute">Contribute</Link>
           </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="flex items-center"
+          >
+            <Link href="/settings">Settings</Link>
+          </Button>
           <form action={signOutAndRedirect}>
             <Button
               type="submit"
