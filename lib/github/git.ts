@@ -75,3 +75,21 @@ export async function createBranch(
     }
   }
 }
+
+export async function listBranches(fullRepo: string): Promise<string[]> {
+  const octokit = await getOctokit()
+  if (!octokit) {
+    throw new Error("No octokit found")
+  }
+  const [owner, repo] = fullRepo.split("/")
+  if (!owner || !repo) {
+    throw new Error("Invalid repository format. Expected 'owner/repo'")
+  }
+
+  const { data } = await octokit.repos.listBranches({
+    owner,
+    repo,
+    per_page: 100,
+  })
+  return data.map((b) => b.name)
+}

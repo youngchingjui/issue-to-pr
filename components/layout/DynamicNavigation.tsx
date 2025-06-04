@@ -133,6 +133,14 @@ export default function DynamicNavigation({
             asChild
             className="flex items-center"
           >
+            <Link href="/codex">Codex</Link>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="flex items-center"
+          >
             <Link href="/contribute">Contribute</Link>
           </Button>
           <form action={signOutAndRedirect}>
