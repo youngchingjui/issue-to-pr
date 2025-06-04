@@ -15,7 +15,6 @@ import {
   workflowRunSchema as appWorkflowRunSchema,
   WorkflowRunState,
   workflowRunStateSchema,
-  workflowStateEventSchema as appWorkflowStateEventSchema,
   WorkflowType,
   workflowTypeEnum,
 } from "@/lib/types"
@@ -53,6 +52,18 @@ export const planSchema = appPlanSchema.merge(
     createdAt: z.instanceof(DateTime),
   })
 )
+
+// AlignmentAnalysis node and schema
+export const alignmentAnalysisSchema = z.object({
+  id: z.string(),
+  content: z.string(),
+  workflowId: z.string(),
+  createdAt: z.instanceof(DateTime),
+  planId: z.string().optional(),
+  issueNumber: z.instanceof(Integer).optional(),
+  repoFullName: z.string().optional(),
+})
+export type AlignmentAnalysis = z.infer<typeof alignmentAnalysisSchema>
 
 // Event schemas
 export const errorEventSchema = appErrorEventSchema
