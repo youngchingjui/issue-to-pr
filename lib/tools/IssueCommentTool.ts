@@ -30,15 +30,20 @@ export const createIssueCommentTool = (params: Partial<IssueCommentParams>) => {
     )
   )
 
-  return createTool({
+  return createTool<typeof updatedSchema, string>({
     name: "create_issue_comment",
     description:
       "Posts a comment to a GitHub issue or PR (PRs are issues in the GitHub API).",
     schema: updatedSchema,
-    handler: async (newParams: Partial<IssueCommentParams>) => {
+    handler: async (newParams: z.infer<typeof updatedSchema>) => {
       const mergedParams = { ...params, ...newParams }
-      const parsedParams = issueCommentParameters.parse(mergedParams)
-      const result = await createIssueCommentApi(parsedParams)
+      const { issueNumber, repoFullName, comment } =
+        issueCommentParameters.parse(mergedParams)
+      const result = await createIssueCommentApi({
+        issueNumber,
+        repoFullName,
+        comment,
+      })
       return JSON.stringify(result)
     },
   })
