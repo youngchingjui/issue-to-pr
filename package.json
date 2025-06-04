@@ -16,11 +16,10 @@
     "check:all": "next lint; prettier --check .; tsc --noEmit",
     "test": "jest --config jest.config.ts",
     "test:watch": "jest --watch --config jest.config.ts",
-    "test:coverage": "jest --coverage --config jest.config.ts",
-    "type-check": "tsc --noEmit"
+    "test:coverage": "jest --coverage --config jest.config.ts"
   },
   "dependencies": {
-    "@hookform/resolvers": "^5.0.1",
+    "@hookform/resolvers": "4",
     "@octokit/auth-app": "^7.2.0",
     "@octokit/graphql": "^8.2.1",
     "@octokit/openapi-types": "^24.0.0",
@@ -61,7 +60,7 @@
     "react": "^18.3.1",
     "react-day-picker": "8.10.1",
     "react-dom": "^18.3.1",
-    "react-hook-form": "^7.55.0",
+    "react-hook-form": "7",
     "react-markdown": "^10.1.0",
     "redis": "^4.7.0",
     "simple-git": "^3.27.0",
