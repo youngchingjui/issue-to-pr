@@ -5,6 +5,7 @@ import GetStarted from "@/components/landing-page/GetStarted"
 import Hero from "@/components/landing-page/Hero"
 import Pricing from "@/components/landing-page/Pricing"
 import Steps from "@/components/landing-page/Steps"
+import ComparisonToIDEAgents from "@/components/landing-page/ComparisonToIDEAgents"
 import GridBackground from "@/components/ui/grid-background"
 
 export default function LandingPage() {
@@ -14,6 +15,7 @@ export default function LandingPage() {
         <GridBackground>
           <Hero />
           <Features />
+          <ComparisonToIDEAgents />
           <ContributePublic />
           <Steps />
           <Pricing />
