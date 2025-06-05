@@ -2,7 +2,8 @@ import getOctokit from "@/lib/github"
 import {
   AuthenticatedUserRepository,
   GitHubRepository,
-} from "@/lib/types/github"
+  RepoFullName,
+} from "@/lib/types"
 
 export class GitHubError extends Error {
   constructor(
@@ -155,7 +156,7 @@ export async function checkBranchExists(
 }
 
 export async function getRepoFromString(
-  fullName: string
+  fullName: RepoFullName
 ): Promise<GitHubRepository> {
   // fullName should be in format like `owner/repo`
   const [owner, repo] = fullName.split("/")
