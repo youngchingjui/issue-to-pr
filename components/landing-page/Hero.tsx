@@ -40,9 +40,11 @@ export default async function Hero() {
           </span>
         </h1>
         <p className="text-stone-600 text-sm sm:text-base md:text-lg mb-8 sm:mb-10 max-w-3xl mx-auto px-2 sm:px-4 md:px-5 w-full text-center leading-relaxed">
-          No more writing prompts for AI. Issue To PR automatically extracts all
-          the context it needs from your GitHub issues and codebase to create
-          Pull Requests that solve your problems.
+          End-to-end automation for GitHub: parallel, high-quality PRs that
+          surface agent assumptions and rationale.{" "}
+          <br className="hidden md:block" />
+          No prompts, no waiting—just fully traceable AI-driven code review and
+          implementation, right from your issues and codebase.
         </p>
       </motion.div>
 

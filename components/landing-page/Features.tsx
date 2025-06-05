@@ -37,6 +37,31 @@ const features = [
     description:
       "Integrates directly with GitHub APIs, respecting repository permissions and security protocols. No tool juggling or risky manual scripts—secure automation in your trusted workflow. Onboard and scale easily, knowing your repositories and data are safe.",
   },
+  {
+    title: "Parallel Pull Requests (PRs) from Multiple Issues",
+    description:
+      "Tackle many issues at once—agents generate and manage multiple PRs in parallel, not serially, keeping your team unblocked. No need to wait for one PR to finish before the next starts.",
+  },
+  {
+    title: "Automatic Plan Generation & Surfacing Assumptions",
+    description:
+      "Every issue triggers a detailed plan. The app lists all detected assumptions and traces evidence from your codebase, giving you full context before implementation starts.",
+  },
+  {
+    title: "Update Plans Instantly via GitHub Comments",
+    description:
+      "Change the agent’s plan with just a GitHub comment—use @issue-to-pr to refine scope, clarify, or reprioritize with no separate dashboards required.",
+  },
+  {
+    title: "Iterative Agents: Automatic Test/Lint (Coming Soon)",
+    description:
+      "Agents don’t just generate code—they iterate until your PR passes tests and lints. Feedback triggers rapid, automatic rework for higher accuracy. (Feature in preview)",
+  },
+  {
+    title: "Accelerated Review with Traceable Reasoning",
+    description:
+      "Plans and PRs come with agent rationale, reducing time spent in code review and context switching. Understand why each decision was made, and trust every change.",
+  },
 ]
 
 const Features = () => {
