@@ -35,10 +35,9 @@ export default async function Hero() {
         <p className="text-stone-600 text-sm sm:text-base md:text-lg mb-2 sm:mb-3 max-w-3xl mx-auto px-2 sm:px-4 md:px-5 w-full text-center leading-relaxed">
           Automated background agents implement changes based on GitHub issues
           and create ready-to-review PRs - run multiple agents asynchronously
-        </p>
-        <p className="text-stone-500 text-xs sm:text-sm md:text-base mb-8 sm:mb-10 max-w-2xl mx-auto px-2 sm:px-4 md:px-5 w-full text-center leading-relaxed">
-          For repos with GitHub app installed, the plan is automatically
-          generated
+          <br className="hidden md:block" />
+          No prompts, no waiting—just fully traceable AI-driven code review and
+          implementation, right from your issues and codebase.
         </p>
       </motion.div>
 

@@ -1,3 +1,4 @@
+import ComparisonToIDEAgents from "@/components/landing-page/ComparisonToIDEAgents"
 import ContributePublic from "@/components/landing-page/ContributePublic"
 import Features from "@/components/landing-page/Features"
 import Footer from "@/components/landing-page/Footer"
@@ -15,6 +16,7 @@ export default function LandingPage() {
           <Hero />
           <Steps />
           <Features />
+          <ComparisonToIDEAgents />
           <ContributePublic />
           <Pricing />
           <GetStarted />
