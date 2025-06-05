@@ -13,9 +13,9 @@ export default function LandingPage() {
       <main>
         <GridBackground>
           <Hero />
+          <Steps />
           <Features />
           <ContributePublic />
-          <Steps />
           <Pricing />
           <GetStarted />
         </GridBackground>
