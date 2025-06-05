@@ -61,7 +61,7 @@ const features = [
     title: "Accelerated Review with Traceable Reasoning",
     description:
       "Plans and PRs come with agent rationale, reducing time spent in code review and context switching. Understand why each decision was made, and trust every change.",
-  }
+  },
 ]
 
 const Features = () => {
