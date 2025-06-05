@@ -30,18 +30,11 @@ export default async function Hero() {
         className="max-w-5xl mx-auto relative z-10"
       >
         <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold mb-3 sm:mb-6 md:mb-8 leading-tight">
-          <span>Resolve Github Issues</span>{" "}
-          <span>
-            in <br />
-            <span className="italic text-accent relative">
-              one click
-              <span className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-accent/0 via-accent to-accent/0"></span>
-            </span>
-          </span>
+          <span>Code 3-5x faster than Cursor</span>
         </h1>
-        <p className="text-stone-600 text-sm sm:text-base md:text-lg mb-8 sm:mb-10 max-w-3xl mx-auto px-2 sm:px-4 md:px-5 w-full text-center leading-relaxed">
-          End-to-end automation for GitHub: parallel, high-quality PRs that
-          surface agent assumptions and rationale.{" "}
+        <p className="text-stone-600 text-sm sm:text-base md:text-lg mb-2 sm:mb-3 max-w-3xl mx-auto px-2 sm:px-4 md:px-5 w-full text-center leading-relaxed">
+          Automated background agents implement changes based on GitHub issues
+          and create ready-to-review PRs - run multiple agents asynchronously
           <br className="hidden md:block" />
           No prompts, no waiting—just fully traceable AI-driven code review and
           implementation, right from your issues and codebase.

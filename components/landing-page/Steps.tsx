@@ -94,8 +94,7 @@ const Steps = () => {
               onMouseLeave={() => setIsHovered(null)}
               className={twMerge(
                 `flex-1 overflow-hidden bg-white/90 transition-all duration-300`,
-                isHovered === index && "bg-white",
-                isHovered !== null && isHovered !== index && "blur-sm"
+                isHovered === index && "bg-white"
               )}
             >
               <CardHeader className="pb-0">

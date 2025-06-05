@@ -14,10 +14,10 @@ export default function LandingPage() {
       <main>
         <GridBackground>
           <Hero />
+          <Steps />
           <Features />
           <ComparisonToIDEAgents />
           <ContributePublic />
-          <Steps />
           <Pricing />
           <GetStarted />
         </GridBackground>
