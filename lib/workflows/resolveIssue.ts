@@ -4,7 +4,7 @@
 // They can also all access the same data, such as the issue, the codebase, etc.
 
 import { CoderAgent } from "@/lib/agents/coder"
-import { createDirectoryTree } from "@/lib/fs"
+import { createDirectoryTree, DirectoryCreationError } from "@/lib/fs"
 import { getIssueComments } from "@/lib/github/issues"
 import { checkRepoPermissions } from "@/lib/github/users"
 import { langfuse } from "@/lib/langfuse"
@@ -226,11 +226,16 @@ ${plan.content}
 
     return coderResult
   } catch (error) {
-    // Emit error event
-
+    // Emit detailed error event on directory creation error
+    let content: string
+    if (error instanceof DirectoryCreationError) {
+      content = `Directory creation failed for '${error.dirPath}': ${error.message}\nOriginal error: ${error.originalError?.stack || error.originalError}`
+    } else {
+      content = String(error)
+    }
     await createErrorEvent({
       workflowId,
-      content: String(error),
+      content,
     })
 
     // Emit workflow state event for error status
