@@ -42,7 +42,9 @@ export default function RepoSelector({ selectedRepo }: Props) {
       onOpenChange={setOpen}
     >
       <SelectTrigger className="w-64">
-        <SelectValue placeholder="Select repository" />
+        <SelectValue placeholder="Select repository">
+          {selectedRepo}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
         {loading && <div className="px-4 py-2">Loading...</div>}
