@@ -1,5 +1,5 @@
-import DataTable from "@/components/common/DataTable"
 import IssueRow from "@/components/issues/IssueRow"
+import { Table, TableBody } from "@/components/ui/table"
 import { getIssueListWithStatus } from "@/lib/github/issues"
 
 export default async function IssueTable({
@@ -13,15 +13,24 @@ export default async function IssueTable({
       per_page: 100,
     })
 
+    if (issues.length === 0) {
+      return <p className="text-center py-4">No open issues found.</p>
+    }
+
     return (
-      <DataTable
-        title="Issues"
-        items={issues}
-        renderRow={(issue) => (
-          <IssueRow key={issue.id} issue={issue} repoFullName={repoFullName} />
-        )}
-        emptyMessage="No open issues found."
-      />
+      <div className="rounded-md border">
+        <Table>
+          <TableBody>
+            {issues.map((issue) => (
+              <IssueRow
+                key={issue.id}
+                issue={issue}
+                repoFullName={repoFullName}
+              />
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     )
   } catch (error) {
     return (
