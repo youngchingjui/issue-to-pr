@@ -86,22 +86,21 @@ async function fnHandler(
   try {
     const { stdout } = await execPromise(command)
     return stdout
-  } catch (error: any) {
+  } catch (error) {
     // Ripgrep conventions: exit 1 = no matches, exit 2 = error
     if (error && typeof error === "object" && "code" in error) {
       const code = error.code
       if (code === 1) {
-        return "No matching results found in the codebase."
+        return "No matching results found."
       } else if (
         code === 2 &&
+        "stderr" in error &&
         typeof error.stderr === "string" &&
         error.stderr.includes("regex parse error")
       ) {
         return `Ripgrep regex error: ${error.stderr}`
       } else if (code === 2) {
-        throw new Error(
-          `Ripgrep search failed: ${error.stderr || error || "Unknown error"}`
-        )
+        throw new Error(`Ripgrep search failed: ${error}`)
       } else {
         console.error("Unexpected ripgrep exit code:", error)
         throw new Error(`Unexpected ripgrep exit code: ${code}`)
