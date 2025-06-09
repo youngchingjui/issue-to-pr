@@ -122,22 +122,3 @@ export async function listUserRepositoriesGraphQL(): Promise<
     return []
   }
 }
-
-// Keep the original REST API version for backward compatibility
-export async function listUserRepositories() {
-  try {
-    const octokit = await getOctokit()
-    if (!octokit) {
-      return []
-    }
-    // Will get both org/user repos, but only first 100 for now
-    const { data } = await octokit.repos.listForAuthenticatedUser({
-      per_page: 50,
-      sort: "updated",
-    })
-    return data
-  } catch (e) {
-    console.error("Error fetching user repositories:", e)
-    return []
-  }
-}
