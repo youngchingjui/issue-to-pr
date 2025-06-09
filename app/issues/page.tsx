@@ -2,8 +2,8 @@ import { redirect } from "next/navigation"
 import { Suspense } from "react"
 
 import RepoSelector from "@/components/common/RepoSelector"
+import IssueTable from "@/components/issues/IssueTable"
 import NewTaskInput from "@/components/issues/NewTaskInput"
-import RepoWorkflowRuns from "@/components/issues/RepoWorkflowRuns"
 import { listUserRepositories } from "@/lib/github/users"
 
 export default async function IssuesPage({
@@ -47,8 +47,8 @@ export default async function IssuesPage({
       <div className="mb-6">
         <NewTaskInput repoFullName={repoFullName} />
       </div>
-      <Suspense fallback={<div>Loading workflow runs...</div>}>
-        <RepoWorkflowRuns repoFullName={repoFullName} />
+      <Suspense fallback={<div>Loading issues...</div>}>
+        <IssueTable repoFullName={repoFullName} />
       </Suspense>
     </main>
   )
