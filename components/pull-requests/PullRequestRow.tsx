@@ -1,76 +1,80 @@
-"use client";
+"use client"
 
-import { useState } from "react";
+import { formatDistanceToNow } from "date-fns"
+import { ChevronDown, Loader2, PlayCircle } from "lucide-react"
+import Link from "next/link"
+import { useState } from "react"
 
-import DataRow from "@/components/common/DataRow";
-import AlignmentCheckController from "@/components/pull-requests/controllers/AlignmentCheckController";
-import AnalyzePRController from "@/components/pull-requests/controllers/AnalyzePRController";
-import ReviewPRController from "@/components/pull-requests/controllers/ReviewPRController";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { TableCell } from "@/components/ui/table";
-import { ChevronDown, Loader2, PlayCircle } from "lucide-react";
-import Link from "next/link";
-import { PullRequest } from "@/lib/types/github";
-import { formatDistanceToNow } from "date-fns";
+import AlignmentCheckController from "@/components/pull-requests/controllers/AlignmentCheckController"
+import AnalyzePRController from "@/components/pull-requests/controllers/AnalyzePRController"
+import ReviewPRController from "@/components/pull-requests/controllers/ReviewPRController"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { TableCell, TableRow } from "@/components/ui/table"
+import { PullRequest } from "@/lib/types/github"
 
 export default function PullRequestRow({ pr }: { pr: PullRequest }) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [activeWorkflow, setActiveWorkflow] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false)
+  const [activeWorkflow, setActiveWorkflow] = useState<string | null>(null)
 
   const analyzeWorkflow = AnalyzePRController({
     repoFullName: pr.head.repo.full_name,
     pullNumber: pr.number,
     onStart: () => {
-      setIsLoading(true);
-      setActiveWorkflow("Analyzing...");
+      setIsLoading(true)
+      setActiveWorkflow("Analyzing...")
     },
     onComplete: () => {
-      setIsLoading(false);
-      setActiveWorkflow(null);
+      setIsLoading(false)
+      setActiveWorkflow(null)
     },
     onError: () => {
-      setIsLoading(false);
-      setActiveWorkflow(null);
+      setIsLoading(false)
+      setActiveWorkflow(null)
     },
-  });
+  })
 
   const reviewWorkflow = ReviewPRController({
     repoFullName: pr.head.repo.full_name,
     pullNumber: pr.number,
     onStart: () => {
-      setIsLoading(true);
-      setActiveWorkflow("Reviewing...");
+      setIsLoading(true)
+      setActiveWorkflow("Reviewing...")
     },
     onComplete: () => {
-      setIsLoading(false);
-      setActiveWorkflow(null);
+      setIsLoading(false)
+      setActiveWorkflow(null)
     },
     onError: () => {
-      setIsLoading(false);
-      setActiveWorkflow(null);
+      setIsLoading(false)
+      setActiveWorkflow(null)
     },
-  });
+  })
 
   const alignmentCheckWorkflow = AlignmentCheckController({
     repoFullName: pr.head.repo.full_name,
     pullNumber: pr.number,
     onStart: () => {
-      setIsLoading(true);
-      setActiveWorkflow("Running AlignmentCheck...");
+      setIsLoading(true)
+      setActiveWorkflow("Running AlignmentCheck...")
     },
     onComplete: () => {
-      setIsLoading(false);
-      setActiveWorkflow(null);
+      setIsLoading(false)
+      setActiveWorkflow(null)
     },
     onError: () => {
-      setIsLoading(false);
-      setActiveWorkflow(null);
+      setIsLoading(false)
+      setActiveWorkflow(null)
     },
-  });
+  })
 
   return (
-    <DataRow>
+    <TableRow>
       <TableCell className="py-4">
         <div className="flex flex-col gap-1">
           <div className="font-medium text-base">
@@ -95,7 +99,10 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
             <span>{pr.state}</span>
             <span>•</span>
             <span>
-              Updated {formatDistanceToNow(new Date(pr.updated_at), { addSuffix: true })}
+              Updated{" "}
+              {formatDistanceToNow(new Date(pr.updated_at), {
+                addSuffix: true,
+              })}
             </span>
           </div>
         </div>
@@ -147,6 +154,6 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>
-    </DataRow>
-  );
+    </TableRow>
+  )
 }

@@ -1,69 +1,73 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import React from "react";
+import { formatDistanceToNow } from "date-fns"
+import { ChevronDown, Loader2, PlayCircle } from "lucide-react"
+import Link from "next/link"
+import { useState } from "react"
+import React from "react"
 
-import DataRow from "@/components/common/DataRow";
-import CreatePRController from "@/components/issues/controllers/CreatePRController";
-import GenerateResolutionPlanController from "@/components/issues/controllers/GenerateResolutionPlanController";
-import StatusIndicators from "@/components/issues/StatusIndicators";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { TableCell } from "@/components/ui/table";
-import { ChevronDown, Loader2, PlayCircle } from "lucide-react";
-import Link from "next/link";
-import type { IssueWithStatus } from "@/lib/github/issues";
-import { formatDistanceToNow } from "date-fns";
+import CreatePRController from "@/components/issues/controllers/CreatePRController"
+import GenerateResolutionPlanController from "@/components/issues/controllers/GenerateResolutionPlanController"
+import StatusIndicators from "@/components/issues/StatusIndicators"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { TableCell, TableRow } from "@/components/ui/table"
+import type { IssueWithStatus } from "@/lib/github/issues"
 
 interface IssueRowProps {
-  issue: IssueWithStatus;
-  repoFullName: string;
+  issue: IssueWithStatus
+  repoFullName: string
 }
 
 export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [activeWorkflow, setActiveWorkflow] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false)
+  const [activeWorkflow, setActiveWorkflow] = useState<string | null>(null)
 
   const createPRController = CreatePRController({
     issueNumber: issue.number,
     repoFullName,
     onStart: () => {
-      setIsLoading(true);
-      setActiveWorkflow("Creating PR...");
+      setIsLoading(true)
+      setActiveWorkflow("Creating PR...")
     },
     onComplete: () => {
-      setIsLoading(false);
-      setActiveWorkflow(null);
+      setIsLoading(false)
+      setActiveWorkflow(null)
     },
     onError: () => {
-      setIsLoading(false);
-      setActiveWorkflow(null);
+      setIsLoading(false)
+      setActiveWorkflow(null)
     },
-  });
+  })
 
   const { execute: generateResolutionPlan } = GenerateResolutionPlanController({
     issueNumber: issue.number,
     repoFullName,
     onStart: () => {
-      setIsLoading(true);
-      setActiveWorkflow("Generating Plan...");
+      setIsLoading(true)
+      setActiveWorkflow("Generating Plan...")
     },
     onComplete: () => {
-      setIsLoading(false);
-      setActiveWorkflow(null);
+      setIsLoading(false)
+      setActiveWorkflow(null)
     },
     onError: () => {
-      setIsLoading(false);
-      setActiveWorkflow(null);
+      setIsLoading(false)
+      setActiveWorkflow(null)
     },
-  });
+  })
 
   // Extract username and repo from repoFullName
-  const [username, repo] = repoFullName.split("/");
-  const localIssueUrl = `/${username}/${repo}/issues/${issue.number}`;
+  const [username, repo] = repoFullName.split("/")
+  const localIssueUrl = `/${username}/${repo}/issues/${issue.number}`
 
   return (
-    <DataRow>
+    <TableRow>
       <TableCell className="py-4">
         <div className="flex flex-col gap-1">
           <div className="font-medium text-base">
@@ -83,7 +87,10 @@ export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
             <span>{issue.state}</span>
             <span>•</span>
             <span>
-              Updated {formatDistanceToNow(new Date(issue.updated_at), { addSuffix: true })}
+              Updated{" "}
+              {formatDistanceToNow(new Date(issue.updated_at), {
+                addSuffix: true,
+              })}
             </span>
           </div>
         </div>
@@ -129,6 +136,6 @@ export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>
-    </DataRow>
-  );
+    </TableRow>
+  )
 }
