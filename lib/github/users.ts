@@ -1,5 +1,12 @@
+"use server"
+
 import getOctokit from "@/lib/github"
-import { GitHubUser, RepoPermissions } from "@/lib/types/github"
+import { getGraphQLClient } from "@/lib/github"
+import {
+  GitHubUser,
+  RepoPermissions,
+  RepoSelectorItem,
+} from "@/lib/types/github"
 
 export async function getGithubUser(): Promise<GitHubUser | null> {
   try {
@@ -70,7 +77,48 @@ export async function checkRepoPermissions(
     return {
       canPush: false,
       canCreatePR: false,
-      reason: `Failed to check permissions: ${error.message || "Unknown error"}`,
+      reason: `Failed to check permissions: ${error}`,
     }
+  }
+}
+
+interface UserRepositoriesGraphQLResponse {
+  viewer: {
+    repositories: {
+      nodes: RepoSelectorItem[]
+    }
+  }
+}
+
+export async function listUserRepositoriesGraphQL(): Promise<
+  RepoSelectorItem[]
+> {
+  const graphqlWithAuth = await getGraphQLClient()
+  if (!graphqlWithAuth) {
+    throw new Error("Could not initialize GraphQL client")
+  }
+
+  const query = `
+    query {
+      viewer {
+        repositories(first: 50, orderBy: { field: UPDATED_AT, direction: DESC }) {
+          nodes {
+            name
+            nameWithOwner
+            description
+            updatedAt
+          }
+        }
+      }
+    }
+  `
+
+  try {
+    const response =
+      await graphqlWithAuth<UserRepositoriesGraphQLResponse>(query)
+    return response.viewer.repositories.nodes
+  } catch (error) {
+    console.error("Error fetching user repositories:", error)
+    return []
   }
 }

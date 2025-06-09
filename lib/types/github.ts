@@ -64,3 +64,10 @@ export const IssueOrderFieldSchema = z
   .enum(["CREATED", "UPDATED", "INTERACTIONS", "REACTIONS"])
   .default("CREATED")
 export type IssueOrderField = z.infer<typeof IssueOrderFieldSchema>
+
+export type RepoSelectorItem = {
+  name: string
+  nameWithOwner: string
+  description: string | null
+  updatedAt: string
+}

@@ -76,14 +76,14 @@ export default function DynamicNavigation({
             </form>
           ) : (
             <div className="flex items-center gap-4">
-              <Link href={`/${username}`}>
+              <Link href={`/issues`}>
                 <Button
                   variant="default"
                   size="sm"
                   className="flex items-center px-4 py-2"
                 >
                   <Github className="mr-2" size={20} />
-                  My Repos
+                  My Issues
                 </Button>
               </Link>
               <form action={signOutAndRedirect}>
@@ -125,7 +125,7 @@ export default function DynamicNavigation({
             asChild
             className="flex items-center"
           >
-            <Link href={`/${username}`}>Repositories</Link>
+            <Link href="/issues">Issues</Link>
           </Button>
           <Button
             variant="ghost"
