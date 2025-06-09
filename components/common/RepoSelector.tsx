@@ -1,6 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 
 import {
   Select,
@@ -9,15 +10,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Repos } from "@/lib/types/github"
+import { listUserRepositoriesGraphQL } from "@/lib/github/users"
+import { RepoSelectorItem } from "@/lib/types/github"
 
 interface Props {
-  repos: Repos
   selectedRepo: string
 }
 
-export default function RepoSelector({ repos, selectedRepo }: Props) {
+export default function RepoSelector({ selectedRepo }: Props) {
   const router = useRouter()
+  const [repos, setRepos] = useState<RepoSelectorItem[]>([])
+  const [loading, setLoading] = useState(false)
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    if (open && repos.length === 0 && !loading) {
+      setLoading(true)
+      listUserRepositoriesGraphQL()
+        .then((data) => setRepos(data))
+        .finally(() => setLoading(false))
+    }
+  }, [open, repos.length, loading])
+
   return (
     <Select
       defaultValue={selectedRepo}
@@ -25,16 +39,19 @@ export default function RepoSelector({ repos, selectedRepo }: Props) {
       onValueChange={(val) => {
         router.push(`/issues?repo=${encodeURIComponent(val)}`)
       }}
+      onOpenChange={setOpen}
     >
       <SelectTrigger className="w-64">
         <SelectValue placeholder="Select repository" />
       </SelectTrigger>
       <SelectContent>
-        {repos.map((repo) => (
-          <SelectItem key={repo.full_name} value={repo.full_name}>
-            {repo.full_name}
-          </SelectItem>
-        ))}
+        {loading && <div className="px-4 py-2">Loading...</div>}
+        {!loading &&
+          repos.map((repo) => (
+            <SelectItem key={repo.nameWithOwner} value={repo.nameWithOwner}>
+              {repo.nameWithOwner}
+            </SelectItem>
+          ))}
       </SelectContent>
     </Select>
   )
