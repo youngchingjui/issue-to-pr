@@ -1,3 +1,4 @@
+import React from "react"
 import {
   Table,
   TableBody,
@@ -6,33 +7,32 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
-interface DataTableProps<T> {
-  title: string
-  items: T[]
-  renderRow: (item: T) => React.ReactNode
+interface DataTableProps {
+  header: React.ReactNode
   emptyMessage?: string
+  children: React.ReactNode
 }
 
-export default function DataTable<T>({
-  title,
-  items,
-  renderRow,
+export default function DataTable({
+  header,
   emptyMessage = "No items found.",
-}: DataTableProps<T>) {
-  if (items.length === 0) {
+  children,
+}: DataTableProps) {
+  // Determine if children has any non-null, non-false child rows
+  const isEmpty =
+    !children ||
+    (Array.isArray(children) && children.length === 0) ||
+    (Array.isArray(children) && children.every(child => !child))
+
+  if (isEmpty) {
     return <p className="text-center py-4">{emptyMessage}</p>
   }
 
   return (
     <div className="rounded-md border">
       <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-full">{title}</TableHead>
-            <TableHead className="w-[150px] text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>{items.map((item) => renderRow(item))}</TableBody>
+        <TableHeader>{header}</TableHeader>
+        <TableBody>{children}</TableBody>
       </Table>
     </div>
   )

@@ -1,5 +1,6 @@
-import DataTable from "@/components/common/DataTable"
 import IssueRow from "@/components/issues/IssueRow"
+import DataTable from "@/components/common/DataTable"
+import { TableRow, TableHead } from "@/components/ui/table"
 import { getIssueListWithStatus } from "@/lib/github/issues"
 
 export default async function IssueTable({
@@ -13,15 +14,20 @@ export default async function IssueTable({
       per_page: 100,
     })
 
+    const header = (
+      <TableRow>
+        <TableHead className="w-full">Title</TableHead>
+        <TableHead className="w-12 text-center">Status</TableHead>
+        <TableHead className="w-[150px] text-right">Actions</TableHead>
+      </TableRow>
+    )
+
     return (
-      <DataTable
-        title="Issues"
-        items={issues}
-        renderRow={(issue) => (
+      <DataTable header={header} emptyMessage="No open issues found.">
+        {issues.map((issue) => (
           <IssueRow key={issue.id} issue={issue} repoFullName={repoFullName} />
-        )}
-        emptyMessage="No open issues found."
-      />
+        ))}
+      </DataTable>
     )
   } catch (error) {
     return (
