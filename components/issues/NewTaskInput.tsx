@@ -1,12 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { HelpCircle } from "lucide-react"
+import { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import {
   Tooltip,
@@ -141,74 +138,35 @@ export default function NewTaskInput({ repoFullName }: Props) {
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="mb-6 grid gap-4 border-b border-muted pb-6"
-      /* Top margin and bottom border to visually separate from table. Adjust `mb-6` as needed */
-    >
-      {/* Title Input */}
+    <form onSubmit={handleSubmit} className="mb-6 grid gap-4 border-muted pb-6">
       <div className="grid gap-2">
-        <Label htmlFor="title">Title</Label>
-        <Input
-          id="title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Short summary for the task (optional)"
-          disabled={loading}
-        />
-      </div>
-      {/* Description Input */}
-      <div className="grid gap-2">
-        <Label htmlFor="description">
-          Description <span className="text-red-500">*</span>
-        </Label>
         <Textarea
           id="description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Describe the task in detail"
+          placeholder="Describe a task"
           required
           minLength={5}
           disabled={loading}
           rows={3}
         />
       </div>
-      {/* Controls: Toggle/Label/Tooltip/Button on same row */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <Switch
-          id="syncWithGitHub"
-          checked={syncWithGitHub}
-          onCheckedChange={setSyncWithGitHub}
-          disabled={loading}
-        />
-        <Label htmlFor="syncWithGitHub" className="flex items-center gap-1 select-none">
-          Sync with GitHub
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span>
-                  <HelpCircle className="h-4 w-4 text-muted-foreground/70 cursor-help" />
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>
-                {syncWithGitHub
-                  ? "Will be created as a GitHub issue"
-                  : "Task will only be saved locally"}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </Label>
-        <Button
-          type="submit"
-          disabled={loading}
-          className="ml-auto"
-        >
-          {loading
-            ? "Creating..."
-            : syncWithGitHub
-            ? "Create Task on GitHub"
-            : "Create Task Locally"}
+        <Button type="submit" disabled={loading}>
+          {loading ? "Creating..." : "Start Task"}
         </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>
+                <HelpCircle className="h-4 w-4 text-muted-foreground/70 cursor-help" />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              Creates an Issue on Github and starts resolving the task
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </form>
   )
