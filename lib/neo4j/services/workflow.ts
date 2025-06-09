@@ -9,6 +9,7 @@ import {
   getWithDetails,
   listAll,
   listForIssue,
+  listForRepo,
   mergeIssueLink,
   toAppWorkflowRun,
 } from "@/lib/neo4j/repositories/workflowRun"
@@ -104,6 +105,26 @@ export async function listWorkflowRuns(issue?: {
       return await listAll(tx)
     })
 
+    return result
+      .map((run) => ({
+        ...toAppWorkflowRun(run),
+        state: run.state,
+      }))
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+  } finally {
+    await session.close()
+  }
+}
+
+// --- NEW: List all workflow runs for a given repoFullName (across all issues) ---
+export async function listWorkflowRunsForRepo(
+  repoFullName: string
+): Promise<(AppWorkflowRun & { state: WorkflowRunState })[]> {
+  const session = await n4j.getSession()
+  try {
+    const result = await session.executeRead(async (tx) => {
+      return await listForRepo(tx, repoFullName)
+    })
     return result
       .map((run) => ({
         ...toAppWorkflowRun(run),
