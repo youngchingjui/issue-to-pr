@@ -57,8 +57,8 @@ export default async function RepoWorkflowRuns({ repoFullName }: Props) {
                       run.state === "completed"
                         ? "default"
                         : run.state === "error"
-                        ? "destructive"
-                        : "secondary"
+                          ? "destructive"
+                          : "secondary"
                     }
                   >
                     {run.state}
