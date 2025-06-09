@@ -1,5 +1,5 @@
 import getOctokit from "@/lib/github"
-import { GitHubUser, RepoPermissions, GitHubRepository } from "@/lib/types/github"
+import { GitHubUser, RepoPermissions } from "@/lib/types/github"
 
 export async function getGithubUser(): Promise<GitHubUser | null> {
   try {
@@ -70,13 +70,12 @@ export async function checkRepoPermissions(
     return {
       canPush: false,
       canCreatePR: false,
-      reason: `Failed to check permissions: ${error.message || "Unknown error"}`,
+      reason: `Failed to check permissions: ${error}`,
     }
   }
 }
 
-// --- NEW: List all repositories visible to the authenticated user ---
-export async function listUserRepositories(): Promise<GitHubRepository[]> {
+export async function listUserRepositories() {
   try {
     const octokit = await getOctokit()
     if (!octokit) {
@@ -84,7 +83,7 @@ export async function listUserRepositories(): Promise<GitHubRepository[]> {
     }
     // Will get both org/user repos, but only first 100 for now
     const { data } = await octokit.repos.listForAuthenticatedUser({
-      per_page: 100,
+      per_page: 50,
       sort: "updated",
     })
     return data || []

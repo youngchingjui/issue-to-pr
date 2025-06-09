@@ -25,6 +25,9 @@ export type ListForRepoParams =
   RestEndpointMethodTypes["issues"]["listForRepo"]["parameters"]
 export type SearchCodeItem = components["schemas"]["code-search-result-item"]
 
+export type Repos =
+  RestEndpointMethodTypes["repos"]["listForAuthenticatedUser"]["response"]["data"]
+
 // Repository-specific types
 declare const RepoFullNameBrand: unique symbol
 export type RepoFullName = string & { readonly [RepoFullNameBrand]: never }

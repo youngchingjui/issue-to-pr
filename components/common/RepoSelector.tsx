@@ -9,10 +9,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { GitHubRepository } from "@/lib/types/github"
+import { Repos } from "@/lib/types/github"
 
 interface Props {
-  repos: GitHubRepository[]
+  repos: Repos
   selectedRepo: string
 }
 

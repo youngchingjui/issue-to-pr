@@ -31,7 +31,6 @@ export default async function IssuesPage({
   if (!repoFullName) {
     // SSR redirect to best guess
     redirect(`/issues?repo=${encodeURIComponent(repos[0].full_name)}`)
-    return null
   }
 
   return (
