@@ -60,7 +60,7 @@ export default function Nav() {
                     <ChevronDown />
                   </DropdownMenuTrigger>
                 </BreadcrumbPage>
-                <DropdownMenuContent align="start">
+                <DropdownMenuContent align="end" className="left-0 md:left-auto md:right-0">
                   <DropdownMenuItem>
                     <Link href={`/${username}/${repo}/issues`}>issues</Link>
                   </DropdownMenuItem>
