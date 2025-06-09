@@ -7,8 +7,7 @@ import { createTool } from "@/lib/tools/helper"
 const execPromise = promisify(exec)
 
 const name = "ripgrep_search"
-const description =
-  `Searches for code in the local file system using ripgrep. Returns snippets of code containing the search term with 3 lines of context before and after each match. Note: These are just snippets - to fully understand the code's context, you should use a file reading tool to examine the complete file contents.
+const description = `Searches for code in the local file system using ripgrep. Returns snippets of code containing the search term with 3 lines of context before and after each match. Note: These are just snippets - to fully understand the code's context, you should use a file reading tool to examine the complete file contents.
 
 The tool supports both literal (fixed-string) and regex search modes. By default, search queries are treated as literal strings (no regex interpretation, safer). To enable regex matching, specify mode: "regex" in the parameters.
 - mode: "literal" (default, safer) — uses ripgrep's -F flag, interprets search as a fixed string, safe for special characters like ?, *, [, ]
@@ -39,7 +38,7 @@ const searchParameters = z.object({
       "Follow symbolic links. Default is false, meaning symlinks are not followed. Use true to include files linked by symlinks in the search."
     ),
   mode: z
-    .enum(['literal', 'regex'])
+    .enum(["literal", "regex"])
     .optional()
     .describe('Search mode: "literal" (default, safer) or "regex"'),
 })
@@ -62,10 +61,10 @@ async function fnHandler(
   const isIgnoreCase = ignoreCase ?? false
   const includeHidden = hidden ?? false
   const followSymlinks = follow ?? false
-  const searchMode = mode ?? 'literal' // backward compatibility to old calls
+  const searchMode = mode ?? "literal" // backward compatibility to old calls
 
-  if (!query || typeof query !== 'string' || query.length === 0) {
-    throw new Error('Query string cannot be empty.')
+  if (!query || typeof query !== "string" || query.length === 0) {
+    throw new Error("Query string cannot be empty.")
   }
 
   // Robustly escape the user's query for the shell
@@ -74,7 +73,7 @@ async function fnHandler(
   // Construct ripgrep command
   let command = `cd "${baseDir}" && rg --line-number --max-filesize 200K -C 3 --heading -n `
 
-  if (searchMode === 'literal') {
+  if (searchMode === "literal") {
     command += "-F " // use literal/fixed-string mode
   }
 
@@ -96,11 +95,13 @@ async function fnHandler(
       } else if (
         code === 2 &&
         typeof error.stderr === "string" &&
-        error.stderr.includes('regex parse error')
+        error.stderr.includes("regex parse error")
       ) {
         return `Ripgrep regex error: ${error.stderr}`
       } else if (code === 2) {
-        throw new Error(`Ripgrep search failed: ${error.stderr || error || "Unknown error"}`)
+        throw new Error(
+          `Ripgrep search failed: ${error.stderr || error || "Unknown error"}`
+        )
       } else {
         console.error("Unexpected ripgrep exit code:", error)
         throw new Error(`Unexpected ripgrep exit code: ${code}`)
