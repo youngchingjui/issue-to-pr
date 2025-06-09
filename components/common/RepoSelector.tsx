@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { listUserRepositoriesGraphQL } from "@/lib/github/users"
+import { useMediaQuery } from "@/lib/hooks/use-media-query"
 import { RepoSelectorItem } from "@/lib/types/github"
 
 interface Props {
@@ -22,6 +23,7 @@ export default function RepoSelector({ selectedRepo }: Props) {
   const [repos, setRepos] = useState<RepoSelectorItem[]>([])
   const [loading, setLoading] = useState(false)
   const [open, setOpen] = useState(false)
+  const isDesktop = useMediaQuery("md")
 
   useEffect(() => {
     if (open && repos.length === 0 && !loading) {
@@ -46,7 +48,7 @@ export default function RepoSelector({ selectedRepo }: Props) {
           {selectedRepo}
         </SelectValue>
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent align={isDesktop ? "end" : "start"}>
         {loading && <div className="px-4 py-2">Loading...</div>}
         {!loading &&
           repos.map((repo) => (
