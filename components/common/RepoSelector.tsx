@@ -46,7 +46,7 @@ export default function RepoSelector({ selectedRepo }: Props) {
           {selectedRepo}
         </SelectValue>
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent className="md:right-0 md:left-auto">
         {loading && <div className="px-4 py-2">Loading...</div>}
         {!loading &&
           repos.map((repo) => (
