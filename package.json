@@ -9,6 +9,7 @@
     "prestart": "./scripts/start-services.sh",
     "start": "next start",
     "build": "next build",
+    "analyze": "ANALYZE=true next build",
     "lint": "next lint",
     "lint:eslint": "next lint",
     "lint:prettier": "prettier --check .",
@@ -20,6 +21,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "4",
+    "@next/bundle-analyzer": "^15.3.3",
     "@octokit/auth-app": "^7.2.0",
     "@octokit/graphql": "^8.2.1",
     "@octokit/openapi-types": "^24.0.0",

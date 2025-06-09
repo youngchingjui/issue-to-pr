@@ -1,6 +1,11 @@
 const CSP_BASE_URL = "https://lavish-tugboat-5ca.notion.site/"
 import MiniCssExtractPlugin from "mini-css-extract-plugin"
 
+// Dynamically import the bundle analyzer for ESM
+const withBundleAnalyzer = (await import("@next/bundle-analyzer")).default({
+  enabled: process.env.ANALYZE === "true",
+})
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -66,4 +71,5 @@ const nextConfig = {
   },
 }
 
-export default nextConfig
+// Export the config, wrapped with the analyzer if enabled
+export default withBundleAnalyzer(nextConfig)
