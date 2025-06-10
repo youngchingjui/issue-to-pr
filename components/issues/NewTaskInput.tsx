@@ -13,9 +13,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { createIssue } from "@/lib/github/issues"
 import { toast } from "@/lib/hooks/use-toast"
-// Import the server action. Path relative to /components.
-import { createGitHubIssue } from "@app/[username]/[repo]/issues/actions"
+import { RepoFullName } from "@/lib/types/github"
 
 type Task = {
   id: number
@@ -26,7 +26,7 @@ type Task = {
 }
 
 interface Props {
-  repoFullName: string
+  repoFullName: RepoFullName
 }
 
 // Local storage key for toggle state per repo
@@ -42,11 +42,14 @@ export default function NewTaskInput({ repoFullName }: Props) {
 
   // Load/persist toggle state
   useEffect(() => {
-    const syncPref = localStorage.getItem(getSyncKey(repoFullName))
+    const syncPref = localStorage.getItem(getSyncKey(repoFullName.fullName))
     if (syncPref !== null) setSyncWithGitHub(syncPref === "true")
   }, [repoFullName])
   useEffect(() => {
-    localStorage.setItem(getSyncKey(repoFullName), String(syncWithGitHub))
+    localStorage.setItem(
+      getSyncKey(repoFullName.fullName),
+      String(syncWithGitHub)
+    )
   }, [syncWithGitHub, repoFullName])
 
   // Helper: call LLM, stub fetch to /api/openai/check as suggest title
@@ -90,8 +93,12 @@ export default function NewTaskInput({ repoFullName }: Props) {
       if (syncWithGitHub) {
         // --- Use Next.js server action instead of fetch ---
         startTransition(async () => {
-          const resp = await createGitHubIssue({ repoFullName, title: taskTitle, description })
-          if (resp.success) {
+          const res = await createIssue({
+            repoFullName,
+            title: taskTitle,
+            body: description,
+          })
+          if (res.status === 201) {
             toast({
               title: "Task synced to GitHub",
               description: `Created: ${taskTitle}`,
@@ -102,7 +109,7 @@ export default function NewTaskInput({ repoFullName }: Props) {
           } else {
             toast({
               title: "Error creating task",
-              description: resp.error || "Failed to create GitHub issue.",
+              description: res.status || "Failed to create GitHub issue.",
               variant: "destructive",
             })
           }
@@ -110,7 +117,7 @@ export default function NewTaskInput({ repoFullName }: Props) {
         })
       } else {
         // Local storage save
-        const tasksKey = getTasksKey(repoFullName)
+        const tasksKey = getTasksKey(repoFullName.fullName)
         const old = localStorage.getItem(tasksKey)
         let tasks: Task[] = []
         if (old) {

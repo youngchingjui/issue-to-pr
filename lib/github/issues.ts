@@ -1,3 +1,5 @@
+"use server"
+
 import getOctokit from "@/lib/github"
 import { getPRLinkedIssuesMap } from "@/lib/github/pullRequests"
 import { getPlanStatusForIssues } from "@/lib/neo4j/services/plan"
@@ -5,23 +7,22 @@ import {
   GitHubIssue,
   GitHubIssueComment,
   ListForRepoParams,
+  RepoFullName,
 } from "@/lib/types/github"
 
-// --- New: Helper to create GitHub Issue ---
 export async function createIssue({
   repoFullName,
   title,
   body,
 }: {
-  repoFullName: string
+  repoFullName: RepoFullName
   title: string
   body: string
 }) {
   const octokit = await getOctokit()
-  const [owner, repo] = repoFullName.split("/")
+  const { owner, repo } = repoFullName
   if (!octokit) throw new Error("No octokit found")
-  const res = await octokit.rest.issues.create({ owner, repo, title, body })
-  return res.data
+  return await octokit.rest.issues.create({ owner, repo, title, body })
 }
 
 // Existing: fetch single issue from GitHub
