@@ -5,6 +5,7 @@ import { exec } from "child_process"
 import { promises as fs } from "fs"
 import path from "path"
 import util from "util"
+import { getCloneUrlWithAccessToken } from "@/lib/utils/utils-common"
 
 const execPromise = util.promisify(exec)
 
@@ -64,19 +65,45 @@ export async function createBranch(
   })
 }
 
+// MODIFIED: Accept optional token and repoFullName for authenticated push
 export async function pushBranch(
   branchName: string,
-  cwd: string | undefined = undefined
+  cwd: string | undefined = undefined,
+  token?: string,
+  repoFullName?: string
 ): Promise<string> {
-  const command = `git push origin ${branchName}`
-  return new Promise((resolve, reject) => {
-    exec(command, { cwd }, (error, stdout) => {
-      if (error) {
-        return reject(new Error(error.message))
-      }
-      return resolve(stdout)
+  // If a token and repoFullName are provided, temporarily set the remote URL for authenticated access
+  let originalRemoteUrl: string | undefined
+  try {
+    if (token && repoFullName) {
+      // Save the original remote URL (if exists) to revert after push
+      try {
+        const { stdout } = await execPromise(`git remote get-url origin`, { cwd })
+        originalRemoteUrl = stdout.trim()
+      } catch { /* ignore - origin might not exist */ }
+      // Set remote
+      const remoteUrl = getCloneUrlWithAccessToken(repoFullName, token)
+      await execPromise(`git remote set-url origin "${remoteUrl}"`, { cwd })
+    }
+    const command = `git push origin ${branchName}`
+    return await new Promise((resolve, reject) => {
+      exec(command, { cwd }, (error, stdout) => {
+        if (error) {
+          return reject(new Error(error.message))
+        }
+        return resolve(stdout)
+      })
     })
-  })
+  } finally {
+    // (Optional) revert the remote URL
+    if (token && repoFullName && originalRemoteUrl) {
+      try {
+        await execPromise(`git remote set-url origin "${originalRemoteUrl}"`, { cwd })
+      } catch {
+        // ignore errors on revert
+      }
+    }
+  }
 }
 
 async function executeGitCommand(
