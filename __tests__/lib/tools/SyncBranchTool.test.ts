@@ -1,8 +1,9 @@
 import * as gitModule from "@/lib/git"
 import { createSyncBranchTool } from "@/lib/tools/SyncBranchTool"
+import { RepoFullName } from "@/lib/types/github"
 
 describe("SyncBranchTool", () => {
-  const repoFullName = "octocat/Hello-World"
+  const repoFullName = "octocat/Hello-World" as RepoFullName
   const baseDir = "/tmp/example-repo"
   const token = "test-oauth-token"
   const branch = "feature/foo"
