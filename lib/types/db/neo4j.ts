@@ -47,10 +47,16 @@ export const workflowRunSchema = appWorkflowRunSchema.merge(
   })
 )
 
+// PLANS — NOW includes sync metadata props
 export const planSchema = appPlanSchema.merge(
   z.object({
     version: z.instanceof(Integer),
     createdAt: z.instanceof(DateTime),
+    sourceOfTruth: z.enum(["neo4j", "github_comment"]).default("neo4j"),
+    githubCommentId: z.number().nullable().optional(),
+    syncStatus: z.enum(["synced", "unsynced", "pending"]).optional(),
+    syncTimestamp: z.instanceof(DateTime).nullable().optional(),
+    lastCommit: z.string().nullable().optional(),
   })
 )
 

@@ -49,7 +49,7 @@ export const workflowRunSchema = z.object({
   postToGithub: z.boolean().optional(),
 })
 
-// Plans
+// Plans - EXTENDED for sync metadata
 export const planSchema = z.object({
   id: z.string(),
   content: z.string(),
@@ -57,6 +57,12 @@ export const planSchema = z.object({
   version: z.number(),
   createdAt: z.date(),
   editMessage: z.string().optional(),
+  // Plan sync metadata additions:
+  sourceOfTruth: z.enum(["neo4j", "github_comment"]).default("neo4j"),
+  githubCommentId: z.number().nullable().optional(),
+  syncStatus: z.enum(["synced", "unsynced", "pending"]).optional(),
+  syncTimestamp: z.date().nullable().optional(),
+  lastCommit: z.string().nullable().optional(),
 })
 
 export const planMetaSchema = planSchema.omit({

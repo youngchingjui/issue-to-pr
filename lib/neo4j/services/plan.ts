@@ -44,11 +44,19 @@ export async function tagMessageAsPlan({
   workflowId,
   issueNumber,
   repoFullName,
+  syncAttrs = {},
 }: {
   eventId: string
   workflowId: string
   issueNumber: number
   repoFullName: string
+  syncAttrs?: Partial<{
+    sourceOfTruth: "neo4j" | "github_comment"
+    githubCommentId: number | null
+    syncStatus: "synced" | "unsynced" | "pending"
+    syncTimestamp: Date | null
+    lastCommit?: string | null
+  }>
 }): Promise<LLMResponseWithPlan> {
   const session = await n4j.getSession()
   try {
@@ -59,6 +67,7 @@ export async function tagMessageAsPlan({
           eventId,
           status: "draft",
           version: int(1),
+          ...syncAttrs // sync fields pass-through
         })
 
         // Create relationship
@@ -78,6 +87,11 @@ export async function tagMessageAsPlan({
         status: result.status,
         version: result.version.toNumber(),
         editMessage: result.editMessage,
+        sourceOfTruth: result.sourceOfTruth,
+        githubCommentId: result.githubCommentId ?? null,
+        syncStatus: result.syncStatus,
+        syncTimestamp: result.syncTimestamp ? result.syncTimestamp.toStandardDate() : null,
+        lastCommit: result.lastCommit ?? null
       },
       workflowId,
       id: result.id,

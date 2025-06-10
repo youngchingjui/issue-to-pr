@@ -11,6 +11,21 @@ interface Props {
   issueNumber: number
 }
 
+function PlanSyncStatusTag({ plan }: { plan: any }) {
+  if (plan.sourceOfTruth === "github_comment") {
+    return (
+      <span className="bg-yellow-100 text-yellow-800 rounded px-2 py-1 text-xs ml-2">
+        Synced to GitHub comment {plan.githubCommentId}
+      </span>
+    )
+  }
+  return (
+    <span className="bg-green-100 text-green-800 rounded px-2 py-1 text-xs ml-2">
+      Stored in app
+    </span>
+  )
+}
+
 export default async function IssuePlans({ repoFullName, issueNumber }: Props) {
   const plans = await listPlansForIssue({
     repoFullName,
@@ -36,7 +51,9 @@ export default async function IssuePlans({ repoFullName, issueNumber }: Props) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Resolution Plan</CardTitle>
+        <CardTitle>
+          Resolution Plan <PlanSyncStatusTag plan={plan} />
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between">
