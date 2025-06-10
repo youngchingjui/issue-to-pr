@@ -5,7 +5,7 @@ import {
   errorEventSchema as appErrorEventSchema,
   issueSchema as appIssueSchema,
   llmResponseSchema as appLLMResponseSchema,
-  planSchema as appPlanSchema,
+  planBaseSchema as appPlanBaseSchema,
   reviewCommentSchema as appReviewCommentSchema,
   statusEventSchema as appStatusEventSchema,
   systemPromptSchema as appSystemPromptSchema,
@@ -47,18 +47,25 @@ export const workflowRunSchema = appWorkflowRunSchema.merge(
   })
 )
 
-// PLANS — NOW includes sync metadata props
-export const planSchema = appPlanSchema.merge(
+export const planBaseSchema = appPlanBaseSchema.merge(
   z.object({
     version: z.instanceof(Integer),
     createdAt: z.instanceof(DateTime),
-    sourceOfTruth: z.enum(["neo4j", "github_comment"]).default("neo4j"),
-    githubCommentId: z.number().nullable().optional(),
-    syncStatus: z.enum(["synced", "unsynced", "pending"]).optional(),
-    syncTimestamp: z.instanceof(DateTime).nullable().optional(),
-    lastCommit: z.string().nullable().optional(),
   })
 )
+
+export const planNeo4jSchema = planBaseSchema.extend({
+  source: z.literal("neo4j"),
+})
+
+export const planGithubCommentSchema = planBaseSchema.extend({
+  source: z.literal("github_comment"),
+})
+
+export const planSchema = z.discriminatedUnion("source", [
+  planNeo4jSchema,
+  planGithubCommentSchema,
+])
 
 // Event schemas
 export const errorEventSchema = appErrorEventSchema
@@ -98,7 +105,7 @@ export const llmResponseSchema = appLLMResponseSchema
   .merge(z.object({ createdAt: z.instanceof(DateTime) }))
 
 export const llmResponseWithPlanSchema = llmResponseSchema.merge(
-  planSchema.omit({ createdAt: true })
+  planNeo4jSchema.omit({ createdAt: true })
 )
 
 export const toolCallSchema = appToolCallSchema

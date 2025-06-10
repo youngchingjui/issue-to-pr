@@ -11,7 +11,7 @@ interface Props {
   issueNumber: number
 }
 
-function PlanSyncStatusTag({ plan }: { plan: any }) {
+function PlanSyncStatusTag({ plan }: { plan }) {
   if (plan.sourceOfTruth === "github_comment") {
     return (
       <span className="bg-yellow-100 text-yellow-800 rounded px-2 py-1 text-xs ml-2">

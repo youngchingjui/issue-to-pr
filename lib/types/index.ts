@@ -49,26 +49,28 @@ export const workflowRunSchema = z.object({
   postToGithub: z.boolean().optional(),
 })
 
-// Plans - EXTENDED for sync metadata
-export const planSchema = z.object({
+// Plan Base Schema
+export const planBaseSchema = z.object({
   id: z.string(),
   content: z.string(),
   status: z.enum(["draft", "approved", "rejected"]),
   version: z.number(),
   createdAt: z.date(),
   editMessage: z.string().optional(),
-  // Plan sync metadata additions:
-  sourceOfTruth: z.enum(["neo4j", "github_comment"]).default("neo4j"),
-  githubCommentId: z.number().nullable().optional(),
-  syncStatus: z.enum(["synced", "unsynced", "pending"]).optional(),
-  syncTimestamp: z.date().nullable().optional(),
-  lastCommit: z.string().nullable().optional(),
 })
 
-export const planMetaSchema = planSchema.omit({
-  content: true,
-  createdAt: true,
+export const planNeo4jSchema = planBaseSchema.extend({
+  source: z.literal("neo4j"),
 })
+
+export const planGithubCommentSchema = planBaseSchema.extend({
+  source: z.literal("github_comment"),
+})
+
+export const planSchema = z.discriminatedUnion("source", [
+  planNeo4jSchema,
+  planGithubCommentSchema,
+])
 
 // Events
 const eventTypes = z.enum([
@@ -104,11 +106,16 @@ export const llmResponseSchema = baseEventSchema.merge(
   })
 )
 
+// LLM Responses can only be with a plan from Neo4j
+// We omit content and createdAt since they are redundant with baseEventSchema
 export const llmResponseWithPlanSchema = baseEventSchema.merge(
   z.object({
     type: z.literal("llmResponseWithPlan"),
     content: z.string(),
-    plan: planMetaSchema,
+    plan: planNeo4jSchema.omit({
+      content: true,
+      createdAt: true,
+    }),
   })
 )
 
@@ -225,7 +232,6 @@ export type LLMResponse = z.infer<typeof llmResponseSchema>
 export type LLMResponseWithPlan = z.infer<typeof llmResponseWithPlanSchema>
 export type MessageEvent = z.infer<typeof messageEventSchema>
 export type Plan = z.infer<typeof planSchema>
-export type PlanMeta = z.infer<typeof planMetaSchema>
 export type ReviewComment = z.infer<typeof reviewCommentSchema>
 export type Settings = z.infer<typeof settingsSchema>
 export type SettingsType = z.infer<typeof settingsTypeEnum>

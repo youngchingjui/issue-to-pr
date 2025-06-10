@@ -48,21 +48,7 @@ export async function labelEventAsPlan(
     eventId,
     status = "draft",
     version = int(1),
-    sourceOfTruth = "neo4j",
-    githubCommentId = null,
-    syncStatus = "unsynced",
-    syncTimestamp = null,
-    lastCommit = null
-  }: {
-    eventId: string
-    status?: string
-    version?: Integer
-    sourceOfTruth?: "neo4j" | "github_comment"
-    githubCommentId?: number | null
-    syncStatus?: string
-    syncTimestamp?: any
-    lastCommit?: string | null
-  }
+  }: { eventId: string; status?: string; version?: Integer }
 ): Promise<LLMResponseWithPlan> {
   const result = await tx.run<{
     e: Node<Integer, LLMResponseWithPlan, "Event | Plan">
@@ -71,13 +57,9 @@ export async function labelEventAsPlan(
      SET e:Plan
      SET e.status = $status
      SET e.version = $version
-     SET e.sourceOfTruth = $sourceOfTruth
-     SET e.githubCommentId = $githubCommentId
-     SET e.syncStatus = $syncStatus
-     SET e.syncTimestamp = $syncTimestamp
-     SET e.lastCommit = $lastCommit
+     SET e.source = "neo4j"
      RETURN e`,
-    { eventId, status, version, sourceOfTruth, githubCommentId, syncStatus, syncTimestamp, lastCommit }
+    { eventId, status, version }
   )
 
   const raw = result.records[0]?.get("e")?.properties
@@ -118,12 +100,6 @@ export const toAppPlan = (dbPlan: Plan): AppPlan => {
     ...dbPlan,
     version: dbPlan.version.toNumber(),
     createdAt: dbPlan.createdAt.toStandardDate(),
-    // Pass through possible new sync metadata
-    sourceOfTruth: dbPlan.sourceOfTruth,
-    githubCommentId: dbPlan.githubCommentId ?? null,
-    syncStatus: dbPlan.syncStatus,
-    syncTimestamp: dbPlan.syncTimestamp ? dbPlan.syncTimestamp.toStandardDate() : null,
-    lastCommit: dbPlan.lastCommit ?? null
   }
 }
 

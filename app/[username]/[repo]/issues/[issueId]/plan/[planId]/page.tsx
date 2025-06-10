@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card"
 import { getPlanWithDetails } from "@/lib/neo4j/services/plan"
 
-interface PageProps {
+interface Props {
   params: {
     planId: string
     issueId: string
@@ -29,10 +29,16 @@ function PlanSyncMetaBlock({ plan }: { plan: any }) {
           <br />
           Status: {plan.syncStatus || "synced"}
           {!!plan.lastCommit && (
-            <><br />Commit: {plan.lastCommit}</>
+            <>
+              <br />
+              Commit: {plan.lastCommit}
+            </>
           )}
           <br />
-          Last synced: {plan.syncTimestamp ? new Date(plan.syncTimestamp).toLocaleString() : "unknown"}
+          Last synced:{" "}
+          {plan.syncTimestamp
+            ? new Date(plan.syncTimestamp).toLocaleString()
+            : "unknown"}
         </div>
         {plan.githubCommentId && (
           <div className="mt-2">
@@ -60,7 +66,7 @@ function PlanSyncMetaBlock({ plan }: { plan: any }) {
   )
 }
 
-export default async function PlanPage({ params }: PageProps) {
+export default async function PlanPage({ params }: Props) {
   const { planId } = params
   const { plan, workflow, issue } = await getPlanWithDetails(planId)
 
