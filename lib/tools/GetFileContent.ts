@@ -28,7 +28,7 @@ async function fnHandler(
       typeof error === "object" &&
       error !== null &&
       "code" in error &&
-      error.code === "ENOENT"
+      (error.code === "ENOENT" || error.code === "EISDIR")
     ) {
       return String(error)
     }

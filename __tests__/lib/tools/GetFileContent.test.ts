@@ -36,4 +36,20 @@ describe("GetFileContent tool", () => {
     // Should contain recognizable README text:
     expect(result).toMatch(/issue-to-pr|github|readme/i)
   })
+
+  it("returns an error message when a directory is given", async () => {
+    const tool = createGetFileContentTool(baseDir)
+    const dirPath = "__tests__/lib/tools/"
+    let result: unknown
+    let errorCaught: unknown
+    try {
+      result = await tool.handler({ relativePath: dirPath })
+    } catch (err) {
+      errorCaught = err
+    }
+
+    expect(errorCaught).toBeUndefined()
+    expect(typeof result).toBe("string")
+    expect(result).toMatch(/directory/i)
+  })
 })
