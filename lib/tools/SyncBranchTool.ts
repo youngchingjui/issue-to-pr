@@ -19,7 +19,8 @@ type SyncBranchParams = z.infer<typeof syncBranchParameters>
 async function fnHandler(
   repoFullName: RepoFullName,
   baseDir: string,
-  params: SyncBranchParams
+  params: SyncBranchParams,
+  token: string
 ): Promise<string> {
   const { branch } = params
   try {
@@ -36,8 +37,8 @@ async function fnHandler(
         })
       }
     }
-    // Push the current branch to remote
-    await pushBranch(branch, baseDir)
+    // Push the current branch to remote, requiring token
+    await pushBranch(branch, baseDir, token, repoFullName)
     return JSON.stringify({
       status: "success",
       message: `Successfully pushed branch '${branch}' to remote`,
@@ -52,7 +53,8 @@ async function fnHandler(
 
 export const createSyncBranchTool = (
   repoFullName: RepoFullName,
-  baseDir: string
+  baseDir: string,
+  token: string
 ) =>
   createTool({
     name: "sync_branch_to_remote",
@@ -60,5 +62,5 @@ export const createSyncBranchTool = (
       "Pushes the current branch and its commits to the remote GitHub repository. Similar to 'git push origin HEAD'. Will create the remote branch if it doesn't exist.",
     schema: syncBranchParameters,
     handler: (params: SyncBranchParams) =>
-      fnHandler(repoFullName, baseDir, params),
+      fnHandler(repoFullName, baseDir, params, token),
   })

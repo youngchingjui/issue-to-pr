@@ -5,6 +5,7 @@ import { exec } from "child_process"
 import { promises as fs } from "fs"
 import path from "path"
 import util from "util"
+import { getCloneUrlWithAccessToken } from "@/lib/utils/utils-common"
 
 const execPromise = util.promisify(exec)
 
@@ -66,17 +67,33 @@ export async function createBranch(
 
 export async function pushBranch(
   branchName: string,
-  cwd: string | undefined = undefined
+  cwd: string | undefined = undefined,
+  token?: string,
+  repoFullName?: string
 ): Promise<string> {
-  const command = `git push origin ${branchName}`
-  return new Promise((resolve, reject) => {
-    exec(command, { cwd }, (error, stdout) => {
-      if (error) {
-        return reject(new Error(error.message))
+  let oldRemoteUrl: string | null = null
+  try {
+    if (token && repoFullName) {
+      // Get current origin URL
+      const { stdout: originalUrl } = await execPromise('git remote get-url origin', { cwd })
+      oldRemoteUrl = originalUrl.trim()
+      // Set authenticated remote
+      const authenticatedUrl = getCloneUrlWithAccessToken(repoFullName, token)
+      await execPromise(`git remote set-url origin "${authenticatedUrl}"`, { cwd })
+    }
+    const command = `git push origin ${branchName}`
+    const { stdout } = await execPromise(command, { cwd })
+    return stdout
+  } finally {
+    // Restore the original remote if we changed it
+    if (token && repoFullName && oldRemoteUrl) {
+      try {
+        await execPromise(`git remote set-url origin "${oldRemoteUrl}"`, { cwd })
+      } catch(e) {
+        // Fail quietly, as this is cleanup
       }
-      return resolve(stdout)
-    })
-  })
+    }
+  }
 }
 
 async function executeGitCommand(
