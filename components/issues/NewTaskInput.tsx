@@ -5,6 +5,8 @@ import { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Tooltip,
   TooltipContent,
@@ -139,6 +141,17 @@ export default function NewTaskInput({ repoFullName }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="mb-6 grid gap-4 border-muted pb-6">
+      <div className="grid gap-2">
+        <Label htmlFor="title">Title</Label>
+        <Input
+          id="title"
+          type="text"
+          placeholder="Title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          disabled={loading}
+        />
+      </div>
       <div className="grid gap-2">
         <Textarea
           id="description"
