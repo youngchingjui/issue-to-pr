@@ -3,6 +3,7 @@
 // All the agents will share the same trace
 // They can also all access the same data, such as the issue, the codebase, etc.
 
+import { auth } from "@/auth"
 import { CoderAgent } from "@/lib/agents/coder"
 import { createDirectoryTree } from "@/lib/fs"
 import { getIssueComments } from "@/lib/github/issues"
@@ -31,7 +32,6 @@ import {
   RepoPermissions,
 } from "@/lib/types/github"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
-import { auth } from "@/auth"
 
 interface ResolveIssueParams {
   issue: GitHubIssue
@@ -95,7 +95,9 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
       if (session?.token?.access_token) {
         sessionToken = session.token.access_token as string
       } else {
-        throw new Error("No user token found in session for push auth (cannot push branch)")
+        throw new Error(
+          "No user token found in session for push auth (cannot push branch)"
+        )
       }
     }
 

@@ -1,5 +1,5 @@
-import { createSyncBranchTool } from "@/lib/tools/SyncBranchTool"
 import * as gitModule from "@/lib/git"
+import { createSyncBranchTool } from "@/lib/tools/SyncBranchTool"
 
 describe("SyncBranchTool", () => {
   const repoFullName = "octocat/Hello-World"
@@ -20,11 +20,9 @@ describe("SyncBranchTool", () => {
   })
 
   it("errors if pushBranch throws", async () => {
-    jest
-      .spyOn(gitModule, "pushBranch")
-      .mockImplementation(async () => {
-        throw new Error("remote rejected")
-      })
+    jest.spyOn(gitModule, "pushBranch").mockImplementation(async () => {
+      throw new Error("remote rejected")
+    })
     const tool = createSyncBranchTool(repoFullName, baseDir, token)
     const params = { branch }
     const resStr = await tool.handler(params)
