@@ -99,6 +99,7 @@ export async function pushBranch(
         })
       } catch (e) {
         // Fail quietly, as this is cleanup
+        console.error(`[ERROR] Failed to restore original remote: ${e}`)
       }
     }
   }
@@ -111,10 +112,8 @@ async function executeGitCommand(
   return new Promise((resolve, reject) => {
     exec(command, { cwd: dir }, (error, stdout, stderr) => {
       if (error) {
-        console.error(`[ERROR] Command failed: ${command}\n${error.message}`)
-        return reject(
-          new Error(`Failed to execute git command: ${error.message}`)
-        )
+        console.error(`[ERROR] Command failed: ${command}\n${error}`)
+        return reject(new Error(`Failed to execute git command: ${error}`))
       }
       if (stderr) {
         console.warn(`[WARNING] Command produced stderr: ${stderr}`)
@@ -167,7 +166,7 @@ export async function cleanCheckout(branchName: string, dir: string) {
     // Checkout the branch
     await checkoutBranchQuietly(branchName, dir)
   } catch (error) {
-    console.error(`[ERROR] Failed during clean checkout: ${error.message}`)
+    console.error(`[ERROR] Failed during clean checkout: ${error}`)
     throw error
   }
 }
@@ -213,7 +212,7 @@ export async function checkRepoIntegrity(dir: string): Promise<boolean> {
     await executeGitCommand("git fsck", dir)
     return true
   } catch (error) {
-    console.error(`[ERROR] Repository integrity check failed: ${error.message}`)
+    console.error(`[ERROR] Repository integrity check failed: ${error}`)
     return false
   }
 }
@@ -225,7 +224,7 @@ export async function cleanupRepo(dir: string): Promise<void> {
     // Also remove any tracked files that might be corrupted
     await fs.rm(dir, { recursive: true, force: true })
   } catch (error) {
-    console.error(`[ERROR] Failed to cleanup repository: ${error.message}`)
+    console.error(`[ERROR] Failed to cleanup repository: ${error}`)
     throw error
   }
 }
