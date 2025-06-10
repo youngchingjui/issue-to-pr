@@ -25,9 +25,12 @@ async function fnHandler(
   const { branch } = params
   try {
     // Create branch on remote if it doesn't exist
-    const branchExists = await checkBranchExists(repoFullName, branch)
+    const branchExists = await checkBranchExists(repoFullName.fullName, branch)
     if (!branchExists) {
-      const branchCreationResult = await createBranch(repoFullName, branch)
+      const branchCreationResult = await createBranch(
+        repoFullName.fullName,
+        branch
+      )
       if (
         branchCreationResult.status === BranchCreationStatus.BranchAlreadyExists
       ) {
@@ -38,7 +41,7 @@ async function fnHandler(
       }
     }
     // Push the current branch to remote, requiring token
-    await pushBranch(branch, baseDir, token, repoFullName)
+    await pushBranch(branch, baseDir, token, repoFullName.fullName)
     return JSON.stringify({
       status: "success",
       message: `Successfully pushed branch '${branch}' to remote`,

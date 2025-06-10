@@ -26,9 +26,9 @@ import {
   createWriteFileContentTool,
 } from "@/lib/tools"
 import {
-  createRepoFullName,
   GitHubIssue,
   GitHubRepository,
+  repoFullNameSchema,
   RepoPermissions,
 } from "@/lib/types/github"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
@@ -150,7 +150,7 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
       sessionToken
     ) {
       syncBranchTool = createSyncBranchTool(
-        createRepoFullName(repository.full_name),
+        repoFullNameSchema.parse(repository.full_name),
         baseDir,
         sessionToken
       )

@@ -1,15 +1,16 @@
 import IssueRow from "@/components/issues/IssueRow"
 import { Table, TableBody } from "@/components/ui/table"
 import { getIssueListWithStatus } from "@/lib/github/issues"
+import { RepoFullName } from "@/lib/types/github"
 
-export default async function IssueTable({
-  repoFullName,
-}: {
-  repoFullName: string
-}) {
+interface Props {
+  repoFullName: RepoFullName
+}
+
+export default async function IssueTable({ repoFullName }: Props) {
   try {
     const issues = await getIssueListWithStatus({
-      repoFullName,
+      repoFullName: repoFullName.fullName,
       per_page: 100,
     })
 
@@ -25,7 +26,7 @@ export default async function IssueTable({
               <IssueRow
                 key={issue.id}
                 issue={issue}
-                repoFullName={repoFullName}
+                repoFullName={repoFullName.fullName}
               />
             ))}
           </TableBody>

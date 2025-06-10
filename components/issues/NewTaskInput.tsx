@@ -1,7 +1,7 @@
 "use client"
 
 import { HelpCircle } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useTransition } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,7 +13,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { createIssue } from "@/lib/github/issues"
 import { toast } from "@/lib/hooks/use-toast"
+import { RepoFullName } from "@/lib/types/github"
 
 type Task = {
   id: number
@@ -24,7 +26,7 @@ type Task = {
 }
 
 interface Props {
-  repoFullName: string
+  repoFullName: RepoFullName
 }
 
 // Local storage key for toggle state per repo
@@ -36,14 +38,18 @@ export default function NewTaskInput({ repoFullName }: Props) {
   const [description, setDescription] = useState("")
   const [syncWithGitHub, setSyncWithGitHub] = useState<boolean>(true)
   const [loading, setLoading] = useState(false)
+  const [isPending, startTransition] = useTransition()
 
   // Load/persist toggle state
   useEffect(() => {
-    const syncPref = localStorage.getItem(getSyncKey(repoFullName))
+    const syncPref = localStorage.getItem(getSyncKey(repoFullName.fullName))
     if (syncPref !== null) setSyncWithGitHub(syncPref === "true")
   }, [repoFullName])
   useEffect(() => {
-    localStorage.setItem(getSyncKey(repoFullName), String(syncWithGitHub))
+    localStorage.setItem(
+      getSyncKey(repoFullName.fullName),
+      String(syncWithGitHub)
+    )
   }, [syncWithGitHub, repoFullName])
 
   // Helper: call LLM, stub fetch to /api/openai/check as suggest title
@@ -85,25 +91,33 @@ export default function NewTaskInput({ repoFullName }: Props) {
         taskTitle = await fetchSuggestedTitle(description)
       }
       if (syncWithGitHub) {
-        // POST to backend stub (no backend implemented yet)
-        const resp = await fetch("/api/issues", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ repoFullName, title: taskTitle, description }),
-        })
-        if (!resp.ok) {
-          throw new Error(
-            (await resp.json()).message || "Failed to create GitHub issue."
-          )
-        }
-        toast({
-          title: "Task synced to GitHub",
-          description: `Created: ${taskTitle}`,
-          variant: "default",
+        // --- Use Next.js server action instead of fetch ---
+        startTransition(async () => {
+          const res = await createIssue({
+            repoFullName,
+            title: taskTitle,
+            body: description,
+          })
+          if (res.status === 201) {
+            toast({
+              title: "Task synced to GitHub",
+              description: `Created: ${taskTitle}`,
+              variant: "default",
+            })
+            setTitle("")
+            setDescription("")
+          } else {
+            toast({
+              title: "Error creating task",
+              description: res.status || "Failed to create GitHub issue.",
+              variant: "destructive",
+            })
+          }
+          setLoading(false)
         })
       } else {
         // Local storage save
-        const tasksKey = getTasksKey(repoFullName)
+        const tasksKey = getTasksKey(repoFullName.fullName)
         const old = localStorage.getItem(tasksKey)
         let tasks: Task[] = []
         if (old) {
@@ -125,16 +139,16 @@ export default function NewTaskInput({ repoFullName }: Props) {
           description: `Created: ${taskTitle}`,
           variant: "default",
         })
+        setTitle("")
+        setDescription("")
+        setLoading(false)
       }
-      setTitle("")
-      setDescription("")
     } catch (err: unknown) {
       toast({
         title: "Error creating task",
         description: String(err),
         variant: "destructive",
       })
-    } finally {
       setLoading(false)
     }
   }
@@ -149,7 +163,7 @@ export default function NewTaskInput({ repoFullName }: Props) {
           placeholder="Title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          disabled={loading}
+          disabled={loading || isPending}
         />
       </div>
       <div className="grid gap-2">
@@ -160,13 +174,13 @@ export default function NewTaskInput({ repoFullName }: Props) {
           placeholder="Describe a task"
           required
           minLength={5}
-          disabled={loading}
+          disabled={loading || isPending}
           rows={3}
         />
       </div>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <Button type="submit" disabled={loading}>
-          {loading ? "Creating..." : "Create Github Issue"}
+        <Button type="submit" disabled={loading || isPending}>
+          {loading || isPending ? "Creating..." : "Create Github Issue"}
         </Button>
         <TooltipProvider>
           <Tooltip>

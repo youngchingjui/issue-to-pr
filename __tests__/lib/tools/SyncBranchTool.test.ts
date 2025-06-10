@@ -1,7 +1,7 @@
 import { z } from "zod"
 
 import { createTool } from "@/lib/tools/helper"
-import { RepoFullName } from "@/lib/types/github"
+import { repoFullNameSchema } from "@/lib/types/github"
 
 // Test schema that mirrors SyncBranchTool's schema
 const syncBranchParameters = z.object({
@@ -143,20 +143,23 @@ describe("SyncBranchTool Schema and Structure", () => {
 
   describe("integration concepts", () => {
     it("validates expected RepoFullName type usage", () => {
-      const repoFullName = "octocat/Hello-World" as RepoFullName
-      expect(typeof repoFullName).toBe("string")
-      expect(repoFullName).toMatch(/^[^\/]+\/[^\/]+$/) // owner/repo format
+      const repoFullName = repoFullNameSchema.parse("octocat/Hello-World")
+      expect(typeof repoFullName).toBe("object")
+      expect(repoFullName.owner).toBe("octocat")
+      expect(repoFullName.repo).toBe("Hello-World")
+      expect(repoFullName.fullName).toBe("octocat/Hello-World")
+      expect(repoFullName.fullName).toMatch(/^[^\/]+\/[^\/]+$/) // owner/repo format
     })
 
     it("validates expected parameter combinations", () => {
       const validParams = {
-        repoFullName: "octocat/Hello-World" as RepoFullName,
+        repoFullName: repoFullNameSchema.parse("octocat/Hello-World"),
         baseDir: "/tmp/example-repo",
         token: "test-oauth-token",
         branch: "feature/test",
       }
 
-      expect(typeof validParams.repoFullName).toBe("string")
+      expect(typeof validParams.repoFullName).toBe("object")
       expect(typeof validParams.baseDir).toBe("string")
       expect(typeof validParams.token).toBe("string")
       expect(typeof validParams.branch).toBe("string")
