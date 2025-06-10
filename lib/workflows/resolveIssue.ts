@@ -3,6 +3,7 @@
 // All the agents will share the same trace
 // They can also all access the same data, such as the issue, the codebase, etc.
 
+import { auth } from "@/auth"
 import { CoderAgent } from "@/lib/agents/coder"
 import { createDirectoryTree } from "@/lib/fs"
 import { getIssueComments } from "@/lib/github/issues"
@@ -87,6 +88,19 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
       workingBranch: repository.default_branch,
     })
 
+    // Get token from session for authenticated git push
+    let sessionToken: string | undefined = undefined
+    if (createPR && userPermissions?.canPush && userPermissions?.canCreatePR) {
+      const session = await auth()
+      if (session?.token?.access_token) {
+        sessionToken = session.token.access_token as string
+      } else {
+        throw new Error(
+          "No user token found in session for push auth (cannot push branch)"
+        )
+      }
+    }
+
     // Start a trace for this workflow
     const trace = langfuse.trace({
       name: "Resolve issue",
@@ -129,10 +143,16 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
     // Add sync and PR tools only if createPR is true AND permissions are sufficient
     let syncBranchTool: ReturnType<typeof createSyncBranchTool> | undefined
     let createPRTool: ReturnType<typeof createCreatePRTool> | undefined
-    if (createPR && userPermissions?.canPush && userPermissions?.canCreatePR) {
+    if (
+      createPR &&
+      userPermissions?.canPush &&
+      userPermissions?.canCreatePR &&
+      sessionToken
+    ) {
       syncBranchTool = createSyncBranchTool(
         createRepoFullName(repository.full_name),
-        baseDir
+        baseDir,
+        sessionToken
       )
       createPRTool = createCreatePRTool(repository, issue.number)
 
