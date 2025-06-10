@@ -1,7 +1,7 @@
 "use client"
 
 import { HelpCircle } from "lucide-react"
-import { useEffect, useState, useTransition } from "react"
+import { useState, useTransition } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,60 +17,26 @@ import { createIssue } from "@/lib/github/issues"
 import { toast } from "@/lib/hooks/use-toast"
 import { RepoFullName } from "@/lib/types/github"
 
-type Task = {
-  id: number
-  title: string
-  description: string
-  createdAt: string
-  synced: boolean
-}
-
 interface Props {
   repoFullName: RepoFullName
 }
 
-// Local storage key for toggle state per repo
-const getSyncKey = (repo: string) => `syncWithGitHub:${repo}`
-const getTasksKey = (repo: string) => `localTasks:${repo}`
-
 export default function NewTaskInput({ repoFullName }: Props) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
-  const [syncWithGitHub, setSyncWithGitHub] = useState<boolean>(true)
   const [loading, setLoading] = useState(false)
   const [isPending, startTransition] = useTransition()
 
-  // Load/persist toggle state
-  useEffect(() => {
-    const syncPref = localStorage.getItem(getSyncKey(repoFullName.fullName))
-    if (syncPref !== null) setSyncWithGitHub(syncPref === "true")
-  }, [repoFullName])
-  useEffect(() => {
-    localStorage.setItem(
-      getSyncKey(repoFullName.fullName),
-      String(syncWithGitHub)
-    )
-  }, [syncWithGitHub, repoFullName])
-
-  // Helper: call LLM, stub fetch to /api/openai/check as suggest title
-  const fetchSuggestedTitle = async (desc: string) => {
-    // Just a stub for demo. You may want to change endpoint/params.
-    try {
-      const resp = await fetch("/api/openai/check", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ description: desc }),
-      })
-      if (!resp.ok) throw new Error("Failed to get title suggestion")
-      const data = await resp.json()
-      return data.title || "New Task"
-    } catch {
-      return "New Task"
-    }
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!title.trim()) {
+      toast({
+        title: "Title required",
+        description: "Please enter a title for your task.",
+        variant: "destructive",
+      })
+      return
+    }
     if (!description.trim()) {
       toast({
         title: "Description required",
@@ -80,69 +46,31 @@ export default function NewTaskInput({ repoFullName }: Props) {
       return
     }
     setLoading(true)
-    let taskTitle = title.trim()
+    const taskTitle = title.trim()
     try {
-      if (!taskTitle) {
-        // Get LLM suggestion (shows interim loading toast)
-        toast({
-          title: "Suggesting title...",
-          description: "Calling LLM for a title.",
-        })
-        taskTitle = await fetchSuggestedTitle(description)
-      }
-      if (syncWithGitHub) {
-        // --- Use Next.js server action instead of fetch ---
-        startTransition(async () => {
-          const res = await createIssue({
-            repoFullName,
-            title: taskTitle,
-            body: description,
-          })
-          if (res.status === 201) {
-            toast({
-              title: "Task synced to GitHub",
-              description: `Created: ${taskTitle}`,
-              variant: "default",
-            })
-            setTitle("")
-            setDescription("")
-          } else {
-            toast({
-              title: "Error creating task",
-              description: res.status || "Failed to create GitHub issue.",
-              variant: "destructive",
-            })
-          }
-          setLoading(false)
-        })
-      } else {
-        // Local storage save
-        const tasksKey = getTasksKey(repoFullName.fullName)
-        const old = localStorage.getItem(tasksKey)
-        let tasks: Task[] = []
-        if (old) {
-          try {
-            tasks = JSON.parse(old)
-          } catch {}
-        }
-        const newTask = {
-          id: Date.now(),
+      startTransition(async () => {
+        const res = await createIssue({
+          repoFullName,
           title: taskTitle,
-          description,
-          createdAt: new Date().toISOString(),
-          synced: false,
-        }
-        tasks.unshift(newTask)
-        localStorage.setItem(tasksKey, JSON.stringify(tasks))
-        toast({
-          title: "Task saved locally",
-          description: `Created: ${taskTitle}`,
-          variant: "default",
+          body: description,
         })
-        setTitle("")
-        setDescription("")
+        if (res.status === 201) {
+          toast({
+            title: "Task synced to GitHub",
+            description: `Created: ${taskTitle}`,
+            variant: "default",
+          })
+          setTitle("")
+          setDescription("")
+        } else {
+          toast({
+            title: "Error creating task",
+            description: res.status || "Failed to create GitHub issue.",
+            variant: "destructive",
+          })
+        }
         setLoading(false)
-      }
+      })
     } catch (err: unknown) {
       toast({
         title: "Error creating task",
@@ -173,7 +101,6 @@ export default function NewTaskInput({ repoFullName }: Props) {
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Describe a task"
           required
-          minLength={5}
           disabled={loading || isPending}
           rows={3}
         />
@@ -190,7 +117,8 @@ export default function NewTaskInput({ repoFullName }: Props) {
               </span>
             </TooltipTrigger>
             <TooltipContent>
-              Creates an Issue on Github and starts resolving the task
+              Creates an Issue on Github. If the Issue To PR Github App is
+              installed, a Plan will automatically be generated for your Issue.
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
