@@ -5,7 +5,8 @@ import { getFileContent } from "@/lib/fs"
 import { createTool } from "@/lib/tools/helper"
 
 const name = "get_file_content"
-const description = "Retrieves the file contents from local repository"
+const description =
+  "Retrieves the file contents from local repository. Only provide file paths, not directories. Attempting to read a directory will return an error."
 
 const getFileContentschema = z.object({
   relativePath: z
