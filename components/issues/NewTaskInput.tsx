@@ -4,9 +4,9 @@ import { HelpCircle } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Tooltip,
   TooltipContent,
@@ -166,7 +166,7 @@ export default function NewTaskInput({ repoFullName }: Props) {
       </div>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <Button type="submit" disabled={loading}>
-          {loading ? "Creating..." : "Start Task"}
+          {loading ? "Creating..." : "Create Github Issue"}
         </Button>
         <TooltipProvider>
           <Tooltip>
