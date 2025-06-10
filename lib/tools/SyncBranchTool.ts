@@ -16,10 +16,12 @@ const syncBranchParameters = z.object({
 
 type SyncBranchParams = z.infer<typeof syncBranchParameters>
 
+// Modified: Accept token parameter
 async function fnHandler(
   repoFullName: RepoFullName,
   baseDir: string,
-  params: SyncBranchParams
+  params: SyncBranchParams,
+  token: string // new param
 ): Promise<string> {
   const { branch } = params
   try {
@@ -36,8 +38,8 @@ async function fnHandler(
         })
       }
     }
-    // Push the current branch to remote
-    await pushBranch(branch, baseDir)
+    // Push the current branch to remote using per-user token
+    await pushBranch(branch, baseDir, token, repoFullName)
     return JSON.stringify({
       status: "success",
       message: `Successfully pushed branch '${branch}' to remote`,
@@ -50,9 +52,11 @@ async function fnHandler(
   }
 }
 
+// Modified: Accept token param
 export const createSyncBranchTool = (
   repoFullName: RepoFullName,
-  baseDir: string
+  baseDir: string,
+  token: string // new param
 ) =>
   createTool({
     name: "sync_branch_to_remote",
@@ -60,5 +64,5 @@ export const createSyncBranchTool = (
       "Pushes the current branch and its commits to the remote GitHub repository. Similar to 'git push origin HEAD'. Will create the remote branch if it doesn't exist.",
     schema: syncBranchParameters,
     handler: (params: SyncBranchParams) =>
-      fnHandler(repoFullName, baseDir, params),
+      fnHandler(repoFullName, baseDir, params, token),
   })
