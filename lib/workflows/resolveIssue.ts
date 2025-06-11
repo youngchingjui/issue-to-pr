@@ -28,6 +28,7 @@ import {
   createSyncBranchTool,
   createWriteFileContentTool,
 } from "@/lib/tools"
+import { Plan } from "@/lib/types"
 import {
   GitHubIssue,
   GitHubRepository,
@@ -35,8 +36,6 @@ import {
   RepoPermissions,
 } from "@/lib/types/github"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
-
-import { Plan } from "../types"
 
 interface ResolveIssueParams {
   issue: GitHubIssue
