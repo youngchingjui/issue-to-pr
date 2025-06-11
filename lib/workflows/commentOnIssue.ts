@@ -263,7 +263,11 @@ export default async function commentOnIssue(
     })
 
     // Return the comment plus planId for downstream consumption
-    return { status: "complete", issueComment: response, planId: lastAssistantMessage.id }
+    return {
+      status: "complete",
+      issueComment: response,
+      planId: lastAssistantMessage.id,
+    }
   } catch (error) {
     const githubError = error as GitHubError
     console.error("Error in commentOnIssue workflow:", {

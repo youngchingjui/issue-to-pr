@@ -14,7 +14,10 @@ import {
   createStatusEvent,
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
-import { listPlansForIssue, getPlanWithDetails } from "@/lib/neo4j/services/plan"
+import {
+  getPlanWithDetails,
+  listPlansForIssue,
+} from "@/lib/neo4j/services/plan"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
 import {
   createBranchTool,
@@ -33,13 +36,15 @@ import {
 } from "@/lib/types/github"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 
+import { Plan } from "../types"
+
 interface ResolveIssueParams {
   issue: GitHubIssue
   repository: GitHubRepository
   apiKey: string
   jobId: string
   createPR?: boolean
-  planId?: string // NEW: explicit planId can be provided
+  planId?: string
 }
 
 export const resolveIssue = async (params: ResolveIssueParams) => {
@@ -206,8 +211,7 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
       })
     }
 
-    // ==== Plan Injection Logic (planId-aware) ====
-    let plan
+    let plan: Plan | undefined
     if (planId) {
       // Use the specified plan by id
       try {
@@ -236,7 +240,6 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
         content: `\nImplementation plan for this issue (from previous workflow):\n${plan.content}\n`,
       })
     }
-    // =============================================
 
     // Run the persistent coder to implement changes
 
