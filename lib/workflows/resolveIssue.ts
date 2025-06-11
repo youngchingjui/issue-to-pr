@@ -3,9 +3,9 @@
 // All the agents will share the same trace
 // They can also all access the same data, such as the issue, the codebase, etc.
 
-import { auth } from "@/auth"
 import { CoderAgent } from "@/lib/agents/coder"
 import { createDirectoryTree } from "@/lib/fs"
+import { getAuthToken } from "@/lib/github"
 import { getIssueComments } from "@/lib/github/issues"
 import { checkRepoPermissions } from "@/lib/github/users"
 import { langfuse } from "@/lib/langfuse"
@@ -14,7 +14,10 @@ import {
   createStatusEvent,
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
-import { listPlansForIssue } from "@/lib/neo4j/services/plan"
+import {
+  getPlanWithDetails,
+  listPlansForIssue,
+} from "@/lib/neo4j/services/plan"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
 import {
   createBranchTool,
@@ -25,6 +28,7 @@ import {
   createSyncBranchTool,
   createWriteFileContentTool,
 } from "@/lib/tools"
+import { Plan } from "@/lib/types"
 import {
   GitHubIssue,
   GitHubRepository,
@@ -39,10 +43,11 @@ interface ResolveIssueParams {
   apiKey: string
   jobId: string
   createPR?: boolean
+  planId?: string
 }
 
 export const resolveIssue = async (params: ResolveIssueParams) => {
-  const { issue, repository, apiKey, jobId, createPR } = params
+  const { issue, repository, apiKey, jobId, createPR, planId } = params
   const workflowId = jobId // Keep workflowId alias for clarity if preferred
 
   let userPermissions: RepoPermissions | null = null
@@ -77,7 +82,6 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
           workflowId,
           content: `Warning: Insufficient permissions to create PR (${userPermissions.reason}). Code will be generated locally only.`,
         })
-
         // Proceed with the workflow, but PR won't be created
       }
     }
@@ -91,12 +95,12 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
     // Get token from session for authenticated git push
     let sessionToken: string | undefined = undefined
     if (createPR && userPermissions?.canPush && userPermissions?.canCreatePR) {
-      const session = await auth()
-      if (session?.token?.access_token) {
-        sessionToken = session.token.access_token as string
+      const tokenResult = await getAuthToken()
+      if (tokenResult?.token) {
+        sessionToken = tokenResult.token
       } else {
         throw new Error(
-          "No user token found in session for push auth (cannot push branch)"
+          "Could not obtain authentication token for pushing branch"
         )
       }
     }
@@ -206,25 +210,33 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
       })
     }
 
-    // Check for existing plan
-    const plans = await listPlansForIssue({
-      repoFullName: repository.full_name,
-      issueNumber: issue.number,
-    })
-    plans.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-
-    // Take the latest plan for now.
-    // TODO: Add a UI to allow the user to select a plan
-    const plan = plans[0]
-
+    let plan: Plan | undefined
+    if (planId) {
+      // Use the specified plan by id
+      try {
+        const planDetails = await getPlanWithDetails(planId)
+        plan = planDetails.plan
+      } catch (err) {
+        await createStatusEvent({
+          workflowId,
+          content: `Specified planId (${planId}) not found or could not be loaded: ${err}`,
+        })
+      }
+    }
+    if (!plan) {
+      // Fallback to latest plan logic
+      const plans = await listPlansForIssue({
+        repoFullName: repository.full_name,
+        issueNumber: issue.number,
+      })
+      plans.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      plan = plans[0]
+    }
     if (plan) {
       // Inject the plan itself as a user message (for clarity, before issue/comments/tree)
       await coder.addMessage({
         role: "user",
-        content: `
-Implementation plan for this issue (from previous workflow):
-${plan.content}
-`,
+        content: `\nImplementation plan for this issue (from previous workflow):\n${plan.content}\n`,
       })
     }
 

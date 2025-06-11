@@ -22,6 +22,17 @@ export function getCloneUrlWithAccessToken(
   token: string
 ): string {
   // userRepo format is "username/repo"
+  // GitHub App installation tokens (prefix "ghs_") must be passed as the password with
+  // a fixed username `x-access-token`, per GitHub documentation:
+  //docs.github.com/en/enterprise-cloud@latest/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation#about-authentication-as-a-github-app-installation
+  // For all other tokens (e.g. OAuth or personal access tokens like `ghp_` or `github_pat_`),
+  // embedding the token directly as the username continues to work.
+  if (token.startsWith("ghs_")) {
+    // Treat as GitHub App installation token -> username is fixed, token is password
+    return `https://x-access-token:${token}@github.com/${userRepo}.git`
+  }
+
+  // Default behaviour for PAT / OAuth tokens
   return `https://${token}@github.com/${userRepo}.git`
 }
 

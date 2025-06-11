@@ -1,6 +1,6 @@
 "use server"
 
-import getOctokit from "@/lib/github"
+import getOctokit, { ExtendedOctokit } from "@/lib/github"
 import { getGraphQLClient } from "@/lib/github"
 import {
   GitHubUser,
@@ -35,7 +35,7 @@ export async function checkRepoPermissions(
   repoFullName: string
 ): Promise<RepoPermissions> {
   try {
-    const octokit = await getOctokit()
+    const octokit = (await getOctokit()) as ExtendedOctokit | null
     if (!octokit) {
       return {
         canPush: false,
@@ -44,18 +44,32 @@ export async function checkRepoPermissions(
       }
     }
 
-    const [owner, repo] = repoFullName.split("/")
+    let canPush = false
+    let canCreatePR = false
 
-    // Get repository permissions for the authenticated user
-    const { data: repoData } = await octokit.repos.get({
-      owner,
-      repo,
-    })
+    if (octokit.authType === "user") {
+      // OAuth user: rely on repository.permissions
+      const [owner, repo] = repoFullName.split("/")
 
-    // Check if user has push access
-    const permissions = (repoData.permissions || {}) as GithubPermissions
-    const canPush = permissions.push || permissions.admin || false
-    const canCreatePR = permissions.pull || permissions.admin || false
+      const { data: repoData } = await octokit.rest.repos.get({
+        owner,
+        repo,
+      })
+
+      const repoPerms = (repoData.permissions || {}) as GithubPermissions
+      canPush = repoPerms.push || repoPerms.admin || false
+      canCreatePR = repoPerms.pull || repoPerms.admin || false
+    } else {
+      // GitHub App: rely on fine-grained installation permissions
+      const installationPerms = octokit.installationPermissions
+
+      const contentsPerm = installationPerms?.contents || "none"
+      const prPerm = installationPerms?.pull_requests || "none"
+
+      canPush = contentsPerm === "write" || contentsPerm === "admin"
+      // Creating a PR requires at minimum pull_requests:write OR contents write
+      canCreatePR = prPerm === "write" || prPerm === "admin" || canPush === true
+    }
 
     if (!canPush && !canCreatePR) {
       return {

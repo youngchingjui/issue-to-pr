@@ -14,7 +14,7 @@ export class GitHubError extends Error {
   }
 }
 
-// TODO: Since all octokit functions here are using octokit.repos, then
+// TODO: Since all octokit functions here are using octokit.rest.repos, then
 // This file should be renamed to `repos.tsx` to reflect the resource being called
 export async function getFileContent({
   repoFullName,
@@ -34,7 +34,7 @@ export async function getFileContent({
     if (!owner || !repo) {
       throw new Error("Invalid repository format. Expected 'owner/repo'")
     }
-    const file = await octokit.repos.getContent({
+    const file = await octokit.rest.repos.getContent({
       owner,
       repo,
       path,
@@ -42,17 +42,27 @@ export async function getFileContent({
     })
     return file.data
   } catch (error) {
-    // Handle specific GitHub API errors
-    if (error.status === 404) {
-      throw new GitHubError(`File not found: ${path}`, 404)
+    if (!error) {
+      throw new GitHubError("An unknown error occurred.", 500)
     }
-    if (error.status === 403) {
-      throw new GitHubError("Authentication failed or rate limit exceeded", 403)
+
+    if (typeof error === "object" && "status" in error) {
+      switch (error.status) {
+        case 404:
+          throw new GitHubError(`File not found: ${path}`, 404)
+        case 403:
+          throw new GitHubError(
+            "Authentication failed or rate limit exceeded",
+            403
+          )
+        default:
+          throw new GitHubError(`Failed to fetch file content: ${error}`, 500)
+      }
     }
 
     // Log unexpected errors
     console.error("Unexpected error in getFileContent:", error)
-    throw new GitHubError(`Failed to fetch file content: ${error.message}`, 500)
+    throw new GitHubError(`Failed to fetch file content: ${error}`, 500)
   }
 }
 
@@ -116,9 +126,18 @@ export async function getFileSha({
       return response.data.sha
     }
   } catch (error) {
-    if (error.status === 404) {
-      console.debug(`[DEBUG] File ${path} not found on branch ${branch}`)
-      return null
+    if (!error) {
+      throw new GitHubError("An unknown error occurred.", 500)
+    }
+
+    if (typeof error === "object" && "status" in error) {
+      switch (error.status) {
+        case 404:
+          console.debug(`[DEBUG] File ${path} not found on branch ${branch}`)
+          return null
+        default:
+          throw new GitHubError(`Failed to get file SHA: ${error}`, 500)
+      }
     }
     throw error
   }
@@ -140,16 +159,26 @@ export async function checkBranchExists(
   }
 
   try {
-    await octokit.repos.getBranch({
+    await octokit.rest.repos.getBranch({
       owner,
       repo,
       branch,
     })
     return true
   } catch (error) {
-    if (error.status === 404) {
-      return false
+    if (!error) {
+      throw new GitHubError("An unknown error occurred.", 500)
     }
+
+    if (typeof error === "object" && "status" in error) {
+      switch (error.status) {
+        case 404:
+          return false
+        default:
+          throw new GitHubError(`Failed to check branch exists: ${error}`, 500)
+      }
+    }
+
     throw error
   }
 }
@@ -203,20 +232,30 @@ export async function getUserRepositories(
       maxPage,
     }
   } catch (error) {
-    // Handle specific errors from GitHub
-    if (error.status === 404) {
-      throw new GitHubError(`User not found: ${username}`, 404)
+    if (!error) {
+      throw new GitHubError("An unknown error occurred.", 500)
     }
-    if (error.status === 403) {
-      throw new GitHubError("Authentication failed or rate limit exceeded", 403)
+
+    if (typeof error === "object" && "status" in error) {
+      switch (error.status) {
+        case 404:
+          throw new GitHubError(`User not found: ${username}`, 404)
+        case 403:
+          throw new GitHubError(
+            "Authentication failed or rate limit exceeded",
+            403
+          )
+        default:
+          throw new GitHubError(
+            `Failed to fetch user repositories: ${error}`,
+            500
+          )
+      }
     }
 
     // Log and throw unexpected errors
     console.error("Unexpected error in getUserRepositories:", error)
-    throw new GitHubError(
-      `Failed to fetch user repositories: ${error.message}`,
-      500
-    )
+    throw new GitHubError(`Failed to fetch user repositories: ${error}`, 500)
   }
 }
 
@@ -252,12 +291,25 @@ export async function getAuthenticatedUserRepositories(
       maxPage,
     }
   } catch (error) {
-    // Handle specific errors from GitHub
-    if (error.status === 404) {
-      throw new GitHubError("User not found", 404)
+    if (!error) {
+      throw new GitHubError("An unknown error occurred.", 500)
     }
-    if (error.status === 403) {
-      throw new GitHubError("Authentication failed or rate limit exceeded", 403)
+
+    if (typeof error === "object" && "status" in error) {
+      switch (error.status) {
+        case 404:
+          throw new GitHubError("User not found", 404)
+        case 403:
+          throw new GitHubError(
+            "Authentication failed or rate limit exceeded",
+            403
+          )
+        default:
+          throw new GitHubError(
+            `Failed to fetch authenticated user repositories: ${error}`,
+            500
+          )
+      }
     }
 
     // Log and throw unexpected errors
@@ -266,7 +318,7 @@ export async function getAuthenticatedUserRepositories(
       error
     )
     throw new GitHubError(
-      `Failed to fetch authenticated user repositories: ${error.message}`,
+      `Failed to fetch authenticated user repositories: ${error}`,
       500
     )
   }

@@ -92,7 +92,7 @@ export async function setupLocalRepository({
         retries--
         if (retries === 0) {
           console.error(
-            `[ERROR] Failed to clean checkout after retries: ${error.message}`
+            `[ERROR] Failed to clean checkout after retries: ${error}`
           )
           throw error
         }
@@ -106,7 +106,7 @@ export async function setupLocalRepository({
 
     return baseDir
   } catch (error) {
-    console.error(`[ERROR] Failed to setup repository: ${error.message}`)
+    console.error(`[ERROR] Failed to setup repository: ${error}`)
     // Clean up on failure
     await cleanupRepo(baseDir)
     throw error
