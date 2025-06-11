@@ -14,7 +14,7 @@ import {
   createStatusEvent,
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
-import { listPlansForIssue } from "@/lib/neo4j/services/plan"
+import { listPlansForIssue, getPlanWithDetails } from "@/lib/neo4j/services/plan"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
 import {
   createBranchTool,
@@ -39,10 +39,11 @@ interface ResolveIssueParams {
   apiKey: string
   jobId: string
   createPR?: boolean
+  planId?: string // NEW: explicit planId can be provided
 }
 
 export const resolveIssue = async (params: ResolveIssueParams) => {
-  const { issue, repository, apiKey, jobId, createPR } = params
+  const { issue, repository, apiKey, jobId, createPR, planId } = params
   const workflowId = jobId // Keep workflowId alias for clarity if preferred
 
   let userPermissions: RepoPermissions | null = null
@@ -77,7 +78,6 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
           workflowId,
           content: `Warning: Insufficient permissions to create PR (${userPermissions.reason}). Code will be generated locally only.`,
         })
-
         // Proceed with the workflow, but PR won't be created
       }
     }
@@ -206,27 +206,37 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
       })
     }
 
-    // Check for existing plan
-    const plans = await listPlansForIssue({
-      repoFullName: repository.full_name,
-      issueNumber: issue.number,
-    })
-    plans.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-
-    // Take the latest plan for now.
-    // TODO: Add a UI to allow the user to select a plan
-    const plan = plans[0]
-
+    // ==== Plan Injection Logic (planId-aware) ====
+    let plan
+    if (planId) {
+      // Use the specified plan by id
+      try {
+        const planDetails = await getPlanWithDetails(planId)
+        plan = planDetails.plan
+      } catch (err) {
+        await createStatusEvent({
+          workflowId,
+          content: `Specified planId (${planId}) not found or could not be loaded.`,
+        })
+      }
+    }
+    if (!plan) {
+      // Fallback to latest plan logic
+      const plans = await listPlansForIssue({
+        repoFullName: repository.full_name,
+        issueNumber: issue.number,
+      })
+      plans.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      plan = plans[0]
+    }
     if (plan) {
       // Inject the plan itself as a user message (for clarity, before issue/comments/tree)
       await coder.addMessage({
         role: "user",
-        content: `
-Implementation plan for this issue (from previous workflow):
-${plan.content}
-`,
+        content: `\nImplementation plan for this issue (from previous workflow):\n${plan.content}\n`,
       })
     }
+    // =============================================
 
     // Run the persistent coder to implement changes
 

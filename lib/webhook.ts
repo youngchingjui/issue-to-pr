@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from "uuid"
 
 import { getRepoFromString } from "@/lib/github/content"
 import { updateJobStatus } from "@/lib/redis-old"
-import commentOnIssue from "@/lib/workflows/commentOnIssue"
+// import commentOnIssue from "@/lib/workflows/commentOnIssue"
 
 const POST_TO_GITHUB_SETTING = true // TODO: Set setting in database
 
@@ -28,7 +28,7 @@ export const routeWebhookHandler = async ({
   payload,
 }: {
   event: string
-  payload: object
+  payload: any
 }) => {
   if (!Object.values(GitHubEvent).includes(event as GitHubEvent)) {
     console.error("Invalid event type:", event)
@@ -50,13 +50,32 @@ export const routeWebhookHandler = async ({
       )
 
       const repo = await getRepoFromString(payload["repository"]["full_name"])
-      commentOnIssue(
-        payload["issue"]["number"],
-        repo,
-        process.env.OPENAI_API_KEY, // TODO: Pull API key from user account
-        jobId,
-        POST_TO_GITHUB_SETTING
-      )
+
+      // Instead of calling commentOnIssue directly, make a request to planandresolve API to run both workflows
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000"}/api/workflow/planandresolve`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              issueNumber: payload["issue"]["number"],
+              repoFullName: payload["repository"]["full_name"],
+              apiKey: process.env.OPENAI_API_KEY, // TODO: Prefer GitHub App session token, if available
+              postToGithub: POST_TO_GITHUB_SETTING,
+              createPR: false,
+            }),
+          }
+        )
+        if (!res.ok) {
+          const errorText = await res.text()
+          throw new Error(`PlanAndResolve API call failed: ${errorText}`)
+        }
+      } catch (e) {
+        console.error("Failed to trigger planandresolve API from webhook:", e)
+      }
     }
   } else {
     const repository =
