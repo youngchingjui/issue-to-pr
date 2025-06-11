@@ -4,16 +4,9 @@ import { z } from "zod"
 
 import { getRepoFromString } from "@/lib/github/content"
 import { getIssue } from "@/lib/github/issues"
+import { PlanAndResolveRequestSchema } from "@/lib/types/api/schemas"
 import commentOnIssue from "@/lib/workflows/commentOnIssue"
 import { resolveIssue } from "@/lib/workflows/resolveIssue"
-
-const PlanAndResolveRequestSchema = z.object({
-  issueNumber: z.number(),
-  repoFullName: z.string(),
-  apiKey: z.string(),
-  postToGithub: z.boolean().default(false),
-  createPR: z.boolean().default(false),
-})
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,7 +15,8 @@ export async function POST(request: NextRequest) {
       PlanAndResolveRequestSchema.parse(body)
 
     // Generate a unique job ID
-    const jobId = uuidv4()
+    const commentOnIssueJobId = uuidv4()
+    const resolveIssueJobId = uuidv4()
 
     // Start the plan and resolve workflow as a background job (fire-and-forget)
     ;(async () => {
@@ -35,7 +29,7 @@ export async function POST(request: NextRequest) {
           issueNumber,
           fullRepo,
           apiKey,
-          jobId,
+          commentOnIssueJobId,
           postToGithub
         )
         if (!commentResult || !commentResult.planId) {
@@ -54,7 +48,7 @@ export async function POST(request: NextRequest) {
           issue,
           repository: fullRepo,
           apiKey,
-          jobId,
+          jobId: resolveIssueJobId,
           createPR,
           planId: commentResult.planId,
         })
@@ -65,7 +59,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
-        jobId,
+        commentOnIssueJobId,
+        resolveIssueJobId,
         status: "plan and resolve started",
       },
       { status: 202 }

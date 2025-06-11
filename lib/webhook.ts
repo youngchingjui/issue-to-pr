@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from "uuid"
 
-import { getRepoFromString } from "@/lib/github/content"
 import { updateJobStatus } from "@/lib/redis-old"
+import { PlanAndResolveRequestSchema } from "@/lib/types/api/schemas"
 
 const POST_TO_GITHUB_SETTING = true // TODO: Set setting in database
 
@@ -48,9 +48,14 @@ export const routeWebhookHandler = async ({
         "Received webhook event for new issue. Starting commentOnIssue workflow."
       )
 
-      const repo = await getRepoFromString(payload["repository"]["full_name"])
+      const body = PlanAndResolveRequestSchema.parse({
+        issueNumber: payload["issue"]["number"],
+        repoFullName: payload["repository"]["full_name"],
+        apiKey: process.env.OPENAI_API_KEY, // TODO: Prefer GitHub App session token, if available
+        postToGithub: POST_TO_GITHUB_SETTING,
+        createPR: false,
+      })
 
-      // Instead of calling commentOnIssue directly, make a request to planandresolve API to run both workflows
       try {
         const res = await fetch(
           `${process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000"}/api/workflow/planandresolve`,
@@ -59,13 +64,7 @@ export const routeWebhookHandler = async ({
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-              issueNumber: payload["issue"]["number"],
-              repoFullName: payload["repository"]["full_name"],
-              apiKey: process.env.OPENAI_API_KEY, // TODO: Prefer GitHub App session token, if available
-              postToGithub: POST_TO_GITHUB_SETTING,
-              createPR: false,
-            }),
+            body: JSON.stringify(body),
           }
         )
         if (!res.ok) {
