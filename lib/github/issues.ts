@@ -84,7 +84,7 @@ export async function getIssueComments({
   if (!octokit) {
     throw new Error("No octokit found")
   }
-  const comments = await octokit.issues.listComments({
+  const comments = await octokit.rest.issues.listComments({
     owner,
     repo,
     issue_number: issueNumber,
@@ -105,7 +105,7 @@ export async function getIssueList({
     throw new Error("No octokit found")
   }
 
-  const issues = await octokit.issues.listForRepo({
+  const issues = await octokit.rest.issues.listForRepo({
     owner,
     repo,
     ...rest,

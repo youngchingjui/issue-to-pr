@@ -24,7 +24,7 @@ export async function getPullRequestOnBranch({
     throw new Error("No octokit found")
   }
 
-  const pr = await octokit.pulls.list({
+  const pr = await octokit.rest.pulls.list({
     owner,
     repo,
     head: `${owner}:${branch}`,
@@ -65,7 +65,7 @@ export async function createPullRequest({
     fullBody += `\n\nCloses #${issueNumber}`
   }
 
-  const pullRequest = await octokit.pulls.create({
+  const pullRequest = await octokit.rest.pulls.create({
     owner,
     repo,
     title,
@@ -92,7 +92,7 @@ export async function getPullRequestDiff({
 
     const [owner, repo] = repoFullName.split("/")
 
-    const response = await octokit.pulls.get({
+    const response = await octokit.rest.pulls.get({
       owner,
       repo,
       pull_number: pullNumber,
@@ -149,7 +149,7 @@ export async function getPullRequestComments({
     throw new Error("No octokit found")
   }
 
-  const commentsResponse = await octokit.issues.listComments({
+  const commentsResponse = await octokit.rest.issues.listComments({
     owner,
     repo,
     issue_number: pullNumber,
@@ -172,7 +172,7 @@ export async function getPullRequestReviews({
     throw new Error("No octokit found")
   }
 
-  const reviewsResponse = await octokit.pulls.listReviews({
+  const reviewsResponse = await octokit.rest.pulls.listReviews({
     owner,
     repo,
     pull_number: pullNumber,

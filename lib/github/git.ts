@@ -30,7 +30,7 @@ export async function createBranch(
 
   try {
     // Get the latest commit SHA of the base branch
-    const { data: baseBranchData } = await octokit.repos.getBranch({
+    const { data: baseBranchData } = await octokit.rest.repos.getBranch({
       owner,
       repo,
       branch: baseBranch,
@@ -49,29 +49,36 @@ export async function createBranch(
       message: `Branch '${branch}' created successfully.`,
     }
   } catch (error) {
-    if (
-      error.status === 422 &&
-      error.response.data.message === "Reference already exists"
-    ) {
-      return {
-        status: BranchCreationStatus.BranchAlreadyExists,
-        message: `Branch '${branch}' already exists.`,
-      }
-    } else if (error.status === 401) {
-      return {
-        status: BranchCreationStatus.Unauthorized,
-        message: "Unauthorized access. Please check your credentials.",
-      }
-    } else if (error.code === "ENOTFOUND") {
-      return {
-        status: BranchCreationStatus.NetworkError,
-        message: "Network error. Please check your connection.",
-      }
-    } else {
+    if (!error) {
       return {
         status: BranchCreationStatus.UnknownError,
         message: "An unknown error occurred.",
       }
+    }
+
+    if (typeof error === "object" && "status" in error) {
+      switch (error.status) {
+        case 422:
+          return {
+            status: BranchCreationStatus.BranchAlreadyExists,
+            message: `Branch '${branch}' already exists. Error: ${error}`,
+          }
+        case 401:
+          return {
+            status: BranchCreationStatus.Unauthorized,
+            message: "Unauthorized access. Please check your credentials.",
+          }
+        case 404:
+        default:
+          return {
+            status: BranchCreationStatus.UnknownError,
+            message: `An unknown error occurred. Error: ${error}`,
+          }
+      }
+    }
+    return {
+      status: BranchCreationStatus.UnknownError,
+      message: "An unknown error occurred.",
     }
   }
 }

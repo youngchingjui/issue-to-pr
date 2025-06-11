@@ -3,9 +3,9 @@
 // All the agents will share the same trace
 // They can also all access the same data, such as the issue, the codebase, etc.
 
-import { auth } from "@/auth"
 import { CoderAgent } from "@/lib/agents/coder"
 import { createDirectoryTree } from "@/lib/fs"
+import { getAuthToken } from "@/lib/github"
 import { getIssueComments } from "@/lib/github/issues"
 import { checkRepoPermissions } from "@/lib/github/users"
 import { langfuse } from "@/lib/langfuse"
@@ -96,12 +96,12 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
     // Get token from session for authenticated git push
     let sessionToken: string | undefined = undefined
     if (createPR && userPermissions?.canPush && userPermissions?.canCreatePR) {
-      const session = await auth()
-      if (session?.token?.access_token) {
-        sessionToken = session.token.access_token as string
+      const tokenResult = await getAuthToken()
+      if (tokenResult?.token) {
+        sessionToken = tokenResult.token
       } else {
         throw new Error(
-          "No user token found in session for push auth (cannot push branch)"
+          "Could not obtain authentication token for pushing branch"
         )
       }
     }
@@ -220,7 +220,7 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
       } catch (err) {
         await createStatusEvent({
           workflowId,
-          content: `Specified planId (${planId}) not found or could not be loaded.`,
+          content: `Specified planId (${planId}) not found or could not be loaded: ${err}`,
         })
       }
     }
