@@ -11,7 +11,9 @@ const description = `Searches for code in the local file system using ripgrep. R
 
 The tool supports both literal (fixed-string) and regex search modes. By default, search queries are treated as literal strings (no regex interpretation, safer). To enable regex matching, specify mode: "regex" in the parameters.
 - mode: "literal" (default, safer) — uses ripgrep's -F flag, interprets search as a fixed string, safe for special characters like ?, *, [, ]
-- mode: "regex" — disables -F, allows regex pattern searches, may return ripgrep errors if regex is malformed.`
+- mode: "regex" — disables -F, allows regex pattern searches, may return ripgrep errors if regex is malformed.
+
+Optionally, you can enable multiline search mode by setting 'multiline: true' in the parameters. This allows queries containing newlines or spanning multiple lines to match code using ripgrep's --multiline (-U) flag.`
 
 const searchParameters = z.object({
   query: z
@@ -41,6 +43,12 @@ const searchParameters = z.object({
     .enum(["literal", "regex"])
     .optional()
     .describe('Search mode: "literal" (default, safer) or "regex"'),
+  multiline: z
+    .boolean()
+    .nullable()
+    .describe(
+      "Enable multiline search mode: allows matching search terms that span multiple lines (enables ripgrep --multiline/-U flag). Default is false."
+    ),
 })
 
 type RipgrepSearchParameters = z.infer<typeof searchParameters>
@@ -55,16 +63,17 @@ async function fnHandler(
   baseDir: string,
   params: RipgrepSearchParameters
 ): Promise<string> {
-  const { query, ignoreCase, hidden, follow, mode } = params
+  const { query, ignoreCase, hidden, follow, mode, multiline } = params
 
   // Set default values if parameters are null
   const isIgnoreCase = ignoreCase ?? false
   const includeHidden = hidden ?? false
   const followSymlinks = follow ?? false
   const searchMode = mode ?? "literal" // backward compatibility to old calls
+  const multilineMode = multiline ?? false
 
   if (!query || typeof query !== "string" || query.length === 0) {
-    throw new Error("Query string cannot be empty.")
+    return "Error: Query string cannot be empty."
   }
 
   // Robustly escape the user's query for the shell
@@ -77,6 +86,10 @@ async function fnHandler(
     command += "-F " // use literal/fixed-string mode
   }
 
+  if (multilineMode) {
+    command += "-U " // enable multiline mode
+  }
+
   command += `${quotedQuery} ./`
 
   if (isIgnoreCase) command += " -i"
@@ -86,27 +99,36 @@ async function fnHandler(
   try {
     const { stdout } = await execPromise(command)
     return stdout
-  } catch (error) {
-    // Ripgrep conventions: exit 1 = no matches, exit 2 = error
+  } catch (error: any) {
+    // Ripgrep exit codes: 1=no matches, 2=error
     if (error && typeof error === "object" && "code" in error) {
       const code = error.code
+      const stderr = error.stderr?.toString() || ""
+      const message = error.message?.toString() || "Unknown error"
+
       if (code === 1) {
         return "No matching results found."
-      } else if (
-        code === 2 &&
-        "stderr" in error &&
-        typeof error.stderr === "string" &&
-        error.stderr.includes("regex parse error")
-      ) {
-        return `Ripgrep regex error: ${error.stderr}`
-      } else if (code === 2) {
-        throw new Error(`Ripgrep search failed: ${error}`)
-      } else {
-        console.error("Unexpected ripgrep exit code:", error)
-        throw new Error(`Unexpected ripgrep exit code: ${code}`)
       }
+
+      if (code === 2) {
+        // Top guidance for problematic multiline literal regex errors
+        let suggestion = ""
+        if (
+          stderr.includes('the literal "\\n" is not allowed in a regex') ||
+          stderr.includes('not allowed in a regex')
+        ) {
+          suggestion =
+            '\nSuggestion: Set the "multiline" parameter to true to enable multiline search mode.'
+        }
+
+        return `Ripgrep search failed: ${stderr || message}${suggestion}`
+      }
+
+      // Unexpected code, but return as string
+      return `Ripgrep error (unexpected code ${code}): ${stderr || message}`
     }
-    throw error
+    // Really unknown error (shouldn't happen)
+    return `Ripgrep error (unexpected): ${error && error.toString ? error.toString() : JSON.stringify(error)}`
   }
 }
 
