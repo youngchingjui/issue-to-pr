@@ -24,13 +24,3 @@ export const AlignmentCheckResponseSchema = z.object({
 export type AlignmentCheckResponse = z.infer<
   typeof AlignmentCheckResponseSchema
 >
-
-// /api/workflow/planandresolve
-export const PlanAndResolveRequestSchema = z.object({
-  issueNumber: z.number(),
-  repoFullName: z.string(),
-  apiKey: z.string(),
-  postToGithub: z.boolean().default(false),
-  createPR: z.boolean().default(false),
-})
-export type PlanAndResolveRequest = z.infer<typeof PlanAndResolveRequestSchema>
