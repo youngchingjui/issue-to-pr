@@ -3,6 +3,7 @@
 import getOctokit from "@/lib/github"
 import { getPRLinkedIssuesMap } from "@/lib/github/pullRequests"
 import { getPlanStatusForIssues } from "@/lib/neo4j/services/plan"
+import { listWorkflowRuns } from "@/lib/neo4j/services/workflow"
 import {
   GitHubIssue,
   GitHubIssueComment,
@@ -143,15 +144,16 @@ export async function updateIssueComment({
 }
 
 /**
- * Aggregates GitHub issues with Neo4j plan and PR status
+ * Aggregates GitHub issues with Neo4j plan and PR status and any active workflows
  */
 export type IssueWithStatus = GitHubIssue & {
   hasPlan: boolean
   hasPR: boolean
+  activeWorkflows?: { type: string; id: string }[]
 }
 
 /**
- * For a repo, get list of issues with hasPlan and hasPR badges.
+ * For a repo, get list of issues with hasPlan and hasPR badges and workflow indicators.
  */
 export async function getIssueListWithStatus({
   repoFullName,
@@ -172,11 +174,38 @@ export async function getIssueListWithStatus({
   // 3. Get PRs from GitHub using GraphQL, and find for each issue if it has a PR referencing it.
   const issuePRStatus = await getPRLinkedIssuesMap(repoFullName)
 
-  // 4. Compose the final list
+  // 4. Fetch running workflow runs for each issue.
+  // This is not batched but should be reasonably fast for <100 issues.
+  const issueWorkflowRuns: Record<number, { type: string; id: string }[]> = {}
+  await Promise.all(
+    issues.map(async (issue) => {
+      // Only fetch for issues with number
+      if (typeof issue.number !== "number") return
+      const runs = await listWorkflowRuns({
+        repoFullName,
+        issueNumber: issue.number,
+      })
+      // Only include relevant types and those in 'running' state
+      const running = runs.filter(
+        (run) =>
+          run.state === "running" &&
+          (run.type === "commentOnIssue" || run.type === "resolveIssue")
+      )
+      if (running.length > 0) {
+        issueWorkflowRuns[issue.number] = running.map((r) => ({
+          type: r.type,
+          id: r.id,
+        }))
+      }
+    })
+  )
+
+  // 5. Compose the final list
   const withStatus: IssueWithStatus[] = issues.map((issue) => ({
     ...issue,
     hasPlan: issuePlanStatus[issue.number] || false,
     hasPR: issuePRStatus[issue.number] || false,
+    activeWorkflows: issueWorkflowRuns[issue.number] || [],
   }))
 
   return withStatus

@@ -18,6 +18,22 @@ import {
 } from "@/lib/neo4j/services/event"
 import { AgentConstructorParams, Tool } from "@/lib/types"
 
+// Helper to detect OpenAI connection/network errors
+function isOpenAIConnectionError(err: any): boolean {
+  // The OpenAI SDK's APIConnectionError may not be directly importable or documented well, so we check name/message/code heuristics
+  return !!(
+    (err &&
+      (err.name === "APIConnectionError" ||
+        err.code === "ECONNRESET" ||
+        (typeof err.message === "string" &&
+          (err.message.includes("socket hang up") ||
+           err.message.includes("ECONNRESET") ||
+           err.message.includes("Failed to fetch") ||
+           err.message.toLowerCase().includes("openai")
+          ))))
+  )
+}
+
 type EnhancedMessage = ChatCompletionMessageParam & {
   id?: string
   timestamp?: Date
@@ -193,10 +209,25 @@ export class Agent {
     if (this.tools.length > 0) {
       params.tools = this.tools
     }
-    const response = await this.llm.chat.completions.create(params)
-    console.log(
-      `[DEBUG] response: ${JSON.stringify(response.choices[0].message)}`
-    )
+
+    let response
+    try {
+      response = await this.llm.chat.completions.create(params)
+      console.log(
+        `[DEBUG] response: ${JSON.stringify(response.choices[0].message)}`
+      )
+    } catch (err: any) {
+      if (this.jobId && isOpenAIConnectionError(err)) {
+        // User-friendly error event for OpenAI connection/network problem
+        await createErrorEvent({
+          workflowId: this.jobId,
+          content:
+            "OpenAI connection error: Failed to connect to OpenAI API. Please try again later.\n" +
+            (err && err.message ? err.message : String(err)),
+        })
+      }
+      throw err // propagate so the workflow runner can handle its final state
+    }
 
     // Add and track the assistant's response
     await this.addMessage(response.choices[0].message)
