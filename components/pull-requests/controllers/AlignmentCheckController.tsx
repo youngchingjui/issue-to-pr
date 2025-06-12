@@ -1,8 +1,9 @@
 "use client"
 
-import { toast } from "@/lib/hooks/use-toast"
-import { ToastAction } from "@/components/ui/toast"
 import { useRouter } from "next/navigation"
+
+import { ToastAction } from "@/components/ui/toast"
+import { toast } from "@/lib/hooks/use-toast"
 import { AlignmentCheckRequest } from "@/lib/types/api/schemas"
 import { getApiKeyFromLocalStorage } from "@/lib/utils/utils-common"
 
@@ -32,7 +33,12 @@ export default function AlignmentCheckController({
           description: "Please save an OpenAI API key in settings.",
           variant: "destructive",
           action: (
-            <ToastAction altText="Go to Settings" onClick={() => router.push('/settings')}>Go to Settings</ToastAction>
+            <ToastAction
+              altText="Go to Settings"
+              onClick={() => router.push("/settings")}
+            >
+              Go to Settings
+            </ToastAction>
           ),
         })
         return

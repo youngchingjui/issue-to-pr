@@ -1,11 +1,12 @@
 "use client"
 
 import { HelpCircle } from "lucide-react"
-import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useState } from "react"
 
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { ToastAction } from "@/components/ui/toast"
 import {
   Tooltip,
   TooltipContent,
@@ -13,7 +14,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { toast } from "@/lib/hooks/use-toast"
-import { ToastAction } from "@/components/ui/toast"
 import { ResolveRequestSchema } from "@/lib/schemas/api"
 import { getApiKeyFromLocalStorage } from "@/lib/utils/utils-common"
 
@@ -44,7 +44,12 @@ export default function CreatePRController({
           description: "Please save an OpenAI API key first.",
           variant: "destructive",
           action: (
-            <ToastAction altText="Go to Settings" onClick={() => router.push('/settings')}>Go to Settings</ToastAction>
+            <ToastAction
+              altText="Go to Settings"
+              onClick={() => router.push("/settings")}
+            >
+              Go to Settings
+            </ToastAction>
           ),
         })
         return

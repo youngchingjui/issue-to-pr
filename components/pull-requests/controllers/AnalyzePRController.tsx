@@ -1,8 +1,9 @@
 "use client"
 
-import { toast } from "@/lib/hooks/use-toast"
-import { ToastAction } from "@/components/ui/toast"
 import { useRouter } from "next/navigation"
+
+import { ToastAction } from "@/components/ui/toast"
+import { toast } from "@/lib/hooks/use-toast"
 import { getApiKeyFromLocalStorage } from "@/lib/utils/utils-common"
 
 interface Props {
@@ -30,7 +31,12 @@ export default function AnalyzePRController({
           description: "Please save an OpenAI API key in settings.",
           variant: "destructive",
           action: (
-            <ToastAction altText="Go to Settings" onClick={() => router.push('/settings')}>Go to Settings</ToastAction>
+            <ToastAction
+              altText="Go to Settings"
+              onClick={() => router.push("/settings")}
+            >
+              Go to Settings
+            </ToastAction>
           ),
         })
         return
