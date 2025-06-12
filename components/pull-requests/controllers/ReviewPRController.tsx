@@ -1,5 +1,8 @@
 "use client"
 
+import { useRouter } from "next/navigation"
+
+import { ToastAction } from "@/components/ui/toast"
 import { toast } from "@/lib/hooks/use-toast"
 import { getApiKeyFromLocalStorage } from "@/lib/utils/utils-common"
 
@@ -18,6 +21,7 @@ export default function ReviewPRController({
   onComplete,
   onError,
 }: Props) {
+  const router = useRouter()
   const execute = async () => {
     try {
       const key = getApiKeyFromLocalStorage()
@@ -26,6 +30,14 @@ export default function ReviewPRController({
           title: "API key not found",
           description: "Please save an OpenAI API key first.",
           variant: "destructive",
+          action: (
+            <ToastAction
+              altText="Go to Settings"
+              onClick={() => router.push("/settings")}
+            >
+              Go to Settings
+            </ToastAction>
+          ),
         })
         return
       }

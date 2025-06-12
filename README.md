@@ -60,6 +60,12 @@ For detailed feature documentation, see our [User Guide](docs/guides/user-guide.
 
 ---
 
+## Setting your OpenAI API key
+
+Some features require your own OpenAI API key. You can set it on the app's Settings page. This key is stored only in your browser, not on our servers. For instructions, go to **Settings → OpenAI API Key** after logging in.
+
+---
+
 ## Continuous Integration
 
 Jest tests are now automatically run on every PR and push via GitHub Actions. PRs will show a 'Checks' status based on test results.
