@@ -87,10 +87,13 @@ export async function initializeWorkflowRun({
   }
 }
 
+/**
+ * Now returns workflows with optional 'issue' field & proper type
+ */
 export async function listWorkflowRuns(issue?: {
   repoFullName: string
   issueNumber: number
-}): Promise<(AppWorkflowRun & { state: WorkflowRunState })[]> {
+}): Promise<(AppWorkflowRun & { state: WorkflowRunState; issue?: AppIssue })[]> {
   const session = await n4j.getSession()
   try {
     const result = await session.executeRead(async (tx) => {
@@ -108,6 +111,7 @@ export async function listWorkflowRuns(issue?: {
       .map((run) => ({
         ...toAppWorkflowRun(run),
         state: run.state,
+        issue: run.issue,
       }))
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
   } finally {
