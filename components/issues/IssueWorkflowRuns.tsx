@@ -38,6 +38,7 @@ export default async function IssueWorkflowRuns({
           <TableHeader>
             <TableRow>
               <TableHead>Run ID</TableHead>
+              <TableHead>Type</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Started</TableHead>
             </TableRow>
@@ -54,13 +55,18 @@ export default async function IssueWorkflowRuns({
                   </Link>
                 </TableCell>
                 <TableCell>
+                  <span className="font-mono text-xs bg-gray-200 rounded px-2 py-1">
+                    {run.type}
+                  </span>
+                </TableCell>
+                <TableCell>
                   <Badge
                     variant={
                       run.state === "completed"
                         ? "default"
                         : run.state === "error"
-                          ? "destructive"
-                          : "secondary"
+                        ? "destructive"
+                        : "secondary"
                     }
                   >
                     {run.state}
