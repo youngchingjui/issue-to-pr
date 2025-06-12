@@ -5,8 +5,6 @@ import { redirect } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getGithubUser } from "@/lib/github/users"
 
-export const dynamic = "force-dynamic"
-
 const ApiKeyInput = dynamic(() => import("@/components/settings/APIKeyInput"), {
   ssr: false,
 })
@@ -51,18 +49,16 @@ export default async function SettingsPage() {
         <CardContent>
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground mb-1">
-              This application requires your OpenAI API key to generate plans
-              and code. You can create an API key in your{" "}
+              Required to generate plans and code. Create your API key{" "}
               <a
                 href="https://platform.openai.com/api-keys"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline hover:text-blue-600"
               >
-                OpenAI account
+                here
               </a>
-              . Your key is only stored locally in your browser and never sent
-              to our server.
+              .
             </p>
             <ApiKeyInput />
           </div>
