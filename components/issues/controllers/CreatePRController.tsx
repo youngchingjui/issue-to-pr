@@ -2,6 +2,7 @@
 
 import { HelpCircle } from "lucide-react"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
@@ -12,6 +13,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { toast } from "@/lib/hooks/use-toast"
+import { ToastAction } from "@/components/ui/toast"
 import { ResolveRequestSchema } from "@/lib/schemas/api"
 import { getApiKeyFromLocalStorage } from "@/lib/utils/utils-common"
 
@@ -31,6 +33,7 @@ export default function CreatePRController({
   onError,
 }: Props) {
   const [postToGithub, setPostToGithub] = useState(false)
+  const router = useRouter()
 
   const execute = async () => {
     try {
@@ -40,6 +43,9 @@ export default function CreatePRController({
           title: "API key not found",
           description: "Please save an OpenAI API key first.",
           variant: "destructive",
+          action: (
+            <ToastAction altText="Go to Settings" onClick={() => router.push('/settings')}>Go to Settings</ToastAction>
+          ),
         })
         return
       }
