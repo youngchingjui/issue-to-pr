@@ -334,7 +334,7 @@ export async function addLabelsToPullRequest({
   if (!owner || !repo) {
     throw new Error("Invalid repository format. Expected 'owner/repo'")
   }
-  await octokit.issues.addLabels({
+  await octokit.rest.issues.addLabels({
     owner,
     repo,
     issue_number: pullNumber,
