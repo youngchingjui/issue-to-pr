@@ -18,6 +18,8 @@ interface Props {
   selectedRepo: string
 }
 
+const PREFERRED_REPO_KEY = "preferredRepo";
+
 export default function RepoSelector({ selectedRepo }: Props) {
   const router = useRouter()
   const [repos, setRepos] = useState<RepoSelectorItem[]>([])
@@ -39,6 +41,10 @@ export default function RepoSelector({ selectedRepo }: Props) {
       defaultValue={selectedRepo}
       name="repo"
       onValueChange={(val) => {
+        // Save preferred repo to localStorage
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem(PREFERRED_REPO_KEY, val)
+        }
         router.push(`/issues?repo=${encodeURIComponent(val)}`)
       }}
       onOpenChange={setOpen}
