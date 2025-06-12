@@ -18,7 +18,7 @@ const createPRParameters = z.object({
 
 type CreatePRParams = z.infer<typeof createPRParameters>
 
-// Creates PR, then attempts to label it as "AI generated"
+// Creates PR, then attempts to label it as "AI Generated"
 async function fnHandler(
   repository: GitHubRepository,
   issueNumber: number,
@@ -47,14 +47,14 @@ async function fnHandler(
     })
     let labelWarning: string | undefined
     try {
-      // Add the "AI generated" label
+      // Add the "AI Generated" label
       await addLabelsToPullRequest({
         repoFullName: repository.full_name,
         pullNumber: pr.data.number,
-        labels: ["AI generated"],
+        labels: ["AI Generated"],
       })
     } catch (labelError) {
-      labelWarning = `Warning: PR created, but failed to add 'AI generated' label: ${String(labelError)}`
+      labelWarning = `Warning: PR created, but failed to add 'AI Generated' label: ${String(labelError)}`
       // Optionally, could log here too
     }
     return JSON.stringify({
@@ -77,7 +77,7 @@ export const createCreatePRTool = (
   createTool({
     name: "create_pull_request",
     description:
-      "Creates a pull request from an existing remote branch and automatically adds the label 'AI generated'. The branch must already exist on GitHub and contain the changes you want to include in the PR.",
+      "Creates a pull request from an existing remote branch and automatically adds the label 'AI Generated'. The branch must already exist on GitHub and contain the changes you want to include in the PR.",
     schema: createPRParameters,
     handler: (params: CreatePRParams) =>
       fnHandler(repository, issueNumber, params),
