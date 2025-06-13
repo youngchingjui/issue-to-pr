@@ -2,20 +2,17 @@ import { type ClassValue, clsx } from "clsx"
 import { EventEmitter } from "events"
 import { twMerge } from "tailwind-merge"
 
-import { LOCAL_STORAGE_KEY } from "@/lib/globals"
-import { GitHubURLSchema } from "@/lib/schemas/api"
-import { GitHubIssue } from "@/lib/types/github"
+// REMOVE LOCAL STORAGE API KEY LOGIC
+declare global {
+  // Add safe window type
+  interface Window { __UNUSED?: undefined }
+}
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function getApiKeyFromLocalStorage(): string | null {
-  if (typeof window !== "undefined") {
-    return localStorage.getItem(LOCAL_STORAGE_KEY)
-  }
-  return null
-}
+// Removed getApiKeyFromLocalStorage()
 
 export function getCloneUrlWithAccessToken(
   userRepo: string,
@@ -24,7 +21,7 @@ export function getCloneUrlWithAccessToken(
   // userRepo format is "username/repo"
   // GitHub App installation tokens (prefix "ghs_") must be passed as the password with
   // a fixed username `x-access-token`, per GitHub documentation:
-  //docs.github.com/en/enterprise-cloud@latest/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation#about-authentication-as-a-github-app-installation
+  //docs.github.com/en/enterprise-cloud@latest/apps/creating-github-apps/authenticating-with-a-github-app-installation#about-authentication-as-a-github-app-installation
   // For all other tokens (e.g. OAuth or personal access tokens like `ghp_` or `github_pat_`),
   // embedding the token directly as the username continues to work.
   if (token.startsWith("ghs_")) {
@@ -63,12 +60,14 @@ export const SSEUtils = {
  * @param issue The GitHub issue object
  * @returns The full repository name in the format "owner/repo", or undefined if repository info is missing
  */
-export function getRepoFullNameFromIssue(issue: GitHubIssue): string {
+export function getRepoFullNameFromIssue(issue: any): string {
   if (issue.repository?.full_name) {
     return issue.repository.full_name
   } else {
     try {
-      const { fullName } = GitHubURLSchema.parse(issue.repository_url)
+      const { fullName } = require("@/lib/schemas/api").GitHubURLSchema.parse(
+        issue.repository_url
+      )
       return fullName
     } catch (e) {
       console.error(

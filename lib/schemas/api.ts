@@ -64,14 +64,14 @@ export const FetchGitHubItemRequestSchema = z.object({
 export const CommentRequestSchema = z.object({
   issueNumber: z.number(),
   repoFullName: z.string().min(1),
-  apiKey: z.string().min(1),
+  // apiKey: z.string().min(1), // REMOVED for server fetch only
   postToGithub: z.boolean().default(false),
 })
 
 export const ResolveRequestSchema = z.object({
   issueNumber: z.number(),
   repoFullName: z.string(),
-  apiKey: z.string(),
+  // apiKey: z.string(), // REMOVED
   postToGithub: z.boolean().default(false),
   createPR: z.boolean().default(false),
 })

@@ -8,6 +8,7 @@ import { LLMResponse as LLMResponseNew } from "@/lib/types"
 export type User = {
   id: string // Maps to PostgreSQL users.id
   displayName: string // Cached display name for convenient querying
+  encryptedOpenAIApiKey?: string // Encrypted OpenAI API Key
 }
 
 /**
