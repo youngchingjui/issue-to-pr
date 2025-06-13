@@ -15,6 +15,32 @@ import {
   workflowRunStateSchema,
 } from "@/lib/types/db/neo4j"
 
+// --- NEW: listAllWithIssue ---
+export async function listAllWithIssue(
+  tx: ManagedTransaction
+): Promise<Array<{ run: WorkflowRun, state: WorkflowRunState, issue?: Issue }>> {
+  const result = await tx.run<{
+    w: Node<Integer, WorkflowRun, "WorkflowRun">
+    i: Node<Integer, Issue, "Issue"> | undefined
+    state: WorkflowRunState
+  }>(
+    `MATCH (w:WorkflowRun)
+    OPTIONAL MATCH (w)-[:BASED_ON_ISSUE]->(i:Issue)
+    OPTIONAL MATCH (w)-[:STARTS_WITH|NEXT*]->(e:Event {type: 'workflowState'})
+    WITH w, i, e
+    ORDER BY e.createdAt DESC
+    WITH w, i, collect(e)[0] as latestWorkflowState
+    RETURN w, i, latestWorkflowState.state AS state`
+  )
+  return result.records.map(record => ({
+    run: workflowRunSchema.parse(record.get("w").properties),
+    issue: record.get("i") && record.get("i").properties ? issueSchema.parse(record.get("i").properties) : undefined,
+    state: workflowRunStateSchema.safeParse(record.get("state")).success
+      ? record.get("state")
+      : "completed",
+  }))
+}
+
 export async function create(
   tx: ManagedTransaction,
   workflowRun: Omit<WorkflowRun, "createdAt">
@@ -112,10 +138,6 @@ export async function linkToIssue(
   return result
 }
 
-/**
- * Helper function to parse AnyEvent + LLMResponseWithPlan
- * LLMResponseWithPlan is a superset of LLMResponse, so it needs to be parsed first.
- */
 function parseEventWithPlan(event: AnyEvent | LLMResponseWithPlan) {
   try {
     return llmResponseWithPlanSchema.parse(event)
@@ -127,10 +149,6 @@ function parseEventWithPlan(event: AnyEvent | LLMResponseWithPlan) {
   }
 }
 
-/**
- * Retrieves a WorkflowRun with its associated events and issue, including
- * the labels for each event.
- */
 export async function getWithDetails(
   tx: ManagedTransaction,
   workflowRunId: string

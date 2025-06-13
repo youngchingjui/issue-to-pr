@@ -13,10 +13,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { listWorkflowRuns } from "@/lib/neo4j/services/workflow"
+import { listWorkflowRuns, WorkflowRunWithIssue } from "@/lib/neo4j/services/workflow"
 
 export default async function WorkflowRunsPage() {
-  const workflows = await listWorkflowRuns()
+  const workflows: WorkflowRunWithIssue[] = await listWorkflowRuns()
 
   return (
     <main className="container mx-auto p-4">
@@ -35,6 +35,12 @@ export default async function WorkflowRunsPage() {
                   </TableHead>
                   <TableHead className="py-4 text-base font-medium">
                     Started
+                  </TableHead>
+                  <TableHead className="py-4 text-base font-medium">
+                    Type
+                  </TableHead>
+                  <TableHead className="py-4 text-base font-medium">
+                    Issue
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -68,6 +74,33 @@ export default async function WorkflowRunsPage() {
                             addSuffix: true,
                           })
                         : "N/A"}
+                    </TableCell>
+                    <TableCell className="py-4">
+                      {/* Human label for workflow type */}
+                      {workflow.type === "commentOnIssue"
+                        ? "Comment on Issue"
+                        : workflow.type === "resolveIssue"
+                        ? "Resolve Issue"
+                        : workflow.type === "identifyPRGoal"
+                        ? "Identify PR Goal"
+                        : workflow.type === "reviewPullRequest"
+                        ? "Review PR"
+                        : workflow.type === "alignmentCheck"
+                        ? "Alignment Check"
+                        : workflow.type}
+                    </TableCell>
+                    <TableCell className="py-4">
+                      {workflow.issue ? (
+                        <Link
+                          href={`/${workflow.issue.repoFullName}/issues/${workflow.issue.number}`}
+                          className="text-blue-600 hover:underline"
+                        >
+                          #{workflow.issue.number}
+                          {workflow.issue.title ? ` - ${workflow.issue.title}` : ""}
+                        </Link>
+                      ) : (
+                        <span className="text-muted-foreground">None</span>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
