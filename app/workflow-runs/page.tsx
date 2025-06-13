@@ -28,13 +28,19 @@ export default async function WorkflowRunsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="py-4 text-base font-medium">
-                    Name
+                    Run ID
                   </TableHead>
                   <TableHead className="py-4 text-base font-medium">
                     Status
                   </TableHead>
                   <TableHead className="py-4 text-base font-medium">
                     Started
+                  </TableHead>
+                  <TableHead className="py-4 text-base font-medium">
+                    Issue
+                  </TableHead>
+                  <TableHead className="py-4 text-base font-medium">
+                    Workflow Type
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -69,6 +75,19 @@ export default async function WorkflowRunsPage() {
                           })
                         : "N/A"}
                     </TableCell>
+                    <TableCell className="py-4">
+                      {workflow.issue ? (
+                        <Link
+                          href={`/${workflow.issue.repoFullName}/issues/${workflow.issue.number}`}
+                          className="text-blue-700 hover:underline"
+                        >
+                          {workflow.issue.repoFullName}#{workflow.issue.number}
+                        </Link>
+                      ) : (
+                        <span className="text-zinc-400">N/A</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="py-4">{workflow.type}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
