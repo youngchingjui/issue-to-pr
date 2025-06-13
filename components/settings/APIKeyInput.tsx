@@ -6,74 +6,106 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { LOCAL_STORAGE_KEY } from "@/lib/globals"
 import { useToast } from "@/lib/hooks/use-toast"
 
 const ApiKeyInput = () => {
   const [apiKey, setApiKey] = useState("")
   const [maskedKey, setMaskedKey] = useState("")
+  const [hasKey, setHasKey] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [isVerifying, setIsVerifying] = useState(false)
 
   const { toast } = useToast()
 
   useEffect(() => {
-    const storedKey = localStorage.getItem(LOCAL_STORAGE_KEY)
-    if (storedKey) {
-      setApiKey(storedKey)
-      setMaskedKey(maskApiKey(storedKey))
-    }
+    fetch("/api/user/api-key")
+      .then(async (res) => {
+        const data = await res.json()
+        if (data.hasKey) {
+          setHasKey(true)
+          setMaskedKey(data.masked)
+        } else {
+          setHasKey(false)
+          setMaskedKey("")
+        }
+      })
+      .catch(() => {
+        setHasKey(false)
+        setMaskedKey("")
+      })
   }, [])
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newKey = event.target.value
     setApiKey(newKey)
-    setMaskedKey(maskApiKey(newKey))
   }
 
   const handleSave = async () => {
     try {
       setIsVerifying(true)
-      const response = await fetch("/api/openai/check", {
+      // First, verify with OpenAI
+      const checkResponse = await fetch("/api/openai/check", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ apiKey }),
       })
-
-      if (!response.ok) {
+      if (!checkResponse.ok) {
         toast({
           title: "API key verification failed",
           description: "Please check your API key and try again.",
           variant: "destructive",
         })
-        localStorage.removeItem(LOCAL_STORAGE_KEY)
         return
       }
-
-      const result = await response.json()
-
-      if (result.success) {
+      const checkResult = await checkResponse.json()
+      if (!checkResult.success) {
         toast({
-          title: "API key saved",
-          description:
-            "Your API key was verified and saved successfully. You can now generate Github comments and create Pull Requests.",
+          title: "API key rejected",
+          description: "Verification service did not accept the key.",
+          variant: "destructive",
         })
-        localStorage.setItem(LOCAL_STORAGE_KEY, apiKey)
+        return
       }
+      // Store securely on server
+      const storeResponse = await fetch("/api/user/api-key", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ apiKey }),
+      })
+      if (!storeResponse.ok) {
+        toast({
+          title: "Failed to save API key",
+          description: "Error saving key. Please try again.",
+          variant: "destructive",
+        })
+        return
+      }
+      toast({
+        title: "API key saved",
+        description:
+          "Your API key was verified and saved securely. You can now generate Github comments and create Pull Requests.",
+      })
+      setApiKey("")
+      // Refresh display
+      fetch("/api/user/api-key").then(async (res) => {
+        const data = await res.json()
+        setHasKey(!!data.hasKey)
+        setMaskedKey(data.masked)
+      })
+      setIsEditing(false)
     } catch (error) {
-      console.error("Failed to verify API key:", error)
-      localStorage.removeItem(LOCAL_STORAGE_KEY)
+      toast({
+        title: "Failed to verify and save API key",
+        description: "Try again later.",
+        variant: "destructive",
+      })
     } finally {
       setIsVerifying(false)
-      setIsEditing(false)
     }
-  }
-
-  const maskApiKey = (key: string) => {
-    if (key.length <= 10) return key
-    return `${key.slice(0, 5)}**********${key.slice(-4)}`
   }
 
   return (
@@ -93,15 +125,16 @@ const ApiKeyInput = () => {
           onChange={handleInputChange}
           readOnly={!isEditing}
           className={!isEditing ? "bg-gray-100 text-gray-500" : ""}
+          autoComplete="off"
         />
       </div>
       {isEditing ? (
-        <Button onClick={handleSave} disabled={isVerifying}>
+        <Button onClick={handleSave} disabled={isVerifying || !apiKey}>
           {isVerifying ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
         </Button>
       ) : (
-        <Button onClick={() => setIsEditing(!isEditing)} variant="secondary">
-          Edit
+        <Button onClick={() => setIsEditing(true)} variant="secondary">
+          {hasKey ? "Edit" : "Add"}
         </Button>
       )}
     </div>

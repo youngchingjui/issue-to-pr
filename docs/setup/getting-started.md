@@ -79,6 +79,11 @@ UPSTASH_REDIS_REST_TOKEN=your_redis_token
 
 # OpenAI (optional for development)
 OPENAI_API_KEY=your_openai_key
+
+# Required for secure user API key storage
+# Must be a 32-byte base64 string. Generate using:
+# node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+USER_SECRET_ENCRYPTION_KEY=your_base64_32byte_secret
 ```
 
 2. Configure GitHub OAuth App:
