@@ -90,7 +90,7 @@ export async function initializeWorkflowRun({
 export async function listWorkflowRuns(issue?: {
   repoFullName: string
   issueNumber: number
-}): Promise<(AppWorkflowRun & { state: WorkflowRunState })[]> {
+}): Promise<(AppWorkflowRun & { state: WorkflowRunState, issueNumber?: number, repoFullName?: string })[]> {
   const session = await n4j.getSession()
   try {
     const result = await session.executeRead(async (tx) => {
@@ -108,6 +108,8 @@ export async function listWorkflowRuns(issue?: {
       .map((run) => ({
         ...toAppWorkflowRun(run),
         state: run.state,
+        ...(run.issueNumber !== undefined ? { issueNumber: typeof run.issueNumber === "object" && typeof run.issueNumber.toNumber === "function" ? run.issueNumber.toNumber() : run.issueNumber } : {}),
+        ...(run.repoFullName !== undefined ? { repoFullName: run.repoFullName } : {}),
       }))
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
   } finally {

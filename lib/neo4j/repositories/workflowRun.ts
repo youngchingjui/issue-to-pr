@@ -47,24 +47,34 @@ export async function get(
 
 export async function listAll(
   tx: ManagedTransaction
-): Promise<(WorkflowRun & { state: WorkflowRunState })[]> {
+): Promise<(WorkflowRun & { state: WorkflowRunState, issueNumber?: Integer, repoFullName?: string })[]> {
   const result = await tx.run<{
     w: Node<Integer, WorkflowRun, "WorkflowRun">
     state: WorkflowRunState
+    issueNumber?: Integer
+    repoFullName?: string
   }>(
     `MATCH (w:WorkflowRun)
+    OPTIONAL MATCH (w)-[:BASED_ON_ISSUE]->(i:Issue)
     OPTIONAL MATCH (w)-[:STARTS_WITH|NEXT*]->(e:Event {type: 'workflowState'})
-    WITH w, e
+    WITH w, e, i
     ORDER BY e.createdAt DESC
-    WITH w, collect(e)[0] as latestWorkflowState
-    RETURN w, latestWorkflowState.state AS state
+    WITH w, collect(e)[0] as latestWorkflowState, i
+    RETURN w, latestWorkflowState.state AS state, i.number AS issueNumber, i.repoFullName AS repoFullName
     `
   )
 
   return result.records.map((record) => {
     const run = workflowRunSchema.parse(record.get("w").properties)
     const state = workflowRunStateSchema.safeParse(record.get("state"))
-    return { ...run, state: state.success ? state.data : "completed" }
+    const issueNumber = record.get("issueNumber")
+    const repoFullName = record.get("repoFullName")
+    return { 
+      ...run, 
+      state: state.success ? state.data : "completed",
+      ...(issueNumber !== null && issueNumber !== undefined ? { issueNumber } : {}),
+      ...(repoFullName ? { repoFullName } : {}),
+    }
   })
 }
 
