@@ -8,6 +8,7 @@ import {
   create,
   getWithDetails,
   listAll,
+  listAllWithIssue, // NEW
   listForIssue,
   mergeIssueLink,
   toAppWorkflowRun,
@@ -87,10 +88,12 @@ export async function initializeWorkflowRun({
   }
 }
 
+export type WorkflowRunWithIssue = AppWorkflowRun & { state: WorkflowRunState; issue?: AppIssue }
+
 export async function listWorkflowRuns(issue?: {
   repoFullName: string
   issueNumber: number
-}): Promise<(AppWorkflowRun & { state: WorkflowRunState })[]> {
+}): Promise<WorkflowRunWithIssue[]> {
   const session = await n4j.getSession()
   try {
     const result = await session.executeRead(async (tx) => {
@@ -100,15 +103,28 @@ export async function listWorkflowRuns(issue?: {
           number: int(issue.issueNumber),
         })
       }
-
-      return await listAll(tx)
+      // Use the new function to join issue for list page
+      return await listAllWithIssue(tx)
     })
 
+    // Handle both returned shapes (with or without .run)
     return result
-      .map((run) => ({
-        ...toAppWorkflowRun(run),
-        state: run.state,
-      }))
+      .map((row: any) => {
+        if (row.run) {
+          // from listAllWithIssue
+          return {
+            ...toAppWorkflowRun(row.run),
+            state: row.state,
+            issue: row.issue ? toAppIssue(row.issue) : undefined,
+          }
+        } else {
+          // backward compatible for listForIssue
+          return {
+            ...toAppWorkflowRun(row),
+            state: row.state,
+          }
+        }
+      })
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
   } finally {
     await session.close()
