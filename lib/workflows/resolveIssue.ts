@@ -27,6 +27,7 @@ import {
   createRipgrepSearchTool,
   createSyncBranchTool,
   createWriteFileContentTool,
+  createInstallDependenciesTool,
 } from "@/lib/tools"
 import { Plan } from "@/lib/types"
 import {
@@ -92,6 +93,19 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
       workingBranch: repository.default_branch,
     })
 
+    // Install dependencies immediately after cloning
+    const installTool = createInstallDependenciesTool(baseDir)
+    // Run installer in auto mode
+    const installResult = await installTool.handler({ mode: "auto" })
+    await createStatusEvent({
+      workflowId,
+      content:
+        `Dependency installation attempt complete.\nCommands: ${installResult.attemptedCommands?.join(", ") || "none"}\nHeuristics: ${(installResult.heuristics || []).join("; ")}` +
+        (installResult.ok
+          ? "\nInstall succeeded."
+          : `\nInstall failed or missing: ${installResult.error ?? "unknown error"}`),
+    })
+
     // Get token from session for authenticated git push
     let sessionToken: string | undefined = undefined
     if (createPR && userPermissions?.canPush && userPermissions?.canCreatePR) {
@@ -143,6 +157,7 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
     coder.addTool(searchCodeTool)
     coder.addTool(branchTool)
     coder.addTool(commitTool)
+    coder.addTool(installTool)
 
     // Add sync and PR tools only if createPR is true AND permissions are sufficient
     let syncBranchTool: ReturnType<typeof createSyncBranchTool> | undefined
