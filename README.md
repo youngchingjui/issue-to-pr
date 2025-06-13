@@ -1,5 +1,19 @@
 # Issue To PR
 
+## Compute & Server Requirements
+
+This application performs complex codebase modifications and AI-powered workflows, which require the following infrastructure considerations:
+
+- **Local file access:** Workflows need direct, persistent access to the entire codebase's file system.
+- **Long-running processes:** Many operations (e.g., LLM agent analysis, recursive code modification) can take several minutes to complete.
+- **Server/Container environment:** These processes must run on a persistent server or within a dedicated Docker container. In upcoming versions, each workflow may be isolated in its own Docker container for reliability and scalability.
+- **Not serverless-compatible:** Serverless hosting platforms such as Vercel, Netlify, or AWS Lambda are **unsupported** and incompatible, due to their short execution timeouts and lack of persistent storage.
+
+**Deployment guidance:**  
+You must run this application on a VM, dedicated server, or persistent cloud instance with sufficient CPU, memory, and disk storage to support long-running AI workloads and file system access.
+
+For more information about running with Docker, see [docker/README.md](./docker/README.md).
+
 ## Documentation
 
 For detailed documentation, please visit:
