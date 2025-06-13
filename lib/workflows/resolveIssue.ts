@@ -26,6 +26,7 @@ import {
   createGetFileContentTool,
   createRipgrepSearchTool,
   createSyncBranchTool,
+  createTsCheckTool,
   createWriteFileContentTool,
 } from "@/lib/tools"
 import { Plan } from "@/lib/types"
@@ -136,6 +137,7 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
     const writeFileTool = createWriteFileContentTool(baseDir)
     const branchTool = createBranchTool(baseDir)
     const commitTool = createCommitTool(baseDir, repository.default_branch)
+    const tsCheckTool = createTsCheckTool(baseDir)
 
     // Add base tools to persistent coder
     coder.addTool(getFileContentTool)
@@ -143,6 +145,7 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
     coder.addTool(searchCodeTool)
     coder.addTool(branchTool)
     coder.addTool(commitTool)
+    coder.addTool(tsCheckTool)
 
     // Add sync and PR tools only if createPR is true AND permissions are sufficient
     let syncBranchTool: ReturnType<typeof createSyncBranchTool> | undefined
