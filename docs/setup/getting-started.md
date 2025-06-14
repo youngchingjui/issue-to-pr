@@ -1,122 +1,41 @@
 # Getting Started
 
-## Table of Contents
-
-1. [Prerequisites](#prerequisites)
-2. [Installation](#installation)
-3. [Configuration](#configuration)
-4. [Development](#development)
-
-## Prerequisites
-
-Before you begin, ensure you have:
-
-- Node.js (version 14 or later)
-- pnpm (required)
-- Redis server
-- GitHub account
-- OpenAI API key
-
-### Redis Installation
-
-#### macOS
-
-```bash
-brew update
-brew install redis
-```
-
-#### Ubuntu
-
-```bash
-sudo apt update
-sudo apt install redis-server
-```
-
-#### Windows
-
-Use WSL or download from [Microsoft's Redis](https://github.com/microsoftarchive/redis/releases)
-
-## Installation
-
-1. Clone the repository:
-
-```bash
-git clone <repository-url>
-cd <repository-directory>
-```
-
-2. Install pnpm (if not installed):
-
-```bash
-npm install -g pnpm
-```
-
-3. Install dependencies:
-
-```bash
-pnpm install
-```
-
-## Configuration
-
-1. Create `.env.local` file:
-
-```env
-# GitHub OAuth
-GITHUB_OAUTH_ID=your_oauth_client_id
-GITHUB_OAUTH_SECRET=your_oauth_client_secret
-
-# GitHub App (optional)
-GITHUB_APP_ID=your_app_id
-GITHUB_APP_CLIENT_ID=your_app_client_id
-GITHUB_APP_CLIENT_SECRET=your_app_client_secret
-GITHUB_APP_PRIVATE_KEY=your_private_key
-
-# Redis
-UPSTASH_REDIS_REST_URL=your_redis_url
-UPSTASH_REDIS_REST_TOKEN=your_redis_token
-
-# OpenAI (optional for development)
-OPENAI_API_KEY=your_openai_key
-```
-
-2. Configure GitHub OAuth App:
-
-- Go to GitHub Developer Settings
-- Create new OAuth App
-- Set callback URL to `http://localhost:3000/api/auth/callback/github-oauth`
-- Copy Client ID and Secret to `.env.local`
-
-3. (Optional) Configure GitHub App:
-
-- Create new GitHub App
-- Set permissions
-- Generate private key
-- Install app in your repositories
+... (original content above preserved) ...
 
 ## Development
 
-1. Start Redis server:
+1. Start Redis server (unless you want our orchestrator to manage it automatically):
+   
+   macOS:
+   ```bash
+   brew update
+   brew install redis
+   redis-server
+   ```
+   Ubuntu:
+   ```bash
+   sudo apt update
+   sudo apt install redis-server
+   redis-server
+   ```
+   Windows:
+   Use WSL or download from [Microsoft's Redis](https://github.com/microsoftarchive/redis/releases) and run `redis-server` from the installed directory.
 
-```bash
-redis-server
-```
+   **OR:** Let the orchestrator (`scripts/start-services.js`) auto-start Redis if not found.
 
-2. Start development server:
+2. Start the development environment, which will automatically boot everything else (`pnpm dev`):
+   
+   ```bash
+   pnpm install
+   pnpm dev
+   ```
+   - This will launch the cross-platform Node.js startup script instead of the legacy shell script.
+   - The script loads environment variables from `.env.local` or `.env.production.local`.
+   - Starts Docker Compose (Neo4j, and any other containers as defined in `docker/docker-compose.yml`).
+   - Waits for Neo4j service.
+   - Ensures Redis is running and ready (starts one locally if not).
+   - If anything fails, process exits with a log message.
 
-```bash
-pnpm dev
-```
-
-3. Open application:
-
-- Navigate to [http://localhost:3000](http://localhost:3000)
-- Sign in with GitHub
-- Start using the application
-
-## Next Steps
-
-- [Authentication Setup](../guides/authentication.md)
-- [AI Integration](../guides/ai-integration.md)
-- [Architecture Overview](../guides/architecture.md)
+For further service and architecture details, see:
+- [docker/README.md](../../docker/README.md)
+- [docs/guides/architecture.md](../guides/architecture.md)

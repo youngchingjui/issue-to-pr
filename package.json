@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "predev": "./scripts/start-services.sh",
+    "predev": "node ./scripts/start-services.js",
     "dev": "next dev",
-    "prestart": "./scripts/start-services.sh",
+    "prestart": "node ./scripts/start-services.js",
     "start": "next start",
     "build": "next build",
     "analyze": "ANALYZE=true next build",
@@ -97,7 +97,10 @@
     "ts-jest": "^29.2.6",
     "ts-node": "^10.9.2",
     "typescript": "^5",
-    "typescript-eslint": "^8.19.0"
+    "typescript-eslint": "^8.19.0",
+    "dotenv": "^16.4.5",
+    "axios": "^1.6.8",
+    "ioredis": "^5.4.1"
   },
   "msw": {
     "workerDirectory": [
