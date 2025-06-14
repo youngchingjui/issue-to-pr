@@ -2,8 +2,6 @@
 
 import { z } from "zod"
 
-import { repoSettingsSchema } from "@/lib/types"
-
 export const PostPlanRequestSchema = z.object({
   issueNumber: z.number(),
   content: z.string().min(1),
@@ -25,12 +23,4 @@ export const AlignmentCheckResponseSchema = z.object({
 })
 export type AlignmentCheckResponse = z.infer<
   typeof AlignmentCheckResponseSchema
->
-
-// Repository Settings
-export const RepoSettingsUpdateRequestSchema = repoSettingsSchema.omit({
-  lastUpdated: true,
-})
-export type RepoSettingsUpdateRequest = z.infer<
-  typeof RepoSettingsUpdateRequestSchema
 >

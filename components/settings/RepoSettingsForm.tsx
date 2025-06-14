@@ -13,13 +13,7 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { setRepositorySettings as saveRepoSettings } from "@/lib/neo4j/services/repository"
-import {
-  Environment,
-  environmentEnum,
-  RepoSettings,
-  repoSettingsSchema,
-} from "@/lib/types"
-import { RepoSettingsUpdateRequestSchema } from "@/lib/types/api/schemas"
+import { Environment, environmentEnum, RepoSettings } from "@/lib/types"
 import { RepoFullName } from "@/lib/types/github"
 
 interface RepoSettingsFormProps {
@@ -41,17 +35,9 @@ export default function RepoSettingsForm({
     setErrMsg(null)
     setSuccessMsg(null)
     try {
-      const validated = repoSettingsSchema.parse({
-        ...RepoSettingsUpdateRequestSchema.parse({
-          environment: settings.environment,
-          setupCommands: settings.setupCommands,
-        }),
-        lastUpdated: new Date(),
-      })
+      await saveRepoSettings(repoFullName, settings)
 
-      await saveRepoSettings(repoFullName, validated)
-
-      setSettings(validated)
+      setSettings(settings)
       setSuccessMsg("Settings saved!")
     } catch (err: unknown) {
       if (err instanceof Error) {

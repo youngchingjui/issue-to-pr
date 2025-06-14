@@ -121,11 +121,11 @@ export const resolveIssue = async ({
     // ===== Python/Other environment install step =====
     // choose environment/commands from params or repo settings
     let resolvedEnvironment = environment
-    let resolvedSetupCommands: string[] = []
+    let resolvedSetupCommands: string = ""
     if (!resolvedEnvironment && repoSettings?.environment)
       resolvedEnvironment = repoSettings.environment
     if (repoSettings?.setupCommands && repoSettings.setupCommands.length) {
-      resolvedSetupCommands = repoSettings.setupCommands.slice()
+      resolvedSetupCommands = repoSettings.setupCommands
     }
 
     // Handle python and setup commands if present
@@ -162,8 +162,7 @@ export const resolveIssue = async ({
       }
       // install command: arg overrides, then repo settings, then default
       let command = installCommand
-      if (!command && resolvedSetupCommands.length)
-        command = resolvedSetupCommands[0]
+      if (!command && resolvedSetupCommands) command = resolvedSetupCommands
       if (!command) command = PYTHON_DEFAULT_INSTALL_CMD(baseDir)
       await createStatusEvent({
         workflowId,
