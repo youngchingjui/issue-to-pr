@@ -78,6 +78,7 @@ export async function tagMessageAsPlan({
         status: result.status,
         version: result.version.toNumber(),
         editMessage: result.editMessage,
+        source: "neo4j",
       },
       workflowId,
       id: result.id,

@@ -11,14 +11,62 @@ import {
 } from "@/components/ui/card"
 import { getPlanWithDetails } from "@/lib/neo4j/services/plan"
 
-interface PageProps {
+interface Props {
   params: {
     planId: string
     issueId: string
   }
 }
 
-export default async function PlanPage({ params }: PageProps) {
+function PlanSyncMetaBlock({ plan }: { plan: any }) {
+  if (!plan) return null
+  if (plan.sourceOfTruth === "github_comment") {
+    return (
+      <div className="mt-4 bg-yellow-50 border border-yellow-300 rounded p-3 text-yellow-800">
+        <strong>Plan is synced with a GitHub comment.</strong>
+        <div className="text-xs mt-1">
+          Comment ID: {plan.githubCommentId}
+          <br />
+          Status: {plan.syncStatus || "synced"}
+          {!!plan.lastCommit && (
+            <>
+              <br />
+              Commit: {plan.lastCommit}
+            </>
+          )}
+          <br />
+          Last synced:{" "}
+          {plan.syncTimestamp
+            ? new Date(plan.syncTimestamp).toLocaleString()
+            : "unknown"}
+        </div>
+        {plan.githubCommentId && (
+          <div className="mt-2">
+            <a
+              href={`https://github.com/{REPO_PLACEHOLDER}/issues/comments/${plan.githubCommentId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline text-blue-600 hover:text-blue-800"
+            >
+              View GitHub Comment
+            </a>
+          </div>
+        )}
+        <div className="mt-2 italic text-xs text-yellow-700">
+          Edits must happen on GitHub. To edit in-app, un-sync Plan.
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div className="mt-4 bg-green-50 border border-green-300 rounded p-3 text-green-800">
+      <strong>Plan is stored in the app (Neo4j).</strong>
+      <div className="text-xs mt-1">Source: Neo4j (app database)</div>
+    </div>
+  )
+}
+
+export default async function PlanPage({ params }: Props) {
   const { planId } = params
   const { plan, workflow, issue } = await getPlanWithDetails(planId)
 
@@ -38,6 +86,7 @@ export default async function PlanPage({ params }: PageProps) {
               </CardDescription>
             </div>
           </div>
+          <PlanSyncMetaBlock plan={plan} />
         </CardHeader>
         <CardContent className="space-y-6">
           <div>
@@ -81,6 +130,9 @@ export default async function PlanPage({ params }: PageProps) {
               <div>
                 <p>
                   <strong>Status:</strong> {plan.status}
+                </p>
+                <p>
+                  <strong>Source of Truth:</strong> {plan.sourceOfTruth}
                 </p>
               </div>
               <div>

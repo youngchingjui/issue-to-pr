@@ -57,6 +57,7 @@ export async function labelEventAsPlan(
      SET e:Plan
      SET e.status = $status
      SET e.version = $version
+     SET e.source = "neo4j"
      RETURN e`,
     { eventId, status, version }
   )
