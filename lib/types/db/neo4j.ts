@@ -6,6 +6,7 @@ import {
   issueSchema as appIssueSchema,
   llmResponseSchema as appLLMResponseSchema,
   planSchema as appPlanSchema,
+  repoSettingsSchema as appRepoSettingsSchema,
   reviewCommentSchema as appReviewCommentSchema,
   statusEventSchema as appStatusEventSchema,
   systemPromptSchema as appSystemPromptSchema,
@@ -151,3 +152,13 @@ export function isLLMResponseWithPlan(
 ): event is LLMResponseWithPlan {
   return llmResponseWithPlanSchema.safeParse(event).success
 }
+
+// ---- Repo Settings (repository-level) ----
+export const repoSettingsSchema = appRepoSettingsSchema.merge(
+  z.object({
+    // Ensure Neo4j temporal type is preserved while at repository layer
+    lastUpdated: z.instanceof(DateTime),
+  })
+)
+
+export type RepoSettings = z.infer<typeof repoSettingsSchema>

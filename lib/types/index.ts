@@ -200,6 +200,25 @@ export const settingsSchema = z.object({
   // Add more user-specific settings here as needed
 })
 
+// ---- Repo-level Settings Schema ----
+export const environmentEnum = z
+  .enum(["typescript", "python"])
+  .describe(
+    "The environment to use for the repository. e.g. 'typescript' or 'python'"
+  )
+
+export const repoSettingsSchema = z.object({
+  environment: environmentEnum.optional(),
+  setupCommands: z
+    .string()
+    .optional()
+    .describe(
+      "Setup commands to run when the repository is cloned. e.g. ['npm install', 'pip install -r requirements.txt']"
+    ),
+  lastUpdated: z.date(),
+})
+export type RepoSettings = z.infer<typeof repoSettingsSchema>
+
 // Blog Posts
 export const blogPostSchema = z.object({
   slug: z.string().optional(),
@@ -212,6 +231,7 @@ export const blogPostSchema = z.object({
 export type AnyEvent = z.infer<typeof anyEventSchema>
 export type BaseEvent = z.infer<typeof baseEventSchema>
 export type BlogPost = z.infer<typeof blogPostSchema>
+export type Environment = z.infer<typeof environmentEnum>
 export type ErrorEvent = z.infer<typeof errorEventSchema>
 export type EventTypes = z.infer<typeof eventTypes>
 export type Issue = z.infer<typeof issueSchema>

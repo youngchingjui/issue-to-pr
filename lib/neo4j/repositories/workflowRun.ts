@@ -1,7 +1,8 @@
 import { int, Integer, ManagedTransaction, Node } from "neo4j-driver"
 import { ZodError } from "zod"
 
-import { WorkflowRun as AppWorkflowRun, Issue as AppIssue } from "@/lib/types"
+import { toAppIssue } from "@/lib/neo4j/repositories/issue"
+import { Issue as AppIssue, WorkflowRun as AppWorkflowRun } from "@/lib/types"
 import {
   AnyEvent,
   anyEventSchema,
@@ -14,7 +15,6 @@ import {
   WorkflowRunState,
   workflowRunStateSchema,
 } from "@/lib/types/db/neo4j"
-import { toAppIssue } from "@/lib/neo4j/repositories/issue"
 
 export async function create(
   tx: ManagedTransaction,
@@ -69,8 +69,15 @@ export async function listAll(
     const run = workflowRunSchema.parse(record.get("w").properties)
     const state = workflowRunStateSchema.safeParse(record.get("state"))
     const issueNode = record.get("i")
-    const issueVal = issueNode && issueNode.properties ? toAppIssue(issueSchema.parse(issueNode.properties)) : undefined
-    return { ...run, state: state.success ? state.data : "completed", issue: issueVal }
+    const issueVal =
+      issueNode && issueNode.properties
+        ? toAppIssue(issueSchema.parse(issueNode.properties))
+        : undefined
+    return {
+      ...run,
+      state: state.success ? state.data : "completed",
+      issue: issueVal,
+    }
   })
 }
 
@@ -97,8 +104,15 @@ export async function listForIssue(
     const run = workflowRunSchema.parse(record.get("w").properties)
     const state = workflowRunStateSchema.safeParse(record.get("state"))
     const issueNode = record.get("i")
-    const issueVal = issueNode && issueNode.properties ? toAppIssue(issueSchema.parse(issueNode.properties)) : undefined
-    return { ...run, state: state.success ? state.data : "completed", issue: issueVal }
+    const issueVal =
+      issueNode && issueNode.properties
+        ? toAppIssue(issueSchema.parse(issueNode.properties))
+        : undefined
+    return {
+      ...run,
+      state: state.success ? state.data : "completed",
+      issue: issueVal,
+    }
   })
 }
 

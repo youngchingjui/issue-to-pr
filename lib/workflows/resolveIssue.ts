@@ -21,6 +21,7 @@ import {
   getPlanWithDetails,
   listPlansForIssue,
 } from "@/lib/neo4j/services/plan"
+import { getRepositorySettings } from "@/lib/neo4j/services/repository"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
 import {
   createBranchTool,
@@ -31,7 +32,7 @@ import {
   createSyncBranchTool,
   createWriteFileContentTool,
 } from "@/lib/tools"
-import { Plan } from "@/lib/types"
+import { Environment, Plan, RepoSettings } from "@/lib/types"
 import {
   GitHubIssue,
   GitHubRepository,
@@ -49,7 +50,7 @@ interface ResolveIssueParams {
   jobId: string
   createPR?: boolean
   planId?: string
-  environment?: "typescript" | "python"
+  environment?: Environment
   installCommand?: string
 }
 
@@ -73,7 +74,11 @@ export const resolveIssue = async ({
 
   let userPermissions: RepoPermissions | null = null
 
+  const repoFullName = repoFullNameSchema.parse(repository.full_name)
   try {
+    const repoSettings: RepoSettings | null =
+      await getRepositorySettings(repoFullName)
+
     // Emit workflow start event
     await initializeWorkflowRun({
       id: workflowId,
@@ -113,11 +118,20 @@ export const resolveIssue = async ({
       workingBranch: repository.default_branch,
     })
 
-    // ===== Python environment install step =====
-    if (environment === "python") {
+    // ===== Python/Other environment install step =====
+    // choose environment/commands from params or repo settings
+    let resolvedEnvironment = environment
+    let resolvedSetupCommands: string = ""
+    if (!resolvedEnvironment && repoSettings?.environment)
+      resolvedEnvironment = repoSettings.environment
+    if (repoSettings?.setupCommands && repoSettings.setupCommands.length) {
+      resolvedSetupCommands = repoSettings.setupCommands
+    }
+
+    // Handle python and setup commands if present
+    if (resolvedEnvironment === "python") {
       const fs = await import("fs/promises")
       const path = await import("path")
-      // Check for virtual environment
       let venvExists = false
       const venvDir = path.join(baseDir, PYTHON_VENV_NAME)
       try {
@@ -146,8 +160,10 @@ export const resolveIssue = async ({
           throw new Error("Virtual environment creation failed")
         }
       }
-      // Use venv's pip
-      const command = installCommand || PYTHON_DEFAULT_INSTALL_CMD(baseDir)
+      // install command: arg overrides, then repo settings, then default
+      let command = installCommand
+      if (!command && resolvedSetupCommands) command = resolvedSetupCommands
+      if (!command) command = PYTHON_DEFAULT_INSTALL_CMD(baseDir)
       await createStatusEvent({
         workflowId,
         content: `Detected Python environment. Running install command: ${command}`,
@@ -166,8 +182,30 @@ export const resolveIssue = async ({
         })
         throw new Error("Dependency installation failed")
       }
+    } else if (resolvedSetupCommands.length) {
+      // generic setup commands (other than python)
+      for (const cmd of resolvedSetupCommands) {
+        await createStatusEvent({
+          workflowId,
+          content: `Running setup command: ${cmd}`,
+        })
+        try {
+          await execPromise(cmd, { cwd: baseDir })
+        } catch (err) {
+          await createErrorEvent({
+            workflowId,
+            content: `Setup command failed: ${err}`,
+          })
+          await createWorkflowStateEvent({
+            workflowId,
+            state: "error",
+            content: `Setup command failed: ${err}`,
+          })
+          throw new Error(`Setup command failed: ${err}`)
+        }
+      }
     }
-    // ===== End python environment install step =====
+    // ===== End environment/setup step =====
 
     // Get token from session for authenticated git push
     let sessionToken: string | undefined = undefined

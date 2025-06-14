@@ -33,7 +33,7 @@ interface GithubPermissions {
 
 export async function checkRepoPermissions(
   repoFullName: string
-): Promise<RepoPermissions> {
+): Promise<RepoPermissions & { isCollaborator: boolean }> {
   try {
     const octokit = (await getOctokit()) as ExtendedOctokit | null
     if (!octokit) {
@@ -41,11 +41,13 @@ export async function checkRepoPermissions(
         canPush: false,
         canCreatePR: false,
         reason: "No GitHub authentication found",
+        isCollaborator: false,
       }
     }
 
     let canPush = false
     let canCreatePR = false
+    let isCollaborator = false
 
     if (octokit.authType === "user") {
       // OAuth user: rely on repository.permissions
@@ -59,6 +61,14 @@ export async function checkRepoPermissions(
       const repoPerms = (repoData.permissions || {}) as GithubPermissions
       canPush = repoPerms.push || repoPerms.admin || false
       canCreatePR = repoPerms.pull || repoPerms.admin || false
+
+      // Additional check for collaborator
+      const { status } = await octokit.rest.repos.checkCollaborator({
+        owner,
+        repo,
+        username: repoData.owner.login,
+      })
+      isCollaborator = status === 204
     } else {
       // GitHub App: rely on fine-grained installation permissions
       const installationPerms = octokit.installationPermissions
@@ -67,8 +77,10 @@ export async function checkRepoPermissions(
       const prPerm = installationPerms?.pull_requests || "none"
 
       canPush = contentsPerm === "write" || contentsPerm === "admin"
-      // Creating a PR requires at minimum pull_requests:write OR contents write
       canCreatePR = prPerm === "write" || prPerm === "admin" || canPush === true
+
+      // App installs should always have some level of access, treat as collaborator
+      isCollaborator = canPush || canCreatePR
     }
 
     if (!canPush && !canCreatePR) {
@@ -77,6 +89,7 @@ export async function checkRepoPermissions(
         canCreatePR,
         reason:
           "Insufficient permissions. User needs push access to create branches and pull request access to create PRs.",
+        isCollaborator: false,
       }
     }
 
@@ -85,6 +98,7 @@ export async function checkRepoPermissions(
       canCreatePR,
       reason:
         canPush && canCreatePR ? undefined : "Limited permissions available",
+      isCollaborator,
     }
   } catch (error) {
     console.error("Error checking repository permissions:", error)
@@ -92,6 +106,7 @@ export async function checkRepoPermissions(
       canPush: false,
       canCreatePR: false,
       reason: `Failed to check permissions: ${error}`,
+      isCollaborator: false,
     }
   }
 }
