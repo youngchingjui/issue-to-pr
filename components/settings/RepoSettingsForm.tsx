@@ -6,6 +6,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { setRepositorySettings as saveRepoSettings } from "@/lib/neo4j/services/repository"
 import { Environment, RepoSettings, repoSettingsSchema } from "@/lib/types"
 import { RepoSettingsUpdateRequestSchema } from "@/lib/types/api/schemas"
 import { RepoFullName } from "@/lib/types/github"
@@ -29,22 +30,17 @@ export default function RepoSettingsForm({
     setErrMsg(null)
     setSuccessMsg(null)
     try {
-      const body = RepoSettingsUpdateRequestSchema.parse({
-        environment: settings.environment,
-        setupCommands: settings.setupCommands,
+      const validated = repoSettingsSchema.parse({
+        ...RepoSettingsUpdateRequestSchema.parse({
+          environment: settings.environment,
+          setupCommands: settings.setupCommands,
+        }),
+        lastUpdated: new Date(),
       })
 
-      const res = await fetch(
-        `/api/repository/${repoFullName.fullName}/settings`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        }
-      )
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || "Failed to save settings")
-      setSettings(repoSettingsSchema.parse(json))
+      await saveRepoSettings(repoFullName, validated)
+
+      setSettings(validated)
       setSuccessMsg("Settings saved!")
     } catch (err: unknown) {
       if (err instanceof Error) {

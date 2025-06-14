@@ -1,3 +1,5 @@
+"use server"
+
 import { DateTime } from "neo4j-driver"
 
 import * as repoRepo from "@/lib/neo4j/repositories/repository"
