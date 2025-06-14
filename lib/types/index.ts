@@ -210,12 +210,12 @@ export const environmentEnum = z
 export const repoSettingsSchema = z.object({
   environment: environmentEnum.optional(),
   setupCommands: z
-    .array(z.string())
-    .default([])
+    .string()
+    .optional()
     .describe(
       "Setup commands to run when the repository is cloned. e.g. ['npm install', 'pip install -r requirements.txt']"
     ),
-  lastUpdated: z.date().default(new Date()),
+  lastUpdated: z.date().optional(),
 })
 export type RepoSettings = z.infer<typeof repoSettingsSchema>
 

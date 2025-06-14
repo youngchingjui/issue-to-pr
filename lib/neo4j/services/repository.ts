@@ -1,32 +1,17 @@
 "use server"
 
-import { DateTime } from "neo4j-driver"
-
 import { n4j } from "@/lib/neo4j/client"
 import * as repoRepo from "@/lib/neo4j/repositories/repository"
 import { RepoSettings as AppRepoSettings } from "@/lib/types"
-import {
-  RepoSettings as DbRepoSettings,
-  repoSettingsSchema as dbRepoSettingsSchema,
-} from "@/lib/types/db/neo4j"
+import { RepoSettings as DbRepoSettings } from "@/lib/types/db/neo4j"
 import { RepoFullName } from "@/lib/types/github"
 
 // Convert Neo4j temporal types -> JS primitives
 export const toAppRepoSettings = (db: DbRepoSettings): AppRepoSettings => {
   return {
     ...db,
-    lastUpdated: db.lastUpdated.toStandardDate(),
+    lastUpdated: db.lastUpdated ? db.lastUpdated.toStandardDate() : undefined,
   }
-}
-
-// Convert JS primitives -> Neo4j temporal types
-export const toDbRepoSettings = (app: AppRepoSettings): DbRepoSettings => {
-  const db = {
-    ...app,
-    lastUpdated: DateTime.fromStandardDate(app.lastUpdated),
-  } as DbRepoSettings
-  // Ensure we satisfy db schema
-  return dbRepoSettingsSchema.parse(db)
 }
 
 export async function getRepositorySettings(
@@ -48,11 +33,10 @@ export async function setRepositorySettings(
   repoFullName: RepoFullName,
   settings: AppRepoSettings
 ): Promise<void> {
-  const dbSettings = toDbRepoSettings(settings)
   const session = await n4j.getSession()
   try {
     await session.executeWrite((tx) =>
-      repoRepo.setRepositorySettings(tx, repoFullName.fullName, dbSettings)
+      repoRepo.setRepositorySettings(tx, repoFullName.fullName, settings)
     )
   } finally {
     await session.close()

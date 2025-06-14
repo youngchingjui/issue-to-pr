@@ -31,11 +31,14 @@ export async function setRepositorySettings(
   repoFullName: string,
   settings: RepoSettings
 ): Promise<void> {
+  // Exclude lastUpdated (if present) so we can pass the rest directly
+  const { lastUpdated: _ignored, ...rest } = settings
   await tx.run(
     `
     MERGE (r:${Labels.Repository} {fullName: $repoFullName})-[:HAS_SETTINGS]->(s:${Labels.Settings})
-    SET s += $settings
+    SET s += $settings,
+        s.lastUpdated = datetime()
     `,
-    { repoFullName, settings }
+    { repoFullName, settings: rest }
   )
 }

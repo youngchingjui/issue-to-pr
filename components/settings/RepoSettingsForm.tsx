@@ -86,16 +86,8 @@ export default function RepoSettingsForm({
           Setup Commands (one per line)
         </label>
         <Textarea
-          value={settings.setupCommands.join("\n")}
-          onChange={(e) =>
-            handleChange(
-              "setupCommands",
-              e.target.value
-                .split("\n")
-                .map((s) => s.trim())
-                .filter(Boolean)
-            )
-          }
+          value={settings.setupCommands || ""}
+          onChange={(e) => handleChange("setupCommands", e.target.value)}
           rows={4}
           disabled={loading}
         />
