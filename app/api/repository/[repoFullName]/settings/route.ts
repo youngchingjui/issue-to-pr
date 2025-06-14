@@ -1,13 +1,13 @@
 import { NextRequest } from "next/server"
-import { getServerSession } from "next-auth"
 
-import { authOptions } from "@/lib/auth/config"
+import { auth } from "@/auth"
 import { checkRepoPermissions } from "@/lib/github/users"
 import {
   getRepositorySettings,
   setRepositorySettings,
-} from "@/lib/neo4j/repositories/repository"
+} from "@/lib/neo4j/services/repository"
 import { RepoSettings, repoSettingsSchema } from "@/lib/types"
+import { repoFullNameSchema } from "@/lib/types/github"
 
 // Helper: Extract repoFullName from Next.js dynamic route
 function extractRepoFullName(param: string | undefined): string | null {
@@ -24,13 +24,15 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { repoFullName: string } }
 ) {
-  const repoFullName = extractRepoFullName(params.repoFullName)
-  if (!repoFullName) {
+  const repoFullNameRaw = extractRepoFullName(params.repoFullName)
+  const getParsed = repoFullNameSchema.safeParse(repoFullNameRaw)
+  if (!getParsed.success) {
     return new Response(
       JSON.stringify({ error: "Missing or invalid repoFullName" }),
       { status: 400 }
     )
   }
+  const repoFullName = getParsed.data.fullName
   const settings = await getRepositorySettings(repoFullName)
   if (!settings) {
     // Return default if not set
@@ -45,15 +47,17 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: { repoFullName: string } }
 ) {
-  const repoFullName = extractRepoFullName(params.repoFullName)
-  if (!repoFullName) {
+  const repoFullNameRaw = extractRepoFullName(params.repoFullName)
+  const patchParsed = repoFullNameSchema.safeParse(repoFullNameRaw)
+  if (!patchParsed.success) {
     return new Response(
       JSON.stringify({ error: "Missing or invalid repoFullName" }),
       { status: 400 }
     )
   }
+  const repoFullName = patchParsed.data.fullName
   // Auth/session check (only allow repo collaborators/owners)
-  const session = await getServerSession(authOptions)
+  const session = await auth()
   if (!session) {
     return new Response(JSON.stringify({ error: "Not authenticated" }), {
       status: 401,

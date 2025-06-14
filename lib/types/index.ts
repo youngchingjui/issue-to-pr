@@ -201,8 +201,10 @@ export const settingsSchema = z.object({
 })
 
 // ---- Repo-level Settings Schema ----
+export const environmentEnum = z.enum(["typescript", "python"])
+
 export const repoSettingsSchema = z.object({
-  environments: z.array(z.string()).default([]), // e.g. ["node", "python3.9"]
+  environment: environmentEnum.optional(),
   setupCommands: z.array(z.string()).default([]), // e.g. ["npm install", "pip install -r requirements.txt"]
   lastUpdated: z.date().default(new Date()),
 })
@@ -220,6 +222,7 @@ export const blogPostSchema = z.object({
 export type AnyEvent = z.infer<typeof anyEventSchema>
 export type BaseEvent = z.infer<typeof baseEventSchema>
 export type BlogPost = z.infer<typeof blogPostSchema>
+export type Environment = z.infer<typeof environmentEnum>
 export type ErrorEvent = z.infer<typeof errorEventSchema>
 export type EventTypes = z.infer<typeof eventTypes>
 export type Issue = z.infer<typeof issueSchema>

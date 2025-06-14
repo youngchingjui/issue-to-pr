@@ -1,5 +1,5 @@
 import { n4j } from "@/lib/neo4j/client"
-import { RepoSettings, repoSettingsSchema } from "@/lib/types"
+import { RepoSettings, repoSettingsSchema } from "@/lib/types/db/neo4j"
 
 // Get repository settings, with fallback for missing node or missing settings
 export async function getRepositorySettings(
@@ -8,18 +8,22 @@ export async function getRepositorySettings(
   const session = await n4j.getSession()
   try {
     const result = await session.run(
-      "MATCH (r:Repository {fullName: $repoFullName}) RETURN r.settings AS settings LIMIT 1",
+      `
+      MATCH (r:Repository {fullName: $repoFullName})-[:HAS_SETTINGS]->(s:RepoSettings)
+      RETURN properties(s) AS settings
+      LIMIT 1
+      `,
       { repoFullName }
     )
     const settings = result.records[0]?.get("settings")
-    if (settings) return repoSettingsSchema.parse(settings)
-    return null
+    if (!settings) return null
+    return repoSettingsSchema.parse(settings)
   } finally {
     await session.close()
   }
 }
 
-// Set repository settings
+// Set repository settings (stored on a separate RepoSettings node)
 export async function setRepositorySettings(
   repoFullName: string,
   settings: RepoSettings
@@ -27,7 +31,11 @@ export async function setRepositorySettings(
   const session = await n4j.getSession()
   try {
     await session.run(
-      "MATCH (r:Repository {fullName: $repoFullName}) SET r.settings = $settings",
+      `
+      MATCH (r:Repository {fullName: $repoFullName})
+      MERGE (r)-[:HAS_SETTINGS]->(s:RepoSettings)
+      SET s += $settings
+      `,
       { repoFullName, settings }
     )
   } finally {

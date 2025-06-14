@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { RepoSettings, repoSettingsSchema } from "@/lib/types"
+import { Environment, RepoSettings, repoSettingsSchema } from "@/lib/types"
 
 function repoFullNameFromParams(params: { username: string; repo: string }) {
   return `${params.username}/${params.repo}`
@@ -46,7 +46,9 @@ export default function RepoSettingsPage() {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            environments: settings?.environments || [],
+            ...(settings?.environment
+              ? { environment: settings.environment }
+              : {}),
             setupCommands: settings?.setupCommands || [],
           }),
         }
@@ -90,19 +92,14 @@ export default function RepoSettingsPage() {
       >
         <div className="mb-4">
           <label className="block mb-2 font-medium">
-            Environments (comma separated)
+            Environment (typescript or python)
           </label>
           <Input
-            value={settings.environments.join(", ")}
+            value={settings.environment || ""}
             onChange={(e) =>
-              handleChange(
-                "environments",
-                e.target.value
-                  .split(",")
-                  .map((s) => s.trim())
-                  .filter(Boolean)
-              )
+              handleChange("environment", e.target.value as Environment)
             }
+            placeholder="typescript or python"
             disabled={loading}
           />
         </div>

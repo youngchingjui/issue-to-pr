@@ -12,7 +12,6 @@ import { getAuthToken } from "@/lib/github"
 import { getIssueComments } from "@/lib/github/issues"
 import { checkRepoPermissions } from "@/lib/github/users"
 import { langfuse } from "@/lib/langfuse"
-import { getRepositorySettings } from "@/lib/neo4j/repositories/repository"
 import {
   createErrorEvent,
   createStatusEvent,
@@ -22,6 +21,7 @@ import {
   getPlanWithDetails,
   listPlansForIssue,
 } from "@/lib/neo4j/services/plan"
+import { getRepositorySettings } from "@/lib/neo4j/services/repository"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
 import {
   createBranchTool,
@@ -32,7 +32,7 @@ import {
   createSyncBranchTool,
   createWriteFileContentTool,
 } from "@/lib/tools"
-import { Plan, RepoSettings } from "@/lib/types"
+import { Environment, Plan, RepoSettings } from "@/lib/types"
 import {
   GitHubIssue,
   GitHubRepository,
@@ -50,7 +50,7 @@ interface ResolveIssueParams {
   jobId: string
   createPR?: boolean
   planId?: string
-  environment?: "typescript" | "python"
+  environment?: Environment
   installCommand?: string
 }
 
@@ -124,15 +124,8 @@ export const resolveIssue = async ({
     // choose environment/commands from params or repo settings
     let resolvedEnvironment = environment
     let resolvedSetupCommands: string[] = []
-    if (
-      !resolvedEnvironment &&
-      repoSettings?.environments &&
-      repoSettings.environments.length
-    )
-      resolvedEnvironment = repoSettings.environments[0] as
-        | "python"
-        | "typescript"
-        | string
+    if (!resolvedEnvironment && repoSettings?.environment)
+      resolvedEnvironment = repoSettings.environment
     if (repoSettings?.setupCommands && repoSettings.setupCommands.length) {
       resolvedSetupCommands = repoSettings.setupCommands.slice()
     }
