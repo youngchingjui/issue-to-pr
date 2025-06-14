@@ -2,6 +2,7 @@
 
 import { DateTime } from "neo4j-driver"
 
+import { n4j } from "@/lib/neo4j/client"
 import * as repoRepo from "@/lib/neo4j/repositories/repository"
 import { RepoSettings as AppRepoSettings } from "@/lib/types"
 import {
@@ -31,9 +32,16 @@ export const toDbRepoSettings = (app: AppRepoSettings): DbRepoSettings => {
 export async function getRepositorySettings(
   repoFullName: RepoFullName
 ): Promise<AppRepoSettings | null> {
-  const db = await repoRepo.getRepositorySettings(repoFullName.fullName)
-  if (!db) return null
-  return toAppRepoSettings(db)
+  const session = await n4j.getSession()
+  try {
+    const db = await session.executeRead((tx) =>
+      repoRepo.getRepositorySettings(tx, repoFullName.fullName)
+    )
+    if (!db) return null
+    return toAppRepoSettings(db)
+  } finally {
+    await session.close()
+  }
 }
 
 export async function setRepositorySettings(
@@ -41,5 +49,12 @@ export async function setRepositorySettings(
   settings: AppRepoSettings
 ): Promise<void> {
   const dbSettings = toDbRepoSettings(settings)
-  await repoRepo.setRepositorySettings(repoFullName.fullName, dbSettings)
+  const session = await n4j.getSession()
+  try {
+    await session.executeWrite((tx) =>
+      repoRepo.setRepositorySettings(tx, repoFullName.fullName, dbSettings)
+    )
+  } finally {
+    await session.close()
+  }
 }
