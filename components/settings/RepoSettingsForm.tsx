@@ -4,10 +4,21 @@ import { Loader2 } from "lucide-react"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { setRepositorySettings as saveRepoSettings } from "@/lib/neo4j/services/repository"
-import { Environment, RepoSettings, repoSettingsSchema } from "@/lib/types"
+import {
+  Environment,
+  environmentEnum,
+  RepoSettings,
+  repoSettingsSchema,
+} from "@/lib/types"
 import { RepoSettingsUpdateRequestSchema } from "@/lib/types/api/schemas"
 import { RepoFullName } from "@/lib/types/github"
 
@@ -69,22 +80,28 @@ export default function RepoSettingsForm({
       }}
     >
       <div className="mb-4">
-        <label className="block mb-2 font-medium">
-          Environment (typescript or python)
-        </label>
-        <Input
-          value={settings.environment || ""}
-          onChange={(e) =>
-            handleChange("environment", e.target.value as Environment)
+        <label className="block mb-2 font-medium">Environment</label>
+        <Select
+          value={settings.environment ?? ""}
+          onValueChange={(value) =>
+            handleChange("environment", value as Environment)
           }
-          placeholder="typescript or python"
           disabled={loading}
-        />
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select environment" />
+          </SelectTrigger>
+          <SelectContent>
+            {environmentEnum.options.map((opt) => (
+              <SelectItem key={opt} value={opt}>
+                {opt}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="mb-4">
-        <label className="block mb-2 font-medium">
-          Setup Commands (one per line)
-        </label>
+        <label className="block mb-2 font-medium">Setup Commands</label>
         <Textarea
           value={settings.setupCommands || ""}
           onChange={(e) => handleChange("setupCommands", e.target.value)}
