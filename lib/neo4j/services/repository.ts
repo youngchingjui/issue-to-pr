@@ -6,6 +6,7 @@ import {
   RepoSettings as DbRepoSettings,
   repoSettingsSchema as dbRepoSettingsSchema,
 } from "@/lib/types/db/neo4j"
+import { RepoFullName } from "@/lib/types/github"
 
 // Convert Neo4j temporal types -> JS primitives
 export const toAppRepoSettings = (db: DbRepoSettings): AppRepoSettings => {
@@ -26,17 +27,17 @@ export const toDbRepoSettings = (app: AppRepoSettings): DbRepoSettings => {
 }
 
 export async function getRepositorySettings(
-  repoFullName: string
+  repoFullName: RepoFullName
 ): Promise<AppRepoSettings | null> {
-  const db = await repoRepo.getRepositorySettings(repoFullName)
+  const db = await repoRepo.getRepositorySettings(repoFullName.fullName)
   if (!db) return null
   return toAppRepoSettings(db)
 }
 
 export async function setRepositorySettings(
-  repoFullName: string,
+  repoFullName: RepoFullName,
   settings: AppRepoSettings
 ): Promise<void> {
   const dbSettings = toDbRepoSettings(settings)
-  await repoRepo.setRepositorySettings(repoFullName, dbSettings)
+  await repoRepo.setRepositorySettings(repoFullName.fullName, dbSettings)
 }

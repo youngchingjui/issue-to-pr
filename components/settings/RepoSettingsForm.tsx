@@ -8,10 +8,11 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Environment, RepoSettings, repoSettingsSchema } from "@/lib/types"
 import { RepoSettingsUpdateRequestSchema } from "@/lib/types/api/schemas"
+import { RepoFullName } from "@/lib/types/github"
 
 interface RepoSettingsFormProps {
   initialSettings: RepoSettings
-  repoFullName: string
+  repoFullName: RepoFullName
 }
 
 export default function RepoSettingsForm({
@@ -28,17 +29,19 @@ export default function RepoSettingsForm({
     setErrMsg(null)
     setSuccessMsg(null)
     try {
-      const [owner, repo] = repoFullName.split("/")
       const body = RepoSettingsUpdateRequestSchema.parse({
         environment: settings.environment,
         setupCommands: settings.setupCommands,
       })
 
-      const res = await fetch(`/api/repository/${owner}/${repo}/settings`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      })
+      const res = await fetch(
+        `/api/repository/${repoFullName.fullName}/settings`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }
+      )
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || "Failed to save settings")
       setSettings(repoSettingsSchema.parse(json))

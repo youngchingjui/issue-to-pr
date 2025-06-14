@@ -28,7 +28,6 @@ export type AlignmentCheckResponse = z.infer<
 >
 
 // Repository Settings
-// We omit server-only fields (e.g. lastUpdated) when accepting client requests.
 export const RepoSettingsUpdateRequestSchema = repoSettingsSchema.omit({
   lastUpdated: true,
 })
