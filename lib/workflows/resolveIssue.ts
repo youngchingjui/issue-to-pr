@@ -3,6 +3,9 @@
 // All the agents will share the same trace
 // They can also all access the same data, such as the issue, the codebase, etc.
 
+import { exec } from "child_process"
+import { promisify } from "util"
+
 import { CoderAgent } from "@/lib/agents/coder"
 import { createDirectoryTree } from "@/lib/fs"
 import { getAuthToken } from "@/lib/github"
@@ -36,8 +39,6 @@ import {
   RepoPermissions,
 } from "@/lib/types/github"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
-import { exec } from "child_process"
-import { promisify } from "util"
 
 const execPromise = promisify(exec)
 
@@ -52,8 +53,22 @@ interface ResolveIssueParams {
   installCommand?: string
 }
 
-export const resolveIssue = async (params: ResolveIssueParams) => {
-  const { issue, repository, apiKey, jobId, createPR, planId, environment, installCommand } = params
+// === Python environment configuration constants ===
+const PYTHON_VENV_NAME = ".venv"
+const PYTHON_DEFAULT_INSTALL_CMD = (baseDir: string) =>
+  `${baseDir}/${PYTHON_VENV_NAME}/bin/pip install -r requirements.txt`
+// === End Python environment configuration constants ===
+
+export const resolveIssue = async ({
+  issue,
+  repository,
+  apiKey,
+  jobId,
+  createPR,
+  planId,
+  environment,
+  installCommand,
+}: ResolveIssueParams) => {
   const workflowId = jobId // Keep workflowId alias for clarity if preferred
 
   let userPermissions: RepoPermissions | null = null
@@ -100,7 +115,39 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
 
     // ===== Python environment install step =====
     if (environment === "python") {
-      const command = installCommand || "pip install -r requirements.txt"
+      const fs = await import("fs/promises")
+      const path = await import("path")
+      // Check for virtual environment
+      let venvExists = false
+      const venvDir = path.join(baseDir, PYTHON_VENV_NAME)
+      try {
+        await fs.access(venvDir)
+        venvExists = true
+      } catch {}
+      if (!venvExists) {
+        await createStatusEvent({
+          workflowId,
+          content: `No virtual environment found. Creating one at ${venvDir}`,
+        })
+        try {
+          await execPromise(`python3 -m venv ${PYTHON_VENV_NAME}`, {
+            cwd: baseDir,
+          })
+        } catch (err) {
+          await createErrorEvent({
+            workflowId,
+            content: `Failed to create virtual environment: ${err}`,
+          })
+          await createWorkflowStateEvent({
+            workflowId,
+            state: "error",
+            content: `Virtual environment creation failed: ${err}`,
+          })
+          throw new Error("Virtual environment creation failed")
+        }
+      }
+      // Use venv's pip
+      const command = installCommand || PYTHON_DEFAULT_INSTALL_CMD(baseDir)
       await createStatusEvent({
         workflowId,
         content: `Detected Python environment. Running install command: ${command}`,
@@ -221,7 +268,8 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
         role: "user",
         content: `Github issue comments:\n${comments
           .map(
-            (comment) => `\n- **User**: ${comment.user?.login}\n- **Created At**: ${new Date(comment.created_at).toLocaleString()}\n- **Reactions**: ${comment.reactions ? comment.reactions.total_count : 0}\n- **Comment**: ${comment.body}\n`
+            (comment) =>
+              `\n- **User**: ${comment.user?.login}\n- **Created At**: ${new Date(comment.created_at).toLocaleString()}\n- **Reactions**: ${comment.reactions ? comment.reactions.total_count : 0}\n- **Comment**: ${comment.body}\n`
           )
           .join("\n")}`,
       })
