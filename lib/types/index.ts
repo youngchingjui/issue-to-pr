@@ -205,8 +205,8 @@ export const repoSettingsSchema = z.object({
   environments: z.array(z.string()).default([]), // e.g. ["node", "python3.9"]
   setupCommands: z.array(z.string()).default([]), // e.g. ["npm install", "pip install -r requirements.txt"]
   lastUpdated: z.date().default(new Date()),
-});
-export type RepoSettings = z.infer<typeof repoSettingsSchema>;
+})
+export type RepoSettings = z.infer<typeof repoSettingsSchema>
 
 // Blog Posts
 export const blogPostSchema = z.object({

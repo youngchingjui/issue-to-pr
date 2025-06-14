@@ -12,6 +12,7 @@ import { getAuthToken } from "@/lib/github"
 import { getIssueComments } from "@/lib/github/issues"
 import { checkRepoPermissions } from "@/lib/github/users"
 import { langfuse } from "@/lib/langfuse"
+import { getRepositorySettings } from "@/lib/neo4j/repositories/repository"
 import {
   createErrorEvent,
   createStatusEvent,
@@ -39,7 +40,6 @@ import {
   RepoPermissions,
 } from "@/lib/types/github"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
-import { getRepositorySettings } from "@/lib/neo4j/repositories/repository"
 
 const execPromise = promisify(exec)
 
@@ -76,7 +76,9 @@ export const resolveIssue = async ({
 
   try {
     // ======== Fetch repo-level settings ========
-    let repoSettings: RepoSettings | null = await getRepositorySettings(repository.full_name)
+    const repoSettings: RepoSettings | null = await getRepositorySettings(
+      repository.full_name
+    )
     // ======== End repo-level settings fetch =====
 
     // Emit workflow start event
@@ -122,8 +124,15 @@ export const resolveIssue = async ({
     // choose environment/commands from params or repo settings
     let resolvedEnvironment = environment
     let resolvedSetupCommands: string[] = []
-    if (!resolvedEnvironment && repoSettings?.environments && repoSettings.environments.length)
-      resolvedEnvironment = repoSettings.environments[0] as "python" | "typescript" | string
+    if (
+      !resolvedEnvironment &&
+      repoSettings?.environments &&
+      repoSettings.environments.length
+    )
+      resolvedEnvironment = repoSettings.environments[0] as
+        | "python"
+        | "typescript"
+        | string
     if (repoSettings?.setupCommands && repoSettings.setupCommands.length) {
       resolvedSetupCommands = repoSettings.setupCommands.slice()
     }
@@ -164,8 +173,7 @@ export const resolveIssue = async ({
       let command = installCommand
       if (!command && resolvedSetupCommands.length)
         command = resolvedSetupCommands[0]
-      if (!command)
-        command = PYTHON_DEFAULT_INSTALL_CMD(baseDir)
+      if (!command) command = PYTHON_DEFAULT_INSTALL_CMD(baseDir)
       await createStatusEvent({
         workflowId,
         content: `Detected Python environment. Running install command: ${command}`,
