@@ -74,12 +74,10 @@ export const resolveIssue = async ({
 
   let userPermissions: RepoPermissions | null = null
 
+  const repoFullName = repoFullNameSchema.parse(repository.full_name)
   try {
-    // ======== Fetch repo-level settings ========
-    const repoSettings: RepoSettings | null = await getRepositorySettings(
-      repository.full_name
-    )
-    // ======== End repo-level settings fetch =====
+    const repoSettings: RepoSettings | null =
+      await getRepositorySettings(repoFullName)
 
     // Emit workflow start event
     await initializeWorkflowRun({
