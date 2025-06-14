@@ -10,7 +10,7 @@ import { RepoFullName } from "@/lib/types/github"
 export const toAppRepoSettings = (db: DbRepoSettings): AppRepoSettings => {
   return {
     ...db,
-    lastUpdated: db.lastUpdated ? db.lastUpdated.toStandardDate() : undefined,
+    lastUpdated: db.lastUpdated.toStandardDate(),
   }
 }
 
@@ -35,9 +35,10 @@ export async function setRepositorySettings(
 ): Promise<void> {
   const session = await n4j.getSession()
   try {
-    await session.executeWrite((tx) =>
-      repoRepo.setRepositorySettings(tx, repoFullName.fullName, settings)
-    )
+    await session.executeWrite((tx) => {
+      const { lastUpdated: _ignored, ...rest } = settings
+      repoRepo.setRepositorySettings(tx, repoFullName.fullName, rest)
+    })
   } finally {
     await session.close()
   }

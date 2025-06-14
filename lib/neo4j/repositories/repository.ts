@@ -29,16 +29,16 @@ export async function getRepositorySettings(
 export async function setRepositorySettings(
   tx: ManagedTransaction,
   repoFullName: string,
-  settings: RepoSettings
+  settings: Omit<RepoSettings, "lastUpdated">
 ): Promise<void> {
   // Exclude lastUpdated (if present) so we can pass the rest directly
-  const { lastUpdated: _ignored, ...rest } = settings
+
   await tx.run(
     `
     MERGE (r:${Labels.Repository} {fullName: $repoFullName})-[:HAS_SETTINGS]->(s:${Labels.Settings})
     SET s += $settings,
         s.lastUpdated = datetime()
     `,
-    { repoFullName, settings: rest }
+    { repoFullName, settings }
   )
 }

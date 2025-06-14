@@ -215,7 +215,7 @@ export const repoSettingsSchema = z.object({
     .describe(
       "Setup commands to run when the repository is cloned. e.g. ['npm install', 'pip install -r requirements.txt']"
     ),
-  lastUpdated: z.date().optional(),
+  lastUpdated: z.date(),
 })
 export type RepoSettings = z.infer<typeof repoSettingsSchema>
 
