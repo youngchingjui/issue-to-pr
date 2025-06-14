@@ -201,11 +201,20 @@ export const settingsSchema = z.object({
 })
 
 // ---- Repo-level Settings Schema ----
-export const environmentEnum = z.enum(["typescript", "python"])
+export const environmentEnum = z
+  .enum(["typescript", "python"])
+  .describe(
+    "The environment to use for the repository. e.g. 'typescript' or 'python'"
+  )
 
 export const repoSettingsSchema = z.object({
   environment: environmentEnum.optional(),
-  setupCommands: z.array(z.string()).default([]), // e.g. ["npm install", "pip install -r requirements.txt"]
+  setupCommands: z
+    .array(z.string())
+    .default([])
+    .describe(
+      "Setup commands to run when the repository is cloned. e.g. ['npm install', 'pip install -r requirements.txt']"
+    ),
   lastUpdated: z.date().default(new Date()),
 })
 export type RepoSettings = z.infer<typeof repoSettingsSchema>
