@@ -10,8 +10,18 @@ import { resolveIssue } from "@/lib/workflows/resolveIssue"
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { issueNumber, repoFullName, apiKey, createPR } =
-      ResolveRequestSchema.parse(body)
+    // Patch: extend with environment/installCommand if present on body
+    const {
+      issueNumber,
+      repoFullName,
+      apiKey,
+      createPR,
+      environment,
+      installCommand,
+    } = body
+
+    // Validate
+    const baseBody = ResolveRequestSchema.parse(body)
 
     // Generate a unique job ID
     const jobId = uuidv4()
@@ -20,18 +30,20 @@ export async function POST(request: NextRequest) {
     ;(async () => {
       try {
         // Get full repository details and issue
-        const fullRepo = await getRepoFromString(repoFullName)
+        const fullRepo = await getRepoFromString(baseBody.repoFullName)
         const issue = await getIssue({
-          fullName: repoFullName,
-          issueNumber,
+          fullName: baseBody.repoFullName,
+          issueNumber: baseBody.issueNumber,
         })
 
         await resolveIssue({
           issue,
           repository: fullRepo,
-          apiKey,
+          apiKey: baseBody.apiKey,
           jobId,
-          createPR,
+          createPR: baseBody.createPR,
+          ...(environment && { environment }),
+          ...(installCommand && { installCommand }),
         })
       } catch (error) {
         // Save error status

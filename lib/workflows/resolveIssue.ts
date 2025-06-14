@@ -36,6 +36,10 @@ import {
   RepoPermissions,
 } from "@/lib/types/github"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
+import { exec } from "child_process"
+import { promisify } from "util"
+
+const execPromise = promisify(exec)
 
 interface ResolveIssueParams {
   issue: GitHubIssue
@@ -44,10 +48,12 @@ interface ResolveIssueParams {
   jobId: string
   createPR?: boolean
   planId?: string
+  environment?: "typescript" | "python"
+  installCommand?: string
 }
 
 export const resolveIssue = async (params: ResolveIssueParams) => {
-  const { issue, repository, apiKey, jobId, createPR, planId } = params
+  const { issue, repository, apiKey, jobId, createPR, planId, environment, installCommand } = params
   const workflowId = jobId // Keep workflowId alias for clarity if preferred
 
   let userPermissions: RepoPermissions | null = null
@@ -91,6 +97,30 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
       repoFullName: repository.full_name,
       workingBranch: repository.default_branch,
     })
+
+    // ===== Python environment install step =====
+    if (environment === "python") {
+      const command = installCommand || "pip install -r requirements.txt"
+      await createStatusEvent({
+        workflowId,
+        content: `Detected Python environment. Running install command: ${command}`,
+      })
+      try {
+        await execPromise(command, { cwd: baseDir })
+      } catch (err) {
+        await createErrorEvent({
+          workflowId,
+          content: `Install command failed: ${err}`,
+        })
+        await createWorkflowStateEvent({
+          workflowId,
+          state: "error",
+          content: `Dependency install failed: ${err}`,
+        })
+        throw new Error("Dependency installation failed")
+      }
+    }
+    // ===== End python environment install step =====
 
     // Get token from session for authenticated git push
     let sessionToken: string | undefined = undefined
@@ -191,12 +221,7 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
         role: "user",
         content: `Github issue comments:\n${comments
           .map(
-            (comment) => `
-- **User**: ${comment.user?.login}
-- **Created At**: ${new Date(comment.created_at).toLocaleString()}
-- **Reactions**: ${comment.reactions ? comment.reactions.total_count : 0}
-- **Comment**: ${comment.body}
-`
+            (comment) => `\n- **User**: ${comment.user?.login}\n- **Created At**: ${new Date(comment.created_at).toLocaleString()}\n- **Reactions**: ${comment.reactions ? comment.reactions.total_count : 0}\n- **Comment**: ${comment.body}\n`
           )
           .join("\n")}`,
       })

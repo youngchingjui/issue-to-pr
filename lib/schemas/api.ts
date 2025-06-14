@@ -74,4 +74,6 @@ export const ResolveRequestSchema = z.object({
   apiKey: z.string(),
   postToGithub: z.boolean().default(false),
   createPR: z.boolean().default(false),
+  environment: z.enum(["typescript", "python"]).optional(),
+  installCommand: z.string().optional(),
 })
