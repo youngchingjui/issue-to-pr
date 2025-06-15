@@ -1,5 +1,10 @@
 /**
  * @deprecated
+ * All interface-based types in this file are deprecated in favor of Zod-based schemas/types in concern-based files (e.g., workflow.ts, event.ts).
+ * This file will be removed after migration is complete.
+ */
+/**
+ * @deprecated
  * Use WorkflowEvent from /lib/neo4j/service.ts instead
  */
 export interface SystemPromptData {

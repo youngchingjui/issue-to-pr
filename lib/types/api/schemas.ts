@@ -2,10 +2,12 @@
 
 import { z } from "zod"
 
+import { repoFullNameSchema } from "@/lib/types"
+
 export const PostPlanRequestSchema = z.object({
   issueNumber: z.number(),
   content: z.string().min(1),
-  repoFullName: z.string().min(1),
+  repoFullName: repoFullNameSchema,
 })
 export type PostPlanRequest = z.infer<typeof PostPlanRequestSchema>
 
