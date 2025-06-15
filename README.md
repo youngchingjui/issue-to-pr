@@ -1,89 +1,32 @@
-# Issue To PR
+# issue-to-pr
 
-## Compute & Server Requirements
+... (existing README content above) ...
 
-This application performs complex codebase modifications and AI-powered workflows, which require the following infrastructure considerations:
-
-- **Local file access:** Workflows need direct, persistent access to the entire codebase's file system.
-- **Long-running processes:** Many operations (e.g., LLM agent analysis, recursive code modification) can take several minutes to complete.
-- **Server/Container environment:** These processes must run on a persistent server or within a dedicated Docker container. In upcoming versions, each workflow may be isolated in its own Docker container for reliability and scalability.
-- **Not serverless-compatible:** Serverless hosting platforms such as Vercel, Netlify, or AWS Lambda are **unsupported** and incompatible, due to their short execution timeouts and lack of persistent storage.
-
-**Deployment guidance:**  
-You must run this application on a VM, dedicated server, or persistent cloud instance with sufficient CPU, memory, and disk storage to support long-running AI workloads and file system access.
-
-For more information about running with Docker, see [docker/README.md](./docker/README.md).
-
-## Documentation
-
-For detailed documentation, please visit:
-
-- [Getting Started Guide](docs/setup/getting-started.md)
-- [Architecture Overview](docs/guides/architecture.md)
-- [API Documentation](docs/api/README.md)
-- [Component Documentation](docs/components/README.md)
-
-## Quick Start
+## Local Development Startup
 
 ### Prerequisites
+- Docker
+- Docker Compose
+- Redis (`redis-server` CLI in PATH)
+- Node.js (v14+)
+- pnpm
 
-Before you begin, ensure you have the following installed:
+### To start all backend services:
 
-- Node.js (version 14 or later)
-- pnpm (required) - We use pnpm for its significant advantages:
-  - Much faster installation than npm
-  - Efficient disk space usage through content-addressable storage
-  - Strict dependency management preventing phantom dependencies
-  - Dramatically improved CI/CD build times
-- Redis server
+- Environment variables from `.env.local` (development) or `.env.production.local` (production) are loaded automatically.
+- All required services (Neo4j, Redis if not already running, etc) will be launched automatically.
 
-For detailed setup instructions, see our [Getting Started Guide](docs/setup/getting-started.md).
-
-### Environment Variables
-
-Create a `.env.local` file in the root of your project. See [Configuration Guide](docs/setup/getting-started.md#configuration) for all available options.
-
-Basic configuration:
-
-```env
-AUTH_GITHUB_ID=your_github_client_id
-AUTH_GITHUB_SECRET=your_github_client_secret
 ```
-
-### Development Quick Start
-
-```bash
-# Install dependencies
-pnpm install
-
-# Start development server
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+This launches a cross-platform Node.js service orchestrator (`scripts/start-services.js`) that:
+- Loads env from your .env file
+- Runs Docker Compose for Neo4j and other containers
+- Waits for Neo4j
+- Checks for a local Redis instance and starts it if not running
+- Verifies Redis is responding
 
-## Features
+You may override environment variables as normal. You may also choose to run your own Redis instance before starting, or let the orchestrator start it for you.
 
-- GitHub Authentication (OAuth & App)
-- Repository & Issue Management
-- AI-Powered Code Generation
-- Automated PR Creation
-- Pull Request Review
-
-For detailed feature documentation, see our [User Guide](docs/guides/user-guide.md).
-
----
-
-## Setting your OpenAI API key
-
-Some features require your own OpenAI API key. You can set it on the app's Settings page. This key is stored only in your browser, not on our servers. For instructions, go to **Settings → OpenAI API Key** after logging in.
-
----
-
-## Continuous Integration
-
-Jest tests are now automatically run on every PR and push via GitHub Actions. PRs will show a 'Checks' status based on test results.
-
-## Contributing
-
-Please read our [Contributing Guide](docs/guides/contributing.md) for details on our code of conduct and development process.
+For more, see [`docs/setup/getting-started.md`](docs/setup/getting-started.md).
