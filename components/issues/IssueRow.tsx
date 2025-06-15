@@ -79,13 +79,13 @@ export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
             <span>#{issue.number}</span>
             {issue.user?.login && (
               <>
-                <span>•</span>
+                <span></span>
                 <span>{issue.user.login}</span>
               </>
             )}
-            <span>•</span>
+            <span></span>
             <span>{issue.state}</span>
-            <span>•</span>
+            <span></span>
             <span>
               Updated{" "}
               {formatDistanceToNow(new Date(issue.updated_at), {
