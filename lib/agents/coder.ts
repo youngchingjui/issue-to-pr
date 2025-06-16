@@ -73,17 +73,30 @@ Remember: You are responsible for ALL code changes in this session. Make sure to
 }
 
 export class CoderAgent extends Agent {
+  /**
+   * Accept pre-supplied messages for testing/dev scenarios.
+   * Use with caution: this should not be exposed in prod workflows.
+   */
   constructor({
     createPR = false,
+    messages,
     ...rest
-  }: AgentConstructorParams & { createPR?: boolean }) {
+  }: AgentConstructorParams & { createPR?: boolean; messages?: any[] }) {
     super(rest)
 
-    this.setSystemPrompt(getSystemPrompt({ createPR })).catch((error) => {
-      console.error(
-        "Error initializing PersistentCoderAgent system prompt:",
-        error
-      )
-    })
+    // If test-messages pre-injected, set them; otherwise system prompt is added as usual
+    if (messages && Array.isArray(messages)) {
+      // Bypass system prompt for test/dev
+      // (Assume messages already include wanted system message if needed)
+      // Type-unsafe for now, OK for test/dev
+      this.messages = messages
+    } else {
+      this.setSystemPrompt(getSystemPrompt({ createPR })).catch((error) => {
+        console.error(
+          "Error initializing PersistentCoderAgent system prompt:",
+          error
+        )
+      })
+    }
   }
 }
