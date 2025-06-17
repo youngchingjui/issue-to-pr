@@ -15,9 +15,12 @@
     "lint:prettier": "prettier --check .",
     "lint:tsc": "tsc --noEmit",
     "check:all": "next lint; prettier --check .; tsc --noEmit",
-    "test": "jest --config jest.config.ts",
-    "test:watch": "jest --watch --config jest.config.ts",
-    "test:coverage": "jest --coverage --config jest.config.ts"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:components": "jest --selectProjects dom",
+    "test:node": "jest --selectProjects node",
+    "test:agent": "NODE_OPTIONS='--experimental-vm-modules' jest -c __tests__/config/jest.config.agent.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "4",
@@ -82,6 +85,7 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.4.21",
+    "dotenv": "^16.5.0",
     "eslint": "^8",
     "eslint-config-next": "15.0.3",
     "eslint-config-prettier": "^9.1.0",
@@ -103,5 +107,12 @@
     "workerDirectory": [
       "public"
     ]
+  },
+  "jest": {
+    "projects": [
+      "<rootDir>/__tests__/config/jest.config.dom.ts",
+      "<rootDir>/__tests__/config/jest.config.node.ts"
+    ],
+    "rootDir": "."
   }
 }

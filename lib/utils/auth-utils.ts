@@ -45,9 +45,9 @@ export async function refreshTokenWithLock(token: JWT) {
               Accept: "application/json",
             },
             body: new URLSearchParams({
-              client_id: process.env.AUTH_GITHUB_ID,
-              client_secret: process.env.AUTH_GITHUB_SECRET,
-              refresh_token: token.refresh_token as string,
+              client_id: process.env.AUTH_GITHUB_ID ?? "",
+              client_secret: process.env.AUTH_GITHUB_SECRET ?? "",
+              refresh_token: (token.refresh_token as string) ?? "",
               grant_type: "refresh_token",
             }),
           }

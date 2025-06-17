@@ -1,13 +1,18 @@
-import dynamic from "next/dynamic"
+import nextDynamic from "next/dynamic"
 import Image from "next/image"
 import { redirect } from "next/navigation"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getGithubUser } from "@/lib/github/users"
 
-const ApiKeyInput = dynamic(() => import("@/components/settings/APIKeyInput"), {
-  ssr: false,
-})
+export const dynamic = "force-dynamic"
+
+const ApiKeyInput = nextDynamic(
+  () => import("@/components/settings/APIKeyInput"),
+  {
+    ssr: false,
+  }
+)
 
 export default async function SettingsPage() {
   const user = await getGithubUser()
