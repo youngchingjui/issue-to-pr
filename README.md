@@ -84,6 +84,26 @@ Some features require your own OpenAI API key. You can set it on the app's Setti
 
 Jest tests are now automatically run on every PR and push via GitHub Actions. PRs will show a 'Checks' status based on test results.
 
+## Testing
+
+The project includes several types of tests:
+
+```bash
+# Run all standard tests (unit + integration)
+pnpm test
+
+# Run only component tests
+pnpm test:components
+
+# Run only node tests
+pnpm test:node
+
+# Run agent/LLM tests (requires .env.local)
+pnpm test:agent
+```
+
+For more detailed testing information, see [**tests**/README.md](./__tests__/README.md).
+
 ## Contributing
 
 Please read our [Contributing Guide](docs/guides/contributing.md) for details on our code of conduct and development process.

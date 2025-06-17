@@ -9,6 +9,15 @@ This directory contains automated and manual tests for the project.
 
 ## Running Manual/LLM Tests
 
+### Using npm/pnpm script (Recommended)
+
+```bash
+# Run all agent tests (loads .env.local automatically)
+pnpm test:agent
+```
+
+### Using Jest directly
+
 - To run a specific LLM/manual test:
   ```bash
   npx jest __tests__/llm-lint.llm.test.ts
@@ -21,6 +30,10 @@ This directory contains automated and manual tests for the project.
   ```bash
   npx jest __tests__/llm-lint.llm.test.ts -t "test name"
   ```
+
+## Environment Variables
+
+Agent tests automatically load environment variables from `.env.local` during test setup. Make sure your `.env.local` file contains all required variables for agent tests.
 
 ## Notes
 
