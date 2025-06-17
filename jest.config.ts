@@ -18,6 +18,12 @@ const config: Config = {
   },
   testMatch: ["**/__tests__/**/*.ts?(x)", "**/?(*.)+(spec|test).ts?(x)"],
   coveragePathIgnorePatterns: ["/node_modules/", "/.next/", "/coverage/"],
+  testPathIgnorePatterns: [
+    "/node_modules/",
+    "/.next/",
+    "/coverage/",
+    "\\.llm\\.test\\.ts$", // Exclude LLM/manual tests by default
+  ],
 }
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async

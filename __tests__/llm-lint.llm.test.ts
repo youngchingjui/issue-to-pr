@@ -2,7 +2,7 @@ import { ChatCompletionMessageParam } from "openai/resources/chat/completions"
 
 import { TestAgent } from "@/lib/agents"
 
-import rawMessages from "../../test-utils/mocks/agentTrace.json"
+import rawMessages from "../test-utils/mocks/agentTrace.json"
 
 // Helper: map DB message event to ChatCompletionMessageParam
 function toChatParam(e: Record<string, unknown>): ChatCompletionMessageParam {
