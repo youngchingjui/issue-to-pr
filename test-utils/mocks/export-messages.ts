@@ -17,14 +17,13 @@ async function getDefaultFilename(dir = "test-utils/mocks") {
   }
 }
 
-// Usage: ts-node scripts/export-messages.ts <workflowRunId> [outputFile]
-async function main() {
-  const [, , workflowRunId, outputFile] = process.argv
+// Export messages for a workflowRunId to a file, return the output path
+export async function exportMessages(
+  workflowRunId: string,
+  outputFile?: string
+): Promise<string> {
   if (!workflowRunId) {
-    console.error(
-      "Usage: ts-node scripts/export-messages.ts <workflowRunId> [outputFile]"
-    )
-    process.exit(1)
+    throw new Error("workflowRunId is required")
   }
 
   // Fetch messages from DB
@@ -41,12 +40,5 @@ async function main() {
   }
 
   await fs.writeFile(outPath, JSON.stringify(messages, null, 2))
-  console.log(
-    `Exported ${messages.length} messages from ${workflowRunId} to ${outPath}`
-  )
+  return outPath
 }
-
-main().catch((err) => {
-  console.error(err)
-  process.exit(1)
-})

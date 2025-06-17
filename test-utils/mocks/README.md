@@ -17,3 +17,4 @@ This directory contains static message thread fixtures for use with TestAgent an
 | messages3.json | e5926e2f-acda-4504-8b1c-2493281b426b | Error: Typescript error                               |
 | messages4.json | aea433aa-3bd7-4bf9-ab41-c9fe4c85d387 | Error: Typescript error (cannot use 'any' type)       |
 | messages5.json | 449bd432-988b-428c-9282-e7d50590fa64 | Error: Prettier, Typescript                           |
+| messages6.json |                                      | Test prompt                                           |

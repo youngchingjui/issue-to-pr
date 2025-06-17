@@ -1,8 +1,7 @@
 import { ChatCompletionMessageParam } from "openai/resources/chat/completions"
 
 import { TestAgent } from "@/lib/agents"
-
-import rawMessages from "../test-utils/mocks/agentTrace.json"
+import rawMessages from "@/test-utils/mocks/messages6.json"
 
 // Helper: map DB message event to ChatCompletionMessageParam
 function toChatParam(e: Record<string, unknown>): ChatCompletionMessageParam {
@@ -34,9 +33,9 @@ describe("TestAgent manual LLM test (skipped by default)", () => {
       messages,
       apiKey: process.env.OPENAI_API_KEY,
     })
-    await agent.runWithFunctions()
+    const result = await agent.run()
     // You can inspect agent.messages or assert on the output
-    expect(agent.messages.at(-1)).toBeDefined()
+    expect(result.response).toBeDefined()
     // Optionally: console.log(agent.messages.at(-1))
   })
 })

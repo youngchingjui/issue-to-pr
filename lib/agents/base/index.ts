@@ -289,4 +289,43 @@ export class Agent {
       }
     }
   }
+
+  async run(): Promise<RunResponse & { response: ChatCompletionMessageParam }> {
+    const startTime = new Date()
+
+    // Ensure we have at least one user message after system prompt before generating response
+    const hasSystemPrompt = this.messages.some((m) => m.role === "system")
+    const hasUserMessage = this.messages.some((m) => m.role === "user")
+
+    if (!hasSystemPrompt || !hasUserMessage) {
+      throw new Error(
+        "Cannot generate response: Need both system prompt and at least one user message"
+      )
+    }
+
+    if (!this.llm) {
+      throw new Error("LLM not initialized, please add an API key first")
+    }
+
+    const params: ChatCompletionCreateParamsNonStreaming = {
+      model: this.model,
+      messages: this.messages,
+    }
+
+    if (this.tools.length > 0) {
+      params.tools = this.tools
+    }
+    const response = await this.llm.chat.completions.create(params)
+
+    // Add and track the assistant's response
+    await this.addMessage(response.choices[0].message)
+
+    return {
+      jobId: this.jobId,
+      startTime,
+      endTime: new Date(),
+      messages: this.messages,
+      response: response.choices[0].message,
+    }
+  }
 }
