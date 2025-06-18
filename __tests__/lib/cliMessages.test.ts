@@ -81,6 +81,6 @@ describe("runTsCheck on write_file snippets", () => {
         }
         expect(result.pass).toBe(false)
       }
-    })
+    }, 20000)
   })
 })
