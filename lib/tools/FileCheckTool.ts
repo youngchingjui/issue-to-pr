@@ -4,23 +4,141 @@ import { z } from "zod"
 
 import { createTool } from "@/lib/tools/helper"
 
+// Allow-listed CLI commands that are considered safe, **read-only** code-quality tools.
+// Grouped by language but flattened into a single Set for quick lookup.
+const ALLOWED_COMMANDS = new Set<string>([
+  // JavaScript / TypeScript
+  "eslint",
+  "tsc",
+  "jshint",
+  "jslint",
+  "prettier",
+  "sonarjs",
+  // Python
+  "pylint",
+  "flake8",
+  "pyflakes",
+  "mypy",
+  "black",
+  "isort",
+  "bandit",
+  "pydocstyle",
+  "pyright",
+  // Java
+  "checkstyle",
+  "pmd",
+  "spotbugs",
+  "errorprone",
+  "sonarjava",
+  "archunit",
+  // C# / .NET
+  "stylecop",
+  "fxcop",
+  "roslyn",
+  "sonarcsharp",
+  // C / C++
+  "clang-tidy",
+  "cppcheck",
+  "cpplint",
+  "clang",
+  "coverity",
+  "splint",
+  // Go
+  "golint",
+  "go",
+  "staticcheck",
+  "gosimple",
+  "errcheck",
+  "ineffassign",
+  "govet",
+  "revive",
+  // Ruby
+  "rubocop",
+  "reek",
+  "brakeman",
+  "flog",
+  "flay",
+  // PHP
+  "phpcs",
+  "phpstan",
+  "psalm",
+  "phpmd",
+  // Swift
+  "swiftlint",
+  "swiftformat",
+  // Kotlin
+  "detekt",
+  "ktlint",
+  // Rust
+  "clippy",
+  "rustfmt",
+  "cargo",
+  "cargo-audit",
+  "cargo-deny",
+  // Scala
+  "scalastyle",
+  "scapegoat",
+  "wartremover",
+  "scalafix",
+  // Shell
+  "shellcheck",
+  "shfmt",
+  // Perl
+  "perlcritic",
+  "perltidy",
+  // HTML/CSS
+  "stylelint",
+  "htmlhint",
+  "csslint",
+  "lighthouse",
+  // SQL
+  "sqlfluff",
+  "sqlint",
+  "sqlcheck",
+  // Dart
+  "dartanalyzer",
+  "dart",
+  // Objective-C
+  "oclint",
+  "infer",
+  // Elixir
+  "credo",
+  // Haskell
+  "hlint",
+  // Lua
+  "luacheck",
+  // R
+  "lintr",
+  // Groovy
+  "codenarc",
+  // Erlang
+  "elvis",
+  // Fortran
+  "ftnchek",
+  "fortranlint",
+  // Matlab
+  "mlint",
+  // VHDL/Verilog
+  "verilator",
+  "vhdl-linter",
+  // General / Multi-language
+  "sonarqube",
+  "codacy",
+  "codeclimate",
+  "lgtm",
+  "deepsource",
+])
+
 // Input schema (what the LLM Agent provides)
 const fileCheckParameters = z.object({
   cliCommand: z
     .string()
     .describe(
-      "Full CLI command to run a READ-ONLY code-quality check (eslint, tsc, prettier, etc.). The command must not mutate code (no --fix, --write, etc.). Include the file path(s) to check when applicable."
+      "Full CLI command to run a READ-ONLY code-quality check (eslint, tsc, prettier, etc.). The command must not mutate code (no --fix, --write, etc.). Include the file path(s) to check when applicable. Multi-line commands not allowed."
     ),
 })
 
 const execPromise = promisify(exec)
-
-// Allow list of substrings that can appear in cliCommand
-const ALLOWED_BINS = ["eslint", "tsc", "prettier", "lint", "check"]
-
-function isAllowedCommand(cmd: string): boolean {
-  return ALLOWED_BINS.some((bin) => cmd.includes(bin))
-}
 
 async function handler(
   baseDir: string,
@@ -28,17 +146,28 @@ async function handler(
 ) {
   const { cliCommand } = params
 
-  if (!isAllowedCommand(cliCommand)) {
+  // Reject multi-line commands early. Only single-line commands are allowed.
+  if (/\r|\n/.test(cliCommand)) {
     return {
       stdout: "",
-      stderr:
-        "Command not allowed. Only code-quality commands (eslint, tsc, prettier, lint, check) are permitted.",
+      stderr: "Multi-line commands are not allowed.",
       exitCode: 1,
     }
   }
 
-  // Basic sanitisation to remove potentially dangerous characters
-  const sanitizedCommand = cliCommand.replace(/[^a-zA-Z0-9_\-.:/\s]/g, "")
+  // Extract the first token (the command itself) to validate against allow-list.
+  const firstToken = cliCommand.trim().split(/\s+/)[0]?.toLowerCase()
+
+  if (!firstToken || !ALLOWED_COMMANDS.has(firstToken)) {
+    return {
+      stdout: "",
+      stderr: "Command not allowed. Must be a read-only code-quality tool.",
+      exitCode: 1,
+    }
+  }
+
+  // Basic sanitisation to remove potentially dangerous characters (except space and tab).
+  const sanitizedCommand = cliCommand.replace(/[^a-zA-Z0-9_\-.:/\\ \t]/g, "")
 
   try {
     const { stdout, stderr } = await execPromise(sanitizedCommand, {
