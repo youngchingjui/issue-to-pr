@@ -31,6 +31,7 @@ import {
   createRipgrepSearchTool,
   createSyncBranchTool,
   createWriteFileContentTool,
+  createFileCheckTool, // <-- Added import
 } from "@/lib/tools"
 import { Environment, Plan, RepoSettings } from "@/lib/types"
 import {
@@ -258,6 +259,11 @@ export const resolveIssue = async ({
     coder.addTool(searchCodeTool)
     coder.addTool(branchTool)
     coder.addTool(commitTool)
+
+    // >>>>>>>>>>>>>>>> Add FileCheckTool as a base tool <<<<<<<<<<<<<<<<
+    const fileCheckTool = createFileCheckTool(baseDir)
+    coder.addTool(fileCheckTool)
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     // Add sync and PR tools only if createPR is true AND permissions are sufficient
     let syncBranchTool: ReturnType<typeof createSyncBranchTool> | undefined
