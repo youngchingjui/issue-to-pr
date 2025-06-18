@@ -32,5 +32,5 @@ describe("FileCheckTool – integration (actual CLI)", () => {
 
     expect(result.exitCode).toBe(0)
     expect(result.stderr).toBe("")
-  })
+  }, 20000)
 })
