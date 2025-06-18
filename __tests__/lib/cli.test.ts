@@ -5,7 +5,7 @@ import path from "path"
 import { runTsCheck } from "@/lib/cli"
 
 // __tests__/lib/cli.test.ts
-jest.setTimeout(20_000) // 20 s, before any `it` block
+jest.setTimeout(20000) // 20 s, before any `it` block
 
 describe("runTsCheck", () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "tscheck-test-"))
