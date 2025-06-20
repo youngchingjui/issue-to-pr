@@ -31,7 +31,7 @@ describe("TestAgent manual LLM test", () => {
       messages,
       apiKey: process.env.OPENAI_API_KEY,
     })
-    const result = await agent.run()
+    const result = await agent.runOnce()
     // You can inspect agent.messages or assert on the output
     console.log(result.response)
     expect(result.response).toBeDefined()
