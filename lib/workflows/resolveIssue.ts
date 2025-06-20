@@ -31,6 +31,7 @@ import { createGetFileContentTool } from "@/lib/tools/GetFileContent"
 import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
 import { createSyncBranchTool } from "@/lib/tools/SyncBranchTool"
 import { createWriteFileContentTool } from "@/lib/tools/WriteFileContent"
+import { setupEnv } from "@/lib/tools/setupEnv"
 import { Environment, Plan, RepoSettings } from "@/lib/types"
 import {
   GitHubIssue,
@@ -52,12 +53,6 @@ interface ResolveIssueParams {
   environment?: Environment
   installCommand?: string
 }
-
-// === Python environment configuration constants ===
-const PYTHON_VENV_NAME = ".venv"
-const PYTHON_DEFAULT_INSTALL_CMD = (baseDir: string) =>
-  `${baseDir}/${PYTHON_VENV_NAME}/bin/pip install -r requirements.txt`
-// === End Python environment configuration constants ===
 
 export const resolveIssue = async ({
   issue,
@@ -117,93 +112,23 @@ export const resolveIssue = async ({
       workingBranch: repository.default_branch,
     })
 
-    // ===== Python/Other environment install step =====
-    // choose environment/commands from params or repo settings
+    // ===== Python/Other environment install step (via setupEnv helper) =====
     let resolvedEnvironment = environment
-    let resolvedSetupCommands: string = ""
+    let resolvedSetupCommands: string | string[] = ""
     if (!resolvedEnvironment && repoSettings?.environment)
       resolvedEnvironment = repoSettings.environment
     if (repoSettings?.setupCommands && repoSettings.setupCommands.length) {
       resolvedSetupCommands = repoSettings.setupCommands
     }
-
-    // Handle python and setup commands if present
-    if (resolvedEnvironment === "python") {
-      const fs = await import("fs/promises")
-      const path = await import("path")
-      let venvExists = false
-      const venvDir = path.join(baseDir, PYTHON_VENV_NAME)
-      try {
-        await fs.access(venvDir)
-        venvExists = true
-      } catch {}
-      if (!venvExists) {
-        await createStatusEvent({
-          workflowId,
-          content: `No virtual environment found. Creating one at ${venvDir}`,
-        })
-        try {
-          await execPromise(`python3 -m venv ${PYTHON_VENV_NAME}`, {
-            cwd: baseDir,
-          })
-        } catch (err) {
-          await createErrorEvent({
-            workflowId,
-            content: `Failed to create virtual environment: ${err}`,
-          })
-          await createWorkflowStateEvent({
-            workflowId,
-            state: "error",
-            content: `Virtual environment creation failed: ${err}`,
-          })
-          throw new Error("Virtual environment creation failed")
-        }
-      }
-      // install command: arg overrides, then repo settings, then default
-      let command = installCommand
-      if (!command && resolvedSetupCommands) command = resolvedSetupCommands
-      if (!command) command = PYTHON_DEFAULT_INSTALL_CMD(baseDir)
-      await createStatusEvent({
-        workflowId,
-        content: `Detected Python environment. Running install command: ${command}`,
-      })
-      try {
-        await execPromise(command, { cwd: baseDir })
-      } catch (err) {
-        await createErrorEvent({
-          workflowId,
-          content: `Install command failed: ${err}`,
-        })
-        await createWorkflowStateEvent({
-          workflowId,
-          state: "error",
-          content: `Dependency install failed: ${err}`,
-        })
-        throw new Error("Dependency installation failed")
-      }
-    } else if (resolvedSetupCommands.length) {
-      // generic setup commands (other than python)
-      for (const cmd of resolvedSetupCommands) {
-        await createStatusEvent({
-          workflowId,
-          content: `Running setup command: ${cmd}`,
-        })
-        try {
-          await execPromise(cmd, { cwd: baseDir })
-        } catch (err) {
-          await createErrorEvent({
-            workflowId,
-            content: `Setup command failed: ${err}`,
-          })
-          await createWorkflowStateEvent({
-            workflowId,
-            state: "error",
-            content: `Setup command failed: ${err}`,
-          })
-          throw new Error(`Setup command failed: ${err}`)
-        }
-      }
-    }
+    await setupEnv(baseDir, {
+      environment: resolvedEnvironment,
+      setupCommands: resolvedSetupCommands,
+      installCommand,
+      workflowId,
+      createStatusEvent,
+      createErrorEvent,
+      createWorkflowStateEvent,
+    })
     // ===== End environment/setup step =====
 
     // Get token from session for authenticated git push
