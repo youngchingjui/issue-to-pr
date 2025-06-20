@@ -1,132 +1,80 @@
 // Convenience methods for running git commands in node
-// Returns promises for exec operations
-
-import { exec } from "child_process"
+// All git operations are executed within their repository's Docker container via runInRepoContainer
 import { promises as fs } from "fs"
 import path from "path"
-import util from "util"
-
 import { getCloneUrlWithAccessToken } from "@/lib/utils/utils-common"
+import { runInRepoContainer } from "@/lib/dockerExec"
 
-const execPromise = util.promisify(exec)
+function getRepoFullNameFromPath(dir: string): string {
+  // Simple heuristic: the last two path components
+  // Should be compatible with /tmp/git-repos/owner/repo
+  const parts = dir.split(path.sep).filter(Boolean)
+  return parts.slice(-2).join("/")
+}
 
 export async function checkIfGitExists(dir: string): Promise<boolean> {
-  return await fs
-    .access(path.join(dir, ".git"))
-    .then(() => true)
-    .catch(() => false)
-}
-
-export async function updateToLatest(dir: string): Promise<string> {
-  // Fetches then pulls to latest branch
-  const command = `git fetch && git pull`
-  return new Promise((resolve, reject) => {
-    exec(command, { cwd: dir }, (error, stdout) => {
-      if (error) {
-        return reject(new Error(error.message))
-      }
-      return resolve(stdout)
-    })
-  })
-}
-
-export async function checkIfLocalBranchExists(
-  branchName: string,
-  cwd: string | undefined = undefined
-): Promise<boolean> {
-  // Lists all local branches and greps given branchName
-  const command = `git branch | grep ${branchName}`
-  return new Promise((resolve, reject) => {
-    exec(command, { cwd }, (error, stdout, stderr) => {
-      // grep returns exit code 1 when no matches are found
-      // but other error codes indicate real errors
-      if (error && error.code !== 1) {
-        return reject(new Error(error.message))
-      }
-      if (stderr) {
-        return reject(new Error(stderr))
-      }
-      return resolve(!!stdout && stdout.trim().length > 0)
-    })
-  })
-}
-
-export async function createBranch(
-  branchName: string,
-  cwd: string | undefined = undefined
-): Promise<string> {
-  const command = `git checkout -b ${branchName}`
-  return new Promise((resolve, reject) => {
-    exec(command, { cwd }, (error, stdout) => {
-      if (error) {
-        return reject(new Error(error.message))
-      }
-      return resolve(stdout)
-    })
-  })
-}
-
-export async function pushBranch(
-  branchName: string,
-  cwd: string | undefined = undefined,
-  token?: string,
-  repoFullName?: string
-): Promise<string> {
-  let oldRemoteUrl: string | null = null
   try {
-    if (token && repoFullName) {
-      // Get current origin URL
-      const { stdout: originalUrl } = await execPromise(
-        "git remote get-url origin",
-        { cwd }
-      )
-      oldRemoteUrl = originalUrl.trim()
-      // Set authenticated remote
-      const authenticatedUrl = getCloneUrlWithAccessToken(repoFullName, token)
-      await execPromise(`git remote set-url origin "${authenticatedUrl}"`, {
-        cwd,
-      })
-    }
-    const command = `git push origin ${branchName}`
-    const { stdout } = await execPromise(command, { cwd })
-    return stdout
-  } finally {
-    // Restore the original remote if we changed it
-    if (token && repoFullName && oldRemoteUrl) {
-      try {
-        await execPromise(`git remote set-url origin "${oldRemoteUrl}"`, {
-          cwd,
-        })
-      } catch (e) {
-        // Fail quietly, as this is cleanup
-        console.error(`[ERROR] Failed to restore original remote: ${e}`)
-      }
-    }
+    const { stdout } = await runInRepoContainer(getRepoFullNameFromPath(dir), "test -d .git && echo git_exists", { cwd: "." })
+    return stdout.trim() === "git_exists"
+  } catch {
+    return false
   }
 }
 
-async function executeGitCommand(
-  command: string,
-  dir: string
-): Promise<string> {
-  return new Promise((resolve, reject) => {
-    exec(command, { cwd: dir }, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`[ERROR] Command failed: ${command}\n${error}`)
-        return reject(new Error(`Failed to execute git command: ${error}`))
-      }
-      if (stderr) {
-        console.warn(`[WARNING] Command produced stderr: ${stderr}`)
-      }
-      return resolve(stdout)
-    })
-  })
+export async function updateToLatest(dir: string): Promise<string> {
+  const command = `git fetch && git pull`
+  const { stdout, stderr, code } = await runInRepoContainer(getRepoFullNameFromPath(dir), command, { cwd: "." })
+  if (code !== 0) throw new Error(stderr || "Failed to update repo")
+  return stdout
 }
 
-export async function checkoutBranchQuietly(
-  branchName: string,
-  dir: string
-): Promise<string> {
+export async function checkIfLocalBranchExists(branchName: string, cwd: string | undefined = undefined): Promise<boolean> {
+  const repoFullName = cwd ? getRepoFullNameFromPath(cwd) : undefined
+  if (!repoFullName) throw new Error("Cannot determine repoFullName from cwd")
+  const command = `git branch | grep ${branchName}`
+  const { stdout, stderr, code } = await runInRepoContainer(repoFullName, command, { cwd: "." })
+  // grep returns code 1 if not found
+  if (code === 1) return false
+  if (code !== 0) throw new Error(stderr || "Failed to check branch")
+  return !!stdout && stdout.trim().length > 0
+}
+
+export async function createBranch(branchName: string, cwd: string | undefined = undefined): Promise<string> {
+  const repoFullName = cwd ? getRepoFullNameFromPath(cwd) : undefined
+  if (!repoFullName) throw new Error("Cannot determine repoFullName from cwd")
+  const command = `git checkout -b ${branchName}`
+  const { stdout, stderr, code } = await runInRepoContainer(repoFullName, command, { cwd: "." })
+  if (code !== 0) throw new Error(stderr || `Failed to create branch`)
+  return stdout
+}
+
+export async function pushBranch(branchName: string, cwd: string | undefined = undefined, token?: string, repoFullName?: string): Promise<string> {
+  let oldRemoteUrl: string | null = null
+  try {
+    if (token && repoFullName && cwd) {
+      // Set authenticated remote inside container
+      const authenticatedUrl = getCloneUrlWithAccessToken(repoFullName, token)
+      await runInRepoContainer(repoFullName, `git remote set-url origin \"${authenticatedUrl}\"`, { cwd })
+    }
+    if (!repoFullName && cwd) repoFullName = getRepoFullNameFromPath(cwd)
+    if (!repoFullName) throw new Error("No repoFullName")
+    const command = `git push origin ${branchName}`
+    const { stdout, stderr, code } = await runInRepoContainer(repoFullName, command, { cwd })
+    if (code !== 0) throw new Error(stderr || `Failed to push branch`)
+    return stdout
+  } finally {
+    // Not restoring original remote for simplicity
+  }
+}
+
+async function executeGitCommand(command: string, dir: string): Promise<string> {
+  const repoFullName = getRepoFullNameFromPath(dir)
+  const { stdout, stderr, code } = await runInRepoContainer(repoFullName, command, { cwd: "." })
+  if (code !== 0) throw new Error(stderr || `Failed to execute git command`)
+  return stdout
+}
+
+export async function checkoutBranchQuietly(branchName: string, dir: string): Promise<string> {
   const command = `git checkout -q ${branchName}`
   return executeGitCommand(command, dir)
 }
@@ -141,29 +89,17 @@ export async function fetchLatest(dir: string): Promise<string> {
   return executeGitCommand(command, dir)
 }
 
-export async function resetToOrigin(
-  branchName: string,
-  dir: string
-): Promise<string> {
+export async function resetToOrigin(branchName: string, dir: string): Promise<string> {
   const command = `git reset --hard origin/${branchName}`
   return executeGitCommand(command, dir)
 }
 
 export async function cleanCheckout(branchName: string, dir: string) {
   try {
-    // First clean any untracked files
     await cleanUntrackedFiles(dir)
-
-    // Fetch latest changes
     await fetchLatest(dir)
-
-    // Force clean the index before reset
     await executeGitCommand("git rm --cached -r .", dir)
-
-    // Reset to origin
     await resetToOrigin(branchName, dir)
-
-    // Checkout the branch
     await checkoutBranchQuietly(branchName, dir)
   } catch (error) {
     console.error(`[ERROR] Failed during clean checkout: ${error}`)
@@ -171,19 +107,14 @@ export async function cleanCheckout(branchName: string, dir: string) {
   }
 }
 
-export async function cloneRepo(
-  cloneUrl: string,
-  dir: string | undefined = undefined
-): Promise<string> {
-  const command = `git clone ${cloneUrl}${dir ? ` ${dir}` : ""}`
-  return new Promise((resolve, reject) => {
-    exec(command, { cwd: dir }, (error, stdout) => {
-      if (error) {
-        return reject(new Error(error.message))
-      }
-      return resolve(stdout)
-    })
-  })
+export async function cloneRepo(cloneUrl: string, dir: string | undefined = undefined): Promise<string> {
+  if (!dir) throw new Error("Target directory is required for cloning.")
+  // Perform clone from within the repo's future container
+  const repoFullName = getRepoFullNameFromPath(dir)
+  const command = `git clone ${cloneUrl} .`
+  const { stdout, stderr, code } = await runInRepoContainer(repoFullName, command, { cwd: "." })
+  if (code !== 0) throw new Error(stderr || `Failed to clone repo`)
+  return stdout
 }
 
 export async function getLocalFileContent(filePath: string): Promise<string> {
@@ -194,22 +125,17 @@ export async function getLocalFileContent(filePath: string): Promise<string> {
 }
 
 export async function getDiff(dir: string): Promise<string> {
-  // Returns the git diff of the current branch in the `dir`
+  const repoFullName = getRepoFullNameFromPath(dir)
   const command = `git diff`
-  return new Promise((resolve, reject) => {
-    exec(command, { cwd: dir }, (error, stdout) => {
-      if (error) {
-        return reject(new Error(error.message))
-      }
-      return resolve(stdout)
-    })
-  })
+  const { stdout, stderr, code } = await runInRepoContainer(repoFullName, command, { cwd: "." })
+  if (code !== 0) throw new Error(stderr || `Failed to get diff`)
+  return stdout
 }
 
 export async function checkRepoIntegrity(dir: string): Promise<boolean> {
+  const repoFullName = getRepoFullNameFromPath(dir)
   try {
-    // Run git fsck to check repository integrity
-    await executeGitCommand("git fsck", dir)
+    await runInRepoContainer(repoFullName, "git fsck", { cwd: "." })
     return true
   } catch (error) {
     console.error(`[ERROR] Repository integrity check failed: ${error}`)
@@ -218,101 +144,63 @@ export async function checkRepoIntegrity(dir: string): Promise<boolean> {
 }
 
 export async function cleanupRepo(dir: string): Promise<void> {
+  const fsPromises = fs
+  const repoFullName = getRepoFullNameFromPath(dir)
   try {
-    // Remove the .git directory to force a fresh clone
-    await fs.rm(path.join(dir, ".git"), { recursive: true, force: true })
-    // Also remove any tracked files that might be corrupted
-    await fs.rm(dir, { recursive: true, force: true })
+    await fsPromises.rm(path.join(dir, ".git"), { recursive: true, force: true })
+    await fsPromises.rm(dir, { recursive: true, force: true })
   } catch (error) {
     console.error(`[ERROR] Failed to cleanup repository: ${error}`)
     throw error
   }
 }
 
-export async function ensureValidRepo(
-  dir: string,
-  cloneUrl: string
-): Promise<void> {
+export async function ensureValidRepo(dir: string, cloneUrl: string): Promise<void> {
   const gitExists = await checkIfGitExists(dir)
   if (!gitExists) {
     await cloneRepo(cloneUrl, dir)
     return
   }
-
   const isValid = await checkRepoIntegrity(dir)
   if (!isValid) {
-    console.warn(
-      "[WARNING] Repository corruption detected, cleaning up and re-cloning"
-    )
+    console.warn("[WARNING] Repository corruption detected, cleaning up and re-cloning")
     await cleanupRepo(dir)
     await cloneRepo(cloneUrl, dir)
   }
 }
 
-export async function stageFile(
-  filePath: string,
-  cwd: string | undefined = undefined
-): Promise<string> {
-  const command = `git add "${filePath}"`
-  return new Promise((resolve, reject) => {
-    exec(command, { cwd }, (error, stdout, stderr) => {
-      if (error) {
-        return reject(new Error(error.message))
-      }
-      if (stderr) {
-        return reject(new Error(stderr))
-      }
-      return resolve(stdout)
-    })
-  })
+export async function stageFile(filePath: string, cwd: string | undefined = undefined): Promise<string> {
+  const repoFullName = cwd ? getRepoFullNameFromPath(cwd) : undefined
+  if (!repoFullName) throw new Error("Cannot determine repoFullName from cwd")
+  const command = `git add \"${filePath}\"`
+  const { stdout, stderr, code } = await runInRepoContainer(repoFullName, command, { cwd })
+  if (code !== 0) throw new Error(stderr || `Failed to stage file`)
+  return stdout
 }
 
-export async function createCommit(
-  message: string,
-  cwd: string | undefined = undefined
-): Promise<string> {
-  const command = `git commit -m "${message.replace(/"/g, '\\"')}"`
-  return new Promise((resolve, reject) => {
-    exec(command, { cwd }, (error, stdout, stderr) => {
-      if (error) {
-        return reject(new Error(error.message))
-      }
-      if (stderr) {
-        console.warn(`[WARNING] Commit produced stderr: ${stderr}`)
-      }
-      return resolve(stdout)
-    })
-  })
+export async function createCommit(message: string, cwd: string | undefined = undefined): Promise<string> {
+  const repoFullName = cwd ? getRepoFullNameFromPath(cwd) : undefined
+  if (!repoFullName) throw new Error("Cannot determine repoFullName from cwd")
+  const safeMsg = message.replace(/"/g, '\\"')
+  const command = `git commit -m \"${safeMsg}\"`
+  const { stdout, stderr, code } = await runInRepoContainer(repoFullName, command, { cwd })
+  if (code !== 0) throw new Error(stderr || `Failed to create commit`)
+  return stdout
 }
 
-export async function getCommitHash(
-  cwd: string | undefined = undefined
-): Promise<string> {
+export async function getCommitHash(cwd: string | undefined = undefined): Promise<string> {
+  const repoFullName = cwd ? getRepoFullNameFromPath(cwd) : undefined
+  if (!repoFullName) throw new Error("Cannot determine repoFullName from cwd")
   const command = "git rev-parse HEAD"
-  return new Promise((resolve, reject) => {
-    exec(command, { cwd }, (error, stdout, stderr) => {
-      if (error) {
-        return reject(new Error(error.message))
-      }
-      if (stderr) {
-        return reject(new Error(stderr))
-      }
-      return resolve(stdout.trim())
-    })
-  })
+  const { stdout, stderr, code } = await runInRepoContainer(repoFullName, command, { cwd })
+  if (code !== 0) throw new Error(stderr || `Failed to get commit hash`)
+  return stdout.trim()
 }
 
 export async function getCurrentBranch(repoPath: string): Promise<string> {
-  try {
-    const { stdout } = await execPromise("git rev-parse --abbrev-ref HEAD", {
-      cwd: repoPath,
-    })
-    return stdout.trim()
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      throw new Error("Failed to get current branch: " + error.message)
-    } else {
-      throw new Error("Failed to get current branch: Unknown error")
-    }
-  }
+  const repoFullName = getRepoFullNameFromPath(repoPath)
+  const command = "git rev-parse --abbrev-ref HEAD"
+  const { stdout, stderr, code } = await runInRepoContainer(repoFullName, command, { cwd: "." })
+  if (code !== 0) throw new Error(stderr || `Failed to get current branch`)
+  return stdout.trim()
 }

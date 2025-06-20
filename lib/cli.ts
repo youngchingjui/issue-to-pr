@@ -1,15 +1,11 @@
-import { exec } from "child_process"
+import { runInRepoContainer } from "@/lib/dockerExec"
 import util from "util"
+import path from "path"
 
-/**
- * Top-level command used for TS check. Will be made configurable in future.
- */
 export const PNPM_TSC_COMMAND = "pnpm lint:tsc"
 
-const execPromise = util.promisify(exec)
-
 /**
- * Runs the TypeScript check command (default: pnpm lint:tsc).
+ * Runs the TypeScript check command (now in Docker container for this repo).
  * Returns structured result indicating success or failure.
  */
 export async function runTsCheck(
@@ -19,26 +15,20 @@ export async function runTsCheck(
   | { pass: false; error: string; output?: string }
 > {
   // Ensure the provided path is absolute to avoid accidental relative lookups
-  const path = await import("path")
-  if (!path.isAbsolute(filePath)) {
+  if (!(await import("path")).default.isAbsolute(filePath)) {
     throw new Error(
       "runTsCheck expected an absolute file path. Received relative path."
     )
   }
-
-  const cmd = `npx tsc --noEmit "${filePath}"`
-
-  try {
-    const { stdout } = await execPromise(cmd)
+  // Deduce repoFullName
+  const pathMod = (await import("path")).default
+  const parts = filePath.split(pathMod.sep).filter(Boolean)
+  const repoFullName = parts.slice(-3, -1).join("/")
+  const projectCwd = parts.slice(0, -1).join("/")
+  const cmd = `npx tsc --noEmit \"${filePath}\"`
+  const { stdout, stderr, code } = await runInRepoContainer(repoFullName, cmd, { cwd: projectCwd })
+  if (code === 0) {
     return { pass: true, output: stdout }
-  } catch (err: unknown) {
-    const errorObj = err as {
-      stderr?: string
-      stdout?: string
-      message?: string
-    }
-    const errorMsg = errorObj.stderr || errorObj.message || "Unknown error"
-    const out = errorObj.stdout
-    return { pass: false, error: errorMsg, ...(out ? { output: out } : {}) }
   }
+  return { pass: false, error: stderr || "Unknown error", output: stdout }
 }
