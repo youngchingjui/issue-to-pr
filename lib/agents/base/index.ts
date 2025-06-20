@@ -240,16 +240,11 @@ export class Agent {
 
           const toolResponse = await tool.handler(validationResult.data)
 
+          let toolResponseString: string
           if (typeof toolResponse !== "string") {
-            const errorMessage = `Tool ${toolCall.function.name} returned non-string response: ${JSON.stringify(toolResponse)}`
-            console.error(errorMessage)
-            if (this.jobId) {
-              await createErrorEvent({
-                workflowId: this.jobId,
-                content: errorMessage,
-              })
-            }
-            throw new Error(errorMessage)
+            toolResponseString = JSON.stringify(toolResponse)
+          } else {
+            toolResponseString = toolResponse
           }
 
           // First track message here, instead of this.trackMessage (inside this.addMessage)
@@ -259,13 +254,13 @@ export class Agent {
               workflowId: this.jobId,
               toolCallId: toolCall.id,
               toolName: toolCall.function.name,
-              content: toolResponse,
+              content: toolResponseString,
             })
           }
 
           await this.addMessage({
             role: "tool",
-            content: toolResponse,
+            content: toolResponseString,
             tool_call_id: toolCall.id,
           })
         } else {
@@ -290,7 +285,9 @@ export class Agent {
     }
   }
 
-  async run(): Promise<RunResponse & { response: ChatCompletionMessageParam }> {
+  async runOnce(): Promise<
+    RunResponse & { response: ChatCompletionMessageParam }
+  > {
     const startTime = new Date()
 
     // Ensure we have at least one user message after system prompt before generating response
@@ -315,6 +312,7 @@ export class Agent {
     if (this.tools.length > 0) {
       params.tools = this.tools
     }
+
     const response = await this.llm.chat.completions.create(params)
 
     // Add and track the assistant's response
