@@ -3,9 +3,6 @@
 // All the agents will share the same trace
 // They can also all access the same data, such as the issue, the codebase, etc.
 
-import { exec } from "child_process"
-import { promisify } from "util"
-
 import { CoderAgent } from "@/lib/agents/coder"
 import { createDirectoryTree } from "@/lib/fs"
 import { getAuthToken } from "@/lib/github"
@@ -31,16 +28,15 @@ import { createGetFileContentTool } from "@/lib/tools/GetFileContent"
 import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
 import { createSyncBranchTool } from "@/lib/tools/SyncBranchTool"
 import { createWriteFileContentTool } from "@/lib/tools/WriteFileContent"
-import { Environment, Plan, RepoSettings } from "@/lib/types"
+import { Plan, RepoSettings } from "@/lib/types"
 import {
   GitHubIssue,
   GitHubRepository,
   repoFullNameSchema,
   RepoPermissions,
 } from "@/lib/types/github"
+import { setupEnv } from "@/lib/utils/setupEnv"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
-
-const execPromise = promisify(exec)
 
 interface ResolveIssueParams {
   issue: GitHubIssue
@@ -49,15 +45,9 @@ interface ResolveIssueParams {
   jobId: string
   createPR?: boolean
   planId?: string
-  environment?: Environment
-  installCommand?: string
+  // Optional custom repository setup commands
+  installCommand?: string // Legacy alias; treat as setupCommands when provided
 }
-
-// === Python environment configuration constants ===
-const PYTHON_VENV_NAME = ".venv"
-const PYTHON_DEFAULT_INSTALL_CMD = (baseDir: string) =>
-  `${baseDir}/${PYTHON_VENV_NAME}/bin/pip install -r requirements.txt`
-// === End Python environment configuration constants ===
 
 export const resolveIssue = async ({
   issue,
@@ -66,7 +56,6 @@ export const resolveIssue = async ({
   jobId,
   createPR,
   planId,
-  environment,
   installCommand,
 }: ResolveIssueParams) => {
   const workflowId = jobId // Keep workflowId alias for clarity if preferred
@@ -116,95 +105,45 @@ export const resolveIssue = async ({
       repoFullName: repository.full_name,
       workingBranch: repository.default_branch,
     })
+    await createStatusEvent({
+      workflowId,
+      content: `Setting up local repository`,
+    })
 
-    // ===== Python/Other environment install step =====
-    // choose environment/commands from params or repo settings
-    let resolvedEnvironment = environment
-    let resolvedSetupCommands: string = ""
-    if (!resolvedEnvironment && repoSettings?.environment)
-      resolvedEnvironment = repoSettings.environment
+    // Setup environment
+    let resolvedSetupCommands: string | string[] = ""
     if (repoSettings?.setupCommands && repoSettings.setupCommands.length) {
       resolvedSetupCommands = repoSettings.setupCommands
     }
+    if (installCommand && !resolvedSetupCommands) {
+      resolvedSetupCommands = installCommand
+    }
 
-    // Handle python and setup commands if present
-    if (resolvedEnvironment === "python") {
-      const fs = await import("fs/promises")
-      const path = await import("path")
-      let venvExists = false
-      const venvDir = path.join(baseDir, PYTHON_VENV_NAME)
+    if (resolvedSetupCommands) {
       try {
-        await fs.access(venvDir)
-        venvExists = true
-      } catch {}
-      if (!venvExists) {
+        const setupMsg = await setupEnv(baseDir, resolvedSetupCommands)
         await createStatusEvent({
           workflowId,
-          content: `No virtual environment found. Creating one at ${venvDir}`,
+          content: setupMsg,
         })
-        try {
-          await execPromise(`python3 -m venv ${PYTHON_VENV_NAME}`, {
-            cwd: baseDir,
-          })
-        } catch (err) {
-          await createErrorEvent({
-            workflowId,
-            content: `Failed to create virtual environment: ${err}`,
-          })
-          await createWorkflowStateEvent({
-            workflowId,
-            state: "error",
-            content: `Virtual environment creation failed: ${err}`,
-          })
-          throw new Error("Virtual environment creation failed")
-        }
-      }
-      // install command: arg overrides, then repo settings, then default
-      let command = installCommand
-      if (!command && resolvedSetupCommands) command = resolvedSetupCommands
-      if (!command) command = PYTHON_DEFAULT_INSTALL_CMD(baseDir)
-      await createStatusEvent({
-        workflowId,
-        content: `Detected Python environment. Running install command: ${command}`,
-      })
-      try {
-        await execPromise(command, { cwd: baseDir })
       } catch (err) {
         await createErrorEvent({
           workflowId,
-          content: `Install command failed: ${err}`,
+          content: `Setup failed: ${String(err)}`,
         })
         await createWorkflowStateEvent({
           workflowId,
           state: "error",
-          content: `Dependency install failed: ${err}`,
+          content: `Setup failed: ${String(err)}`,
         })
-        throw new Error("Dependency installation failed")
+        throw err
       }
-    } else if (resolvedSetupCommands.length) {
-      // generic setup commands (other than python)
-      for (const cmd of resolvedSetupCommands) {
-        await createStatusEvent({
-          workflowId,
-          content: `Running setup command: ${cmd}`,
-        })
-        try {
-          await execPromise(cmd, { cwd: baseDir })
-        } catch (err) {
-          await createErrorEvent({
-            workflowId,
-            content: `Setup command failed: ${err}`,
-          })
-          await createWorkflowStateEvent({
-            workflowId,
-            state: "error",
-            content: `Setup command failed: ${err}`,
-          })
-          throw new Error(`Setup command failed: ${err}`)
-        }
-      }
+    } else {
+      await createStatusEvent({
+        workflowId,
+        content: "No setup commands provided. Skipping environment setup.",
+      })
     }
-    // ===== End environment/setup step =====
 
     // Get token from session for authenticated git push
     let sessionToken: string | undefined = undefined
