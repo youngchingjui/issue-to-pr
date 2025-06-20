@@ -1,6 +1,7 @@
 import { z } from "zod"
-import { createTool } from "@/lib/tools/helper"
+
 import { runInRepoContainer } from "@/lib/dockerExec"
+import { createTool } from "@/lib/tools/helper"
 
 const name = "ripgrep_search"
 const description = `Searches for code in the local file system using ripgrep. Returns snippets of code containing the search term with 3 lines of context before and after each match. Note: These are just snippets - to fully understand the code's context, you should use a file reading tool to examine the complete file contents.
@@ -10,11 +11,33 @@ The tool supports both literal (fixed-string) and regex search modes. By default
 - mode: "regex" — disables -F, allows regex pattern searches, may return ripgrep errors if regex is malformed.`
 
 const searchParameters = z.object({
-  query: z.string().describe("The search query to use for searching code. Example: 'functionName' to find all occurrences of 'functionName' in the codebase."),
-  ignoreCase: z.boolean().nullable().describe("Ignore case sensitivity. Default is false, meaning the search is case-sensitive. Use true to find matches regardless of case, e.g., 'function' will match 'Function'."),
-  hidden: z.boolean().nullable().describe("Include hidden files. Default is false, meaning hidden files are ignored. Use true to include files like '.env'."),
-  follow: z.boolean().nullable().describe("Follow symbolic links. Default is false, meaning symlinks are not followed. Use true to include files linked by symlinks in the search."),
-  mode: z.enum(["literal", "regex"]).optional().describe('Search mode: "literal" (default, safer) or "regex"'),
+  query: z
+    .string()
+    .describe(
+      "The search query to use for searching code. Example: 'functionName' to find all occurrences of 'functionName' in the codebase."
+    ),
+  ignoreCase: z
+    .boolean()
+    .nullable()
+    .describe(
+      "Ignore case sensitivity. Default is false, meaning the search is case-sensitive. Use true to find matches regardless of case, e.g., 'function' will match 'Function'."
+    ),
+  hidden: z
+    .boolean()
+    .nullable()
+    .describe(
+      "Include hidden files. Default is false, meaning hidden files are ignored. Use true to include files like '.env'."
+    ),
+  follow: z
+    .boolean()
+    .nullable()
+    .describe(
+      "Follow symbolic links. Default is false, meaning symlinks are not followed. Use true to include files linked by symlinks in the search."
+    ),
+  mode: z
+    .enum(["literal", "regex"])
+    .optional()
+    .describe('Search mode: "literal" (default, safer) or "regex"'),
 })
 
 type RipgrepSearchParameters = z.infer<typeof searchParameters>
@@ -49,7 +72,11 @@ const fnHandler = async (baseDir: string, params: RipgrepSearchParameters) => {
     const parts = baseDir.split(require("path").sep).filter(Boolean)
     return parts.slice(-2).join("/")
   })()
-  const { stdout, stderr, code } = await runInRepoContainer(repoFullName, command, { cwd: "." })
+  const { stdout, stderr, code } = await runInRepoContainer(
+    repoFullName,
+    command,
+    { cwd: "." }
+  )
   if (code === 1) return "No matching results found."
   if (code !== 0) throw new Error(stderr || `Ripgrep failed`)
   return stdout

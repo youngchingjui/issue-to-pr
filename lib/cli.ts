@@ -1,6 +1,4 @@
 import { runInRepoContainer } from "@/lib/dockerExec"
-import util from "util"
-import path from "path"
 
 export const PNPM_TSC_COMMAND = "pnpm lint:tsc"
 
@@ -26,7 +24,9 @@ export async function runTsCheck(
   const repoFullName = parts.slice(-3, -1).join("/")
   const projectCwd = parts.slice(0, -1).join("/")
   const cmd = `npx tsc --noEmit \"${filePath}\"`
-  const { stdout, stderr, code } = await runInRepoContainer(repoFullName, cmd, { cwd: projectCwd })
+  const { stdout, stderr, code } = await runInRepoContainer(repoFullName, cmd, {
+    cwd: projectCwd,
+  })
   if (code === 0) {
     return { pass: true, output: stdout }
   }

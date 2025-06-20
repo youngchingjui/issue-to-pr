@@ -1,12 +1,12 @@
 /*
  * Run shell commands in a per-repo Docker container. If the container is not running, builds/starts it.
- * Ensures all shell commands (tools, git, setup, lint, tsc, etc.) are run inside the container, 
+ * Ensures all shell commands (tools, git, setup, lint, tsc, etc.) are run inside the container,
  * never on the host.
  */
 
 import { exec as execCb } from "child_process"
-import util from "util"
 import path from "path"
+import util from "util"
 
 const execPromise = util.promisify(execCb)
 
@@ -17,16 +17,17 @@ const execPromise = util.promisify(execCb)
 export function repoFullNameToContainerName(repoFullName: string) {
   // Docker container names must only have [a-zA-Z0-9][a-zA-Z0-9_.-]
   // We'll use owner__repo, lower-cased
-  return (
-    "repo-" + repoFullName.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase()
-  )
+  return "repo-" + repoFullName.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase()
 }
 
 /**
  * Asserts that the container for this repo is running. If not, starts or creates it.
  * (This just starts it for now; in a real deployment, image build, volume mount, etc., must occur elsewhere)
  */
-async function ensureContainerRunning(repoFullName: string, volumePath: string) {
+async function ensureContainerRunning(
+  repoFullName: string,
+  volumePath: string
+) {
   const containerName = repoFullNameToContainerName(repoFullName)
   // Check if running
   try {
@@ -61,8 +62,9 @@ export async function runInRepoContainer(
 ): Promise<{ stdout: string; stderr: string; code: number }> {
   // Determine repo working dir (outside the container)
   // This should be the same temp dir created per repo
-  const getLocalRepoDir =
-    (await import("./fs")).getLocalRepoDir as (repoFullName: string) => Promise<string>
+  const getLocalRepoDir = (await import("./fs")).getLocalRepoDir as (
+    repoFullName: string
+  ) => Promise<string>
   const volumePath = await getLocalRepoDir(repoFullName)
 
   // Ensure the container is running and set up
@@ -70,18 +72,26 @@ export async function runInRepoContainer(
 
   const containerName = repoFullNameToContainerName(repoFullName)
   // If cwd provided, respect it (otherwise /workspace)
-  const execCwd = options?.cwd ? path.posix.join("/workspace", options.cwd) : "/workspace"
+  const execCwd = options?.cwd
+    ? path.posix.join("/workspace", options.cwd)
+    : "/workspace"
 
   // Compose docker exec command, always with /bin/bash -c "cd CWD && your cmd"
   const dockerCmd = `docker exec -w "${execCwd}" ${containerName} bash -c ${JSON.stringify(command)}`
   try {
     const { stdout, stderr } = await execPromise(dockerCmd)
     return { stdout, stderr, code: 0 }
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const error = err as {
+      stdout?: string
+      stderr?: string
+      code?: number
+      message?: string
+    }
     return {
-      stdout: err?.stdout || "",
-      stderr: err?.stderr || err?.message || "Command failed in container.",
-      code: typeof err?.code === "number" ? err.code : 1,
+      stdout: error.stdout || "",
+      stderr: error.stderr || error.message || "Command failed in container.",
+      code: typeof error.code === "number" ? error.code : 1,
     }
   }
 }
