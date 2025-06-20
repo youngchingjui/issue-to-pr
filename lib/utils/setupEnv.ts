@@ -4,9 +4,11 @@ import { promisify } from "util"
 const execPromise = promisify(execCallback)
 
 type SetupEnvOptions = {
-  environment?: string
+  /**
+   * Shell commands to prepare the repository (e.g. `pnpm i`, `python3 -m venv .venv && pip install -r requirements.txt`).
+   * Can be a single string (with `&&` or new-lines) or an array of commands to run sequentially.
+   */
   setupCommands?: string[] | string
-  installCommand?: string
   workflowId: string
   createStatusEvent: (event: {
     workflowId: string
@@ -26,14 +28,12 @@ type SetupEnvOptions = {
 /**
  * Sets up the environment after repo checkout, running install/setup commands.
  * @param baseDir - Path to project base dir
- * @param options - { environment, setupCommands, installCommand, workflowId, createStatusEvent, createErrorEvent, createWorkflowStateEvent }
+ * @param options - { setupCommands, workflowId, createStatusEvent, createErrorEvent, createWorkflowStateEvent }
  */
 export async function setupEnv(
   baseDir: string,
   {
-    environment,
     setupCommands,
-    installCommand,
     workflowId,
     createStatusEvent,
     createErrorEvent,
@@ -60,67 +60,6 @@ export async function setupEnv(
     return cmd.map((x) => x.trim()).filter(Boolean)
   }
 
-  // Python environment logic
-  if (environment === "python") {
-    const fs = await import("fs/promises")
-    const path = await import("path")
-    const PYTHON_VENV_NAME = ".venv"
-    const venvDir = path.join(baseDir, PYTHON_VENV_NAME)
-    // Check if venv exists
-    let venvExists = false
-    try {
-      await fs.access(venvDir)
-      venvExists = true
-    } catch {}
-    if (!venvExists) {
-      await createStatusEvent({
-        workflowId,
-        content: `No virtual environment found. Creating one at ${venvDir}`,
-      })
-      try {
-        await execPromise(`python3 -m venv ${PYTHON_VENV_NAME}`, {
-          cwd: baseDir,
-        })
-      } catch (err) {
-        await createErrorEvent({
-          workflowId,
-          content: `Failed to create virtual environment: ${err}`,
-        })
-        await createWorkflowStateEvent({
-          workflowId,
-          state: "error",
-          content: `Virtual environment creation failed: ${err}`,
-        })
-        throw new Error("Virtual environment creation failed")
-      }
-    }
-    // install command: arg overrides setupCommands, then fallback to default
-    let command = installCommand
-    const normalizedSetupCmds = normalizeCommands(setupCommands)
-    if (!command && normalizedSetupCmds.length) command = normalizedSetupCmds[0]
-    if (!command) command = `${venvDir}/bin/pip install -r requirements.txt`
-    await createStatusEvent({
-      workflowId,
-      content: `Detected Python environment. Running install command: ${command}`,
-    })
-    try {
-      await execPromise(command, { cwd: baseDir })
-    } catch (err) {
-      await createErrorEvent({
-        workflowId,
-        content: `Install command failed: ${err}`,
-      })
-      await createWorkflowStateEvent({
-        workflowId,
-        state: "error",
-        content: `Dependency install failed: ${err}`,
-      })
-      throw new Error("Dependency installation failed")
-    }
-    return
-  }
-
-  // Else: generic setup commands (typescript or custom)
   const normalizedSetupCmds = normalizeCommands(setupCommands)
   if (normalizedSetupCmds.length) {
     for (const cmd of normalizedSetupCmds) {
@@ -151,6 +90,6 @@ export async function setupEnv(
   await createStatusEvent({
     workflowId,
     content:
-      "No setup commands provided. (Environment not set or empty.) TODO: Auto-detect using LLM or database in future.",
+      "No setup commands provided. (Empty.) Provide a shell command or configure one in repository settings.",
   })
 }

@@ -3,9 +3,6 @@
 // All the agents will share the same trace
 // They can also all access the same data, such as the issue, the codebase, etc.
 
-import { exec } from "child_process"
-import { promisify } from "util"
-
 import { CoderAgent } from "@/lib/agents/coder"
 import { createDirectoryTree } from "@/lib/fs"
 import { getAuthToken } from "@/lib/github"
@@ -31,7 +28,7 @@ import { createGetFileContentTool } from "@/lib/tools/GetFileContent"
 import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
 import { createSyncBranchTool } from "@/lib/tools/SyncBranchTool"
 import { createWriteFileContentTool } from "@/lib/tools/WriteFileContent"
-import { Environment, Plan, RepoSettings } from "@/lib/types"
+import { Plan, RepoSettings } from "@/lib/types"
 import {
   GitHubIssue,
   GitHubRepository,
@@ -48,8 +45,8 @@ interface ResolveIssueParams {
   jobId: string
   createPR?: boolean
   planId?: string
-  environment?: Environment
-  installCommand?: string
+  // Optional custom repository setup commands
+  installCommand?: string // Legacy alias; treat as setupCommands when provided
 }
 
 export const resolveIssue = async ({
@@ -59,7 +56,6 @@ export const resolveIssue = async ({
   jobId,
   createPR,
   planId,
-  environment,
   installCommand,
 }: ResolveIssueParams) => {
   const workflowId = jobId // Keep workflowId alias for clarity if preferred
@@ -111,17 +107,15 @@ export const resolveIssue = async ({
     })
 
     // ===== Python/Other environment install step (via setupEnv helper) =====
-    let resolvedEnvironment = environment
     let resolvedSetupCommands: string | string[] = ""
-    if (!resolvedEnvironment && repoSettings?.environment)
-      resolvedEnvironment = repoSettings.environment
     if (repoSettings?.setupCommands && repoSettings.setupCommands.length) {
       resolvedSetupCommands = repoSettings.setupCommands
     }
+    if (installCommand && !resolvedSetupCommands) {
+      resolvedSetupCommands = installCommand
+    }
     await setupEnv(baseDir, {
-      environment: resolvedEnvironment,
       setupCommands: resolvedSetupCommands,
-      installCommand,
       workflowId,
       createStatusEvent,
       createErrorEvent,
