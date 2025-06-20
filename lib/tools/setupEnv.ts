@@ -1,5 +1,21 @@
+import { exec as execCallback } from "node:child_process"
+
 import { promisify } from "util"
-const execPromise = promisify(require("child_process").exec)
+const execPromise = promisify(execCallback)
+
+type SetupEnvOptions = {
+  environment: string
+  setupCommands: string[] | string
+  installCommand: string
+  workflowId: string
+  createStatusEvent: (event: { workflowId: string; content: string }) => void
+  createErrorEvent: (event: { workflowId: string; content: string }) => void
+  createWorkflowStateEvent: (event: {
+    workflowId: string
+    state: string
+    content: string
+  }) => void
+}
 
 /**
  * Sets up the environment after repo checkout, running install/setup commands.
@@ -16,28 +32,26 @@ export async function setupEnv(
     createStatusEvent,
     createErrorEvent,
     createWorkflowStateEvent,
-  }: {
-    environment?: string
-    setupCommands?: string[] | string
-    installCommand?: string
-    workflowId: string
-    createStatusEvent: Function
-    createErrorEvent: Function
-    createWorkflowStateEvent: Function
-  }
+  }: SetupEnvOptions
 ): Promise<void> {
   // Helper string -> array
-  function normalizeCommands(
-    cmd: string[] | string | undefined
-  ): string[] {
+  function normalizeCommands(cmd: string[] | string | undefined): string[] {
     if (!cmd) return []
     if (typeof cmd === "string") {
       // Try to split on newlines/semicolons if entered via textarea
-      if (cmd.includes("\n")) return cmd.split("\n").map(x => x.trim()).filter(Boolean)
-      if (cmd.includes(";")) return cmd.split(";").map(x => x.trim()).filter(Boolean)
+      if (cmd.includes("\n"))
+        return cmd
+          .split("\n")
+          .map((x) => x.trim())
+          .filter(Boolean)
+      if (cmd.includes(";"))
+        return cmd
+          .split(";")
+          .map((x) => x.trim())
+          .filter(Boolean)
       return [cmd.trim()]
     }
-    return cmd.map(x => x.trim()).filter(Boolean)
+    return cmd.map((x) => x.trim()).filter(Boolean)
   }
 
   // Python environment logic
@@ -58,7 +72,9 @@ export async function setupEnv(
         content: `No virtual environment found. Creating one at ${venvDir}`,
       })
       try {
-        await execPromise(`python3 -m venv ${PYTHON_VENV_NAME}`, { cwd: baseDir })
+        await execPromise(`python3 -m venv ${PYTHON_VENV_NAME}`, {
+          cwd: baseDir,
+        })
       } catch (err) {
         await createErrorEvent({
           workflowId,
@@ -75,8 +91,7 @@ export async function setupEnv(
     // install command: arg overrides setupCommands, then fallback to default
     let command = installCommand
     const normalizedSetupCmds = normalizeCommands(setupCommands)
-    if (!command && normalizedSetupCmds.length)
-      command = normalizedSetupCmds[0]
+    if (!command && normalizedSetupCmds.length) command = normalizedSetupCmds[0]
     if (!command) command = `${venvDir}/bin/pip install -r requirements.txt`
     await createStatusEvent({
       workflowId,
