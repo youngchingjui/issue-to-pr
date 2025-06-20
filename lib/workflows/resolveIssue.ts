@@ -105,8 +105,12 @@ export const resolveIssue = async ({
       repoFullName: repository.full_name,
       workingBranch: repository.default_branch,
     })
+    await createStatusEvent({
+      workflowId,
+      content: `Setting up local repository`,
+    })
 
-    // ===== Python/Other environment install step (via setupEnv helper) =====
+    // Setup environment
     let resolvedSetupCommands: string | string[] = ""
     if (repoSettings?.setupCommands && repoSettings.setupCommands.length) {
       resolvedSetupCommands = repoSettings.setupCommands
@@ -114,14 +118,32 @@ export const resolveIssue = async ({
     if (installCommand && !resolvedSetupCommands) {
       resolvedSetupCommands = installCommand
     }
-    await setupEnv(baseDir, {
-      setupCommands: resolvedSetupCommands,
-      workflowId,
-      createStatusEvent,
-      createErrorEvent,
-      createWorkflowStateEvent,
-    })
-    // ===== End environment/setup step =====
+
+    if (resolvedSetupCommands) {
+      try {
+        const setupMsg = await setupEnv(baseDir, resolvedSetupCommands)
+        await createStatusEvent({
+          workflowId,
+          content: setupMsg,
+        })
+      } catch (err) {
+        await createErrorEvent({
+          workflowId,
+          content: `Setup failed: ${String(err)}`,
+        })
+        await createWorkflowStateEvent({
+          workflowId,
+          state: "error",
+          content: `Setup failed: ${String(err)}`,
+        })
+        throw err
+      }
+    } else {
+      await createStatusEvent({
+        workflowId,
+        content: "No setup commands provided. Skipping environment setup.",
+      })
+    }
 
     // Get token from session for authenticated git push
     let sessionToken: string | undefined = undefined
