@@ -1,10 +1,7 @@
-import { exec } from "child_process"
-import { promisify } from "util"
 import { z } from "zod"
 
+import { runInRepoContainer } from "@/lib/dockerExec"
 import { createTool } from "@/lib/tools/helper"
-
-const execPromise = promisify(exec)
 
 const name = "ripgrep_search"
 const description = `Searches for code in the local file system using ripgrep. Returns snippets of code containing the search term with 3 lines of context before and after each match. Note: These are just snippets - to fully understand the code's context, you should use a file reading tool to examine the complete file contents.
@@ -46,68 +43,43 @@ const searchParameters = z.object({
 type RipgrepSearchParameters = z.infer<typeof searchParameters>
 
 function shellEscapeSingleQuotes(str: string): string {
-  // Replace every ' with '\'' and wrap the string in single quotes
-  // This safely escapes single quotes for POSIX shells
   return "'" + str.replace(/'/g, "'\\''") + "'"
 }
 
-async function fnHandler(
-  baseDir: string,
-  params: RipgrepSearchParameters
-): Promise<string> {
+const fnHandler = async (baseDir: string, params: RipgrepSearchParameters) => {
   const { query, ignoreCase, hidden, follow, mode } = params
 
-  // Set default values if parameters are null
   const isIgnoreCase = ignoreCase ?? false
   const includeHidden = hidden ?? false
   const followSymlinks = follow ?? false
-  const searchMode = mode ?? "literal" // backward compatibility to old calls
+  const searchMode = mode ?? "literal"
 
   if (!query || typeof query !== "string" || query.length === 0) {
     throw new Error("Query string cannot be empty.")
   }
 
-  // Robustly escape the user's query for the shell
   const quotedQuery = shellEscapeSingleQuotes(query)
-
-  // Construct ripgrep command
-  let command = `cd "${baseDir}" && rg --line-number --max-filesize 200K -C 3 --heading -n `
-
+  let command = `rg --line-number --max-filesize 200K -C 3 --heading -n `
   if (searchMode === "literal") {
-    command += "-F " // use literal/fixed-string mode
+    command += "-F "
   }
-
   command += `${quotedQuery} ./`
-
   if (isIgnoreCase) command += " -i"
   if (includeHidden) command += " --hidden"
   if (followSymlinks) command += " -L"
 
-  try {
-    const { stdout } = await execPromise(command)
-    return stdout
-  } catch (error) {
-    // Ripgrep conventions: exit 1 = no matches, exit 2 = error
-    if (error && typeof error === "object" && "code" in error) {
-      const code = error.code
-      if (code === 1) {
-        return "No matching results found."
-      } else if (
-        code === 2 &&
-        "stderr" in error &&
-        typeof error.stderr === "string" &&
-        error.stderr.includes("regex parse error")
-      ) {
-        return `Ripgrep regex error: ${error.stderr}`
-      } else if (code === 2) {
-        throw new Error(`Ripgrep search failed: ${error}`)
-      } else {
-        console.error("Unexpected ripgrep exit code:", error)
-        throw new Error(`Unexpected ripgrep exit code: ${code}`)
-      }
-    }
-    throw error
-  }
+  const repoFullName = (() => {
+    const parts = baseDir.split(require("path").sep).filter(Boolean)
+    return parts.slice(-2).join("/")
+  })()
+  const { stdout, stderr, code } = await runInRepoContainer(
+    repoFullName,
+    command,
+    { cwd: "." }
+  )
+  if (code === 1) return "No matching results found."
+  if (code !== 0) throw new Error(stderr || `Ripgrep failed`)
+  return stdout
 }
 
 export const createRipgrepSearchTool = (baseDir: string) =>
