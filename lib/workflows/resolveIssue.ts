@@ -31,7 +31,6 @@ import { createGetFileContentTool } from "@/lib/tools/GetFileContent"
 import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
 import { createSyncBranchTool } from "@/lib/tools/SyncBranchTool"
 import { createWriteFileContentTool } from "@/lib/tools/WriteFileContent"
-import { setupEnv } from "@/lib/tools/setupEnv"
 import { Environment, Plan, RepoSettings } from "@/lib/types"
 import {
   GitHubIssue,
@@ -39,9 +38,8 @@ import {
   repoFullNameSchema,
   RepoPermissions,
 } from "@/lib/types/github"
+import { setupEnv } from "@/lib/utils/setupEnv"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
-
-const execPromise = promisify(exec)
 
 interface ResolveIssueParams {
   issue: GitHubIssue

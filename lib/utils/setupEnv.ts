@@ -4,17 +4,23 @@ import { promisify } from "util"
 const execPromise = promisify(execCallback)
 
 type SetupEnvOptions = {
-  environment: string
-  setupCommands: string[] | string
-  installCommand: string
+  environment?: string
+  setupCommands?: string[] | string
+  installCommand?: string
   workflowId: string
-  createStatusEvent: (event: { workflowId: string; content: string }) => void
-  createErrorEvent: (event: { workflowId: string; content: string }) => void
+  createStatusEvent: (event: {
+    workflowId: string
+    content: string
+  }) => void | Promise<unknown>
+  createErrorEvent: (event: {
+    workflowId: string
+    content: string
+  }) => void | Promise<unknown>
   createWorkflowStateEvent: (event: {
     workflowId: string
-    state: string
+    state: "running" | "completed" | "error"
     content: string
-  }) => void
+  }) => void | Promise<unknown>
 }
 
 /**
