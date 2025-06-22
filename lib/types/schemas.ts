@@ -1,6 +1,13 @@
 import { z } from "zod"
 
-import { WorkflowType } from "./neo4j"
+import { repoFullNameSchema } from "@/lib/types/github"
+import { WorkflowType } from "@/lib/types/neo4j"
+
+/**
+ * @deprecated
+ * All schemas in this file are deprecated in favor of Zod-based schemas/types in concern-based files (e.g., event.ts, plan.ts, workflow.ts).
+ * This file will be removed after migration is complete.
+ */
 
 // Base Event Schema
 /**
@@ -113,7 +120,7 @@ export const issueSchema = z.object({
   number: z.number(),
   id: z.string().optional(),
   createdAt: z.date().optional(),
-  repoFullName: z.string(),
+  repoFullName: repoFullNameSchema,
   title: z.string().optional(),
   body: z.string().optional(),
   state: z.enum(["open", "closed"]).optional(),

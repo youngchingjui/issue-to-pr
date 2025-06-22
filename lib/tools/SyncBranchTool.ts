@@ -4,7 +4,7 @@ import { pushBranch } from "@/lib/git"
 import { checkBranchExists } from "@/lib/github/content"
 import { BranchCreationStatus, createBranch } from "@/lib/github/git"
 import { createTool } from "@/lib/tools/helper"
-import { RepoFullName } from "@/lib/types/github"
+import { RepoFullName } from "@/lib/types"
 
 const syncBranchParameters = z.object({
   branch: z
