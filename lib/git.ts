@@ -1,3 +1,9 @@
+/**
+ * @deprecated This file should be moved to lib/cli/git.ts in the future
+ * This file contains Git command line operations. As part of our ongoing code organization,
+ * all CLI-based operations should be moved to the lib/cli directory.
+ */
+
 // Convenience methods for running git commands in node
 // Returns promises for exec operations
 
