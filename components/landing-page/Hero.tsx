@@ -30,14 +30,11 @@ export default async function Hero() {
         className="max-w-5xl mx-auto relative z-10"
       >
         <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold mb-3 sm:mb-6 md:mb-8 leading-tight">
-          <span>Code 3-5x faster than Cursor</span>
+          <span>Update your code with natural language</span>
         </h1>
         <p className="text-stone-600 text-sm sm:text-base md:text-lg mb-2 sm:mb-3 max-w-3xl mx-auto px-2 sm:px-4 md:px-5 w-full text-center leading-relaxed">
-          Automated background agents implement changes based on GitHub issues
-          and create ready-to-review PRs - run multiple agents asynchronously
-          <br className="hidden md:block" />
-          No prompts, no waiting—just fully traceable AI-driven code review and
-          implementation, right from your issues and codebase.
+          Issue To PR&#39;s background AI agents review your codebase, develop
+          an implementation plan, and generate Pull Requests from the plan.
         </p>
       </motion.div>
 
@@ -45,19 +42,24 @@ export default async function Hero() {
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.4 }}
+        className="mt-8 flex flex-col items-center"
       >
-        <Link
-          href="https://github.com/apps/issuetopr-dev"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-block"
-          prefetch={false}
-        >
-          <ShineButton className="text-base sm:text-lg px-4 sm:px-5 md:px-6 py-3 bg-accent text-accent-foreground hover:bg-accent/70">
-            Install Github App
-            <ExternalLink className="ml-2 h-4 w-4 sm:h-5 sm:w-5 inline" />
-          </ShineButton>
-        </Link>
+        <div className="relative isolate">
+          <Link
+            href="https://github.com/apps/issuetopr-dev"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block"
+            prefetch={false}
+          >
+            <ShineButton className="text-base sm:text-lg px-4 sm:px-5 md:px-6 py-3 bg-accent text-accent-foreground hover:bg-accent/70">
+              Sign in with GitHub
+            </ShineButton>
+          </Link>
+        </div>
+        <p className="mt-3 text-sm text-stone-600 relative z-[1]">
+          to start updating your code
+        </p>
       </motion.div>
     </motion.section>
   )
