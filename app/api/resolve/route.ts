@@ -6,6 +6,7 @@ import { getRepoFromString } from "@/lib/github/content"
 import { getIssue } from "@/lib/github/issues"
 import { ResolveRequestSchema } from "@/lib/schemas/api"
 import { resolveIssue } from "@/lib/workflows/resolveIssue"
+import { resolveIssueQueue } from "@/lib/services/resolveIssueQueue"
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,8 +24,8 @@ export async function POST(request: NextRequest) {
     // Generate a unique job ID
     const jobId = uuidv4()
 
-    // Start the resolve workflow as a background job
-    ;(async () => {
+    // Enqueue the resolve workflow as a background job (serialized)
+    resolveIssueQueue.enqueue(async () => {
       try {
         // Get full repository details and issue
         const fullRepo = await getRepoFromString(repoFullName)
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
         // Save error status
         console.error(String(error))
       }
-    })()
+    })
 
     // Return the job ID immediately
     return NextResponse.json({ jobId })
