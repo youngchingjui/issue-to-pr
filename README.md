@@ -1,5 +1,19 @@
 # Issue To PR
 
+## Compute & Server Requirements
+
+This application performs complex codebase modifications and AI-powered workflows, which require the following infrastructure considerations:
+
+- **Local file access:** Workflows need direct, persistent access to the entire codebase's file system.
+- **Long-running processes:** Many operations (e.g., LLM agent analysis, recursive code modification) can take several minutes to complete.
+- **Server/Container environment:** These processes must run on a persistent server or within a dedicated Docker container. In upcoming versions, each workflow may be isolated in its own Docker container for reliability and scalability.
+- **Not serverless-compatible:** Serverless hosting platforms such as Vercel, Netlify, or AWS Lambda are **unsupported** and incompatible, due to their short execution timeouts and lack of persistent storage.
+
+**Deployment guidance:**  
+You must run this application on a VM, dedicated server, or persistent cloud instance with sufficient CPU, memory, and disk storage to support long-running AI workloads and file system access.
+
+For more information about running with Docker, see [docker/README.md](./docker/README.md).
+
 ## Documentation
 
 For detailed documentation, please visit:
@@ -69,6 +83,26 @@ Some features require your own OpenAI API key. You can set it on the app's Setti
 ## Continuous Integration
 
 Jest tests are now automatically run on every PR and push via GitHub Actions. PRs will show a 'Checks' status based on test results.
+
+## Testing
+
+The project includes several types of tests:
+
+```bash
+# Run all standard tests (unit + integration)
+pnpm test
+
+# Run only component tests
+pnpm test:components
+
+# Run only node tests
+pnpm test:node
+
+# Run agent/LLM tests (requires .env.local)
+pnpm test:agent
+```
+
+For more detailed testing information, see [**tests**/README.md](./__tests__/README.md).
 
 ## Contributing
 

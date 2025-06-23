@@ -10,8 +10,15 @@ import { resolveIssue } from "@/lib/workflows/resolveIssue"
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { issueNumber, repoFullName, apiKey, createPR } =
-      ResolveRequestSchema.parse(body)
+
+    const {
+      issueNumber,
+      repoFullName,
+      apiKey,
+      createPR,
+      environment,
+      installCommand,
+    } = ResolveRequestSchema.parse(body)
 
     // Generate a unique job ID
     const jobId = uuidv4()
@@ -32,6 +39,8 @@ export async function POST(request: NextRequest) {
           apiKey,
           jobId,
           createPR,
+          ...(environment && { environment }),
+          ...(installCommand && { installCommand }),
         })
       } catch (error) {
         // Save error status

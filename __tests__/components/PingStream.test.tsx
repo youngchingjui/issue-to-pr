@@ -1,7 +1,7 @@
 import { act } from "@testing-library/react"
 
+import { render, screen, waitFor } from "@/__tests__/test-utils"
 import { PingStream } from "@/components/PingStream"
-import { render, screen, waitFor } from "@/test-utils"
 
 // Mock EventSource
 class MockEventSource implements EventSource {

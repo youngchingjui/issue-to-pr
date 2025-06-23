@@ -18,23 +18,24 @@ import {
   getPlanWithDetails,
   listPlansForIssue,
 } from "@/lib/neo4j/services/plan"
+import { getRepositorySettings } from "@/lib/neo4j/services/repository"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
-import {
-  createBranchTool,
-  createCommitTool,
-  createCreatePRTool,
-  createGetFileContentTool,
-  createRipgrepSearchTool,
-  createSyncBranchTool,
-  createWriteFileContentTool,
-} from "@/lib/tools"
-import { Plan } from "@/lib/types"
+import { createBranchTool } from "@/lib/tools/Branch"
+import { createCommitTool } from "@/lib/tools/Commit"
+import { createCreatePRTool } from "@/lib/tools/CreatePRTool"
+import { createFileCheckTool } from "@/lib/tools/FileCheckTool"
+import { createGetFileContentTool } from "@/lib/tools/GetFileContent"
+import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
+import { createSyncBranchTool } from "@/lib/tools/SyncBranchTool"
+import { createWriteFileContentTool } from "@/lib/tools/WriteFileContent"
+import { Plan, RepoSettings } from "@/lib/types"
 import {
   GitHubIssue,
   GitHubRepository,
   repoFullNameSchema,
   RepoPermissions,
 } from "@/lib/types/github"
+import { setupEnv } from "@/lib/utils/setupEnv"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 
 interface ResolveIssueParams {
@@ -44,15 +45,28 @@ interface ResolveIssueParams {
   jobId: string
   createPR?: boolean
   planId?: string
+  // Optional custom repository setup commands
+  installCommand?: string // Legacy alias; treat as setupCommands when provided
 }
 
-export const resolveIssue = async (params: ResolveIssueParams) => {
-  const { issue, repository, apiKey, jobId, createPR, planId } = params
+export const resolveIssue = async ({
+  issue,
+  repository,
+  apiKey,
+  jobId,
+  createPR,
+  planId,
+  installCommand,
+}: ResolveIssueParams) => {
   const workflowId = jobId // Keep workflowId alias for clarity if preferred
 
   let userPermissions: RepoPermissions | null = null
 
+  const repoFullName = repoFullNameSchema.parse(repository.full_name)
   try {
+    const repoSettings: RepoSettings | null =
+      await getRepositorySettings(repoFullName)
+
     // Emit workflow start event
     await initializeWorkflowRun({
       id: workflowId,
@@ -91,6 +105,45 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
       repoFullName: repository.full_name,
       workingBranch: repository.default_branch,
     })
+    await createStatusEvent({
+      workflowId,
+      content: `Setting up local repository`,
+    })
+
+    // Setup environment
+    let resolvedSetupCommands: string | string[] = ""
+    if (repoSettings?.setupCommands && repoSettings.setupCommands.length) {
+      resolvedSetupCommands = repoSettings.setupCommands
+    }
+    if (installCommand && !resolvedSetupCommands) {
+      resolvedSetupCommands = installCommand
+    }
+
+    if (resolvedSetupCommands) {
+      try {
+        const setupMsg = await setupEnv(baseDir, resolvedSetupCommands)
+        await createStatusEvent({
+          workflowId,
+          content: setupMsg,
+        })
+      } catch (err) {
+        await createErrorEvent({
+          workflowId,
+          content: `Setup failed: ${String(err)}`,
+        })
+        await createWorkflowStateEvent({
+          workflowId,
+          state: "error",
+          content: `Setup failed: ${String(err)}`,
+        })
+        throw err
+      }
+    } else {
+      await createStatusEvent({
+        workflowId,
+        content: "No setup commands provided. Skipping environment setup.",
+      })
+    }
 
     // Get token from session for authenticated git push
     let sessionToken: string | undefined = undefined
@@ -136,6 +189,7 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
     const writeFileTool = createWriteFileContentTool(baseDir)
     const branchTool = createBranchTool(baseDir)
     const commitTool = createCommitTool(baseDir, repository.default_branch)
+    const fileCheckTool = createFileCheckTool(baseDir)
 
     // Add base tools to persistent coder
     coder.addTool(getFileContentTool)
@@ -143,6 +197,7 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
     coder.addTool(searchCodeTool)
     coder.addTool(branchTool)
     coder.addTool(commitTool)
+    coder.addTool(fileCheckTool)
 
     // Add sync and PR tools only if createPR is true AND permissions are sufficient
     let syncBranchTool: ReturnType<typeof createSyncBranchTool> | undefined
@@ -191,12 +246,8 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
         role: "user",
         content: `Github issue comments:\n${comments
           .map(
-            (comment) => `
-- **User**: ${comment.user?.login}
-- **Created At**: ${new Date(comment.created_at).toLocaleString()}
-- **Reactions**: ${comment.reactions ? comment.reactions.total_count : 0}
-- **Comment**: ${comment.body}
-`
+            (comment) =>
+              `\n- **User**: ${comment.user?.login}\n- **Created At**: ${new Date(comment.created_at).toLocaleString()}\n- **Reactions**: ${comment.reactions ? comment.reactions.total_count : 0}\n- **Comment**: ${comment.body}\n`
           )
           .join("\n")}`,
       })
