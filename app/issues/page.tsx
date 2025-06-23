@@ -6,6 +6,7 @@ import IssueTable from "@/components/issues/IssueTable"
 import NewTaskInput from "@/components/issues/NewTaskInput"
 import { listUserRepositoriesGraphQL } from "@/lib/github/users"
 import { repoFullNameSchema } from "@/lib/types/github"
+import RepoLocalStorageBootstrap from "@/components/issues/RepoLocalStorageBootstrap"
 
 export default async function IssuesPage({
   searchParams,
@@ -43,6 +44,7 @@ export default async function IssuesPage({
   const repoFullName = repoFullNameParseResult.data
   return (
     <main className="container mx-auto py-10 max-w-4xl w-full">
+      <RepoLocalStorageBootstrap />
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <h1 className="text-2xl font-bold">Your Issues & Workflows</h1>
         <div className="flex items-center gap-3">
