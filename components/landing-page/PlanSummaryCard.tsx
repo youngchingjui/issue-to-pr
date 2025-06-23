@@ -1,6 +1,6 @@
 import { CheckCircle } from "lucide-react"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 
 const summaryItems: string[] = [
   "Connect live workflow runs (commentOnIssue / resolveIssue) to each issue row.",
@@ -12,11 +12,13 @@ const summaryItems: string[] = [
 
 export default function PlanSummaryCard() {
   return (
-    <Card className="w-full max-w-xl mx-auto bg-white border-muted-foreground/30">
-      <CardHeader>
-        <CardTitle>Implementation Plan Snapshot</CardTitle>
+    <Card className="w-full max-w-xl mx-auto bg-white border-muted-foreground/30 p-2 shadow-lg">
+      <CardHeader className="pb-1 px-2 pt-2">
+        <span className="text-xs uppercase text-muted-foreground">
+          the plan (as per your codebase)
+        </span>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-2 pb-2 pt-1">
         <ul className="list-none space-y-3">
           {summaryItems.map((item) => (
             <li key={item} className="flex gap-2">

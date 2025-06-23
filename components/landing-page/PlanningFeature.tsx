@@ -1,6 +1,7 @@
 import * as motion from "motion/react-client"
 
 import PlanSummaryCard from "@/components/landing-page/PlanSummaryCard"
+import PromptCard from "@/components/landing-page/PromptCard"
 import TextLg from "@/components/ui/text-lg"
 
 export default function PlanningFeature() {
@@ -45,7 +46,17 @@ export default function PlanningFeature() {
           transition={{ duration: 0.6, ease: "easeOut" }}
           className="w-full rounded-xl"
         >
-          <PlanSummaryCard />
+          <div className="relative w-full flex flex-col items-center">
+            <div className="relative w-full flex flex-col items-center">
+              <div className="relative z-0 w-full -rotate-[2deg]">
+                <PromptCard />
+              </div>
+
+              <div className="relative -mt-2 ml-4 sm:ml-6 z-10 w-full rotate-[2deg]">
+                <PlanSummaryCard />
+              </div>
+            </div>
+          </div>
         </motion.div>
       </div>
     </section>
