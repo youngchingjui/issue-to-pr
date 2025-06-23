@@ -1,21 +1,15 @@
 "use client"
 
-import {
-  BookOpen,
-  DollarSign,
-  Github,
-  HelpCircle,
-  LogIn,
-  LogOut,
-} from "lucide-react"
+import { BookOpen, DollarSign, Github, HelpCircle, LogIn } from "lucide-react"
 import * as motion from "motion/react-client"
 import Link from "next/link"
 import { useParams, usePathname, useSearchParams } from "next/navigation"
 
+import SignOutButton from "@/components/common/SignOutButton"
 import Nav from "@/components/layout/Breadcrumb"
 import { Button } from "@/components/ui/button"
 import NavButton from "@/components/ui/nav-button"
-import { signInWithGithub, signOutAndRedirect } from "@/lib/actions/auth"
+import { signInWithGithub } from "@/lib/actions/auth"
 
 // Landing page navigation items
 const landingNavItems = [
@@ -86,17 +80,7 @@ export default function DynamicNavigation({
                   My Issues
                 </Button>
               </Link>
-              <form action={signOutAndRedirect}>
-                <Button
-                  type="submit"
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center px-4 py-2"
-                >
-                  <LogOut className="mr-2" size={20} />
-                  Sign out
-                </Button>
-              </form>
+              <SignOutButton />
             </div>
           )}
         </div>
@@ -143,17 +127,7 @@ export default function DynamicNavigation({
           >
             <Link href="/settings">Settings</Link>
           </Button>
-          <form action={signOutAndRedirect}>
-            <Button
-              type="submit"
-              variant="outline"
-              size="sm"
-              className="flex items-center px-4 py-2"
-            >
-              <LogOut className="mr-2" size={20} />
-              Sign out
-            </Button>
-          </form>
+          <SignOutButton />
         </nav>
       </>
     )
