@@ -16,12 +16,11 @@ export default function AuthButton() {
       {isAuthenticated ? (
         <Link href="/issues" className="inline-block">
           <ShineButton className="text-base sm:text-lg px-4 sm:px-5 md:px-6 py-3 bg-accent text-accent-foreground hover:bg-accent/70">
-            <Github size={20} />
             Go to issues
           </ShineButton>
         </Link>
       ) : (
-        <form action={signInWithGithub.bind(null, "/")}>
+        <form action={signInWithGithub.bind(null, "/issues")}>
           <ShineButton className="text-base sm:text-lg px-4 sm:px-5 md:px-6 py-3 bg-accent text-accent-foreground hover:bg-accent/70">
             <Github size={20} />
             Sign in with GitHub
@@ -29,9 +28,7 @@ export default function AuthButton() {
         </form>
       )}
       <p className="mt-3 text-sm text-stone-600 relative z-[1]">
-        {isAuthenticated
-          ? "to manage your issues"
-          : "to start updating your code"}
+        {!isAuthenticated && "to start updating your code"}
       </p>
     </>
   )
