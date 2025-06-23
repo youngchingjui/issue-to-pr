@@ -10,8 +10,8 @@ export default function PromptCard() {
       </CardHeader>
       <CardContent className="px-2 pb-2 pt-1">
         <p className="text-sm">
-          add live status indicators to each issue so i can see workflow
-          progress at a glance.
+          add column sorting to the <code>DataTable</code> component so users
+          can quickly reorder rows by any field.
         </p>
       </CardContent>
     </Card>
