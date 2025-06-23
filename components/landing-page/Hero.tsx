@@ -1,8 +1,6 @@
-import { ExternalLink } from "lucide-react"
 import * as motion from "motion/react-client"
-import Link from "next/link"
 
-import ShineButton from "@/components/ui/shine-button"
+import AuthButton from "@/components/landing-page/AuthButton"
 
 export default async function Hero() {
   return (
@@ -45,21 +43,8 @@ export default async function Hero() {
         className="mt-8 flex flex-col items-center"
       >
         <div className="relative isolate">
-          <Link
-            href="https://github.com/apps/issuetopr-dev"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block"
-            prefetch={false}
-          >
-            <ShineButton className="text-base sm:text-lg px-4 sm:px-5 md:px-6 py-3 bg-accent text-accent-foreground hover:bg-accent/70">
-              Sign in with GitHub
-            </ShineButton>
-          </Link>
+          <AuthButton />
         </div>
-        <p className="mt-3 text-sm text-stone-600 relative z-[1]">
-          to start updating your code
-        </p>
       </motion.div>
     </motion.section>
   )
