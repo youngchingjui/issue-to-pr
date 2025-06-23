@@ -1,5 +1,6 @@
 import * as motion from "motion/react-client"
 
+import PlanSummaryCard from "@/components/landing-page/PlanSummaryCard"
 import TextLg from "@/components/ui/text-lg"
 
 export default function PlanningFeature() {
@@ -42,12 +43,9 @@ export default function PlanningFeature() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, ease: "easeOut" }}
-          className="w-full h-64 md:h-auto rounded-xl border-2 border-dashed border-muted-foreground/30 flex items-center justify-center text-muted-foreground"
+          className="w-full rounded-xl"
         >
-          {/* Placeholder for UI screenshot */}
-          <span className="text-center px-4">
-            Editable Implementation Plan UI
-          </span>
+          <PlanSummaryCard />
         </motion.div>
       </div>
     </section>
