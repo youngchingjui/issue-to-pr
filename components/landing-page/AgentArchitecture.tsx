@@ -14,9 +14,11 @@ export default function AgentArchitecture() {
   return (
     <section className="relative py-14 px-5 bg-white border-t-2 border-black flex flex-col items-center">
       <TextLg>
-        <span className="block sm:inline">Multi-agent</span>{" "}
-        <span className="block sm:inline italic text-accent">architecture</span>{" "}
-        <span className="block sm:inline">built for code quality</span>
+        <span className="block sm:inline">A</span>{" "}
+        <span className="block sm:inline italic text-accent">
+          team of agents
+        </span>{" "}
+        <span className="block sm:inline">for better code</span>{" "}
       </TextLg>
 
       <div className="mx-auto max-w-5xl w-full mt-10">
@@ -28,10 +30,10 @@ export default function AgentArchitecture() {
           className="space-y-6 border-l-4 border-accent pl-6"
         >
           <p className="text-lg text-muted-foreground">
-            Issue To PR coordinates multiple specialised agents, each focused on
-            a single stage of the development workflow. The hand-offs are
-            deliberate and tested, so every run produces consistent,
-            high-quality pull requests—without manual babysitting.
+            Issue To PR coordinates multiple specialised agents, each focused
+            steps of the development workflow. The hand-offs are deliberate and
+            tested, so every run produces consistent, high-quality pull
+            requests—without manual babysitting.
           </p>
           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-muted-foreground list-disc pl-5">
             {points.map((point, i) => (
