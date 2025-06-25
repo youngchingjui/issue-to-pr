@@ -1,3 +1,4 @@
+import AgentArchitecture from "@/components/landing-page/AgentArchitecture"
 import ComparisonToIDEAgents from "@/components/landing-page/ComparisonToIDEAgents"
 import ContributePublic from "@/components/landing-page/ContributePublic"
 import Features from "@/components/landing-page/Features"
@@ -15,6 +16,7 @@ export default function LandingPage() {
       <main>
         <GridBackground>
           <Hero />
+          <AgentArchitecture />
           <PlanningFeature />
           <Steps />
           <Features />

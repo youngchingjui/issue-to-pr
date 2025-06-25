@@ -32,7 +32,7 @@ export default async function Hero() {
         </h1>
         <p className="text-stone-600 text-sm sm:text-base md:text-lg mb-2 sm:mb-3 max-w-3xl mx-auto px-2 sm:px-4 md:px-5 w-full text-center leading-relaxed">
           Issue To PR&#39;s background AI agents review your codebase, develop
-          an implementation plan, and generate Pull Requests from the plan.
+          an implementation plan, and create Pull Requests.
         </p>
       </motion.div>
 
