@@ -19,13 +19,13 @@ export default function AgentArchitecture() {
         <span className="block sm:inline">built for code quality</span>
       </TextLg>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-6xl w-full mt-10 items-start">
+      <div className="mx-auto max-w-5xl w-full mt-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, ease: "easeOut" }}
-          className="space-y-6"
+          className="space-y-6 border-l-4 border-accent pl-6"
         >
           <p className="text-lg text-muted-foreground">
             Issue To PR coordinates multiple specialised agents, each focused on
@@ -33,25 +33,11 @@ export default function AgentArchitecture() {
             deliberate and tested, so every run produces consistent,
             high-quality pull requests—without manual babysitting.
           </p>
-          <ul className="list-disc list-inside space-y-3 text-muted-foreground">
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-muted-foreground list-disc pl-5">
             {points.map((point, i) => (
               <li key={i}>{point}</li>
             ))}
           </ul>
-        </motion.div>
-
-        {/* Placeholder for future diagram or illustration */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
-          className="w-full h-full flex items-center justify-center"
-        >
-          <div className="w-full h-48 md:h-60 lg:h-72 bg-gradient-to-br from-accent/20 to-accent/5 rounded-xl border-2 border-dashed border-accent/50 flex items-center justify-center text-accent/70 text-sm">
-            {/* Add diagram or animation here */}
-            Agent flow diagram (coming soon)
-          </div>
         </motion.div>
       </div>
     </section>
