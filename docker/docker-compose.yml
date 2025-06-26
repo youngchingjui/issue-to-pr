@@ -4,5 +4,6 @@ include:
   # Add more service configurations here as needed
   # - compose/redis.yml
   # - compose/other-service.yml
+  - compose/issue-to-pr-nextjs.yml
 
 name: issue-to-pr

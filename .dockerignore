@@ -1,0 +1,18 @@
+# Node modules and build output
+node_modules
+.next
+
+# Git and GitHub flows
+.git
+.github
+
+# Local env files
+.env*
+
+# Logs and diagnostics
+*.log
+npm-debug.log*
+
+# Docker artifacts
+Dockerfile
+.dockerignore 

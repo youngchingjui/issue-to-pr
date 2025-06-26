@@ -1,0 +1,15 @@
+services:
+  nextjs:
+    image: ghcr.io/youngchingjui/issue-to-pr:latest
+    container_name: nextjs
+    restart: always
+    # Uses env file path exported by scripts/start-services.sh or CI deploy job
+    env_file:
+      - ${ENV_FILE:?missing_env_file}
+    ports:
+      - "3000:3000"
+    # Example shared volume between containers (uncomment if needed)
+    # volumes:
+    #   - shared-data:/mnt/data
+# volumes:
+#   shared-data:

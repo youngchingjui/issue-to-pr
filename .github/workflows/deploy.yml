@@ -10,30 +10,13 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Fetch latest updates
-        run: git fetch origin main
-        working-directory: /home/ec2-user/issue-to-pr/
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      - name: Pull latest changes
-        run: git pull origin main
-        working-directory: /home/ec2-user/issue-to-pr/
-
-      # Clean node_modules to ensure a fresh install and prevent potential conflicts
-      # This helps avoid issues with:
-      # 1. Stale or corrupted dependencies
-      # 2. Version mismatches between package.json and existing modules
-      # 3. Platform-specific builds that need to be regenerated
-      - name: Clean node_modules
-        run: rm -rf node_modules
-        working-directory: /home/ec2-user/issue-to-pr/
-
-      - name: Install dependencies
-        run: pnpm install
-        working-directory: /home/ec2-user/issue-to-pr/
-
-      - name: Build project
-        run: pnpm run build
-        working-directory: /home/ec2-user/issue-to-pr/
-
-      - name: Restart EC2 service
-        run: sudo systemctl restart issue-to-pr.service
+      - name: Pull latest image and recreate containers
+        working-directory: /home/ec2-user/issue-to-pr/docker/
+        run: |
+          # Point docker-compose env_file to production env vars
+          export ENV_FILE=../.env.production.local
+          docker compose pull
+          docker compose up -d --remove-orphans

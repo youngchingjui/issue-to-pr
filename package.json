@@ -2,14 +2,19 @@
   "name": "issue-to-pr",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.5.2",
+  "engines": {
+    "node": "24.x",
+    "pnpm": ">=10.5.2"
+  },
   "type": "module",
   "scripts": {
     "predev": "./scripts/start-services.sh",
     "dev": "next dev",
-    "prestart": "./scripts/start-services.sh",
     "start": "next start",
     "build": "next build",
     "analyze": "ANALYZE=true next build",
+    "docker:build": "docker build -t ghcr.io/youngchingjui/issue-to-pr:latest .",
     "lint": "next lint",
     "lint:eslint": "next lint",
     "lint:prettier": "prettier --check .",
