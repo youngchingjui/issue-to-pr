@@ -37,6 +37,7 @@ import {
 } from "@/lib/types/github"
 import { setupEnv } from "@/lib/utils/setupEnv"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
+import { runTypeCheck } from "@/lib/utils/typescript"
 
 interface ResolveIssueParams {
   issue: GitHubIssue
@@ -298,9 +299,28 @@ export const resolveIssue = async ({
       content: "Starting code implementation",
     })
 
-    const coderResult = await coder.runWithFunctions()
+    let coderResult = await coder.runWithFunctions()
 
-    // Emit completion event
+    let attempt = 0
+    while (attempt < 3) {
+      const typeCheckErrors = await runTypeCheck(baseDir)
+      if (!typeCheckErrors) {
+        break
+      }
+
+      await createStatusEvent({
+        workflowId,
+        content: "TypeScript errors detected. Feeding back to agent.",
+      })
+
+      await coder.addMessage({
+        role: "user",
+        content: `The TypeScript compiler reported the following errors:\n${typeCheckErrors}\nPlease fix them.`,
+      })
+
+      coderResult = await coder.runWithFunctions()
+      attempt++
+    }
 
     await createWorkflowStateEvent({
       workflowId,
