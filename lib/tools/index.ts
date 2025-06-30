@@ -1,6 +1,7 @@
 export { createApplyPatchTool } from "./ApplyPatchTool"
 export { createBranchTool } from "./Branch"
 export { createCommitTool } from "./Commit"
+export { createContainerExecTool } from "./ContainerExecTool"
 export { createCreatePRTool } from "./CreatePRTool"
 export { createFileCheckTool } from "./FileCheckTool"
 export { createGetFileContentTool } from "./GetFileContent"

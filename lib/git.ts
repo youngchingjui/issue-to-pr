@@ -171,6 +171,8 @@ export async function cleanCheckout(branchName: string, dir: string) {
   }
 }
 
+// TODO: This will fail if we don't authenticate with user's credentials
+// for private repos
 export async function cloneRepo(
   cloneUrl: string,
   dir: string | undefined = undefined
@@ -315,4 +317,64 @@ export async function getCurrentBranch(repoPath: string): Promise<string> {
       throw new Error("Failed to get current branch: Unknown error")
     }
   }
+}
+
+export async function addWorktree(
+  repoDir: string,
+  worktreeDir: string,
+  branch: string = "main"
+): Promise<string> {
+  // Ensure parent directory exists before adding the worktree
+  await fs.mkdir(path.dirname(worktreeDir), { recursive: true })
+
+  const execWorktree = (cmd: string) =>
+    new Promise<string>((resolve, reject) => {
+      exec(cmd, { cwd: repoDir }, (error, stdout, stderr) => {
+        if (error) {
+          return reject(error)
+        }
+        if (stderr) {
+          console.warn(`[WARNING] addWorktree produced stderr: ${stderr}`)
+        }
+        resolve(stdout)
+      })
+    })
+
+  // First attempt: normal add (may fail if branch already checked out)
+  try {
+    return await execWorktree(`git worktree add "${worktreeDir}" ${branch}`)
+  } catch (err: unknown) {
+    // TODO: Handle if any of the below completely fail (how?)
+    // Fallback 1: detached HEAD
+    try {
+      return await execWorktree(
+        `git worktree add --detach "${worktreeDir}" ${branch}`
+      )
+    } catch {
+      // Fallback 2: force add (should rarely be needed)
+      return await execWorktree(
+        `git worktree add --force "${worktreeDir}" ${branch}`
+      )
+    }
+  }
+}
+
+export async function removeWorktree(
+  repoDir: string,
+  worktreeDir: string,
+  force: boolean = true
+): Promise<string> {
+  const flag = force ? "--force" : ""
+  const command = `git worktree remove ${flag} "${worktreeDir}"`.trim()
+  return new Promise((resolve, reject) => {
+    exec(command, { cwd: repoDir }, (error, stdout, stderr) => {
+      if (error) {
+        return reject(new Error(error.message))
+      }
+      if (stderr) {
+        console.warn(`[WARNING] removeWorktree produced stderr: ${stderr}`)
+      }
+      return resolve(stdout)
+    })
+  })
 }
