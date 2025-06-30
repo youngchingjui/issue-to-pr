@@ -10,3 +10,6 @@ export { createIssueCommentTool } from "./IssueCommentTool"
 export { createRipgrepSearchTool } from "./RipgrepSearchTool"
 export { createSyncBranchTool } from "./SyncBranchTool"
 export { createWriteFileContentTool } from "./WriteFileContent"
+
+// Export environment types
+export type { RepoEnvironment } from "./env"

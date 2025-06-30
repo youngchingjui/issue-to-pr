@@ -59,3 +59,35 @@ This script will:
 2. Add any service-specific configurations in `config/`
 3. Include the new service file in `docker-compose.yml`
 4. Document required environment variables in `.env.example`
+
+## Agent Base Image
+
+For containerized agent workflows, we use a custom base image with pre-installed tools:
+
+### Building the Agent Base Image
+
+```bash
+# Build the custom agent image with ripgrep pre-installed
+./scripts/build-agent-image.sh
+```
+
+The image includes:
+
+- Ubuntu 22.04 base
+- ripgrep (for code searching)
+- git (for repository operations)
+- curl (for HTTP requests)
+
+### Using the Agent Base Image
+
+The image is automatically used by containerized workflows like `commentOnIssue`. It provides:
+
+- Process isolation for agent operations
+- Consistent tool environment
+- Pre-installed dependencies
+
+Image name: `issue-to-pr/agent-base:latest`
+
+## Neo4j Services
+
+The `compose/` directory contains Docker Compose configurations for Neo4j database services used by the application.

@@ -1,8 +1,11 @@
 import path from "path"
 import { z } from "zod"
 
+import { execInContainer } from "@/lib/docker"
 import { getFileContent } from "@/lib/fs"
+import { asEnv, RepoEnvironment } from "@/lib/tools/env"
 import { createTool } from "@/lib/tools/helper"
+import { Tool } from "@/lib/types"
 
 const name = "get_file_content"
 const description =
@@ -16,14 +19,35 @@ const getFileContentschema = z.object({
 
 type getFileContentParameters = z.infer<typeof getFileContentschema>
 
+function shellEscape(str: string): string {
+  return "'" + str.replace(/'/g, "'\\''") + "'"
+}
+
 async function fnHandler(
-  baseDir: string,
+  env: RepoEnvironment,
   params: getFileContentParameters
 ): Promise<string> {
   const { relativePath } = params
 
   try {
-    return await getFileContent(path.join(baseDir, relativePath))
+    if (env.kind === "host") {
+      return await getFileContent(path.join(env.root, relativePath))
+    } else {
+      // Container environment
+      const fileInContainer = path.posix.join(
+        env.mount ?? "/workspace",
+        relativePath
+      )
+      const { stdout, stderr, exitCode } = await execInContainer({
+        name: env.name,
+        command: `cat ${shellEscape(fileInContainer)}`,
+      })
+
+      if (exitCode !== 0) {
+        return `Error reading file: ${stderr || `File not found: ${relativePath}`}`
+      }
+      return stdout
+    }
   } catch (error) {
     if (
       typeof error === "object" &&
@@ -37,10 +61,22 @@ async function fnHandler(
   }
 }
 
-export const createGetFileContentTool = (baseDir: string) =>
-  createTool({
+// Overloaded function signatures for backwards compatibility
+export function createGetFileContentTool(
+  baseDir: string
+): Tool<typeof getFileContentschema, string>
+export function createGetFileContentTool(
+  env: RepoEnvironment
+): Tool<typeof getFileContentschema, string>
+export function createGetFileContentTool(
+  arg: string | RepoEnvironment
+): Tool<typeof getFileContentschema, string> {
+  const env = asEnv(arg)
+
+  return createTool({
     name,
     description,
     schema: getFileContentschema,
-    handler: (params: getFileContentParameters) => fnHandler(baseDir, params),
+    handler: (params: getFileContentParameters) => fnHandler(env, params),
   })
+}
