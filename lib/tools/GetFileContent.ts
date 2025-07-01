@@ -11,17 +11,28 @@ const name = "get_file_content"
 const description =
   "Retrieves the file contents from local repository. Only provide file paths, not directories. Attempting to read a directory will return an error."
 
+// Restrict relativePath so we can safely interpolate it into a shell command.
+// 1. Only allow alphanumerics, '_', '-', '.', and '/'
+// 2. Must be relative (no leading '/')
+// 3. Must not contain ".." segments (directory traversal)
+const relativePathSchema = z
+  .string()
+  .regex(/^[A-Za-z0-9_.\-\/]+$/, {
+    message: "Path contains forbidden characters. Allowed: A-Z a-z 0-9 _ . - /",
+  })
+  .refine((p) => !path.isAbsolute(p), {
+    message: "Path must be relative (no leading '/')",
+  })
+  .refine((p) => !p.split("/").includes(".."), {
+    message: "Path may not contain '..' segments",
+  })
+  .describe("The relative path of the file to retrieve")
+
 const getFileContentschema = z.object({
-  relativePath: z
-    .string()
-    .describe("The relative path of the file to retrieve"),
+  relativePath: relativePathSchema,
 })
 
 type getFileContentParameters = z.infer<typeof getFileContentschema>
-
-function shellEscape(str: string): string {
-  return "'" + str.replace(/'/g, "'\\''") + "'"
-}
 
 async function fnHandler(
   env: RepoEnvironment,
@@ -40,7 +51,7 @@ async function fnHandler(
       )
       const { stdout, stderr, exitCode } = await execInContainer({
         name: env.name,
-        command: `cat ${shellEscape(fileInContainer)}`,
+        command: `cat '${fileInContainer}'`,
       })
 
       if (exitCode !== 0) {
