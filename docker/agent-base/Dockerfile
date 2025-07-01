@@ -1,3 +1,4 @@
+# Explore why we can't just use alpine, ubuntu might be heavier
 FROM ubuntu:22.04
 
 # Avoid interactive prompts during package installation
