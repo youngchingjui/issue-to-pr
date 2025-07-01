@@ -40,6 +40,7 @@ export default async function commentOnIssue(
   let initialCommentId: number | null = null
 
   let latestEvent: appBaseEvent | null = null
+  let containerCleanup: (() => Promise<void>) | null = null
 
   try {
     await initializeWorkflowRun({
@@ -154,149 +155,136 @@ export default async function commentOnIssue(
       )
     })
 
-    try {
-      latestEvent = await createStatusEvent({
-        content: "Verifying container tools",
-        workflowId: jobId,
-        parentId: latestEvent.id,
-      })
+    containerCleanup = cleanup
 
-      // Verify ripgrep is available (should be pre-installed in custom image)
-      const verifyResult = await exec("rg --version")
-      if (verifyResult.exitCode !== 0) {
-        throw new Error(
-          `ripgrep not available in container: ${verifyResult.stderr}`
-        )
-      }
+    latestEvent = await createStatusEvent({
+      content: "Container environment ready",
+      workflowId: jobId,
+      parentId: latestEvent.id,
+    })
 
-      latestEvent = await createStatusEvent({
-        content: "Container environment ready",
-        workflowId: jobId,
-        parentId: latestEvent.id,
-      })
+    // Build directory tree using containerized version of createDirectoryTree
+    const tree = await createContainerizedDirectoryTree(exec)
 
-      // Build directory tree using containerized version of createDirectoryTree
-      const tree = await createContainerizedDirectoryTree(exec)
+    // Prepare the environment and tools for container execution
+    const env: RepoEnvironment = { kind: "container", name: containerName }
+    const getFileContentTool = createGetFileContentTool(env)
+    const searchCodeTool = createRipgrepSearchTool(env)
+    const containerExecTool = createContainerExecTool(containerName)
 
-      // Prepare the environment and tools for container execution
-      const env: RepoEnvironment = { kind: "container", name: containerName }
-      const getFileContentTool = createGetFileContentTool(env)
-      const searchCodeTool = createRipgrepSearchTool(env)
+    latestEvent = await createStatusEvent({
+      content: "Beginning to review issue and codebase",
+      workflowId: jobId,
+      parentId: latestEvent.id,
+    })
 
-      latestEvent = await createStatusEvent({
-        content: "Beginning to review issue and codebase",
-        workflowId: jobId,
-        parentId: latestEvent.id,
-      })
+    // Create and initialize the thinker agent
+    const thinker = new ThinkerAgent({ apiKey })
 
-      // Create and initialize the thinker agent
-      const thinker = new ThinkerAgent({ apiKey })
-      await thinker.addJobId(jobId) // Set jobId before any messages are added
-      const span = trace.span({ name: "generateComment" })
-      thinker.addSpan({ span, generationName: "commentOnIssue" })
-      thinker.addTool(getFileContentTool)
-      thinker.addTool(searchCodeTool)
-      thinker.addTool(createContainerExecTool(containerName))
+    await thinker.addJobId(jobId) // Set jobId before any messages are added
 
-      // Add issue information as user message
+    const span = trace.span({ name: "generateComment" })
+    thinker.addSpan({ span, generationName: "commentOnIssue" })
+
+    thinker.addTool(getFileContentTool)
+    thinker.addTool(searchCodeTool)
+    thinker.addTool(containerExecTool)
+
+    // Add issue information as user message
+    await thinker.addMessage({
+      role: "user",
+      content: `Github issue title: ${issue.title}\nGithub issue description: ${issue.body}`,
+    })
+
+    // Add tree information as user message
+    if (tree && tree.length > 0) {
       await thinker.addMessage({
         role: "user",
-        content: `Github issue title: ${issue.title}\nGithub issue description: ${issue.body}`,
+        content: `Here is the codebase's file structure:\n${tree.join("\n")}`,
+      })
+    }
+
+    const response = await thinker.runWithFunctions()
+
+    span.end()
+
+    const lastAssistantMessage = response.messages
+      .filter(
+        (msg) =>
+          msg.role === "assistant" &&
+          typeof msg.content === "string" &&
+          !msg.tool_calls
+      )
+      .pop()
+
+    if (!lastAssistantMessage) {
+      throw new Error(
+        "No valid assistant message found in the response: " +
+          JSON.stringify(response.messages)
+      )
+    }
+
+    if (!lastAssistantMessage.id) {
+      throw new Error(
+        "No message id found in the last assistant message: " +
+          JSON.stringify(lastAssistantMessage)
+      )
+    }
+
+    // The response is the final Plan.
+    await tagMessageAsPlan({
+      eventId: lastAssistantMessage.id,
+      workflowId: jobId,
+      issueNumber: issueNumber,
+      repoFullName: repo.full_name,
+    })
+
+    // Only update GitHub comment if postToGithub is true
+    if (postToGithub && initialCommentId) {
+      latestEvent = await createStatusEvent({
+        content: "Updating initial comment with final response",
+        workflowId: jobId,
+        parentId: latestEvent.id,
       })
 
-      // Add tree information as user message
-      if (tree && tree.length > 0) {
-        await thinker.addMessage({
-          role: "user",
-          content: `Here is the codebase's file structure:\n${tree.join("\n")}`,
-        })
-      }
-
-      const response = await thinker.runWithFunctions()
-
-      span.end()
-
-      const lastAssistantMessage = response.messages
-        .filter(
-          (msg) =>
-            msg.role === "assistant" &&
-            typeof msg.content === "string" &&
-            !msg.tool_calls
-        )
-        .pop()
-
-      if (!lastAssistantMessage) {
+      if (typeof lastAssistantMessage.content !== "string") {
         throw new Error(
-          "No valid assistant message found in the response: " +
-            JSON.stringify(response.messages)
+          `Last message content is not a string. Here's the content: ${JSON.stringify(
+            lastAssistantMessage.content
+          )}`
         )
       }
 
-      if (!lastAssistantMessage.id) {
-        throw new Error(
-          "No message id found in the last assistant message: " +
-            JSON.stringify(lastAssistantMessage)
-        )
-      }
-
-      // The response is the final Plan.
-      await tagMessageAsPlan({
-        eventId: lastAssistantMessage.id,
-        workflowId: jobId,
-        issueNumber: issueNumber,
+      await updateIssueComment({
         repoFullName: repo.full_name,
-      })
-
-      // Only update GitHub comment if postToGithub is true
-      if (postToGithub && initialCommentId) {
-        latestEvent = await createStatusEvent({
-          content: "Updating initial comment with final response",
-          workflowId: jobId,
-          parentId: latestEvent.id,
-        })
-
-        if (typeof lastAssistantMessage.content !== "string") {
-          throw new Error(
-            `Last message content is not a string. Here's the content: ${JSON.stringify(
-              lastAssistantMessage.content
-            )}`
-          )
-        }
-
-        await updateIssueComment({
-          repoFullName: repo.full_name,
+        commentId: initialCommentId,
+        comment: lastAssistantMessage.content,
+      }).catch((error) => {
+        console.error("Failed to update comment:", {
+          error,
           commentId: initialCommentId,
-          comment: lastAssistantMessage.content,
-        }).catch((error) => {
-          console.error("Failed to update comment:", {
-            error,
-            commentId: initialCommentId,
-            repo: repo.full_name,
-          })
-          throw new Error(`Failed to update comment: ${error.message}`)
+          repo: repo.full_name,
         })
-
-        await createStatusEvent({
-          content: "Comment updated successfully",
-          workflowId: jobId,
-          parentId: latestEvent.id,
-        })
-      }
-
-      await createWorkflowStateEvent({
-        workflowId: jobId,
-        state: "completed",
+        throw new Error(`Failed to update comment: ${error.message}`)
       })
 
-      // Return the comment plus planId for downstream consumption
-      return {
-        status: "complete",
-        issueComment: response,
-        planId: lastAssistantMessage.id,
-      }
-    } finally {
-      // Always cleanup the containerized environment
-      await cleanup()
+      await createStatusEvent({
+        content: "Comment updated successfully",
+        workflowId: jobId,
+        parentId: latestEvent.id,
+      })
+    }
+
+    await createWorkflowStateEvent({
+      workflowId: jobId,
+      state: "completed",
+    })
+
+    // Return the comment plus planId for downstream consumption
+    return {
+      status: "complete",
+      issueComment: response,
+      planId: lastAssistantMessage.id,
     }
   } catch (error) {
     const githubError = error as GitHubError
@@ -335,5 +323,10 @@ export default async function commentOnIssue(
     })
 
     throw githubError // Re-throw the error to be handled by the caller
+  } finally {
+    // Always cleanup the containerized environment
+    if (containerCleanup) {
+      await containerCleanup()
+    }
   }
 }
