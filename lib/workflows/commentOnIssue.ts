@@ -15,7 +15,6 @@ import {
   createContainerExecTool,
   createGetFileContentTool,
   createRipgrepSearchTool,
-  createWriteFileContentTool,
 } from "@/lib/tools"
 import { RepoEnvironment } from "@/lib/tools/env"
 import { BaseEvent as appBaseEvent } from "@/lib/types"
@@ -187,7 +186,6 @@ export default async function commentOnIssue(
       const env: RepoEnvironment = { kind: "container", name: containerName }
       const getFileContentTool = createGetFileContentTool(env)
       const searchCodeTool = createRipgrepSearchTool(env)
-      const writeFileTool = createWriteFileContentTool(env)
 
       latestEvent = await createStatusEvent({
         content: "Beginning to review issue and codebase",
@@ -202,7 +200,6 @@ export default async function commentOnIssue(
       thinker.addSpan({ span, generationName: "commentOnIssue" })
       thinker.addTool(getFileContentTool)
       thinker.addTool(searchCodeTool)
-      thinker.addTool(writeFileTool)
       thinker.addTool(createContainerExecTool(containerName))
 
       // Add issue information as user message

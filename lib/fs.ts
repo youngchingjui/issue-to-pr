@@ -10,6 +10,8 @@ export async function createDirectoryTree(
   // Generate a list of all files in the directory
   // Does not include folders, node_modules, or hidden files or folders
 
+  // TODO: We should just use `tree` instead.
+
   let output: string[] = []
   const files = await fs.readdir(dir)
 
