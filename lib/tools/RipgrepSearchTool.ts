@@ -160,6 +160,10 @@ async function fnHandler(
 }
 
 // Overloaded function signatures for backwards compatibility
+/**
+ *
+ * @deprecated Use dockerized version with `env: RepoEnvironment` params instead
+ */
 export function createRipgrepSearchTool(
   baseDir: string
 ): Tool<typeof searchParameters, string>
