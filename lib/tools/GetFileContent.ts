@@ -57,6 +57,9 @@ async function fnHandler(
 }
 
 // Overloaded function signatures for backwards compatibility
+/**
+ * @deprecated Use Dockerized RepoEnvironment directly instead
+ */
 export function createGetFileContentTool(
   baseDir: string
 ): Tool<typeof getFileContentschema, string>
