@@ -4,9 +4,8 @@ import { z } from "zod"
 
 import { execInContainer } from "@/lib/docker"
 import { createTool } from "@/lib/tools/helper"
-import { RepoEnvironment, Tool } from "@/lib/types"
+import { asRepoEnvironment, RepoEnvironment, Tool } from "@/lib/types"
 import { shellEscape } from "@/lib/utils/cli"
-import { asEnv } from "@/lib/utils/container"
 
 const execPromise = promisify(exec)
 
@@ -197,7 +196,7 @@ export function createRipgrepSearchTool(
 export function createRipgrepSearchTool(
   arg: string | RepoEnvironment
 ): Tool<typeof searchParameters, string> {
-  const env = asEnv(arg)
+  const env = asRepoEnvironment(arg)
 
   return createTool({
     name,

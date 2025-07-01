@@ -4,9 +4,8 @@ import { z } from "zod"
 import { execInContainer } from "@/lib/docker"
 import { writeFile } from "@/lib/fs"
 import { createTool } from "@/lib/tools/helper"
-import { RepoEnvironment, Tool } from "@/lib/types"
+import { asRepoEnvironment, RepoEnvironment, Tool } from "@/lib/types"
 import { shellEscape } from "@/lib/utils/cli"
-import { asEnv } from "@/lib/utils/container"
 
 const writeFileContentParameters = z.object({
   relativePath: z
@@ -61,7 +60,7 @@ export function createWriteFileContentTool(
 export function createWriteFileContentTool(
   arg: string | RepoEnvironment
 ): Tool<typeof writeFileContentParameters, string> {
-  const env = asEnv(arg)
+  const env = asRepoEnvironment(arg)
 
   return createTool({
     name: "write_file",

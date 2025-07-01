@@ -4,9 +4,8 @@ import { z } from "zod"
 import { execInContainer } from "@/lib/docker"
 import { getFileContent } from "@/lib/fs"
 import { createTool } from "@/lib/tools/helper"
-import { RepoEnvironment, Tool } from "@/lib/types"
+import { asRepoEnvironment, RepoEnvironment, Tool } from "@/lib/types"
 import { relativePathSchema } from "@/lib/types/utils/path"
-import { asEnv } from "@/lib/utils/container"
 
 const name = "get_file_content"
 const description =
@@ -69,7 +68,7 @@ export function createGetFileContentTool(
 export function createGetFileContentTool(
   arg: string | RepoEnvironment
 ): Tool<typeof getFileContentschema, string> {
-  const env = asEnv(arg)
+  const env = asRepoEnvironment(arg)
 
   return createTool({
     name,
