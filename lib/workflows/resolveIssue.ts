@@ -35,7 +35,7 @@ import {
   repoFullNameSchema,
   RepoPermissions,
 } from "@/lib/types/github"
-import { setupEnv } from "@/lib/utils/setupEnv"
+import { setupEnv } from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 
 interface ResolveIssueParams {

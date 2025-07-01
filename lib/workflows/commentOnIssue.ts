@@ -1,6 +1,5 @@
 import { ThinkerAgent } from "@/lib/agents/thinker"
 import { AUTH_CONFIG } from "@/lib/auth/config"
-import { createDirectoryTree } from "@/lib/fs"
 import {
   createIssueComment,
   getIssue,
@@ -11,18 +10,15 @@ import { createStatusEvent } from "@/lib/neo4j/services/event"
 import { createWorkflowStateEvent } from "@/lib/neo4j/services/event"
 import { tagMessageAsPlan } from "@/lib/neo4j/services/plan"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
-import {
-  createContainerExecTool,
-  createGetFileContentTool,
-  createRipgrepSearchTool,
-} from "@/lib/tools"
-import { RepoEnvironment } from "@/lib/tools/env"
-import { BaseEvent as appBaseEvent } from "@/lib/types"
+import { createContainerExecTool } from "@/lib/tools/ContainerExecTool"
+import { createGetFileContentTool } from "@/lib/tools/GetFileContent"
+import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
+import { BaseEvent as appBaseEvent, RepoEnvironment } from "@/lib/types"
 import { GitHubRepository } from "@/lib/types/github"
 import {
   createContainerizedDirectoryTree,
   createContainerizedWorktree,
-} from "@/lib/utils/containerized-worktree"
+} from "@/lib/utils/container"
 
 interface GitHubError extends Error {
   status?: number

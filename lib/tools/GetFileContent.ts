@@ -3,10 +3,10 @@ import { z } from "zod"
 
 import { execInContainer } from "@/lib/docker"
 import { getFileContent } from "@/lib/fs"
-import { asEnv, RepoEnvironment } from "@/lib/tools/env"
 import { createTool } from "@/lib/tools/helper"
-import { Tool } from "@/lib/types"
+import { RepoEnvironment, Tool } from "@/lib/types"
 import { relativePathSchema } from "@/lib/types/utils/path"
+import { asEnv } from "@/lib/utils/container"
 
 const name = "get_file_content"
 const description =

@@ -1,3 +1,5 @@
+// CLI and shell utilities - command-line interface helpers
+
 /**
  * Safe quoting helper for POSIX shells.
  *

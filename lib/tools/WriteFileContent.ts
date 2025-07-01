@@ -3,10 +3,10 @@ import { z } from "zod"
 
 import { execInContainer } from "@/lib/docker"
 import { writeFile } from "@/lib/fs"
-import { asEnv, RepoEnvironment } from "@/lib/tools/env"
 import { createTool } from "@/lib/tools/helper"
-import { Tool } from "@/lib/types"
-import { shellEscape } from "@/lib/utils/shell"
+import { RepoEnvironment, Tool } from "@/lib/types"
+import { shellEscape } from "@/lib/utils/cli"
+import { asEnv } from "@/lib/utils/container"
 
 const writeFileContentParameters = z.object({
   relativePath: z
