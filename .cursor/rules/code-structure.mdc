@@ -1,9 +1,9 @@
 ---
-description: 
+description: Finding existing files or creating new files
 globs: 
-alwaysApply: true
+alwaysApply: false
 ---
-# Code Structure Reference
+ # Code Structure Reference
 
 When searching for existing files or determining where to create new files:
 
