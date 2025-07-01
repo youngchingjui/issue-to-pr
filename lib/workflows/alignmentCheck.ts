@@ -18,7 +18,7 @@ import {
 } from "@/lib/neo4j/services/event"
 import { listPlansForIssue } from "@/lib/neo4j/services/plan"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
-import { createIssueCommentTool } from "@/lib/tools"
+import { createIssueCommentTool } from "@/lib/tools/IssueCommentTool"
 import { AgentConstructorParams, Plan } from "@/lib/types"
 import {
   GitHubIssue,

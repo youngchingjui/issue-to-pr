@@ -8,7 +8,7 @@ jest.mock("node:child_process", () => {
 
 import { exec as execCallback } from "node:child_process"
 
-import { setupEnv } from "@/lib/utils/setupEnv"
+import { setupEnv } from "@/lib/utils/cli"
 
 // Cast for convenience – the mock is created above via jest.mock
 const execMock = execCallback as unknown as jest.MockedFunction<

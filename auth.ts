@@ -4,7 +4,7 @@ import { JWT } from "next-auth/jwt"
 import GithubProvider from "next-auth/providers/github"
 
 import { redis } from "@/lib/redis"
-import { refreshTokenWithLock } from "@/lib/utils/auth-utils"
+import { refreshTokenWithLock } from "@/lib/utils/auth"
 
 export const runtime = "nodejs"
 

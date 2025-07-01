@@ -1,6 +1,5 @@
 import { ThinkerAgent } from "@/lib/agents/thinker"
 import { AUTH_CONFIG } from "@/lib/auth/config"
-import { createDirectoryTree } from "@/lib/fs"
 import {
   createIssueComment,
   getIssue,
@@ -11,10 +10,15 @@ import { createStatusEvent } from "@/lib/neo4j/services/event"
 import { createWorkflowStateEvent } from "@/lib/neo4j/services/event"
 import { tagMessageAsPlan } from "@/lib/neo4j/services/plan"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
-import { createGetFileContentTool, createRipgrepSearchTool } from "@/lib/tools"
-import { BaseEvent as appBaseEvent } from "@/lib/types"
+import { createContainerExecTool } from "@/lib/tools/ContainerExecTool"
+import { createGetFileContentTool } from "@/lib/tools/GetFileContent"
+import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
+import { BaseEvent as appBaseEvent, RepoEnvironment } from "@/lib/types"
 import { GitHubRepository } from "@/lib/types/github"
-import { setupLocalRepository } from "@/lib/utils/utils-server"
+import {
+  createContainerizedDirectoryTree,
+  createContainerizedWorktree,
+} from "@/lib/utils/container"
 
 interface GitHubError extends Error {
   status?: number
@@ -36,6 +40,7 @@ export default async function commentOnIssue(
   let initialCommentId: number | null = null
 
   let latestEvent: appBaseEvent | null = null
+  let containerCleanup: (() => Promise<void>) | null = null
 
   try {
     await initializeWorkflowRun({
@@ -129,34 +134,43 @@ export default async function commentOnIssue(
     }
 
     latestEvent = await createStatusEvent({
-      content: "Setting up the local repository",
+      content: "Setting up containerized environment",
       workflowId: jobId,
       parentId: latestEvent.id,
     })
 
-    // Setup local repository using setupLocalRepository
-    const dirPath = await setupLocalRepository({
+    // Setup containerized worktree environment
+    const { containerName, exec, cleanup } = await createContainerizedWorktree({
       repoFullName: repo.full_name,
-      workingBranch: repo.default_branch,
+      branch: repo.default_branch,
+      workflowId: jobId,
+      image: "issue-to-pr/agent-base", // Custom image with ripgrep pre-installed
     }).catch((error) => {
-      console.error("Failed to setup local repository:", {
+      console.error("Failed to setup containerized environment:", {
         error,
         repo: repo.full_name,
       })
-      throw new Error(`Failed to setup local repository: ${error.message}`)
+      throw new Error(
+        `Failed to setup containerized environment: ${error.message}`
+      )
     })
 
+    containerCleanup = cleanup
+
     latestEvent = await createStatusEvent({
-      content: "Repository setup completed",
+      content: "Container environment ready",
       workflowId: jobId,
       parentId: latestEvent.id,
     })
 
-    const tree = await createDirectoryTree(dirPath)
+    // Build directory tree using containerized version of createDirectoryTree
+    const tree = await createContainerizedDirectoryTree(exec)
 
-    // Prepare the tools
-    const getFileContentTool = createGetFileContentTool(dirPath)
-    const searchCodeTool = createRipgrepSearchTool(dirPath)
+    // Prepare the environment and tools for container execution
+    const env: RepoEnvironment = { kind: "container", name: containerName }
+    const getFileContentTool = createGetFileContentTool(env)
+    const searchCodeTool = createRipgrepSearchTool(env)
+    const containerExecTool = createContainerExecTool(containerName)
 
     latestEvent = await createStatusEvent({
       content: "Beginning to review issue and codebase",
@@ -166,11 +180,15 @@ export default async function commentOnIssue(
 
     // Create and initialize the thinker agent
     const thinker = new ThinkerAgent({ apiKey })
+
     await thinker.addJobId(jobId) // Set jobId before any messages are added
+
     const span = trace.span({ name: "generateComment" })
     thinker.addSpan({ span, generationName: "commentOnIssue" })
+
     thinker.addTool(getFileContentTool)
     thinker.addTool(searchCodeTool)
+    thinker.addTool(containerExecTool)
 
     // Add issue information as user message
     await thinker.addMessage({
@@ -182,7 +200,7 @@ export default async function commentOnIssue(
     if (tree && tree.length > 0) {
       await thinker.addMessage({
         role: "user",
-        content: `Here is the codebase's tree directory:\n${tree.join("\n")}`,
+        content: `Here is the codebase's file structure:\n${tree.join("\n")}`,
       })
     }
 
@@ -305,5 +323,10 @@ export default async function commentOnIssue(
     })
 
     throw githubError // Re-throw the error to be handled by the caller
+  } finally {
+    // Always cleanup the containerized environment
+    if (containerCleanup) {
+      await containerCleanup()
+    }
   }
 }

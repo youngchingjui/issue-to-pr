@@ -227,6 +227,24 @@ export const blogPostSchema = z.object({
   summary: z.string().optional(),
 })
 
+// ---- Repo Environment Type ----
+// Represents where repository operations are executed – either directly on the host
+// file-system or inside a named Docker container (optionally with a different mount path).
+export type RepoEnvironment =
+  | { kind: "host"; root: string }
+  | { kind: "container"; name: string; mount?: string }
+
+/**
+ * Helper to normalize legacy baseDir string to RepoEnvironment
+ */
+export function asRepoEnvironment(
+  arg: string | RepoEnvironment
+): RepoEnvironment {
+  return typeof arg === "string"
+    ? { kind: "host", root: arg } // auto-wrap legacy baseDir
+    : arg
+}
+
 // Type exports
 export type AnyEvent = z.infer<typeof anyEventSchema>
 export type BaseEvent = z.infer<typeof baseEventSchema>

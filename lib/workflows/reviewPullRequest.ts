@@ -14,7 +14,8 @@ import {
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
-import { createGetFileContentTool, createRipgrepSearchTool } from "@/lib/tools"
+import { createGetFileContentTool } from "@/lib/tools/GetFileContent"
+import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
 import {
   GitHubIssue,
   IssueComment,
