@@ -62,7 +62,10 @@ This script will:
 
 ## Agent Base Image
 
-For containerized agent workflows, we use a custom base image with pre-installed tools:
+For containerized agent workflows, we use a custom base image with pre-installed tools.
+
+However, in the future we may need to consider using different base images for different repositories.
+A Python repo might need a Python image, etc.
 
 ### Building the Agent Base Image
 
