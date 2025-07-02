@@ -6,8 +6,10 @@ import {
   updateIssueComment,
 } from "@/lib/github/issues"
 import { langfuse } from "@/lib/langfuse"
-import { createStatusEvent } from "@/lib/neo4j/services/event"
-import { createWorkflowStateEvent } from "@/lib/neo4j/services/event"
+import {
+  createStatusEvent,
+  createWorkflowStateEvent,
+} from "@/lib/neo4j/services/event"
 import { tagMessageAsPlan } from "@/lib/neo4j/services/plan"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
 import { createContainerExecTool } from "@/lib/tools/ContainerExecTool"
