@@ -110,11 +110,15 @@ export async function createContainerizedWorktree({
 
   const containerName = `agent-${workflowId}`.replace(/[^a-zA-Z0-9_.-]/g, "-")
 
-  // 4. Start detached container mounting the worktree
+  // 4. Start detached container mounting both the *clone* (read-only) and the *worktree* (rw)
   await startDetachedContainer({
     image,
-    hostDir: worktreeDir,
     name: containerName,
+    mounts: [
+      { hostPath: cloneDir, containerPath: cloneDir, readOnly: true },
+      { hostPath: worktreeDir, containerPath: worktreeDir },
+    ],
+    workdir: worktreeDir,
   })
 
   // Helper functions

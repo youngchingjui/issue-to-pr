@@ -7,6 +7,7 @@ import { BranchCreationStatus, createBranch } from "@/lib/github/git"
 import { createTool } from "@/lib/tools/helper"
 import { asRepoEnvironment, RepoEnvironment, Tool } from "@/lib/types"
 import { RepoFullName } from "@/lib/types/github"
+import { getCloneUrlWithAccessToken } from "@/lib/utils/utils-common"
 
 const syncBranchParameters = z.object({
   branch: z
@@ -45,6 +46,26 @@ async function fnHandler(
     if (env.kind === "host") {
       await pushBranch(branch, env.root, token, repoFullName.fullName)
     } else {
+      // Ensure the 'origin' remote embeds authentication
+      const authenticatedUrl = getCloneUrlWithAccessToken(
+        repoFullName.fullName,
+        token
+      )
+
+      // Set remote URL with credentials before pushing
+      const { exitCode: setUrlExit, stderr: setUrlErr } = await execInContainer(
+        {
+          name: env.name,
+          command: `git remote set-url origin "${authenticatedUrl}"`,
+        }
+      )
+      if (setUrlExit !== 0) {
+        return JSON.stringify({
+          status: "error",
+          message: `Failed to set authenticated remote: ${setUrlErr}`,
+        })
+      }
+
       const { exitCode, stderr } = await execInContainer({
         name: env.name,
         command: `git push origin ${branch}`,

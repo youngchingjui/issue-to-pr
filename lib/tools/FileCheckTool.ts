@@ -215,13 +215,22 @@ async function handler(
  */
 export function createFileCheckTool(
   baseDir: string
-): Tool<typeof fileCheckParameters, { stdout: string; stderr: string; exitCode: number }>
+): Tool<
+  typeof fileCheckParameters,
+  { stdout: string; stderr: string; exitCode: number }
+>
 export function createFileCheckTool(
   env: RepoEnvironment
-): Tool<typeof fileCheckParameters, { stdout: string; stderr: string; exitCode: number }>
+): Tool<
+  typeof fileCheckParameters,
+  { stdout: string; stderr: string; exitCode: number }
+>
 export function createFileCheckTool(
   arg: string | RepoEnvironment
-): Tool<typeof fileCheckParameters, { stdout: string; stderr: string; exitCode: number }> {
+): Tool<
+  typeof fileCheckParameters,
+  { stdout: string; stderr: string; exitCode: number }
+> {
   const env = asRepoEnvironment(arg)
   return createTool({
     name: "file_check",

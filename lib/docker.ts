@@ -3,26 +3,51 @@ import util from "util"
 
 const execPromise = util.promisify(exec)
 
+export interface StartDetachedContainerOptions {
+  image: string
+  name: string
+  /** UID:GID string; default keeps container non-root */
+  user?: string
+  /** Bind-mounts */
+  mounts?: Array<{
+    hostPath: string
+    containerPath: string
+    readOnly?: boolean
+  }>
+  /** Working directory inside the container */
+  workdir?: string
+}
+
 export async function startDetachedContainer({
   image,
-  hostDir,
   name,
   user = "1000:1000",
-}: {
-  image: string
-  hostDir: string
-  name: string
-  user?: string
-}): Promise<string> {
+  mounts = [],
+  workdir,
+}: StartDetachedContainerOptions): Promise<string> {
+  // 1. Build volume flags: -v "host:container[:ro]"
+  const volumeFlags = mounts.map(({ hostPath, containerPath, readOnly }) => {
+    const ro = readOnly ? ":ro" : ""
+    return `-v \"${hostPath}:${containerPath}${ro}\"`
+  })
+
+  // 2. Determine working directory
+  const wdPath = workdir ?? (mounts.length ? mounts[0].containerPath : "/")
+  const wdFlag = wdPath ? `-w \"${wdPath}\"` : undefined
+
+  // 3. Assemble command parts and filter out undefined entries
   const cmd = [
     "docker run -d",
     `--name ${name}`,
     `-u ${user}`,
-    `-v \"${hostDir}:/workspace\"`,
-    "-w /workspace",
+    ...volumeFlags,
+    wdFlag,
     image,
     "tail -f /dev/null",
-  ].join(" ")
+  ]
+    .filter(Boolean)
+    .join(" ")
+
   const { stdout } = await execPromise(cmd)
   return stdout.trim()
 }
