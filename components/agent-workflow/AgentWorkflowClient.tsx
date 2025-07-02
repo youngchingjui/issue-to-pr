@@ -65,7 +65,7 @@ export default function AgentWorkflowClient() {
 
       <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
         {/* Repository and Branch Selection */}
-        <Card>
+        <Card className="w-full">
           <CardHeader>
             <CardTitle>Repository Settings</CardTitle>
           </CardHeader>
@@ -109,7 +109,7 @@ export default function AgentWorkflowClient() {
         </Card>
 
         {/* Issue Input */}
-        <Card>
+        <Card className="w-full">
           <CardHeader>
             <CardTitle>Issue</CardTitle>
           </CardHeader>
@@ -124,7 +124,7 @@ export default function AgentWorkflowClient() {
         </Card>
 
         {/* Messages */}
-        <Card>
+        <Card className="w-full">
           <CardHeader>
             <CardTitle>Messages</CardTitle>
           </CardHeader>
@@ -181,7 +181,7 @@ export default function AgentWorkflowClient() {
         </Card>
 
         {/* Tools */}
-        <Card>
+        <Card className="w-full">
           <CardHeader>
             <CardTitle>Tools</CardTitle>
           </CardHeader>

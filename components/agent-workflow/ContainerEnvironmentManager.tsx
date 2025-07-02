@@ -42,12 +42,13 @@ export default function ContainerEnvironmentManager() {
   }
 
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
         <CardTitle>Container Environments</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Table>
+        <div className="overflow-x-auto">
+          <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="w-12">Active</TableHead>
@@ -84,6 +85,7 @@ export default function ContainerEnvironmentManager() {
             ))}
           </TableBody>
         </Table>
+        </div>
       </CardContent>
     </Card>
   )
