@@ -1,5 +1,6 @@
 import { ThinkerAgent } from "@/lib/agents/thinker"
 import { AUTH_CONFIG } from "@/lib/auth/config"
+import { isContainerRunning } from "@/lib/docker"
 import {
   createIssueComment,
   getIssue,
@@ -158,6 +159,11 @@ export default async function commentOnIssue(
     })
 
     containerCleanup = cleanup
+
+    const running = await isContainerRunning(containerName)
+    if (!running) {
+      throw new Error(`Container ${containerName} failed to start`)
+    }
 
     latestEvent = await createStatusEvent({
       content: "Container environment ready",
