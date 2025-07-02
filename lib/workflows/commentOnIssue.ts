@@ -146,7 +146,7 @@ export default async function commentOnIssue(
       repoFullName: repo.full_name,
       branch: repo.default_branch,
       workflowId: jobId,
-      image: "issue-to-pr/agent-base", // Custom image with ripgrep pre-installed
+      image: "ghcr.io/youngchingjui/agent-base",
     }).catch((error) => {
       console.error("Failed to setup containerized environment:", {
         error,

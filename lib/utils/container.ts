@@ -29,7 +29,7 @@ export interface ContainerizedWorktreeOptions {
   branch?: string
   /** optional externally-supplied workflow run id */
   workflowId?: string
-  /** Docker image to use (default "issue-to-pr/agent-base") */
+  /** Docker image to use (default "ghcr.io/youngchingjui/agent-base") */
   image?: string
   /** Mount path inside container (default "/workspace") */
   mountPath?: string
@@ -92,7 +92,7 @@ export async function createContainerizedWorktree({
   repoFullName,
   branch = "main",
   workflowId = uuidv4(),
-  image = "issue-to-pr/agent-base",
+  image = "ghcr.io/youngchingjui/agent-base",
   mountPath = "/workspace",
 }: ContainerizedWorktreeOptions): Promise<ContainerizedWorktreeResult> {
   // 1. Ensure we have a clean local clone
