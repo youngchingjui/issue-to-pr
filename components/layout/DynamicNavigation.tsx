@@ -148,6 +148,9 @@ export default function DynamicNavigation({
             <Link href="/workflow-runs">Workflows</Link>
           </Button>
           <Button variant="ghost" size="sm" asChild className="flex items-center">
+            <Link href="/agent-workflow">Agent Workflow</Link>
+          </Button>
+          <Button variant="ghost" size="sm" asChild className="flex items-center">
             <Link href="/issues">Issues</Link>
           </Button>
           <Button variant="ghost" size="sm" asChild className="flex items-center">
@@ -169,6 +172,7 @@ export default function DynamicNavigation({
           <SheetContent side="left" className="sm:hidden w-64 p-4">
             <nav className="mt-4 flex flex-col gap-4">
               <Link href="/workflow-runs">Workflows</Link>
+              <Link href="/agent-workflow">Agent Workflow</Link>
               <Link href="/issues">Issues</Link>
               <Link href="/contribute">Contribute</Link>
               <Link href="/settings">Settings</Link>
