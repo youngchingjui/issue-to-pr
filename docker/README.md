@@ -91,6 +91,8 @@ The image is automatically used by containerized workflows like `commentOnIssue`
 
 Image name: `ghcr.io/youngchingjui/agent-base:latest`
 
+This is a private image, so you need to login with Docker to pull this image.
+
 ## Neo4j Services
 
 The `compose/` directory contains Docker Compose configurations for Neo4j database services used by the application.
