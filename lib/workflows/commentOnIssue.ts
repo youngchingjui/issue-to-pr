@@ -7,7 +7,6 @@ import {
 } from "@/lib/github/issues"
 import { langfuse } from "@/lib/langfuse"
 import {
-  createErrorEvent,
   createStatusEvent,
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
@@ -318,11 +317,6 @@ export default async function commentOnIssue(
         })
       }
     }
-
-    await createErrorEvent({
-      workflowId: jobId,
-      content: errorMessage,
-    })
 
     await createWorkflowStateEvent({
       workflowId: jobId,
