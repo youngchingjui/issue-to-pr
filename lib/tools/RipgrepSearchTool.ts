@@ -156,6 +156,10 @@ async function fnHandler(
 
       // Handle ripgrep exit codes
       if (exitCode === 1) {
+        if (stderr.trim()) {
+          // Docker exec failed (e.g., container not running) rather than no matches
+          throw new Error(`Ripgrep search failed: ${stderr}`)
+        }
         return "No matching results found."
       }
       if (exitCode === 2) {
