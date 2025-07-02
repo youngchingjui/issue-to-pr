@@ -224,17 +224,25 @@ export class Agent {
             JSON.parse(toolCall.function.arguments)
           )
           if (!validationResult.success) {
-            console.error(
-              `Validation failed for tool ${toolCall.function.name}: ${validationResult.error.message}`
-            )
+            const errorContent = `Validation failed for tool ${toolCall.function.name}: ${validationResult.error.message}`
+            console.error(errorContent)
 
             // Track error event
             if (this.jobId) {
-              await createErrorEvent({
+              await createToolCallResultEvent({
                 workflowId: this.jobId,
-                content: validationResult.error.message,
+                toolCallId: toolCall.id,
+                toolName: toolCall.function.name,
+                content: errorContent,
               })
             }
+
+            // Surface the validation error back to the LLM through a tool response
+            await this.addMessage({
+              role: "tool",
+              content: errorContent,
+              tool_call_id: toolCall.id,
+            })
             continue
           }
 
