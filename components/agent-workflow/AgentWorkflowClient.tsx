@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { Loader2 } from "lucide-react"
 import {
   Select,
   SelectContent,
@@ -37,6 +38,9 @@ export default function AgentWorkflowClient() {
 
   const [selectedTools, setSelectedTools] = useState<string[]>([])
 
+  const [isRunning, setIsRunning] = useState(false)
+  const [runResult, setRunResult] = useState<{ runId: string } | null>(null)
+
   const addMessage = () => {
     if (!newMessage.trim()) return
     const msg: Message = { role: newMessageRole, content: newMessage.trim() }
@@ -52,6 +56,18 @@ export default function AgentWorkflowClient() {
     setSelectedTools((prev) =>
       prev.includes(tool) ? prev.filter((t) => t !== tool) : [...prev, tool]
     )
+  }
+
+  const startRun = async () => {
+    setIsRunning(true)
+    setRunResult(null)
+    // Fake API call
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+    const result = {
+      runId: Math.random().toString(36).slice(2, 10),
+    }
+    setRunResult(result)
+    setIsRunning(false)
   }
 
   return (
@@ -201,6 +217,22 @@ export default function AgentWorkflowClient() {
 
         <ContainerEnvironmentManager />
       </div>
+      <div className="flex justify-end">
+        <Button onClick={startRun} disabled={isRunning}>
+          {isRunning ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Starting...
+            </>
+          ) : (
+            "Start Run"
+          )}
+        </Button>
+      </div>
+      {runResult && (
+        <div className="text-green-700 text-sm mt-2">
+          Fake run started with ID {runResult.runId}
+        </div>
+      )}
     </div>
   )
 }
