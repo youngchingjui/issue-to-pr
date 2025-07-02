@@ -14,7 +14,7 @@ export async function StatusUpdate({ event }: Props) {
   if (event.type === "status") {
     displayText = event.content
   } else if (event.type === "workflowState") {
-    displayText = event.state
+    displayText = event.content || event.state
   }
   return (
     <div className="flex items-center gap-2">
