@@ -89,7 +89,9 @@ The image is automatically used by containerized workflows like `commentOnIssue`
 - Consistent tool environment
 - Pre-installed dependencies
 
-Image name: `issue-to-pr/agent-base:latest`
+Image name: `ghcr.io/youngchingjui/agent-base:latest`
+
+This is a private image, so you need to login with Docker to pull this image.
 
 ## Neo4j Services
 

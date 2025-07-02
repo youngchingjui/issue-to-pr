@@ -22,6 +22,9 @@ docker run --rm "${IMAGE_NAME}:${IMAGE_TAG}" rg --version
 docker run --rm "${IMAGE_NAME}:${IMAGE_TAG}" git --version
 docker run --rm "${IMAGE_NAME}:${IMAGE_TAG}" curl --version
 
+echo "Pushing image to repository..."
+docker push "${IMAGE_NAME}:${IMAGE_TAG}"
+
 echo "✅ Custom agent image is ready for use"
 echo "Image: ${IMAGE_NAME}:${IMAGE_TAG}"
 echo "Includes: ripgrep, git, curl" 
