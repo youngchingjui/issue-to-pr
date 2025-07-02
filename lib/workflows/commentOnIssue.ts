@@ -7,9 +7,9 @@ import {
 } from "@/lib/github/issues"
 import { langfuse } from "@/lib/langfuse"
 import {
+  createErrorEvent,
   createStatusEvent,
   createWorkflowStateEvent,
-  createErrorEvent,
 } from "@/lib/neo4j/services/event"
 import { tagMessageAsPlan } from "@/lib/neo4j/services/plan"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
