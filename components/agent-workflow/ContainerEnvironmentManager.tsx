@@ -41,10 +41,27 @@ export default function ContainerEnvironmentManager() {
     )
   }
 
+  const startNewContainer = () => {
+    const newId = Date.now().toString()
+    const newContainer: ContainerEnv = {
+      id: newId,
+      name: `agent-env-${containers.length + 1}`,
+      image: "ubuntu:latest",
+      mounts: ["/workspace"],
+      workdir: "/workspace",
+      running: true,
+    }
+    setContainers((prev) => [...prev, newContainer])
+    setActiveId(newId)
+  }
+
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex items-center justify-between">
         <CardTitle>Container Environments</CardTitle>
+        <Button size="sm" onClick={startNewContainer}>
+          Start New Container
+        </Button>
       </CardHeader>
       <CardContent className="space-y-4">
         <Table>
@@ -77,7 +94,7 @@ export default function ContainerEnvironmentManager() {
                 <TableCell>{c.running ? "Running" : "Stopped"}</TableCell>
                 <TableCell className="text-right">
                   <Button size="sm" onClick={() => toggleContainer(c.id)}>
-                    {c.running ? "Stop" : "Start"}
+                    {c.running ? "Shut Down" : "Start"}
                   </Button>
                 </TableCell>
               </TableRow>
