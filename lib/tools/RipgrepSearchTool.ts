@@ -24,25 +24,29 @@ const searchParameters = z.object({
     ),
   ignoreCase: z
     .boolean()
-    .nullable()
+    .optional()
+    .default(false)
     .describe(
       "Ignore case sensitivity. Default is false, meaning the search is case-sensitive. Use true to find matches regardless of case, e.g., 'function' will match 'Function'."
     ),
   hidden: z
     .boolean()
-    .nullable()
+    .optional()
+    .default(false)
     .describe(
       "Include hidden files. Default is false, meaning hidden files are ignored. Use true to include files like '.env'."
     ),
   follow: z
     .boolean()
-    .nullable()
+    .optional()
+    .default(false)
     .describe(
       "Follow symbolic links. Default is false, meaning symlinks are not followed. Use true to include files linked by symlinks in the search."
     ),
   mode: z
     .enum(["literal", "regex"])
     .optional()
+    .default("literal")
     .describe('Search mode: "literal" (default, safer) or "regex"'),
 })
 
