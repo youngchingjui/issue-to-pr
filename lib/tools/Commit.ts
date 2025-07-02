@@ -1,6 +1,7 @@
 import path from "path"
 import { z } from "zod"
 
+import { execInContainer } from "@/lib/docker"
 import {
   createCommit,
   getCommitHash,
@@ -8,6 +9,7 @@ import {
   stageFile,
 } from "@/lib/git"
 import { createTool } from "@/lib/tools/helper"
+import { asRepoEnvironment, RepoEnvironment, Tool } from "@/lib/types"
 
 const commitParameters = z.object({
   files: z
@@ -19,12 +21,20 @@ const commitParameters = z.object({
 type CommitParams = z.infer<typeof commitParameters>
 
 async function fnHandler(
-  baseDir: string,
+  env: RepoEnvironment,
   defaultBranch: string,
   params: CommitParams
 ): Promise<string> {
   const { files, commitMessage } = params
-  const currentBranch = await getCurrentBranch(baseDir)
+  const currentBranch =
+    env.kind === "host"
+      ? await getCurrentBranch(env.root)
+      : (
+          await execInContainer({
+            name: env.name,
+            command: "git rev-parse --abbrev-ref HEAD",
+          })
+        ).stdout.trim()
   if (currentBranch === defaultBranch) {
     return JSON.stringify({
       status: "error",
@@ -33,41 +43,64 @@ async function fnHandler(
     })
   }
   try {
-    // Stage the files
     for (const file of files) {
-      const filePath = path.join(baseDir, file)
-      try {
-        await stageFile(filePath, baseDir)
-      } catch (error: unknown) {
+      const filePath =
+        env.kind === "host"
+          ? path.join(env.root, file)
+          : path.posix.join(env.mount ?? "/workspace", file)
+      if (env.kind === "host") {
+        try {
+          await stageFile(filePath, env.root)
+        } catch (error: unknown) {
+          return JSON.stringify({
+            status: "error",
+            message: `Failed to stage file ${file}: ${error instanceof Error ? error.message : String(error)}`,
+          })
+        }
+      } else {
+        const { exitCode, stderr } = await execInContainer({
+          name: env.name,
+          command: `git add '${filePath.replace(/'/g, "'\\''")}'`,
+        })
+        if (exitCode !== 0) {
+          return JSON.stringify({
+            status: "error",
+            message: `Failed to stage file ${file}: ${stderr}`,
+          })
+        }
+      }
+    }
+
+    if (env.kind === "host") {
+      await createCommit(commitMessage, env.root)
+    } else {
+      const { exitCode, stderr } = await execInContainer({
+        name: env.name,
+        command: `git commit -m ${JSON.stringify(commitMessage)}`,
+      })
+      if (exitCode !== 0) {
         return JSON.stringify({
           status: "error",
-          message: `Failed to stage file ${file}: ${error instanceof Error ? error.message : String(error)}`,
+          message: `Failed to create commit: ${stderr}`,
         })
       }
     }
-    // Create the commit
-    try {
-      await createCommit(commitMessage, baseDir)
-    } catch (error: unknown) {
-      return JSON.stringify({
-        status: "error",
-        message: `Failed to create commit: ${error instanceof Error ? error.message : String(error)}`,
-      })
-    }
-    // Get the commit hash
-    try {
-      const commitHash = await getCommitHash(baseDir)
-      return JSON.stringify({
-        status: "success",
-        message: "Successfully committed changes",
-        commitHash,
-      })
-    } catch (error: unknown) {
-      return JSON.stringify({
-        status: "error",
-        message: `Commit succeeded but failed to get commit hash: ${error instanceof Error ? error.message : String(error)}`,
-      })
-    }
+
+    const commitHash =
+      env.kind === "host"
+        ? await getCommitHash(env.root)
+        : (
+            await execInContainer({
+              name: env.name,
+              command: "git rev-parse HEAD",
+            })
+          ).stdout.trim()
+
+    return JSON.stringify({
+      status: "success",
+      message: "Successfully committed changes",
+      commitHash,
+    })
   } catch (error: unknown) {
     return JSON.stringify({
       status: "error",
@@ -76,12 +109,28 @@ async function fnHandler(
   }
 }
 
-export const createCommitTool = (baseDir: string, defaultBranch: string) =>
-  createTool({
+// Overloaded function signatures for backwards compatibility
+/**
+ * @deprecated Use dockerized version with `env: RepoEnvironment` params instead
+ */
+export function createCommitTool(
+  baseDir: string,
+  defaultBranch: string
+): Tool<typeof commitParameters, string>
+export function createCommitTool(
+  env: RepoEnvironment,
+  defaultBranch: string
+): Tool<typeof commitParameters, string>
+export function createCommitTool(
+  arg: string | RepoEnvironment,
+  defaultBranch: string
+): Tool<typeof commitParameters, string> {
+  const env = asRepoEnvironment(arg)
+  return createTool({
     name: "commit_changes",
     description:
       "Commit the changes to the repository. This will stage the files and create a commit with the given message. Avoid committing on the default branch.",
     schema: commitParameters,
-    handler: (params: CommitParams) =>
-      fnHandler(baseDir, defaultBranch, params),
+    handler: (params: CommitParams) => fnHandler(env, defaultBranch, params),
   })
+}
