@@ -12,9 +12,9 @@ import { v4 as uuidv4 } from "uuid"
 import { z } from "zod"
 
 import { getRepoFromString } from "@/lib/github/content"
+import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
 import { CommentRequestSchema } from "@/lib/schemas/api"
 import commentOnIssue from "@/lib/workflows/commentOnIssue"
-import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
 
 export async function POST(request: NextRequest) {
   try {

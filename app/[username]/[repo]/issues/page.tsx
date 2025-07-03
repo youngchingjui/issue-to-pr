@@ -6,8 +6,8 @@ import NewTaskInput from "@/components/issues/NewTaskInput"
 import TableSkeleton from "@/components/layout/TableSkeleton"
 import ApiKeyInput from "@/components/settings/APIKeyInput"
 import { Button } from "@/components/ui/button"
-import { repoFullNameSchema } from "@/lib/types/github"
 import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
+import { repoFullNameSchema } from "@/lib/types/github"
 
 interface Props {
   params: {

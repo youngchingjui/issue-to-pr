@@ -15,7 +15,9 @@ interface Props {
 
 const ApiKeyInput = ({ initialKey = "" }: Props) => {
   const [apiKey, setApiKey] = useState(initialKey)
-  const [maskedKey, setMaskedKey] = useState(initialKey ? maskApiKey(initialKey) : "")
+  const [maskedKey, setMaskedKey] = useState(
+    initialKey ? maskApiKey(initialKey) : ""
+  )
   const [isEditing, setIsEditing] = useState(false)
   const [isVerifying, setIsVerifying] = useState(false)
 
