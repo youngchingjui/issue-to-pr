@@ -20,14 +20,12 @@ import {
   DEFAULT_SYSTEM_PROMPTS,
   SystemPromptTemplate,
 } from "@/lib/systemPrompts"
-
-const fakeRepos = ["repo-1", "repo-2", "repo-3"]
-const fakeBranches = ["main", "dev", "feature"]
-const fakeIssues = [
-  { id: "1", title: "Issue 1" },
-  { id: "2", title: "Issue 2" },
-  { id: "3", title: "Issue 3" },
-]
+import {
+  getUserRepositories,
+  getRepositoryBranches,
+  getRepositoryIssues,
+} from "@/lib/actions/github"
+import { RepoSelectorItem, GitHubIssue } from "@/lib/types/github"
 
 interface Message {
   role: "system" | "user" | "assistant"
@@ -41,10 +39,11 @@ export default function AgentWorkflowClient({
 }) {
   const availableTools = defaultTools
 
+  const [repos, setRepos] = useState<RepoSelectorItem[]>([])
   const [selectedRepo, setSelectedRepo] = useState<string>("")
   const [branches, setBranches] = useState<string[]>([])
   const [selectedBranch, setSelectedBranch] = useState<string>("")
-  const [issues, setIssues] = useState<typeof fakeIssues>([])
+  const [issues, setIssues] = useState<GitHubIssue[]>([])
   const [selectedIssue, setSelectedIssue] = useState<string>("")
   const [loadingRepoData, setLoadingRepoData] = useState(false)
 
@@ -65,6 +64,15 @@ export default function AgentWorkflowClient({
   const [isRunning, setIsRunning] = useState(false)
   const [runResult, setRunResult] = useState<{ runId: string } | null>(null)
 
+  // Load repositories on mount
+  useEffect(() => {
+    const loadRepos = async () => {
+      const r = await getUserRepositories()
+      setRepos(r)
+    }
+    loadRepos()
+  }, [])
+
   // Fetch branches and issues when a repo is selected
   useEffect(() => {
     if (!selectedRepo) {
@@ -75,12 +83,16 @@ export default function AgentWorkflowClient({
       return
     }
     setLoadingRepoData(true)
-    const timer = setTimeout(() => {
-      setBranches(fakeBranches)
-      setIssues(fakeIssues)
+    const loadData = async () => {
+      const [br, is] = await Promise.all([
+        getRepositoryBranches(selectedRepo),
+        getRepositoryIssues(selectedRepo),
+      ])
+      setBranches(br)
+      setIssues(is)
       setLoadingRepoData(false)
-    }, 500)
-    return () => clearTimeout(timer)
+    }
+    loadData()
   }, [selectedRepo])
 
   const addMessage = () => {
@@ -174,9 +186,9 @@ export default function AgentWorkflowClient({
                     <SelectValue placeholder="Select repo" />
                   </SelectTrigger>
                   <SelectContent>
-                    {fakeRepos.map((repo) => (
-                      <SelectItem key={repo} value={repo}>
-                        {repo}
+                    {repos.map((repo) => (
+                      <SelectItem key={repo.nameWithOwner} value={repo.nameWithOwner}>
+                        {repo.nameWithOwner}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -222,7 +234,7 @@ export default function AgentWorkflowClient({
                   </SelectTrigger>
                   <SelectContent>
                     {issues.map((issue) => (
-                      <SelectItem key={issue.id} value={issue.id}>
+                      <SelectItem key={issue.id} value={issue.number.toString()}>
                         {issue.title}
                       </SelectItem>
                     ))}
