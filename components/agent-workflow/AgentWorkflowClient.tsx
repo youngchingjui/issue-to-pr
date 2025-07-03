@@ -1,7 +1,7 @@
 "use client"
 
 import { Loader2 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useTransition } from "react"
 
 import ContainerEnvironmentManager from "@/components/agent-workflow/ContainerEnvironmentManager"
 import { Button } from "@/components/ui/button"
@@ -25,6 +25,7 @@ import {
   getRepositoryBranches,
   getRepositoryIssues,
 } from "@/lib/actions/github"
+import { getChatCompletion } from "@/lib/actions/openaiChat"
 import { RepoSelectorItem, GitHubIssue } from "@/lib/types/github"
 
 interface Message {
@@ -60,6 +61,8 @@ export default function AgentWorkflowClient({
   const [newMessageRole, setNewMessageRole] = useState<"system" | "user">(
     "user"
   )
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isPending, startCompletion] = useTransition()
   const [selectedTools, setSelectedTools] = useState<string[]>([])
   const [isRunning, setIsRunning] = useState(false)
   const [runResult, setRunResult] = useState<{ runId: string } | null>(null)
@@ -150,6 +153,22 @@ export default function AgentWorkflowClient({
     )
   }
 
+  const submitMessages = async () => {
+    if (isSubmitting || isPending) return
+    setIsSubmitting(true)
+    startCompletion(async () => {
+      try {
+        const resp = await getChatCompletion({
+          systemPrompt: messages[0].content,
+          userPrompt: messages[1].content,
+        })
+        setMessages((prev) => [...prev, { role: "assistant", content: resp }])
+      } finally {
+        setIsSubmitting(false)
+      }
+    })
+  }
+
   const startRun = async () => {
     setIsRunning(true)
     setRunResult(null)
@@ -187,7 +206,10 @@ export default function AgentWorkflowClient({
                   </SelectTrigger>
                   <SelectContent>
                     {repos.map((repo) => (
-                      <SelectItem key={repo.nameWithOwner} value={repo.nameWithOwner}>
+                      <SelectItem
+                        key={repo.nameWithOwner}
+                        value={repo.nameWithOwner}
+                      >
                         {repo.nameWithOwner}
                       </SelectItem>
                     ))}
@@ -234,7 +256,10 @@ export default function AgentWorkflowClient({
                   </SelectTrigger>
                   <SelectContent>
                     {issues.map((issue) => (
-                      <SelectItem key={issue.id} value={issue.number.toString()}>
+                      <SelectItem
+                        key={issue.id}
+                        value={issue.number.toString()}
+                      >
                         {issue.title}
                       </SelectItem>
                     ))}
@@ -351,6 +376,14 @@ export default function AgentWorkflowClient({
               </div>
               <Button type="button" onClick={addMessage} className="self-start">
                 Add
+              </Button>
+              <Button
+                type="button"
+                onClick={submitMessages}
+                className="self-start"
+                disabled={isSubmitting || isPending}
+              >
+                {isSubmitting || isPending ? "Submitting..." : "Submit"}
               </Button>
             </div>
           </CardContent>
