@@ -1,9 +1,17 @@
 "use client"
 
 import { useState } from "react"
+
 import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 
 interface ContainerEnv {
   id: string
@@ -15,30 +23,17 @@ interface ContainerEnv {
 }
 
 export default function ContainerEnvironmentManager() {
-  const [containers, setContainers] = useState<ContainerEnv[]>([
-    {
-      id: "1",
-      name: "agent-env-1",
-      image: "ubuntu:latest",
-      mounts: ["/workspace", "/data"],
-      workdir: "/workspace",
-      running: true,
-    },
-    {
-      id: "2",
-      name: "agent-env-2",
-      image: "node:20",
-      mounts: ["/app"],
-      workdir: "/app",
-      running: false,
-    },
-  ])
-  const [activeId, setActiveId] = useState<string>(containers[0].id)
+  const [containers, setContainers] = useState<ContainerEnv[]>([])
+  const [activeId, setActiveId] = useState<string | null>(null)
 
-  const toggleContainer = (id: string) => {
-    setContainers((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, running: !c.running } : c))
-    )
+  const stopContainer = (id: string) => {
+    setContainers((prev) => {
+      const updated = prev.filter((c) => c.id !== id)
+      if (activeId === id) {
+        setActiveId(updated[0]?.id ?? null)
+      }
+      return updated
+    })
   }
 
   const startNewContainer = () => {
@@ -93,8 +88,8 @@ export default function ContainerEnvironmentManager() {
                 <TableCell>{c.workdir}</TableCell>
                 <TableCell>{c.running ? "Running" : "Stopped"}</TableCell>
                 <TableCell className="text-right">
-                  <Button size="sm" onClick={() => toggleContainer(c.id)}>
-                    {c.running ? "Shut Down" : "Start"}
+                  <Button size="sm" onClick={() => stopContainer(c.id)}>
+                    Shut Down
                   </Button>
                 </TableCell>
               </TableRow>
