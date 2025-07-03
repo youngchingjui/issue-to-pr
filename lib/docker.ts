@@ -3,47 +3,27 @@ import util from "util"
 
 const execPromise = util.promisify(exec)
 
-export async function startDetachedContainer({
+export async function startContainer({
   image,
+  name,
   hostDir,
-  name,
   user = "1000:1000",
 }: {
   image: string
-  hostDir: string
   name: string
+  hostDir?: string
   user?: string
 }): Promise<string> {
-  const cmd = [
-    "docker run -d",
-    `--name ${name}`,
-    `-u ${user}`,
-    `-v \"${hostDir}:/workspace\"`,
-    "-w /workspace",
-    image,
-    "tail -f /dev/null",
-  ].join(" ")
-  const { stdout } = await execPromise(cmd)
-  return stdout.trim()
-}
+  const cmdParts = ["docker run -d", `--name ${name}`, `-u ${user}`]
 
-export async function startBasicContainer({
-  image,
-  name,
-  user = "1000:1000",
-}: {
-  image: string
-  name: string
-  user?: string
-}): Promise<string> {
-  const cmd = [
-    "docker run -d",
-    `--name ${name}`,
-    `-u ${user}`,
-    image,
-    "tail -f /dev/null",
-  ].join(" ")
-  const { stdout } = await execPromise(cmd)
+  if (hostDir) {
+    // Mount the host directory to /workspace inside the container and set it as the working directory
+    cmdParts.push(`-v \"${hostDir}:/workspace\"`, "-w /workspace")
+  }
+
+  cmdParts.push(image, "tail -f /dev/null")
+
+  const { stdout } = await execPromise(cmdParts.join(" "))
   return stdout.trim()
 }
 

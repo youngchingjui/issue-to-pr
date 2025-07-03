@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from "uuid"
 
 import {
   execInContainer,
-  startDetachedContainer,
+  startContainer,
   stopAndRemoveContainer,
 } from "@/lib/docker"
 import { addWorktree, removeWorktree } from "@/lib/git"
@@ -110,8 +110,8 @@ export async function createContainerizedWorktree({
 
   const containerName = `agent-${workflowId}`.replace(/[^a-zA-Z0-9_.-]/g, "-")
 
-  // 4. Start detached container mounting the worktree
-  await startDetachedContainer({
+  // 4. Start container mounting the worktree
+  await startContainer({
     image,
     hostDir: worktreeDir,
     name: containerName,

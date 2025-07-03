@@ -3,7 +3,7 @@
 import {
   listRunningContainers,
   RunningContainer,
-  startBasicContainer,
+  startContainer,
 } from "@/lib/docker"
 
 export async function getRunningContainers(): Promise<RunningContainer[]> {
@@ -12,7 +12,7 @@ export async function getRunningContainers(): Promise<RunningContainer[]> {
 
 export async function launchAgentBaseContainer() {
   const name = `agent-${Date.now()}`
-  await startBasicContainer({
+  await startContainer({
     image: "ghcr.io/youngchingjui/agent-base",
     name,
   })
