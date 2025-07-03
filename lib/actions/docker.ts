@@ -4,6 +4,7 @@ import {
   listRunningContainers,
   RunningContainer,
   startBasicContainer,
+  stopAndRemoveContainer,
 } from "@/lib/docker"
 
 export async function getRunningContainers(): Promise<RunningContainer[]> {
@@ -17,4 +18,8 @@ export async function launchAgentBaseContainer() {
     name,
   })
   return name
+}
+
+export async function stopContainer(name: string) {
+  await stopAndRemoveContainer(name)
 }
