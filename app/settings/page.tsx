@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getGithubUser } from "@/lib/github/users"
+import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
 
 export const dynamic = "force-dynamic"
 
@@ -20,6 +21,8 @@ export default async function SettingsPage() {
   if (!user) {
     redirect("/redirect?redirect=/settings")
   }
+
+  const existingKey = await getUserOpenAIApiKey()
 
   return (
     <main className="container mx-auto p-4 space-y-6">
@@ -65,7 +68,7 @@ export default async function SettingsPage() {
               </a>
               .
             </p>
-            <ApiKeyInput />
+            <ApiKeyInput initialKey={existingKey ?? ""} />
           </div>
         </CardContent>
       </Card>

@@ -6,6 +6,7 @@ import { getRepoFromString } from "@/lib/github/content"
 import { getIssue } from "@/lib/github/issues"
 import { ResolveRequestSchema } from "@/lib/schemas/api"
 import { resolveIssue } from "@/lib/workflows/resolveIssue"
+import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,11 +15,17 @@ export async function POST(request: NextRequest) {
     const {
       issueNumber,
       repoFullName,
-      apiKey,
       createPR,
       environment,
       installCommand,
     } = ResolveRequestSchema.parse(body)
+    const apiKey = await getUserOpenAIApiKey()
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: "Missing OpenAI API key" },
+        { status: 401 }
+      )
+    }
 
     // Generate a unique job ID
     const jobId = uuidv4()

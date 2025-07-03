@@ -7,6 +7,7 @@ import TableSkeleton from "@/components/layout/TableSkeleton"
 import ApiKeyInput from "@/components/settings/APIKeyInput"
 import { Button } from "@/components/ui/button"
 import { repoFullNameSchema } from "@/lib/types/github"
+import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
 
 interface Props {
   params: {
@@ -19,6 +20,7 @@ export default async function RepoPage({ params }: Props) {
   const { username, repo } = params
 
   const repoFullName = repoFullNameSchema.parse(`${username}/${repo}`)
+  const apiKey = await getUserOpenAIApiKey()
   return (
     <main className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-4 gap-4">
@@ -29,7 +31,7 @@ export default async function RepoPage({ params }: Props) {
           <Button asChild variant="outline" size="sm">
             <Link href={`/${username}/${repo}/settings`}>Settings</Link>
           </Button>
-          <ApiKeyInput />
+          <ApiKeyInput initialKey={apiKey ?? ""} />
         </div>
       </div>
       <NewTaskInput repoFullName={repoFullName} />

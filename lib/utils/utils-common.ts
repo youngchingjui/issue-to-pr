@@ -4,7 +4,6 @@ import { type ClassValue, clsx } from "clsx"
 import { EventEmitter } from "events"
 import { twMerge } from "tailwind-merge"
 
-import { LOCAL_STORAGE_KEY } from "@/lib/globals"
 import { GitHubURLSchema } from "@/lib/schemas/api"
 import { GitHubIssue } from "@/lib/types/github"
 
@@ -12,12 +11,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function getApiKeyFromLocalStorage(): string | null {
-  if (typeof window !== "undefined") {
-    return localStorage.getItem(LOCAL_STORAGE_KEY)
-  }
-  return null
-}
 
 export function getCloneUrlWithAccessToken(
   userRepo: string,

@@ -14,12 +14,20 @@ import { z } from "zod"
 import { getRepoFromString } from "@/lib/github/content"
 import { CommentRequestSchema } from "@/lib/schemas/api"
 import commentOnIssue from "@/lib/workflows/commentOnIssue"
+import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { issueNumber, repoFullName, apiKey, postToGithub } =
+    const { issueNumber, repoFullName, postToGithub } =
       CommentRequestSchema.parse(body)
+    const apiKey = await getUserOpenAIApiKey()
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: "Missing OpenAI API key" },
+        { status: 401 }
+      )
+    }
 
     // Generate a unique job ID
     const jobId = uuidv4()
