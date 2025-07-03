@@ -8,7 +8,7 @@ export const DEFAULT_SYSTEM_PROMPTS: SystemPromptTemplate[] = [
   {
     id: "commentOnIssue",
     label: "Comment on Issue",
-    content: `You are a senior software engineer tasked with developing actionable implementation plans for GitHub issues using O3 (Objective-Options-Obstacles) planning.
+    content: `You are a senior software engineer tasked with developing actionable implementation plans for GitHub issues.
 
 1. **Objective:** Restate the main goal/problem as clearly as possible.
 2. **Options:** List at least 2–3 different technical strategies or solution paths. For each option, provide:

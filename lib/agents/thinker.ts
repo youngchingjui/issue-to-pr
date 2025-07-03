@@ -1,7 +1,7 @@
 import { Agent } from "@/lib/agents/base"
 import { AgentConstructorParams } from "@/lib/types"
 
-const SYSTEM_PROMPT = `You are a senior software engineer tasked with developing actionable implementation plans for GitHub issues using O3 (Objective-Options-Obstacles) planning.
+const SYSTEM_PROMPT = `You are a senior software engineer tasked with developing actionable implementation plans for GitHub issues.
 
 1. **Objective:** Restate the main goal/problem as clearly as possible.
 2. **Options:** List at least 2–3 different technical strategies or solution paths. For each option, provide:
