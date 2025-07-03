@@ -33,6 +33,7 @@ export default function DynamicNavigation({
   username: string | null
   isAuthenticated: boolean
 }) {
+  const isPlaygroundAllowed = username === "youngchingjui"
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const { repo } = useParams() as { repo: string | null }
@@ -144,19 +145,46 @@ export default function DynamicNavigation({
         {showBreadcrumbs && <Nav />}
 
         <nav className="hidden sm:flex items-center space-x-4 ml-auto">
-          <Button variant="ghost" size="sm" asChild className="flex items-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="flex items-center"
+          >
             <Link href="/workflow-runs">Workflows</Link>
           </Button>
-          <Button variant="ghost" size="sm" asChild className="flex items-center">
-            <Link href="/playground">Playground</Link>
-          </Button>
-          <Button variant="ghost" size="sm" asChild className="flex items-center">
+          {isPlaygroundAllowed && (
+            <Button
+              variant="ghost"
+              size="sm"
+              asChild
+              className="flex items-center"
+            >
+              <Link href="/playground">Playground</Link>
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="flex items-center"
+          >
             <Link href="/issues">Issues</Link>
           </Button>
-          <Button variant="ghost" size="sm" asChild className="flex items-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="flex items-center"
+          >
             <Link href="/contribute">Contribute</Link>
           </Button>
-          <Button variant="ghost" size="sm" asChild className="flex items-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="flex items-center"
+          >
             <Link href="/settings">Settings</Link>
           </Button>
           <SignOutButton />
@@ -172,7 +200,9 @@ export default function DynamicNavigation({
           <SheetContent side="left" className="sm:hidden w-64 p-4">
             <nav className="mt-4 flex flex-col gap-4">
               <Link href="/workflow-runs">Workflows</Link>
-              <Link href="/playground">Playground</Link>
+              {isPlaygroundAllowed && (
+                <Link href="/playground">Playground</Link>
+              )}
               <Link href="/issues">Issues</Link>
               <Link href="/contribute">Contribute</Link>
               <Link href="/settings">Settings</Link>
