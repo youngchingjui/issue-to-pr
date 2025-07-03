@@ -16,7 +16,12 @@ import SignOutButton from "@/components/common/SignOutButton"
 import Nav from "@/components/layout/Breadcrumb"
 import { Button } from "@/components/ui/button"
 import NavButton from "@/components/ui/nav-button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetClose,
+} from "@/components/ui/sheet"
 import { signInWithGithub } from "@/lib/actions/auth"
 
 // Landing page navigation items
@@ -103,14 +108,15 @@ export default function DynamicNavigation({
           <SheetContent side="left" className="sm:hidden w-64 p-4">
             <nav className="mt-4 flex flex-col gap-4">
               {landingNavItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="flex items-center gap-2 text-sm font-medium"
-                >
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
+                <SheetClose asChild key={item.href}>
+                  <Link
+                    href={item.href}
+                    className="flex items-center gap-2 text-sm font-medium"
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {item.label}
+                  </Link>
+                </SheetClose>
               ))}
             </nav>
             <div className="mt-6 space-y-2">
@@ -122,11 +128,13 @@ export default function DynamicNavigation({
                 </form>
               ) : (
                 <div className="flex flex-col gap-2">
-                  <Link href={`/issues`}>
-                    <Button variant="outline" className="w-full">
-                      My Issues
-                    </Button>
-                  </Link>
+                  <SheetClose asChild>
+                    <Link href={`/issues`}>
+                      <Button variant="outline" className="w-full">
+                        My Issues
+                      </Button>
+                    </Link>
+                  </SheetClose>
                   <SignOutButton />
                 </div>
               )}
@@ -144,19 +152,44 @@ export default function DynamicNavigation({
         {showBreadcrumbs && <Nav />}
 
         <nav className="hidden sm:flex items-center space-x-4 ml-auto">
-          <Button variant="ghost" size="sm" asChild className="flex items-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="flex items-center"
+          >
             <Link href="/workflow-runs">Workflows</Link>
           </Button>
-          <Button variant="ghost" size="sm" asChild className="flex items-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="flex items-center"
+          >
             <Link href="/playground">Playground</Link>
           </Button>
-          <Button variant="ghost" size="sm" asChild className="flex items-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="flex items-center"
+          >
             <Link href="/issues">Issues</Link>
           </Button>
-          <Button variant="ghost" size="sm" asChild className="flex items-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="flex items-center"
+          >
             <Link href="/contribute">Contribute</Link>
           </Button>
-          <Button variant="ghost" size="sm" asChild className="flex items-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="flex items-center"
+          >
             <Link href="/settings">Settings</Link>
           </Button>
           <SignOutButton />
@@ -171,11 +204,21 @@ export default function DynamicNavigation({
           </SheetTrigger>
           <SheetContent side="left" className="sm:hidden w-64 p-4">
             <nav className="mt-4 flex flex-col gap-4">
-              <Link href="/workflow-runs">Workflows</Link>
-              <Link href="/playground">Playground</Link>
-              <Link href="/issues">Issues</Link>
-              <Link href="/contribute">Contribute</Link>
-              <Link href="/settings">Settings</Link>
+              <SheetClose asChild>
+                <Link href="/workflow-runs">Workflows</Link>
+              </SheetClose>
+              <SheetClose asChild>
+                <Link href="/playground">Playground</Link>
+              </SheetClose>
+              <SheetClose asChild>
+                <Link href="/issues">Issues</Link>
+              </SheetClose>
+              <SheetClose asChild>
+                <Link href="/contribute">Contribute</Link>
+              </SheetClose>
+              <SheetClose asChild>
+                <Link href="/settings">Settings</Link>
+              </SheetClose>
             </nav>
             <div className="mt-6">
               <SignOutButton />
