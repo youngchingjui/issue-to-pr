@@ -1,6 +1,7 @@
 export const Labels = {
   Repository: "Repository",
   Settings: "Settings",
+  User: "User",
   Issue: "Issue",
   Event: "Event",
   Message: "Message",
