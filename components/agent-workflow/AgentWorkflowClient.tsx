@@ -3,6 +3,7 @@
 import { Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
 
+import ContainerEnvironmentManager from "@/components/agent-workflow/ContainerEnvironmentManager"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -19,8 +20,6 @@ import {
   DEFAULT_SYSTEM_PROMPTS,
   SystemPromptTemplate,
 } from "@/lib/systemPrompts"
-
-import ContainerEnvironmentManager from "./ContainerEnvironmentManager"
 
 const fakeRepos = ["repo-1", "repo-2", "repo-3"]
 const fakeBranches = ["main", "dev", "feature"]
@@ -153,7 +152,7 @@ export default function AgentWorkflowClient({
   }
 
   return (
-    <div className="container mx-auto space-y-8 py-8">
+    <>
       <div>
         <h1 className="text-3xl font-bold">Playground</h1>
         <p className="mt-2 text-gray-600">
@@ -399,6 +398,6 @@ export default function AgentWorkflowClient({
           Fake run started with ID {runResult.runId}
         </div>
       )}
-    </div>
+    </>
   )
 }
