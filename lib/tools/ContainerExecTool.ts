@@ -14,8 +14,9 @@ const execSchema = z.object({
 type ExecParams = z.infer<typeof execSchema>
 
 export const createContainerExecTool = (containerName: string) =>
+  // Note: 'container_exec' is taken by o3 (and other?) model(s)
   createTool({
-    name: "container_exec",
+    name: "container_shell",
     description:
       "Run a shell command inside the docker container that hosts the worktree. Returns stdout and stderr.",
     schema: execSchema,

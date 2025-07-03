@@ -39,7 +39,7 @@ Make every assertion based on what you read or discovered in the codebase/contex
 export class ThinkerAgent extends Agent {
   constructor({ ...rest }: AgentConstructorParams) {
     // Initialize with model config that will be used for the system prompt and subsequent messages
-    super(rest)
+    super({ model: "o3", ...rest })
 
     // Set system prompt as first message in the chain
     this.setSystemPrompt(SYSTEM_PROMPT).catch((error) => {
