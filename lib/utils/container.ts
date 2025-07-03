@@ -2,6 +2,7 @@ import os from "os"
 import path from "path"
 import { v4 as uuidv4 } from "uuid"
 
+import { AGENT_BASE_IMAGE } from "@/lib/docker"
 import {
   execInContainer,
   startContainer,
@@ -92,7 +93,7 @@ export async function createContainerizedWorktree({
   repoFullName,
   branch = "main",
   workflowId = uuidv4(),
-  image = "ghcr.io/youngchingjui/agent-base",
+  image = AGENT_BASE_IMAGE,
   mountPath = "/workspace",
 }: ContainerizedWorktreeOptions): Promise<ContainerizedWorktreeResult> {
   // 1. Ensure we have a clean local clone

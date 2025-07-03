@@ -1,12 +1,14 @@
 "use server"
 
+import { AGENT_BASE_IMAGE } from "@/lib/docker"
 import {
   listRunningContainers,
   RunningContainer,
   startContainer,
 } from "@/lib/docker"
 
-const AGENT_BASE_IMAGE_PREFIX = "ghcr.io/youngchingjui/agent-base"
+// Use shared constant for the agent base image prefix
+const AGENT_BASE_IMAGE_PREFIX = AGENT_BASE_IMAGE
 
 export async function getRunningContainers(): Promise<RunningContainer[]> {
   const containers = await listRunningContainers()
@@ -16,7 +18,7 @@ export async function getRunningContainers(): Promise<RunningContainer[]> {
 export async function launchAgentBaseContainer() {
   const name = `agent-${Date.now()}`
   await startContainer({
-    image: "ghcr.io/youngchingjui/agent-base",
+    image: AGENT_BASE_IMAGE,
     name,
   })
   return name
