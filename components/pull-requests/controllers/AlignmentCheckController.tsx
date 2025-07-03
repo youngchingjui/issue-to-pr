@@ -1,11 +1,7 @@
 "use client"
 
-import { useRouter } from "next/navigation"
-
-import { ToastAction } from "@/components/ui/toast"
 import { toast } from "@/lib/hooks/use-toast"
 import { AlignmentCheckRequest } from "@/lib/types/api/schemas"
-import { getApiKeyFromLocalStorage } from "@/lib/utils/utils-common"
 
 interface Props {
   repoFullName: string
@@ -22,33 +18,12 @@ export default function AlignmentCheckController({
   onComplete,
   onError,
 }: Props) {
-  const router = useRouter()
   const execute = async () => {
     try {
-      // Optionally retrieve the API key, but it's not required
-      const key = getApiKeyFromLocalStorage()
-      if (!key) {
-        toast({
-          title: "API key not found",
-          description: "Please save an OpenAI API key in settings.",
-          variant: "destructive",
-          action: (
-            <ToastAction
-              altText="Go to Settings"
-              onClick={() => router.push("/settings")}
-            >
-              Go to Settings
-            </ToastAction>
-          ),
-        })
-        return
-      }
-
       onStart()
       const body: AlignmentCheckRequest = {
         repoFullName,
         pullNumber,
-        openAIApiKey: key,
       }
       const response = await fetch("/api/workflow/alignment-check", {
         method: "POST",

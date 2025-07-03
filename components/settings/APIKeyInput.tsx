@@ -6,25 +6,30 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { LOCAL_STORAGE_KEY } from "@/lib/globals"
 import { useToast } from "@/lib/hooks/use-toast"
 import { setUserOpenAIApiKey } from "@/lib/neo4j/services/user"
+import { maskApiKey } from "@/lib/utils/client"
 
-const ApiKeyInput = () => {
-  const [apiKey, setApiKey] = useState("")
-  const [maskedKey, setMaskedKey] = useState("")
+interface Props {
+  initialKey?: string
+}
+
+const ApiKeyInput = ({ initialKey = "" }: Props) => {
+  const [apiKey, setApiKey] = useState(initialKey)
+  const [maskedKey, setMaskedKey] = useState(
+    initialKey ? maskApiKey(initialKey) : ""
+  )
   const [isEditing, setIsEditing] = useState(false)
   const [isVerifying, setIsVerifying] = useState(false)
 
   const { toast } = useToast()
 
   useEffect(() => {
-    const storedKey = localStorage.getItem(LOCAL_STORAGE_KEY)
-    if (storedKey) {
-      setApiKey(storedKey)
-      setMaskedKey(maskApiKey(storedKey))
+    if (initialKey) {
+      setApiKey(initialKey)
+      setMaskedKey(maskApiKey(initialKey))
     }
-  }, [])
+  }, [initialKey])
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newKey = event.target.value
@@ -49,7 +54,6 @@ const ApiKeyInput = () => {
           description: "Please check your API key and try again.",
           variant: "destructive",
         })
-        localStorage.removeItem(LOCAL_STORAGE_KEY)
         return
       }
 
@@ -62,20 +66,13 @@ const ApiKeyInput = () => {
             "Your API key was verified and saved successfully. You can now generate Github comments and create Pull Requests.",
         })
         await setUserOpenAIApiKey(apiKey)
-        localStorage.setItem(LOCAL_STORAGE_KEY, apiKey)
       }
     } catch (error) {
       console.error("Failed to verify API key:", error)
-      localStorage.removeItem(LOCAL_STORAGE_KEY)
     } finally {
       setIsVerifying(false)
       setIsEditing(false)
     }
-  }
-
-  const maskApiKey = (key: string) => {
-    if (key.length <= 10) return key
-    return `${key.slice(0, 5)}**********${key.slice(-4)}`
   }
 
   return (
