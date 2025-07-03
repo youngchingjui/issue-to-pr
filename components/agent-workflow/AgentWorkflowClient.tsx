@@ -1,6 +1,6 @@
 "use client"
 
-import { Loader2 } from "lucide-react"
+import { FolderCheck, Loader2 } from "lucide-react"
 import { useEffect, useState, useTransition } from "react"
 
 import ContainerEnvironmentManager from "@/components/agent-workflow/ContainerEnvironmentManager"
@@ -17,11 +17,19 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import {
+  checkLocalRepoExists,
   getRepositoryBranches,
   getRepositoryIssues,
   getUserRepositories,
 } from "@/lib/actions/github"
 import { getChatCompletion } from "@/lib/actions/openaiChat"
+import { toast } from "@/lib/hooks/use-toast"
 import {
   DEFAULT_SYSTEM_PROMPTS,
   SystemPromptTemplate,
@@ -66,6 +74,10 @@ export default function AgentWorkflowClient({
   const [selectedTools, setSelectedTools] = useState<string[]>([])
   const [isRunning, setIsRunning] = useState(false)
   const [runResult, setRunResult] = useState<{ runId: string } | null>(null)
+  const [localRepoStatus, setLocalRepoStatus] = useState<{
+    exists: boolean
+    path: string
+  } | null>(null)
 
   // Load repositories on mount
   useEffect(() => {
@@ -83,16 +95,19 @@ export default function AgentWorkflowClient({
       setSelectedBranch("")
       setIssues([])
       setSelectedIssue("")
+      setLocalRepoStatus(null)
       return
     }
     setLoadingRepoData(true)
     const loadData = async () => {
-      const [br, is] = await Promise.all([
+      const [br, is, local] = await Promise.all([
         getRepositoryBranches(selectedRepo),
         getRepositoryIssues(selectedRepo),
+        checkLocalRepoExists(selectedRepo),
       ])
       setBranches(br)
       setIssues(is)
+      setLocalRepoStatus(local)
       setLoadingRepoData(false)
     }
     loadData()
@@ -181,6 +196,20 @@ export default function AgentWorkflowClient({
     setIsRunning(false)
   }
 
+  const copyLocalPath = async () => {
+    if (!localRepoStatus?.path) return
+    try {
+      await navigator.clipboard.writeText(localRepoStatus.path)
+      toast({ description: "Copied path to clipboard", duration: 2000 })
+    } catch (err) {
+      toast({
+        description: `Failed to copy: ${err}`,
+        variant: "destructive",
+        duration: 2000,
+      })
+    }
+  }
+
   return (
     <>
       <div>
@@ -200,21 +229,50 @@ export default function AgentWorkflowClient({
             <div className="flex flex-wrap gap-4">
               <div>
                 <p className="mb-2 text-sm font-medium">Repository</p>
-                <Select value={selectedRepo} onValueChange={setSelectedRepo}>
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Select repo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {repos.map((repo) => (
-                      <SelectItem
-                        key={repo.nameWithOwner}
-                        value={repo.nameWithOwner}
-                      >
-                        {repo.nameWithOwner}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-2">
+                  <Select value={selectedRepo} onValueChange={setSelectedRepo}>
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="Select repo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {repos.map((repo) => (
+                        <SelectItem
+                          key={repo.nameWithOwner}
+                          value={repo.nameWithOwner}
+                        >
+                          {repo.nameWithOwner}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {localRepoStatus?.exists && (
+                    <TooltipProvider delayDuration={150}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={copyLocalPath}
+                          >
+                            <FolderCheck className="h-4 w-4 text-green-500" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs text-center">
+                          <div className="text-sm">Repo saved locally.</div>
+                          {localRepoStatus?.path && (
+                            <div className="mt-1 break-all font-mono text-[10px] text-muted-foreground">
+                              {localRepoStatus.path}
+                            </div>
+                          )}
+                          <div className="mt-1 text-xs text-muted-foreground">
+                            Click to copy path
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
               </div>
               {selectedRepo && (
                 <div>
