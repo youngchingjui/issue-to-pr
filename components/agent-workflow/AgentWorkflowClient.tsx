@@ -100,9 +100,9 @@ export default function AgentWorkflowClient({ defaultTools }: { defaultTools: st
   return (
     <div className="container mx-auto space-y-8 py-8">
       <div>
-        <h1 className="text-3xl font-bold">Agent Workflow Builder</h1>
+        <h1 className="text-3xl font-bold">Playground</h1>
         <p className="mt-2 text-gray-600">
-          Configure options and messages for your agent workflow.
+          Configure options and messages for your agent.
         </p>
       </div>
 

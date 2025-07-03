@@ -17,7 +17,7 @@ const DEFAULT_TOOLS = [
 
 import AgentWorkflowClient from "@/components/agent-workflow/AgentWorkflowClient"
 
-export default async function AgentWorkflowPage() {
+export default async function PlaygroundPage() {
   return (
     <div className="container mx-auto space-y-8 py-8">
       <AgentWorkflowClient defaultTools={DEFAULT_TOOLS} />
