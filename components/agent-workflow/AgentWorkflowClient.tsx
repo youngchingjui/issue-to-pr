@@ -1,6 +1,6 @@
 "use client"
 
-import { CheckCircle2, Loader2 } from "lucide-react"
+import { FolderCheck, Loader2 } from "lucide-react"
 import { useEffect, useState, useTransition } from "react"
 
 import ContainerEnvironmentManager from "@/components/agent-workflow/ContainerEnvironmentManager"
@@ -246,7 +246,7 @@ export default function AgentWorkflowClient({
                     </SelectContent>
                   </Select>
                   {localRepoStatus?.exists && (
-                    <TooltipProvider>
+                    <TooltipProvider delayDuration={150}>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
@@ -255,11 +255,19 @@ export default function AgentWorkflowClient({
                             className="h-6 w-6"
                             onClick={copyLocalPath}
                           >
-                            <CheckCircle2 className="h-4 w-4 text-green-500" />
+                            <FolderCheck className="h-4 w-4 text-green-500" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>
-                          Repo saved locally. Click to copy path.
+                        <TooltipContent className="max-w-xs text-center">
+                          <div className="text-sm">Repo saved locally.</div>
+                          {localRepoStatus?.path && (
+                            <div className="mt-1 break-all font-mono text-[10px] text-muted-foreground">
+                              {localRepoStatus.path}
+                            </div>
+                          )}
+                          <div className="mt-1 text-xs text-muted-foreground">
+                            Click to copy path
+                          </div>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
