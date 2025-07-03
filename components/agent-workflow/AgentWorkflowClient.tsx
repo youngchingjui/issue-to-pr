@@ -1,7 +1,7 @@
 "use client"
 
 import { Loader2 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useTransition } from "react"
 
 import ContainerEnvironmentManager from "@/components/agent-workflow/ContainerEnvironmentManager"
 import { Button } from "@/components/ui/button"
@@ -17,17 +17,16 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import {
+  getRepositoryBranches,
+  getRepositoryIssues,
+  getUserRepositories,
+} from "@/lib/actions/github"
+import { getChatCompletion } from "@/lib/actions/openaiChat"
+import {
   DEFAULT_SYSTEM_PROMPTS,
   SystemPromptTemplate,
 } from "@/lib/systemPrompts"
-
-const fakeRepos = ["repo-1", "repo-2", "repo-3"]
-const fakeBranches = ["main", "dev", "feature"]
-const fakeIssues = [
-  { id: "1", title: "Issue 1" },
-  { id: "2", title: "Issue 2" },
-  { id: "3", title: "Issue 3" },
-]
+import { GitHubIssue, RepoSelectorItem } from "@/lib/types/github"
 
 interface Message {
   role: "system" | "user" | "assistant"
@@ -41,10 +40,11 @@ export default function AgentWorkflowClient({
 }) {
   const availableTools = defaultTools
 
+  const [repos, setRepos] = useState<RepoSelectorItem[]>([])
   const [selectedRepo, setSelectedRepo] = useState<string>("")
   const [branches, setBranches] = useState<string[]>([])
   const [selectedBranch, setSelectedBranch] = useState<string>("")
-  const [issues, setIssues] = useState<typeof fakeIssues>([])
+  const [issues, setIssues] = useState<GitHubIssue[]>([])
   const [selectedIssue, setSelectedIssue] = useState<string>("")
   const [loadingRepoData, setLoadingRepoData] = useState(false)
 
@@ -61,9 +61,20 @@ export default function AgentWorkflowClient({
   const [newMessageRole, setNewMessageRole] = useState<"system" | "user">(
     "user"
   )
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isPending, startCompletion] = useTransition()
   const [selectedTools, setSelectedTools] = useState<string[]>([])
   const [isRunning, setIsRunning] = useState(false)
   const [runResult, setRunResult] = useState<{ runId: string } | null>(null)
+
+  // Load repositories on mount
+  useEffect(() => {
+    const loadRepos = async () => {
+      const r = await getUserRepositories()
+      setRepos(r)
+    }
+    loadRepos()
+  }, [])
 
   // Fetch branches and issues when a repo is selected
   useEffect(() => {
@@ -75,12 +86,16 @@ export default function AgentWorkflowClient({
       return
     }
     setLoadingRepoData(true)
-    const timer = setTimeout(() => {
-      setBranches(fakeBranches)
-      setIssues(fakeIssues)
+    const loadData = async () => {
+      const [br, is] = await Promise.all([
+        getRepositoryBranches(selectedRepo),
+        getRepositoryIssues(selectedRepo),
+      ])
+      setBranches(br)
+      setIssues(is)
       setLoadingRepoData(false)
-    }, 500)
-    return () => clearTimeout(timer)
+    }
+    loadData()
   }, [selectedRepo])
 
   const addMessage = () => {
@@ -138,6 +153,22 @@ export default function AgentWorkflowClient({
     )
   }
 
+  const submitMessages = async () => {
+    if (isSubmitting || isPending) return
+    setIsSubmitting(true)
+    startCompletion(async () => {
+      try {
+        const resp = await getChatCompletion({
+          systemPrompt: messages[0].content,
+          userPrompt: messages[1].content,
+        })
+        setMessages((prev) => [...prev, { role: "assistant", content: resp }])
+      } finally {
+        setIsSubmitting(false)
+      }
+    })
+  }
+
   const startRun = async () => {
     setIsRunning(true)
     setRunResult(null)
@@ -174,9 +205,12 @@ export default function AgentWorkflowClient({
                     <SelectValue placeholder="Select repo" />
                   </SelectTrigger>
                   <SelectContent>
-                    {fakeRepos.map((repo) => (
-                      <SelectItem key={repo} value={repo}>
-                        {repo}
+                    {repos.map((repo) => (
+                      <SelectItem
+                        key={repo.nameWithOwner}
+                        value={repo.nameWithOwner}
+                      >
+                        {repo.nameWithOwner}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -222,7 +256,10 @@ export default function AgentWorkflowClient({
                   </SelectTrigger>
                   <SelectContent>
                     {issues.map((issue) => (
-                      <SelectItem key={issue.id} value={issue.id}>
+                      <SelectItem
+                        key={issue.id}
+                        value={issue.number.toString()}
+                      >
                         {issue.title}
                       </SelectItem>
                     ))}
@@ -339,6 +376,14 @@ export default function AgentWorkflowClient({
               </div>
               <Button type="button" onClick={addMessage} className="self-start">
                 Add
+              </Button>
+              <Button
+                type="button"
+                onClick={submitMessages}
+                className="self-start"
+                disabled={isSubmitting || isPending}
+              >
+                {isSubmitting || isPending ? "Submitting..." : "Submit"}
               </Button>
             </div>
           </CardContent>
