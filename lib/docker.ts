@@ -86,3 +86,14 @@ export async function stopAndRemoveContainer(name: string): Promise<void> {
     console.warn(`[WARNING] Failed to stop/remove container ${name}:`, e)
   }
 }
+
+export async function isContainerRunning(name: string): Promise<boolean> {
+  try {
+    const { stdout } = await execPromise(
+      `docker inspect -f '{{.State.Running}}' ${name}`
+    )
+    return stdout.trim() === "true"
+  } catch {
+    return false
+  }
+}
