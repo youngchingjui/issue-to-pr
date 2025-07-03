@@ -5,7 +5,7 @@
 
 set -e
 
-IMAGE_NAME="ghcr.io/youngchingjui/agent-base"
+IMAGE_NAME="${AGENT_BASE_IMAGE:-ghcr.io/youngchingjui/agent-base}"
 IMAGE_TAG="latest"
 DOCKERFILE_PATH="docker/agent-base/Dockerfile"
 
