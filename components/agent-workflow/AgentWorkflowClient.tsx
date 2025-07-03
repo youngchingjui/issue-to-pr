@@ -17,16 +17,16 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import {
+  getRepositoryBranches,
+  getRepositoryIssues,
+  getUserRepositories,
+} from "@/lib/actions/github"
+import { getChatCompletion } from "@/lib/actions/openaiChat"
+import {
   DEFAULT_SYSTEM_PROMPTS,
   SystemPromptTemplate,
 } from "@/lib/systemPrompts"
-import {
-  getUserRepositories,
-  getRepositoryBranches,
-  getRepositoryIssues,
-} from "@/lib/actions/github"
-import { getChatCompletion } from "@/lib/actions/openaiChat"
-import { RepoSelectorItem, GitHubIssue } from "@/lib/types/github"
+import { GitHubIssue, RepoSelectorItem } from "@/lib/types/github"
 
 interface Message {
   role: "system" | "user" | "assistant"

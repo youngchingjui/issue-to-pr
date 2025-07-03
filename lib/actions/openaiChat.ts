@@ -1,7 +1,8 @@
 "use server"
 
-import { openai } from "@/lib/openai"
 import { ChatCompletionMessageParam } from "openai/resources/chat/completions"
+
+import { openai } from "@/lib/openai"
 
 export async function getChatCompletion({
   systemPrompt,
