@@ -15,6 +15,10 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import ContainerEnvironmentManager from "./ContainerEnvironmentManager"
+import {
+  DEFAULT_SYSTEM_PROMPTS,
+  SystemPromptTemplate,
+} from "@/lib/systemPrompts"
 
 interface Message {
   role: "system" | "user" | "assistant"
@@ -30,7 +34,18 @@ export default function AgentWorkflowClient() {
   const [selectedBranch, setSelectedBranch] = useState(fakeBranches[0])
   const [issueText, setIssueText] = useState("")
 
-  const [messages, setMessages] = useState<Message[]>([])
+  const initialPrompts = DEFAULT_SYSTEM_PROMPTS
+  const [promptTemplates, setPromptTemplates] =
+    useState<SystemPromptTemplate[]>(initialPrompts)
+  const [selectedPromptId, setSelectedPromptId] = useState(
+    initialPrompts[0].id
+  )
+  const [isSystemPromptEdited, setIsSystemPromptEdited] = useState(false)
+
+  const [messages, setMessages] = useState<Message[]>([
+    { role: "system", content: initialPrompts[0].content },
+    { role: "user", content: "" },
+  ])
   const [newMessage, setNewMessage] = useState("")
   const [newMessageRole, setNewMessageRole] = useState<"system" | "user">(
     "user"
@@ -50,6 +65,41 @@ export default function AgentWorkflowClient() {
     }
     setMessages((prev) => [...prev, msg, assistantReply])
     setNewMessage("")
+  }
+
+  const updateMessage = (index: number, content: string) => {
+    setMessages((prev) =>
+      prev.map((m, i) => (i === index ? { ...m, content } : m))
+    )
+  }
+
+  const onSelectPrompt = (id: string) => {
+    setSelectedPromptId(id)
+    const template = promptTemplates.find((p) => p.id === id)
+    if (template) {
+      setMessages((prev) => [{ ...prev[0], content: template.content }, prev[1]])
+      setIsSystemPromptEdited(false)
+    }
+  }
+
+  const savePromptAsNew = () => {
+    const newTemplate: SystemPromptTemplate = {
+      id: `custom-${Date.now()}`,
+      label: `Custom ${promptTemplates.length + 1}`,
+      content: messages[0].content,
+    }
+    setPromptTemplates((prev) => [...prev, newTemplate])
+    setSelectedPromptId(newTemplate.id)
+    setIsSystemPromptEdited(false)
+  }
+
+  const updateCurrentPrompt = () => {
+    setPromptTemplates((prev) =>
+      prev.map((p) =>
+        p.id === selectedPromptId ? { ...p, content: messages[0].content } : p
+      )
+    )
+    setIsSystemPromptEdited(false)
   }
 
   const toggleTool = (tool: string) => {
@@ -144,7 +194,75 @@ export default function AgentWorkflowClient() {
           <CardHeader>
             <CardTitle>Messages</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <p className="text-sm font-medium">System Prompt</p>
+              <Select value={selectedPromptId} onValueChange={onSelectPrompt}>
+                <SelectTrigger className="w-full sm:w-[250px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {promptTemplates.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Textarea
+                className="mt-2"
+                value={messages[0].content}
+                onChange={(e) => {
+                  updateMessage(0, e.target.value)
+                  const template = promptTemplates.find(
+                    (t) => t.id === selectedPromptId
+                  )
+                  setIsSystemPromptEdited(
+                    template ? e.target.value !== template.content : true
+                  )
+                }}
+                rows={8}
+              />
+              {isSystemPromptEdited && (
+                <div className="flex items-center gap-2 text-xs text-orange-600">
+                  <span className="font-medium">Edited</span>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={updateCurrentPrompt}
+                  >
+                    Update Template
+                  </Button>
+                  <Button size="sm" onClick={savePromptAsNew}>
+                    Save as New
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-sm font-medium">User Prompt</p>
+              <Textarea
+                value={messages[1].content}
+                onChange={(e) => updateMessage(1, e.target.value)}
+                placeholder="Enter user prompt"
+                rows={4}
+              />
+            </div>
+
+            <div className="space-y-2">
+              {messages.slice(2).map((m, i) => (
+                <div key={i} className="rounded border p-3">
+                  <div className="text-sm font-semibold capitalize">
+                    {m.role}
+                  </div>
+                  <div className="text-sm text-muted-foreground whitespace-pre-wrap">
+                    {m.content}
+                  </div>
+                </div>
+              ))}
+            </div>
+
             <div className="flex flex-wrap items-end gap-4">
               <div>
                 <p className="mb-2 text-sm font-medium">Role</p>
@@ -174,24 +292,6 @@ export default function AgentWorkflowClient() {
               <Button type="button" onClick={addMessage} className="self-start">
                 Add
               </Button>
-            </div>
-
-            <div className="space-y-2">
-              {messages.map((m, i) => (
-                <div key={i} className="rounded border p-3">
-                  <div className="text-sm font-semibold capitalize">
-                    {m.role}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {m.content}
-                  </div>
-                </div>
-              ))}
-              {messages.length === 0 && (
-                <p className="text-sm text-muted-foreground">
-                  No messages yet.
-                </p>
-              )}
             </div>
           </CardContent>
         </Card>
