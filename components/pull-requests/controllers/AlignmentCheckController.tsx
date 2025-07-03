@@ -1,7 +1,5 @@
 "use client"
 
-import { useRouter } from "next/navigation"
-
 import { toast } from "@/lib/hooks/use-toast"
 import { AlignmentCheckRequest } from "@/lib/types/api/schemas"
 
@@ -20,7 +18,6 @@ export default function AlignmentCheckController({
   onComplete,
   onError,
 }: Props) {
-  const router = useRouter()
   const execute = async () => {
     try {
       onStart()

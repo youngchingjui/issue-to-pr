@@ -1,7 +1,6 @@
 "use client"
 
 import { HelpCircle } from "lucide-react"
-import { useRouter } from "next/navigation"
 import { useState } from "react"
 
 import { Label } from "@/components/ui/label"
@@ -31,7 +30,6 @@ export default function CreatePRController({
   onError,
 }: Props) {
   const [postToGithub, setPostToGithub] = useState(false)
-  const router = useRouter()
 
   const execute = async () => {
     try {

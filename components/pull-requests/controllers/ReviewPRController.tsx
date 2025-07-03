@@ -1,7 +1,5 @@
 "use client"
 
-import { useRouter } from "next/navigation"
-
 import { toast } from "@/lib/hooks/use-toast"
 
 interface Props {
@@ -19,7 +17,6 @@ export default function ReviewPRController({
   onComplete,
   onError,
 }: Props) {
-  const router = useRouter()
   const execute = async () => {
     try {
       onStart()
