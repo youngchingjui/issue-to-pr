@@ -1,10 +1,10 @@
 "use server"
 
+import { getGithubUser } from "@/lib/github/users"
 import { n4j } from "@/lib/neo4j/client"
 import * as userRepo from "@/lib/neo4j/repositories/user"
 import { Settings as AppSettings } from "@/lib/types"
 import { UserSettings as DbUserSettings } from "@/lib/types/db/neo4j"
-import { getGithubUser } from "@/lib/github/users"
 
 export const toAppUserSettings = (db: DbUserSettings): AppSettings => {
   return {
@@ -34,7 +34,10 @@ export async function setUserOpenAIApiKey(apiKey: string): Promise<void> {
   const session = await n4j.getSession()
   try {
     await session.executeWrite((tx) =>
-      userRepo.setUserSettings(tx, user.login, { type: "user", openAIApiKey: apiKey })
+      userRepo.setUserSettings(tx, user.login, {
+        type: "user",
+        openAIApiKey: apiKey,
+      })
     )
   } finally {
     await session.close()
