@@ -5,6 +5,7 @@ import {
   listRunningContainers,
   RunningContainer,
   startContainer,
+  stopAndRemoveContainer,
 } from "@/lib/docker"
 
 // Use shared constant for the agent base image prefix
@@ -22,4 +23,8 @@ export async function launchAgentBaseContainer() {
     name,
   })
   return name
+}
+
+export async function stopContainer(name: string) {
+  await stopAndRemoveContainer(name)
 }
