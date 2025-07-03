@@ -43,3 +43,10 @@ export async function setUserOpenAIApiKey(apiKey: string): Promise<void> {
     await session.close()
   }
 }
+
+export async function getUserOpenAIApiKey(): Promise<string | null> {
+  const settings = await getUserSettings()
+  if (!settings) return null
+  const key = settings.openAIApiKey?.trim()
+  return key ? key : null
+}
