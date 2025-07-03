@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { LOCAL_STORAGE_KEY } from "@/lib/globals"
 import { useToast } from "@/lib/hooks/use-toast"
+import { setUserOpenAIApiKey } from "@/lib/neo4j/services/user"
 
 const ApiKeyInput = () => {
   const [apiKey, setApiKey] = useState("")
@@ -60,6 +61,7 @@ const ApiKeyInput = () => {
           description:
             "Your API key was verified and saved successfully. You can now generate Github comments and create Pull Requests.",
         })
+        await setUserOpenAIApiKey(apiKey)
         localStorage.setItem(LOCAL_STORAGE_KEY, apiKey)
       }
     } catch (error) {
