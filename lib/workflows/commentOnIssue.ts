@@ -1,5 +1,6 @@
 import { ThinkerAgent } from "@/lib/agents/thinker"
 import { AUTH_CONFIG } from "@/lib/auth/config"
+import { AGENT_BASE_IMAGE } from "@/lib/docker"
 import { isContainerRunning } from "@/lib/docker"
 import {
   createIssueComment,
@@ -147,7 +148,7 @@ export default async function commentOnIssue(
       repoFullName: repo.full_name,
       branch: repo.default_branch,
       workflowId: jobId,
-      image: "ghcr.io/youngchingjui/agent-base",
+      image: AGENT_BASE_IMAGE,
     }).catch((error) => {
       console.error("Failed to setup containerized environment:", {
         error,
