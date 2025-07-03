@@ -1,9 +1,17 @@
 "use client"
 
 import { useEffect, useState } from "react"
+
 import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { getRunningContainers } from "@/lib/actions/docker"
 
 interface ContainerEnv {
@@ -52,7 +60,10 @@ export default function ContainerEnvironmentManager() {
             ))}
             {containers.length === 0 && (
               <TableRow>
-                <TableCell colSpan={3} className="text-center text-sm text-muted-foreground">
+                <TableCell
+                  colSpan={3}
+                  className="text-center text-sm text-muted-foreground"
+                >
                   No running containers
                 </TableCell>
               </TableRow>
