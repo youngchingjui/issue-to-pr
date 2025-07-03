@@ -21,7 +21,7 @@ interface Message {
   content: string
 }
 
-export default function AgentWorkflowClient() {
+export default function AgentWorkflowClient({ defaultTools }: { defaultTools: string[] }) {
   const fakeRepos = ["repo-1", "repo-2", "repo-3"]
   const fakeBranches = ["main", "dev", "feature"]
   const fakeIssues = [
@@ -29,7 +29,7 @@ export default function AgentWorkflowClient() {
     { id: "2", title: "Issue 2" },
     { id: "3", title: "Issue 3" },
   ]
-  const fakeTools = ["Git", "Code Search", "Unit Test"]
+  const availableTools = defaultTools
 
   const [selectedRepo, setSelectedRepo] = useState<string>("")
   const [branches, setBranches] = useState<string[]>([])
@@ -259,7 +259,7 @@ export default function AgentWorkflowClient() {
             <CardTitle>Tools</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {fakeTools.map((tool) => (
+            {availableTools.map((tool) => (
               <label key={tool} className="flex items-center gap-2">
                 <Checkbox
                   checked={selectedTools.includes(tool)}
