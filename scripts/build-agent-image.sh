@@ -8,16 +8,18 @@ set -e
 IMAGE_NAME="${AGENT_BASE_IMAGE:-ghcr.io/youngchingjui/agent-base}"
 IMAGE_TAG="latest"
 DOCKERFILE_PATH="docker/agent-base/Dockerfile"
-# Platforms to build for
 PLATFORMS="linux/amd64,linux/arm64"
 
 echo "Building custom agent base image: ${IMAGE_NAME}:${IMAGE_TAG}"
 
 # Build the Docker image for multiple architectures
+# Ensure you have a builder named "container-builder" 
+# using the driver "docker-container"
 docker buildx build \
   --platform "${PLATFORMS}" \
   -t "${IMAGE_NAME}:${IMAGE_TAG}" \
   -f "${DOCKERFILE_PATH}" \
+  --builder "container-builder" \
   --push \
   .
 
