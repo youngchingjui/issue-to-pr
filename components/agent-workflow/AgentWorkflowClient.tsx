@@ -1,7 +1,12 @@
 "use client"
 
-import { useState } from "react"
 import { Loader2 } from "lucide-react"
+import { useEffect, useState } from "react"
+
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -9,39 +14,47 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import ContainerEnvironmentManager from "./ContainerEnvironmentManager"
 import {
   DEFAULT_SYSTEM_PROMPTS,
   SystemPromptTemplate,
 } from "@/lib/systemPrompts"
+
+import ContainerEnvironmentManager from "./ContainerEnvironmentManager"
+
+const fakeRepos = ["repo-1", "repo-2", "repo-3"]
+const fakeBranches = ["main", "dev", "feature"]
+const fakeIssues = [
+  { id: "1", title: "Issue 1" },
+  { id: "2", title: "Issue 2" },
+  { id: "3", title: "Issue 3" },
+]
 
 interface Message {
   role: "system" | "user" | "assistant"
   content: string
 }
 
-export default function AgentWorkflowClient() {
-  const fakeRepos = ["repo-1", "repo-2", "repo-3"]
-  const fakeBranches = ["main", "dev", "feature"]
-  const fakeTools = ["Git", "Code Search", "Unit Test"]
+export default function AgentWorkflowClient({
+  defaultTools,
+}: {
+  defaultTools: string[]
+}) {
+  const availableTools = defaultTools
 
-  const [selectedRepo, setSelectedRepo] = useState(fakeRepos[0])
-  const [selectedBranch, setSelectedBranch] = useState(fakeBranches[0])
+  const [selectedRepo, setSelectedRepo] = useState<string>("")
+  const [branches, setBranches] = useState<string[]>([])
+  const [selectedBranch, setSelectedBranch] = useState<string>("")
+  const [issues, setIssues] = useState<typeof fakeIssues>([])
+  const [selectedIssue, setSelectedIssue] = useState<string>("")
+  const [loadingRepoData, setLoadingRepoData] = useState(false)
   const [issueText, setIssueText] = useState("")
 
   const initialPrompts = DEFAULT_SYSTEM_PROMPTS
   const [promptTemplates, setPromptTemplates] =
     useState<SystemPromptTemplate[]>(initialPrompts)
-  const [selectedPromptId, setSelectedPromptId] = useState(
-    initialPrompts[0].id
-  )
+  const [selectedPromptId, setSelectedPromptId] = useState(initialPrompts[0].id)
   const [isSystemPromptEdited, setIsSystemPromptEdited] = useState(false)
-
   const [messages, setMessages] = useState<Message[]>([
     { role: "system", content: initialPrompts[0].content },
     { role: "user", content: "" },
@@ -50,11 +63,27 @@ export default function AgentWorkflowClient() {
   const [newMessageRole, setNewMessageRole] = useState<"system" | "user">(
     "user"
   )
-
   const [selectedTools, setSelectedTools] = useState<string[]>([])
-
   const [isRunning, setIsRunning] = useState(false)
   const [runResult, setRunResult] = useState<{ runId: string } | null>(null)
+
+  // Fetch branches and issues when a repo is selected
+  useEffect(() => {
+    if (!selectedRepo) {
+      setBranches([])
+      setSelectedBranch("")
+      setIssues([])
+      setSelectedIssue("")
+      return
+    }
+    setLoadingRepoData(true)
+    const timer = setTimeout(() => {
+      setBranches(fakeBranches)
+      setIssues(fakeIssues)
+      setLoadingRepoData(false)
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [selectedRepo])
 
   const addMessage = () => {
     if (!newMessage.trim()) return
@@ -77,7 +106,10 @@ export default function AgentWorkflowClient() {
     setSelectedPromptId(id)
     const template = promptTemplates.find((p) => p.id === id)
     if (template) {
-      setMessages((prev) => [{ ...prev[0], content: template.content }, prev[1]])
+      setMessages((prev) => [
+        { ...prev[0], content: template.content },
+        prev[1],
+      ])
       setIsSystemPromptEdited(false)
     }
   }
@@ -133,7 +165,7 @@ export default function AgentWorkflowClient() {
         {/* Repository and Branch Selection */}
         <Card>
           <CardHeader>
-            <CardTitle>Repository Settings</CardTitle>
+            <CardTitle>Repo</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap gap-4">
@@ -141,7 +173,7 @@ export default function AgentWorkflowClient() {
                 <p className="mb-2 text-sm font-medium">Repository</p>
                 <Select value={selectedRepo} onValueChange={setSelectedRepo}>
                   <SelectTrigger className="w-[200px]">
-                    <SelectValue />
+                    <SelectValue placeholder="Select repo" />
                   </SelectTrigger>
                   <SelectContent>
                     {fakeRepos.map((repo) => (
@@ -152,25 +184,59 @@ export default function AgentWorkflowClient() {
                   </SelectContent>
                 </Select>
               </div>
+              {selectedRepo && (
+                <div>
+                  <p className="mb-2 text-sm font-medium">Branch</p>
+                  <Select
+                    value={selectedBranch}
+                    onValueChange={setSelectedBranch}
+                    disabled={loadingRepoData}
+                  >
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="Select branch" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {branches.map((branch) => (
+                        <SelectItem key={branch} value={branch}>
+                          {branch}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {loadingRepoData && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Loading...
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+            {selectedRepo && (
               <div>
-                <p className="mb-2 text-sm font-medium">Branch</p>
+                <p className="mb-2 text-sm font-medium">Issue</p>
                 <Select
-                  value={selectedBranch}
-                  onValueChange={setSelectedBranch}
+                  value={selectedIssue}
+                  onValueChange={setSelectedIssue}
+                  disabled={loadingRepoData}
                 >
                   <SelectTrigger className="w-[200px]">
-                    <SelectValue />
+                    <SelectValue placeholder="Select issue" />
                   </SelectTrigger>
                   <SelectContent>
-                    {fakeBranches.map((branch) => (
-                      <SelectItem key={branch} value={branch}>
-                        {branch}
+                    {issues.map((issue) => (
+                      <SelectItem key={issue.id} value={issue.id}>
+                        {issue.title}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {loadingRepoData && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Loading...
+                  </p>
+                )}
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 
@@ -302,7 +368,7 @@ export default function AgentWorkflowClient() {
             <CardTitle>Tools</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {fakeTools.map((tool) => (
+            {availableTools.map((tool) => (
               <label key={tool} className="flex items-center gap-2">
                 <Checkbox
                   checked={selectedTools.includes(tool)}
