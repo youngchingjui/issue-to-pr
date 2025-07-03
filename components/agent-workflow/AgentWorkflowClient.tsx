@@ -23,18 +23,18 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import {
+  checkLocalRepoExists,
   getRepositoryBranches,
   getRepositoryIssues,
   getUserRepositories,
-  checkLocalRepoExists,
 } from "@/lib/actions/github"
 import { getChatCompletion } from "@/lib/actions/openaiChat"
+import { toast } from "@/lib/hooks/use-toast"
 import {
   DEFAULT_SYSTEM_PROMPTS,
   SystemPromptTemplate,
 } from "@/lib/systemPrompts"
 import { GitHubIssue, RepoSelectorItem } from "@/lib/types/github"
-import { toast } from "@/lib/hooks/use-toast"
 
 interface Message {
   role: "system" | "user" | "assistant"
@@ -74,10 +74,10 @@ export default function AgentWorkflowClient({
   const [selectedTools, setSelectedTools] = useState<string[]>([])
   const [isRunning, setIsRunning] = useState(false)
   const [runResult, setRunResult] = useState<{ runId: string } | null>(null)
-  const [localRepoStatus, setLocalRepoStatus] = useState<
-    | { exists: boolean; path: string }
-    | null
-  >(null)
+  const [localRepoStatus, setLocalRepoStatus] = useState<{
+    exists: boolean
+    path: string
+  } | null>(null)
 
   // Load repositories on mount
   useEffect(() => {
