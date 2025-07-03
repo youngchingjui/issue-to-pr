@@ -27,6 +27,26 @@ export async function startDetachedContainer({
   return stdout.trim()
 }
 
+export async function startBasicContainer({
+  image,
+  name,
+  user = "1000:1000",
+}: {
+  image: string
+  name: string
+  user?: string
+}): Promise<string> {
+  const cmd = [
+    "docker run -d",
+    `--name ${name}`,
+    `-u ${user}`,
+    image,
+    "tail -f /dev/null",
+  ].join(" ")
+  const { stdout } = await execPromise(cmd)
+  return stdout.trim()
+}
+
 export async function execInContainer({
   name,
   command,

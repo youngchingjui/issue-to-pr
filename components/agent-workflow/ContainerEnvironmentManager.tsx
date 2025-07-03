@@ -1,5 +1,6 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -12,7 +13,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { getRunningContainers } from "@/lib/actions/docker"
+import {
+  getRunningContainers,
+  launchAgentBaseContainer,
+} from "@/lib/actions/docker"
 
 interface ContainerEnv {
   id: string
@@ -22,11 +26,18 @@ interface ContainerEnv {
 }
 
 export default function ContainerEnvironmentManager() {
+  const router = useRouter()
   const [containers, setContainers] = useState<ContainerEnv[]>([])
 
   const refreshContainers = async () => {
     const result = await getRunningContainers()
     setContainers(result)
+  }
+
+  const launchContainer = async () => {
+    await launchAgentBaseContainer()
+    await refreshContainers()
+    router.refresh()
   }
 
   useEffect(() => {
@@ -37,9 +48,14 @@ export default function ContainerEnvironmentManager() {
     <Card>
       <CardHeader className="flex items-center justify-between">
         <CardTitle>Running Containers</CardTitle>
-        <Button size="sm" onClick={refreshContainers}>
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" onClick={refreshContainers}>
+            Refresh
+          </Button>
+          <Button size="sm" onClick={launchContainer}>
+            Launch new container
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <Table>
