@@ -16,6 +16,7 @@ import {
 import {
   getRunningContainers,
   launchAgentBaseContainer,
+  stopContainer,
 } from "@/lib/actions/docker"
 
 interface ContainerEnv {
@@ -36,6 +37,12 @@ export default function ContainerEnvironmentManager() {
 
   const launchContainer = async () => {
     await launchAgentBaseContainer()
+    await refreshContainers()
+    router.refresh()
+  }
+
+  const handleStop = async (name: string) => {
+    await stopContainer(name)
     await refreshContainers()
     router.refresh()
   }
@@ -64,6 +71,7 @@ export default function ContainerEnvironmentManager() {
               <TableHead>Name</TableHead>
               <TableHead>Image</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -72,12 +80,21 @@ export default function ContainerEnvironmentManager() {
                 <TableCell>{c.name}</TableCell>
                 <TableCell>{c.image}</TableCell>
                 <TableCell>{c.status}</TableCell>
+                <TableCell>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handleStop(c.name)}
+                  >
+                    Stop
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
             {containers.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={3}
+                  colSpan={4}
                   className="text-center text-sm text-muted-foreground"
                 >
                   No running containers
