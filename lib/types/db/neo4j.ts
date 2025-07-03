@@ -7,6 +7,7 @@ import {
   llmResponseSchema as appLLMResponseSchema,
   planSchema as appPlanSchema,
   repoSettingsSchema as appRepoSettingsSchema,
+  settingsSchema as appSettingsSchema,
   reviewCommentSchema as appReviewCommentSchema,
   statusEventSchema as appStatusEventSchema,
   systemPromptSchema as appSystemPromptSchema,
@@ -162,3 +163,12 @@ export const repoSettingsSchema = appRepoSettingsSchema.merge(
 )
 
 export type RepoSettings = z.infer<typeof repoSettingsSchema>
+
+// ---- User Settings ----
+export const userSettingsSchema = appSettingsSchema.merge(
+  z.object({
+    lastUpdated: z.instanceof(DateTime),
+  })
+)
+
+export type UserSettings = z.infer<typeof userSettingsSchema>
