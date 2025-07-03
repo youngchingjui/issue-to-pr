@@ -3,6 +3,8 @@ import { promises as fs } from "fs"
 import os from "os"
 import * as path from "path"
 
+import { checkIfGitExists } from "@/lib/git"
+
 export async function createDirectoryTree(
   dir: string,
   baseDir: string = dir
@@ -85,4 +87,17 @@ export async function writeFile(fullPath: string, content: string) {
 
   // Write the file
   await fs.writeFile(fullPath, content, "utf-8")
+}
+
+export async function checkLocalRepo(
+  repoFullName: string
+): Promise<{ exists: boolean; path: string }> {
+  try {
+    const dir = await getLocalRepoDir(repoFullName)
+    const exists = await checkIfGitExists(dir)
+    return { exists, path: dir }
+  } catch (e) {
+    // If there's any error, assume not exists and return unavailable path
+    return { exists: false, path: "" }
+  }
 }

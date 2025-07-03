@@ -81,6 +81,36 @@ export default function RepoSelector({ selectedRepo }: Props) {
     }
   }, [open, repos, checking])
 
+  useEffect(() => {
+    if (selectedRepo) {
+      // When selectedRepo changes, check local repo status and update in repos state
+      if (
+        selectedRepo &&
+        !repos.find((r) => r.nameWithOwner === selectedRepo)?.localRepo
+      ) {
+        checkLocalRepo(selectedRepo)
+          .then((res) => {
+            setRepos((prevRepos) =>
+              prevRepos.map((repo) =>
+                repo.nameWithOwner === selectedRepo
+                  ? { ...repo, localRepo: res }
+                  : repo
+              )
+            )
+          })
+          .catch(() => {
+            setRepos((prevRepos) =>
+              prevRepos.map((repo) =>
+                repo.nameWithOwner === selectedRepo
+                  ? { ...repo, localRepo: { exists: false, path: "" } }
+                  : repo
+              )
+            )
+          })
+      }
+    }
+  }, [selectedRepo, repos])
+
   return (
     <Select
       defaultValue={selectedRepo}
