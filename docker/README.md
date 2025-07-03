@@ -70,9 +70,12 @@ A Python repo might need a Python image, etc.
 ### Building the Agent Base Image
 
 ```bash
-# Build the custom agent image with ripgrep pre-installed
+# Build the multi-architecture agent image with ripgrep pre-installed
 ./scripts/build-agent-image.sh
 ```
+
+The script uses **docker buildx** to build and push images for both `linux/amd64` and
+`linux/arm64` platforms.
 
 The image includes:
 
