@@ -3,27 +3,37 @@ import util from "util"
 
 const execPromise = util.promisify(exec)
 
-export async function startDetachedContainer({
+// Default image name and literal type
+const DEFAULT_AGENT_BASE_IMAGE = "ghcr.io/youngchingjui/agent-base" as const
+
+// Image name that can be overridden via environment variable
+export const AGENT_BASE_IMAGE: string =
+  process.env.AGENT_BASE_IMAGE ?? DEFAULT_AGENT_BASE_IMAGE
+
+// Literal type representing the default image (useful for narrowing)
+export type AgentBaseImage = typeof DEFAULT_AGENT_BASE_IMAGE
+
+export async function startContainer({
   image,
-  hostDir,
   name,
+  hostDir,
   user = "1000:1000",
 }: {
   image: string
-  hostDir: string
   name: string
+  hostDir?: string
   user?: string
 }): Promise<string> {
-  const cmd = [
-    "docker run -d",
-    `--name ${name}`,
-    `-u ${user}`,
-    `-v \"${hostDir}:/workspace\"`,
-    "-w /workspace",
-    image,
-    "tail -f /dev/null",
-  ].join(" ")
-  const { stdout } = await execPromise(cmd)
+  const cmdParts = ["docker run -d", `--name ${name}`, `-u ${user}`]
+
+  if (hostDir) {
+    // Mount the host directory to /workspace inside the container and set it as the working directory
+    cmdParts.push(`-v \"${hostDir}:/workspace\"`, "-w /workspace")
+  }
+
+  cmdParts.push(image, "tail -f /dev/null")
+
+  const { stdout } = await execPromise(cmdParts.join(" "))
   return stdout.trim()
 }
 
