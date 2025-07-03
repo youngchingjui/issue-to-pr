@@ -48,7 +48,6 @@ export default function AgentWorkflowClient({
   const [issues, setIssues] = useState<typeof fakeIssues>([])
   const [selectedIssue, setSelectedIssue] = useState<string>("")
   const [loadingRepoData, setLoadingRepoData] = useState(false)
-  const [issueText, setIssueText] = useState("")
 
   const initialPrompts = DEFAULT_SYSTEM_PROMPTS
   const [promptTemplates, setPromptTemplates] =
@@ -239,22 +238,6 @@ export default function AgentWorkflowClient({
             )}
           </CardContent>
         </Card>
-
-        {/* Issue Input */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Issue</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              value={issueText}
-              onChange={(e) => setIssueText(e.target.value)}
-              placeholder="Describe the issue or paste issue text here..."
-              rows={4}
-            />
-          </CardContent>
-        </Card>
-
         {/* Messages */}
         <Card>
           <CardHeader>
