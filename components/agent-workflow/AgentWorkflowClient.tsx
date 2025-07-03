@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Loader2 } from "lucide-react"
 import {
   Select,
@@ -24,11 +24,38 @@ interface Message {
 export default function AgentWorkflowClient() {
   const fakeRepos = ["repo-1", "repo-2", "repo-3"]
   const fakeBranches = ["main", "dev", "feature"]
+  const fakeIssues = [
+    { id: "1", title: "Issue 1" },
+    { id: "2", title: "Issue 2" },
+    { id: "3", title: "Issue 3" },
+  ]
   const fakeTools = ["Git", "Code Search", "Unit Test"]
 
-  const [selectedRepo, setSelectedRepo] = useState(fakeRepos[0])
-  const [selectedBranch, setSelectedBranch] = useState(fakeBranches[0])
+  const [selectedRepo, setSelectedRepo] = useState<string>("")
+  const [branches, setBranches] = useState<string[]>([])
+  const [selectedBranch, setSelectedBranch] = useState<string>("")
+  const [issues, setIssues] = useState<typeof fakeIssues>([])
+  const [selectedIssue, setSelectedIssue] = useState<string>("")
+  const [loadingRepoData, setLoadingRepoData] = useState(false)
   const [issueText, setIssueText] = useState("")
+
+  // Fetch branches and issues when a repo is selected
+  useEffect(() => {
+    if (!selectedRepo) {
+      setBranches([])
+      setSelectedBranch("")
+      setIssues([])
+      setSelectedIssue("")
+      return
+    }
+    setLoadingRepoData(true)
+    const timer = setTimeout(() => {
+      setBranches(fakeBranches)
+      setIssues(fakeIssues)
+      setLoadingRepoData(false)
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [selectedRepo])
 
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState("")
@@ -83,7 +110,7 @@ export default function AgentWorkflowClient() {
         {/* Repository and Branch Selection */}
         <Card>
           <CardHeader>
-            <CardTitle>Repository Settings</CardTitle>
+            <CardTitle>Repo</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap gap-4">
@@ -91,7 +118,7 @@ export default function AgentWorkflowClient() {
                 <p className="mb-2 text-sm font-medium">Repository</p>
                 <Select value={selectedRepo} onValueChange={setSelectedRepo}>
                   <SelectTrigger className="w-[200px]">
-                    <SelectValue />
+                    <SelectValue placeholder="Select repo" />
                   </SelectTrigger>
                   <SelectContent>
                     {fakeRepos.map((repo) => (
@@ -102,25 +129,55 @@ export default function AgentWorkflowClient() {
                   </SelectContent>
                 </Select>
               </div>
+              {selectedRepo && (
+                <div>
+                  <p className="mb-2 text-sm font-medium">Branch</p>
+                  <Select
+                    value={selectedBranch}
+                    onValueChange={setSelectedBranch}
+                    disabled={loadingRepoData}
+                  >
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="Select branch" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {branches.map((branch) => (
+                        <SelectItem key={branch} value={branch}>
+                          {branch}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {loadingRepoData && (
+                    <p className="text-sm text-muted-foreground mt-1">Loading...</p>
+                  )}
+                </div>
+              )}
+            </div>
+            {selectedRepo && (
               <div>
-                <p className="mb-2 text-sm font-medium">Branch</p>
+                <p className="mb-2 text-sm font-medium">Issue</p>
                 <Select
-                  value={selectedBranch}
-                  onValueChange={setSelectedBranch}
+                  value={selectedIssue}
+                  onValueChange={setSelectedIssue}
+                  disabled={loadingRepoData}
                 >
                   <SelectTrigger className="w-[200px]">
-                    <SelectValue />
+                    <SelectValue placeholder="Select issue" />
                   </SelectTrigger>
                   <SelectContent>
-                    {fakeBranches.map((branch) => (
-                      <SelectItem key={branch} value={branch}>
-                        {branch}
+                    {issues.map((issue) => (
+                      <SelectItem key={issue.id} value={issue.id}>
+                        {issue.title}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {loadingRepoData && (
+                  <p className="text-sm text-muted-foreground mt-1">Loading...</p>
+                )}
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 
