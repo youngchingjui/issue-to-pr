@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/lib/hooks/use-toast"
 import { setUserOpenAIApiKey } from "@/lib/neo4j/services/user"
+import { maskApiKey } from "@/lib/utils/client"
 
 interface Props {
   initialKey?: string
@@ -72,11 +73,6 @@ const ApiKeyInput = ({ initialKey = "" }: Props) => {
       setIsVerifying(false)
       setIsEditing(false)
     }
-  }
-
-  const maskApiKey = (key: string) => {
-    if (key.length <= 10) return key
-    return `${key.slice(0, 5)}**********${key.slice(-4)}`
   }
 
   return (

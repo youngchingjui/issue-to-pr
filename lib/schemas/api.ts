@@ -1,3 +1,5 @@
+// TODO: Migrate schemas to /lib/types/api/schemas.ts
+
 import { z } from "zod"
 
 export const GitHubURLSchema = z
