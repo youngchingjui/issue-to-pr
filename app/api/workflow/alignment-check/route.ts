@@ -30,7 +30,11 @@ export async function POST(request: NextRequest) {
       pullNumber,
       openAIApiKey: apiKey,
     })
-    return NextResponse.json({ success: true, result })
+    return NextResponse.json({
+      success: true,
+      content: result?.content ?? null,
+      alignmentAnalysisNodeId: result?.alignmentAnalysisNodeId ?? null,
+    })
   } catch (e) {
     // Log full error for debugging
     console.error("[alignmentCheck] Failed to analyze:", e)
