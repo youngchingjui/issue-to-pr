@@ -14,7 +14,7 @@ const DEFAULT_TOOLS = [
   "write_file",
 ]
 
-import AgentWorkflowClient from "@/components/agent-workflow/AgentWorkflowClient"
+import AgentWorkflowClient from "@/components/playground/AgentWorkflowClient"
 
 export default async function PlaygroundPage() {
   return (
