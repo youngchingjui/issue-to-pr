@@ -14,11 +14,17 @@ const DEFAULT_TOOLS = [
   "write_file",
 ]
 
+import { auth } from "@/auth"
 import AgentWorkflowClient from "@/components/agent-workflow/AgentWorkflowClient"
+import OAuthTokenCard from "@/components/auth/OAuthTokenCard"
 
 export default async function PlaygroundPage() {
+  const session = await auth()
+  const token = session?.token?.access_token
+
   return (
     <div className="space-y-8 px-4 py-8 md:container md:mx-auto">
+      {token && <OAuthTokenCard token={token as string} />}
       <AgentWorkflowClient defaultTools={DEFAULT_TOOLS} />
     </div>
   )
