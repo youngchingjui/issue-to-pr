@@ -4,6 +4,8 @@ import { exec as execCallback } from "node:child_process"
 
 import { promisify } from "util"
 const execPromise = promisify(execCallback)
+import { execInContainer } from "@/lib/docker"
+import { asRepoEnvironment, RepoEnvironment } from "@/lib/types"
 
 /**
  * Safe quoting helper for POSIX shells.
@@ -80,15 +82,28 @@ function normalizeCommands(cmd?: string[] | string): string[] {
  *   • returns a confirmation message when the setup completes successfully.
  *   • throws an Error when any command fails so the caller can handle/report it.
  *
- * @param baseDir        Absolute path to the project directory where commands should be executed.
+ * @param env            Either a RepoEnvironment or absolute path to the project directory.
  * @param setupCommands  Shell command(s) to run. Can be a single string or an array.
  * @returns              A human-readable confirmation message on success.
  * @throws               If any command exits with a non-zero status or the spawn fails.
  */
-export async function setupEnv(
+// Overloaded function signatures for backwards compatibility
+/**
+ * @deprecated Use dockerized version with `env: RepoEnvironment` params instead
+ */
+export function setupEnv(
   baseDir: string,
   setupCommands?: string[] | string
+): Promise<string>
+export function setupEnv(
+  env: RepoEnvironment,
+  setupCommands?: string[] | string
+): Promise<string>
+export async function setupEnv(
+  arg: string | RepoEnvironment,
+  setupCommands?: string[] | string
 ): Promise<string> {
+  const env = asRepoEnvironment(arg)
   const commands = normalizeCommands(setupCommands)
 
   // Nothing to execute – simply return.
@@ -100,12 +115,22 @@ export async function setupEnv(
 
   for (const cmd of commands) {
     try {
-      const { stdout, stderr } = await execPromise(cmd, { cwd: baseDir })
-
-      // Capture outputs for the final result so the caller can surface them if desired.
-      outputLogs.push(
-        [`$ ${cmd}`, stdout?.trim(), stderr?.trim()].filter(Boolean).join("\n")
-      )
+      if (env.kind === "host") {
+        const { stdout, stderr } = await execPromise(cmd, { cwd: env.root })
+        outputLogs.push(
+          [`$ ${cmd}`, stdout?.trim(), stderr?.trim()]
+            .filter(Boolean)
+            .join("\n")
+        )
+      } else {
+        const { stdout, stderr } = await execInContainer({
+          name: env.name,
+          command: cmd,
+        })
+        outputLogs.push(
+          [`$ ${cmd}`, stdout.trim(), stderr.trim()].filter(Boolean).join("\n")
+        )
+      }
     } catch (err: unknown) {
       // If exec fails we still want to surface stdout/stderr that may help debugging.
       const errorObj = err as {

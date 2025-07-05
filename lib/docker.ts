@@ -13,27 +13,52 @@ export const AGENT_BASE_IMAGE: string =
 // Literal type representing the default image (useful for narrowing)
 export type AgentBaseImage = typeof DEFAULT_AGENT_BASE_IMAGE
 
+export interface StartDetachedContainerOptions {
+  image: string
+  name: string
+  /** UID:GID string; default keeps container non-root */
+  user?: string
+  /** Bind-mounts */
+  mounts?: Array<{
+    hostPath: string
+    containerPath: string
+    readOnly?: boolean
+  }>
+  /** Working directory inside the container */
+  workdir?: string
+}
+
 export async function startContainer({
   image,
   name,
-  hostDir,
   user = "1000:1000",
-}: {
-  image: string
-  name: string
-  hostDir?: string
-  user?: string
-}): Promise<string> {
-  const cmdParts = ["docker run -d", `--name ${name}`, `-u ${user}`]
+  mounts = [],
+  workdir,
+}: StartDetachedContainerOptions): Promise<string> {
+  // 1. Build volume flags: -v "host:container[:ro]"
+  const volumeFlags = mounts.map(({ hostPath, containerPath, readOnly }) => {
+    const ro = readOnly ? ":ro" : ""
+    return `-v \"${hostPath}:${containerPath}${ro}\"`
+  })
 
-  if (hostDir) {
-    // Mount the host directory to /workspace inside the container and set it as the working directory
-    cmdParts.push(`-v \"${hostDir}:/workspace\"`, "-w /workspace")
-  }
+  // 2. Determine working directory
+  const wdPath = workdir ?? (mounts.length ? mounts[0].containerPath : "/")
+  const wdFlag = wdPath ? `-w \"${wdPath}\"` : undefined
 
-  cmdParts.push(image, "tail -f /dev/null")
+  // 3. Assemble command parts and filter out undefined entries
+  const cmd = [
+    "docker run -d",
+    `--name ${name}`,
+    `-u ${user}`,
+    ...volumeFlags,
+    wdFlag,
+    image,
+    "tail -f /dev/null",
+  ]
+    .filter(Boolean)
+    .join(" ")
 
-  const { stdout } = await execPromise(cmdParts.join(" "))
+  const { stdout } = await execPromise(cmd)
   return stdout.trim()
 }
 
