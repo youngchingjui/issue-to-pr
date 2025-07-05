@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "predev": "./scripts/start-services.sh",
+    "predev": "./scripts/start-services.sh && pnpm i",
     "dev": "next dev",
     "prestart": "./scripts/start-services.sh",
     "start": "next start",
