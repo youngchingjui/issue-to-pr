@@ -55,7 +55,7 @@ export async function startContainer({
 
   // 4. Assemble command parts and filter out undefined entries
   const cmd = [
-    "docker run --pull always -d",
+    "docker run -d",
     `--name ${name}`,
     `-u ${user}`,
     ...envFlags,
