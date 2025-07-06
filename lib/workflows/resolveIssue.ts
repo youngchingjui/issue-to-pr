@@ -111,14 +111,12 @@ export const resolveIssue = async ({
     })
 
     // Setup containerized repository using the local copy
-    const { containerName, exec, cleanup } = await createContainerizedWorkspace(
-      {
-        repoFullName: repository.full_name,
-        branch: repository.default_branch,
-        workflowId,
-        hostRepoPath,
-      }
-    )
+    const { containerName, cleanup } = await createContainerizedWorkspace({
+      repoFullName: repository.full_name,
+      branch: repository.default_branch,
+      workflowId,
+      hostRepoPath,
+    })
     const env: RepoEnvironment = { kind: "container", name: containerName }
     containerCleanup = cleanup
     await createStatusEvent({
