@@ -26,6 +26,8 @@ export interface StartDetachedContainerOptions {
   }>
   /** Working directory inside the container */
   workdir?: string
+  /** Environment variables to set inside the container */
+  env?: Record<string, string>
 }
 
 export async function startContainer({
@@ -34,6 +36,7 @@ export async function startContainer({
   user = "1000:1000",
   mounts = [],
   workdir,
+  env = {},
 }: StartDetachedContainerOptions): Promise<string> {
   // 1. Build volume flags: -v "host:container[:ro]"
   const volumeFlags = mounts.map(({ hostPath, containerPath, readOnly }) => {
@@ -41,15 +44,21 @@ export async function startContainer({
     return `-v \"${hostPath}:${containerPath}${ro}\"`
   })
 
-  // 2. Determine working directory
+  // 2. Build environment variable flags: -e "KEY=value"
+  const envFlags = Object.entries(env).map(
+    ([key, value]) => `-e \"${key}=${value.replace(/"/g, '\\\"')}\"`
+  )
+
+  // 3. Determine working directory
   const wdPath = workdir ?? (mounts.length ? mounts[0].containerPath : "/")
   const wdFlag = wdPath ? `-w \"${wdPath}\"` : undefined
 
-  // 3. Assemble command parts and filter out undefined entries
+  // 4. Assemble command parts and filter out undefined entries
   const cmd = [
     "docker run -d",
     `--name ${name}`,
     `-u ${user}`,
+    ...envFlags,
     ...volumeFlags,
     wdFlag,
     image,

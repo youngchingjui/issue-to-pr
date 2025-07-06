@@ -37,8 +37,9 @@ import {
 import { setupEnv } from "@/lib/utils/cli"
 import {
   createContainerizedDirectoryTree,
-  createContainerizedWorktree,
+  createContainerizedWorkspace,
 } from "@/lib/utils/container"
+import { setupLocalRepository } from "@/lib/utils/utils-server"
 
 interface ResolveIssueParams {
   issue: GitHubIssue
@@ -103,12 +104,21 @@ export const resolveIssue = async ({
       }
     }
 
-    // Setup containerized repository
-    const { containerName, exec, cleanup } = await createContainerizedWorktree({
+    // Ensure local repository exists and is up-to-date
+    const hostRepoPath = await setupLocalRepository({
       repoFullName: repository.full_name,
-      branch: repository.default_branch,
-      workflowId,
+      workingBranch: repository.default_branch,
     })
+
+    // Setup containerized repository using the local copy
+    const { containerName, exec, cleanup } = await createContainerizedWorkspace(
+      {
+        repoFullName: repository.full_name,
+        branch: repository.default_branch,
+        workflowId,
+        hostRepoPath,
+      }
+    )
     const env: RepoEnvironment = { kind: "container", name: containerName }
     containerCleanup = cleanup
     await createStatusEvent({
