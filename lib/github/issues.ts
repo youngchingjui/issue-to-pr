@@ -4,11 +4,11 @@ import getOctokit from "@/lib/github"
 import { getPRLinkedIssuesMap } from "@/lib/github/pullRequests"
 import { getPlanStatusForIssues } from "@/lib/neo4j/services/plan"
 import {
+  GetIssueResult,
   GitHubIssue,
   GitHubIssueComment,
   ListForRepoParams,
   RepoFullName,
-  GetIssueResult,
 } from "@/lib/types/github"
 
 export async function createIssue({
@@ -49,12 +49,17 @@ export async function getIssue({
       issue_number: issueNumber,
     })
     return { type: "success", issue: issue.data }
-  } catch (error: any) {
-    if (error?.status === 404) {
-      return { type: "not_found" }
+  } catch (error) {
+    if (!error) {
+      return { type: "other_error", error: "Unknown error" }
     }
-    if (error?.status === 403) {
-      return { type: "forbidden" }
+    if (typeof error === "object" && "status" in error) {
+      if (error.status === 404) {
+        return { type: "not_found" }
+      }
+      if (error.status === 403) {
+        return { type: "forbidden" }
+      }
     }
     return { type: "other_error", error }
   }
