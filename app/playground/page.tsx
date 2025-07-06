@@ -15,8 +15,8 @@ const DEFAULT_TOOLS = [
 ]
 
 import { auth } from "@/auth"
-import AgentWorkflowClient from "@/components/agent-workflow/AgentWorkflowClient"
 import OAuthTokenCard from "@/components/auth/OAuthTokenCard"
+import AgentWorkflowClient from "@/components/playground/AgentWorkflowClient"
 
 export default async function PlaygroundPage() {
   const session = await auth()

@@ -3,7 +3,7 @@
 import { FolderCheck, Loader2 } from "lucide-react"
 import { useEffect, useState, useTransition } from "react"
 
-import ContainerEnvironmentManager from "@/components/agent-workflow/ContainerEnvironmentManager"
+import ContainerEnvironmentManager from "@/components/playground/ContainerEnvironmentManager"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
