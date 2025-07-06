@@ -34,6 +34,33 @@ export function getInstallationId(): string | null {
   return store.installationId
 }
 
+/**
+ * Prepare a local working copy of a GitHub repository.
+ *
+ * This helper makes sure that the repository identified by `repoFullName` is
+ * available in a local working directory that the server can freely mutate.
+ * The steps performed are:
+ * 1. Resolve (and lazily create) the base directory via `getLocalRepoDir`.
+ * 2. Build an authenticated clone URL using either the current user session's
+ *    OAuth token (if present) or a GitHub App installation token exposed
+ *    through `runWithInstallationId` / `getInstallationId`.
+ * 3. Verify that the local repository is healthy via `ensureValidRepo`; if it
+ *    is corrupt or missing, attempt a fresh clone.
+ * 4. Perform a clean checkout of `workingBranch`, retrying up to three times
+ *    and re-cloning when necessary.
+ *
+ * The function is resilient to transient git failures and cleans up the local
+ * directory on unrecoverable errors.
+ *
+ * @param {Object} params                           - Function parameters.
+ * @param {string} params.repoFullName              - Full repository name in
+ *                                                   the form "owner/repo".
+ * @param {string} [params.workingBranch="main"]   - Branch to check out for
+ *                                                   subsequent operations.
+ * @returns {Promise<string>} Absolute path to the prepared local repository
+ *                            directory.
+ * @throws {Error} If the repository cannot be prepared after all retries.
+ */
 export async function setupLocalRepository({
   repoFullName,
   workingBranch = "main",

@@ -2,7 +2,9 @@ import { exec } from "child_process"
 import { promisify } from "util"
 import { z } from "zod"
 
+import { execInContainer } from "@/lib/docker"
 import { createTool } from "@/lib/tools/helper"
+import { asRepoEnvironment, RepoEnvironment, Tool } from "@/lib/types"
 
 // Allow-listed CLI commands that are considered safe, **read-only** code-quality tools.
 // Grouped by language but flattened into a single Set for quick lookup.
@@ -141,7 +143,7 @@ const fileCheckParameters = z.object({
 const execPromise = promisify(exec)
 
 async function handler(
-  baseDir: string,
+  env: RepoEnvironment,
   params: z.infer<typeof fileCheckParameters>
 ) {
   const { cliCommand } = params
@@ -170,12 +172,19 @@ async function handler(
   const sanitizedCommand = cliCommand.replace(/[^a-zA-Z0-9_\-.:/\\ \t]/g, "")
 
   try {
-    const { stdout, stderr } = await execPromise(sanitizedCommand, {
-      cwd: baseDir,
-      maxBuffer: 1024 * 1024,
-    })
-
-    return { stdout, stderr, exitCode: 0 }
+    if (env.kind === "host") {
+      const { stdout, stderr } = await execPromise(sanitizedCommand, {
+        cwd: env.root,
+        maxBuffer: 1024 * 1024,
+      })
+      return { stdout, stderr, exitCode: 0 }
+    } else {
+      const { stdout, stderr, exitCode } = await execInContainer({
+        name: env.name,
+        command: sanitizedCommand,
+      })
+      return { stdout, stderr, exitCode }
+    }
   } catch (error: unknown) {
     if (!error || typeof error !== "object") {
       return {
@@ -200,8 +209,30 @@ async function handler(
   }
 }
 
-export const createFileCheckTool = (baseDir: string) =>
-  createTool({
+// Overloaded function signatures for backwards compatibility
+/**
+ * @deprecated Use dockerized version with `env: RepoEnvironment` params instead
+ */
+export function createFileCheckTool(
+  baseDir: string
+): Tool<
+  typeof fileCheckParameters,
+  { stdout: string; stderr: string; exitCode: number }
+>
+export function createFileCheckTool(
+  env: RepoEnvironment
+): Tool<
+  typeof fileCheckParameters,
+  { stdout: string; stderr: string; exitCode: number }
+>
+export function createFileCheckTool(
+  arg: string | RepoEnvironment
+): Tool<
+  typeof fileCheckParameters,
+  { stdout: string; stderr: string; exitCode: number }
+> {
+  const env = asRepoEnvironment(arg)
+  return createTool({
     name: "file_check",
     description: `
       Run a READ-ONLY code-quality CLI command (e.g., eslint, tsc, prettier) on specified file(s).
@@ -212,6 +243,7 @@ export const createFileCheckTool = (baseDir: string) =>
     `,
     schema: fileCheckParameters,
     handler: (params: z.infer<typeof fileCheckParameters>) =>
-      handler(baseDir, params),
+      handler(env, params),
     // The handler already conforms to fileCheckResult shape.
   })
+}

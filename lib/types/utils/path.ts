@@ -35,6 +35,8 @@ export const relativePathSchema = z
       message: "Path contains empty or '.' segments",
     }
   )
-  .describe("The relative path of the file to retrieve")
+  .describe(
+    "Relative path of the file to retrieve. Must be non-empty, be relative (no leading '/'), must not include '..' segments, must not contain control characters or null bytes, and must not contain empty ('//') or single-dot ('./') segments. Dotfiles such as '.env' are allowed."
+  )
 
 export type RelativePath = z.infer<typeof relativePathSchema>
