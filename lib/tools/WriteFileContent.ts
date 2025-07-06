@@ -29,6 +29,18 @@ async function fnHandler(
   } else {
     // Container environment
 
+    // Ensure the target directory exists
+    const dirPath = path.dirname(relativePath)
+    const mkdirResult = await execInContainer({
+      name: env.name,
+      command: `mkdir -p ${shellEscape(dirPath)}`,
+      cwd: env.mount,
+    })
+
+    if (mkdirResult.exitCode !== 0) {
+      throw new Error(`Failed to create directory: ${mkdirResult.stderr}`)
+    }
+
     // Use printf to write content, escaping single quotes and handling newlines
     const escapedContent = content.replace(/'/g, "'\\''")
     const { stderr, exitCode } = await execInContainer({
