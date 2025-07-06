@@ -8,6 +8,7 @@ import {
   GitHubIssueComment,
   ListForRepoParams,
   RepoFullName,
+  GetIssueResult,
 } from "@/lib/types/github"
 
 export async function createIssue({
@@ -25,25 +26,38 @@ export async function createIssue({
   return await octokit.rest.issues.create({ owner, repo, title, body })
 }
 
-// Existing: fetch single issue from GitHub
+// Updated: fetch single issue from GitHub with structured error result
 export async function getIssue({
   fullName,
   issueNumber,
 }: {
   fullName: string
   issueNumber: number
-}): Promise<GitHubIssue> {
+}): Promise<GetIssueResult> {
   const octokit = await getOctokit()
   if (!octokit) {
-    throw new Error("No octokit found")
+    return { type: "other_error", error: "No octokit found" }
   }
   const [owner, repo] = fullName.split("/")
-  const issue = await octokit.rest.issues.get({
-    owner,
-    repo,
-    issue_number: issueNumber,
-  })
-  return issue.data
+  if (!owner || !repo) {
+    return { type: "not_found" }
+  }
+  try {
+    const issue = await octokit.rest.issues.get({
+      owner,
+      repo,
+      issue_number: issueNumber,
+    })
+    return { type: "success", issue: issue.data }
+  } catch (error: any) {
+    if (error?.status === 404) {
+      return { type: "not_found" }
+    }
+    if (error?.status === 403) {
+      return { type: "forbidden" }
+    }
+    return { type: "other_error", error }
+  }
 }
 
 export async function createIssueComment({
@@ -79,7 +93,7 @@ export async function getIssueComments({
   const octokit = await getOctokit()
   const [owner, repo] = repoFullName.split("/")
   if (!owner || !repo) {
-    throw new Error("Invalid repository format. Expected 'owner/repo'")
+    throw new Error("Invalid repository format. Expected '\''owner/repo'\''")
   }
   if (!octokit) {
     throw new Error("No octokit found")
