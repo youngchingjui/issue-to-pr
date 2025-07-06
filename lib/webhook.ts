@@ -72,8 +72,13 @@ export const routeWebhookHandler = async ({
               issueNumber,
             })
 
+            if (issue.type !== "success") {
+              console.error("Failed to get issue:", issue)
+              return
+            }
+
             await resolveIssue({
-              issue,
+              issue: issue.issue,
               repository: fullRepo,
               apiKey,
               jobId,
@@ -131,9 +136,15 @@ export const routeWebhookHandler = async ({
             fullName: repoFullName,
             issueNumber,
           })
+
+          if (issue.type !== "success") {
+            console.error("Failed to get issue:", issue)
+            return
+          }
+
           // 4. resolveIssue: Use planId just created
           await resolveIssue({
-            issue,
+            issue: issue.issue,
             repository: fullRepo,
             apiKey,
             jobId: uuidv4(),

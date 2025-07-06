@@ -35,8 +35,12 @@ export async function POST(request: NextRequest) {
           issueNumber,
         })
 
+        if (issue.type !== "success") {
+          throw new Error(JSON.stringify(issue))
+        }
+
         await resolveIssue({
-          issue,
+          issue: issue.issue,
           repository: fullRepo,
           apiKey,
           jobId,
