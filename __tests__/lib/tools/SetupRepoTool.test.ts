@@ -1,4 +1,5 @@
 import { z } from "zod"
+
 import { createSetupRepoTool } from "@/lib/tools/SetupRepoTool"
 
 afterEach(() => {
@@ -44,7 +45,9 @@ describe("SetupRepoTool", () => {
 
   describe("handler behavior", () => {
     it("returns error for multi-line commands", async () => {
-      const result = await tool.handler({ cliCommand: "npm install &&\necho done" })
+      const result = await tool.handler({
+        cliCommand: "npm install &&\necho done",
+      })
       expect(result.exitCode).toBe(1)
       expect(result.stderr).toMatch(/multi-line/i)
     })

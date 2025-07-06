@@ -1,4 +1,5 @@
 import { z } from "zod"
+
 import { execInContainer } from "@/lib/docker"
 import { createTool } from "@/lib/tools/helper"
 import { asRepoEnvironment, RepoEnvironment, Tool } from "@/lib/types"
@@ -22,7 +23,8 @@ async function handler(
   if (/\r|\n/.test(cliCommand)) {
     return {
       stdout: "",
-      stderr: "Multi-line commands are not allowed. Only single-line setup commands.",
+      stderr:
+        "Multi-line commands are not allowed. Only single-line setup commands.",
       exitCode: 1,
     }
   }
