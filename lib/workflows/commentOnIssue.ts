@@ -67,7 +67,7 @@ export default async function commentOnIssue(
     })
 
     // Get the issue
-    const issue = await getIssue({
+    const issueResult = await getIssue({
       fullName: repo.full_name,
       issueNumber,
     }).catch((error: GitHubError) => {
@@ -80,6 +80,10 @@ export default async function commentOnIssue(
         `Failed to get issue #${issueNumber}: ${error.response?.data?.message || error.message}`
       )
     })
+
+    if (issueResult.type !== "success") {
+      throw new Error(JSON.stringify(issueResult))
+    }
 
     latestEvent = await createStatusEvent({
       content: "Issue retrieved successfully",
@@ -207,6 +211,7 @@ export default async function commentOnIssue(
     thinker.addTool(searchCodeTool)
     thinker.addTool(containerExecTool)
 
+    const issue = issueResult.issue
     // Add issue information as user message
     await thinker.addMessage({
       role: "user",

@@ -146,7 +146,14 @@ export async function alignmentCheck({
     // 2. Fetch Issue and Plan context (optional if not found, or use provided)
     if (!issue) {
       try {
-        issue = await getIssue({ fullName: repoFullName, issueNumber })
+        const issueResult = await getIssue({
+          fullName: repoFullName,
+          issueNumber,
+        })
+        if (issueResult.type !== "success") {
+          throw new Error("Failed to fetch issue")
+        }
+        issue = issueResult.issue
       } catch (e) {
         await createWorkflowStateEvent({
           workflowId,
