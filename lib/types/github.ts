@@ -28,7 +28,10 @@ export type SearchCodeItem = components["schemas"]["code-search-result-item"]
 // Repository-specific types
 export const repoFullNameSchema = z
   .string()
-  .regex(/^[^/]+\/[^/]+$/, 'Repository name must be in the format "owner/repo"')
+  .regex(
+    /^[^/]+\/[^/]+$/,
+    "'Repository name must be in the format 'owner/repo'"
+  )
   .transform((str) => {
     const [owner, repo] = str.split("/")
     return {
@@ -71,3 +74,11 @@ export type RepoSelectorItem = {
   description: string | null
   updatedAt: string
 }
+
+// ---
+// Structured Result Type for getIssue
+export type GetIssueResult =
+  | { type: "success"; issue: GitHubIssue }
+  | { type: "not_found" }
+  | { type: "forbidden" }
+  | { type: "other_error"; error: unknown }
