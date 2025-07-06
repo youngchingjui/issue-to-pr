@@ -55,7 +55,7 @@ export async function startContainer({
 
   // 4. Assemble command parts and filter out undefined entries
   const cmd = [
-    "docker run -d",
+    "docker run --pull always -d",
     `--name ${name}`,
     `-u ${user}`,
     ...envFlags,
@@ -80,9 +80,10 @@ export async function execInContainer({
   command: string
   cwd?: string
 }): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-  const execCmd = `docker exec ${name} sh -c '${command.replace(/'/g, "'\\''")}'`
+  const workdirFlag = cwd ? `--workdir \"${cwd}\"` : ""
+  const execCmd = `docker exec ${workdirFlag} ${name} sh -c '${command.replace(/'/g, "'\\''")}'`
   try {
-    const { stdout, stderr } = await execPromise(execCmd, { cwd })
+    const { stdout, stderr } = await execPromise(execCmd)
     return { stdout, stderr, exitCode: 0 }
   } catch (error: unknown) {
     const err = error as {
