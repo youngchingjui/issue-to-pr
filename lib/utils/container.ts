@@ -205,6 +205,7 @@ export async function createContainerizedWorkspace({
   await startContainer({
     image,
     name: containerName,
+    user: "root",
     env: {
       GITHUB_TOKEN: token,
     },

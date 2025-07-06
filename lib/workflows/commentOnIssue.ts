@@ -151,15 +151,13 @@ export default async function commentOnIssue(
     })
 
     // Setup containerized workspace environment, copying from host path
-    const { containerName, exec, cleanup } = await createContainerizedWorkspace(
-      {
-        repoFullName: repo.full_name,
-        branch: repo.default_branch,
-        workflowId: jobId,
-        image: AGENT_BASE_IMAGE,
-        hostRepoPath,
-      }
-    ).catch((error) => {
+    const { containerName, cleanup } = await createContainerizedWorkspace({
+      repoFullName: repo.full_name,
+      branch: repo.default_branch,
+      workflowId: jobId,
+      image: AGENT_BASE_IMAGE,
+      hostRepoPath,
+    }).catch((error) => {
       console.error("Failed to setup containerized environment:", {
         error,
         repo: repo.full_name,
