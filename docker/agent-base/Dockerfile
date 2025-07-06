@@ -7,16 +7,15 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Update package list
 RUN apt-get update
 
-# Install ripgrep
+# Install ripgrep, git, curl, tree
 RUN apt-get install -y \
     ripgrep \
     git \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    tree
 
-# Install tree and clean up APT cache to keep the image small
-RUN apt-get install -y --no-install-recommends tree && \
-    rm -rf /var/lib/apt/lists/*
+# Clean up APT cache to keep the image small
+RUN rm -rf /var/lib/apt/lists/*
 
 # Verify installations
 RUN rg --version && git --version
