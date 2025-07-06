@@ -1,8 +1,7 @@
 "use server"
 
 import { ChatCompletionMessageParam } from "openai/resources/chat/completions"
-
-import { openai } from "@/lib/openai"
+import { enqueueOpenAIJob } from "@/lib/queue/openaiQueue"
 
 export async function getChatCompletion({
   systemPrompt,
@@ -15,9 +14,12 @@ export async function getChatCompletion({
     { role: "system", content: systemPrompt },
     { role: "user", content: userPrompt },
   ]
-  const res = await openai.chat.completions.create({
-    model: "gpt-4.1",
-    messages,
+  // All OpenAI calls now go through queue
+  const res = await enqueueOpenAIJob({
+    params: {
+      model: "gpt-4.1",
+      messages,
+    }
   })
   return res.choices[0]?.message?.content || ""
 }
