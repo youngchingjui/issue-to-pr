@@ -181,7 +181,7 @@ export const resolveIssue = async ({
     const span = trace.span({ name: "coordinate" })
 
     // Generate a directory tree of the codebase
-    const tree = await createContainerizedDirectoryTree(exec)
+    const tree = await createContainerizedDirectoryTree(containerName)
 
     // Retrieve all the comments on the issue
     const comments = await getIssueComments({

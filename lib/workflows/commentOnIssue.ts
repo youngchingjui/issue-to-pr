@@ -183,7 +183,7 @@ export default async function commentOnIssue(
     })
 
     // Build directory tree using containerized version of createDirectoryTree
-    const tree = await createContainerizedDirectoryTree(exec)
+    const tree = await createContainerizedDirectoryTree(containerName)
 
     // Prepare the environment and tools for container execution
     const env: RepoEnvironment = { kind: "container", name: containerName }

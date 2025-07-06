@@ -58,24 +58,34 @@ export const DEFAULT_GIT_USER_EMAIL = "agent@issuetopr.dev"
  * - Directories themselves (only files are included)
  */
 export async function createContainerizedDirectoryTree(
-  exec: (
-    command: string
-  ) => Promise<{ stdout: string; stderr: string; exitCode: number }>,
+  containerName: string,
   containerDir: string = "/workspace"
 ): Promise<string[]> {
-  // TODO: Use `tree` instead
-  // TODO: Don't exclude node_modules, use .gitignore instead
-  // TODO: Don't skip hidden files/folders
+  /*
+    Builds a list of file paths inside the container using the `tree` CLI.
 
-  // Use find command to replicate the createDirectoryTree logic:
-  // - Find all files (not directories)
-  // - Exclude node_modules paths
-  // - Exclude hidden files/folders
-  // - Get relative paths from the container directory
-  const findCommand = `cd ${containerDir} && find . -type f ! -path "*/node_modules/*" ! -path "*/.*" | sed 's|^\\./||' | sort`
+    We leverage the `tree` command that is installed in our agent base image
+    (see `docker/agent-base/Dockerfile`).  The options used:
+
+    -a   : include hidden files as well
+    -f   : print the full path prefix for each file
+    -i   : no indentation lines (produces a plain list)
+    --noreport : omit the summary line at the end
+
+    By executing the command with `cwd` set to `containerDir`, the output
+    paths are relative to that directory.  Directories are suffixed with a
+    trailing `/` which we filter out so the resulting array contains only
+    file paths.
+  */
+
+  const treeCommand = "tree -afi --noreport" // list all files/directories, absolute paths off
 
   try {
-    const { stdout, stderr, exitCode } = await exec(findCommand)
+    const { stdout, stderr, exitCode } = await execInContainer({
+      name: containerName,
+      command: treeCommand,
+      cwd: containerDir,
+    })
 
     if (exitCode !== 0) {
       console.warn(`Directory tree generation failed: ${stderr}`)
@@ -85,7 +95,7 @@ export async function createContainerizedDirectoryTree(
     return stdout
       .split("\n")
       .map((line) => line.trim())
-      .filter((line) => line.length > 0)
+      .filter((line) => line.length > 0 && !line.endsWith("/") && line !== ".")
   } catch (error) {
     console.warn(`Failed to create directory tree: ${error}`)
     return []
@@ -206,6 +216,7 @@ export async function createContainerizedWorkspace({
     await execInContainer({
       name: containerName,
       command,
+      cwd: mountPath,
     })
 
   // 4. Configure Git inside the container
@@ -229,11 +240,11 @@ export async function createContainerizedWorkspace({
     )
 
     // Reset to desired branch in case copied repo isn't on it
-    await exec(`cd ${mountPath} && git fetch origin && git checkout ${branch}`)
+    await exec(`git fetch origin && git checkout ${branch}`)
   } else {
     // 5. Clone the repository and checkout the requested branch
     await exec(`git clone https://github.com/${repoFullName} ${mountPath}`)
-    await exec(`cd ${mountPath} && git checkout ${branch}`)
+    await exec(`git checkout ${branch}`)
   }
 
   // 6. Cleanup helper

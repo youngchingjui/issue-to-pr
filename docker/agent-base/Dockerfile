@@ -4,13 +4,19 @@ FROM ubuntu:22.04
 # Avoid interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Update package list and install ripgrep
-RUN apt-get update && \
-    apt-get install -y \
+# Update package list
+RUN apt-get update
+
+# Install ripgrep
+RUN apt-get install -y \
     ripgrep \
     git \
     curl \
     && rm -rf /var/lib/apt/lists/*
+
+# Install tree and clean up APT cache to keep the image small
+RUN apt-get install -y --no-install-recommends tree && \
+    rm -rf /var/lib/apt/lists/*
 
 # Verify installations
 RUN rg --version && git --version

@@ -74,13 +74,15 @@ export async function startContainer({
 export async function execInContainer({
   name,
   command,
+  cwd,
 }: {
   name: string
   command: string
+  cwd?: string
 }): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const execCmd = `docker exec ${name} sh -c '${command.replace(/'/g, "'\\''")}'`
   try {
-    const { stdout, stderr } = await execPromise(execCmd)
+    const { stdout, stderr } = await execPromise(execCmd, { cwd })
     return { stdout, stderr, exitCode: 0 }
   } catch (error: unknown) {
     const err = error as {

@@ -116,10 +116,8 @@ async function fnHandler(
       ...flags,
     })
 
-    const command = `cd "${env.root}" && ${ripgrepCmd}`
-
     try {
-      const { stdout } = await execPromise(command)
+      const { stdout } = await execPromise(ripgrepCmd, { cwd: env.root })
       return stdout
     } catch (error) {
       // Ripgrep conventions: exit 1 = no matches, exit 2 = error
