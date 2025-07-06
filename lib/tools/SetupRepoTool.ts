@@ -81,7 +81,7 @@ export function createSetupRepoTool(
     name: "setup_repo",
     description: `
       Run a repository setup CLI command (e.g., '\''npm install'\'', '\''pip install -r requirements.txt'\'', '\''poetry install'\'', etc.).
-      PURPOSE: Use this tool to set up the repository environment after first cloning (install dependencies, initialize environments, etc).
+      PURPOSE: Use this tool to set up the repository environment (install dependencies, initialize environments, etc) so that you may successfully run the FileCheck tool. Some file check commands may require the repository to be set up first.
       GUIDELINES:
         1. READ files like README.md, package.json, requirements.txt before using this tool.
         2. ONLY use for setup commands—not for build, test, or code-quality checks.
