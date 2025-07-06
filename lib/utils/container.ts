@@ -240,6 +240,10 @@ export async function createContainerizedWorkspace({
       `docker cp "${hostRepoPath}/." ${containerName}:${mountPath}`
     )
 
+    // Fix ownership of the repository inside the container to avoid
+    // Git "dubious ownership" warnings caused by mismatched host UIDs.
+    await exec(`chown -R root:root ${mountPath}`)
+
     // Reset to desired branch in case copied repo isn't on it
     await exec(`git fetch origin && git checkout ${branch}`)
   } else {
