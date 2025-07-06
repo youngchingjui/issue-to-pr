@@ -18,6 +18,7 @@ import {
 } from "@/lib/neo4j/services/event"
 import { AgentConstructorParams, Tool } from "@/lib/types"
 import { EnhancedMessage } from "@/lib/types/chat"
+import { enqueueOpenAIJob } from "@/lib/queue/openaiQueue"
 
 interface RunResponse {
   jobId?: string
@@ -196,7 +197,8 @@ export class Agent {
     if (this.tools.length > 0) {
       params.tools = this.tools
     }
-    const response = await this.llm.chat.completions.create(params)
+    // Use OpenAI Queue for API call
+    const response = await enqueueOpenAIJob({ params, jobId: this.jobId })
     console.log(
       `[DEBUG] response: ${JSON.stringify(response.choices[0].message)}`
     )
@@ -312,8 +314,8 @@ export class Agent {
     if (this.tools.length > 0) {
       params.tools = this.tools
     }
-
-    const response = await this.llm.chat.completions.create(params)
+    // Use OpenAI Queue for API call
+    const response = await enqueueOpenAIJob({ params, jobId: this.jobId })
 
     // Add and track the assistant's response
     await this.addMessage(response.choices[0].message)
