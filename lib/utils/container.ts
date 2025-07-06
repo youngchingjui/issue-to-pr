@@ -1,5 +1,7 @@
+import { exec as hostExec } from "child_process"
 import os from "os"
 import path from "path"
+import util from "util"
 import { v4 as uuidv4 } from "uuid"
 
 import { AGENT_BASE_IMAGE } from "@/lib/docker"
@@ -9,9 +11,13 @@ import {
   stopAndRemoveContainer,
 } from "@/lib/docker"
 import { addWorktree, removeWorktree } from "@/lib/git"
+import { getAuthToken } from "@/lib/github"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 
-export interface ContainerizedWorktreeResult {
+// Promisified exec for host-side commands (e.g., docker cp)
+const execHost = util.promisify(hostExec)
+
+interface ContainerizedWorktreeResult {
   worktreeDir: string
   containerName: string
   /** Execute a command in the container */
@@ -23,7 +29,7 @@ export interface ContainerizedWorktreeResult {
   workflowId: string
 }
 
-export interface ContainerizedWorktreeOptions {
+interface ContainerizedWorktreeOptions {
   /** e.g. "owner/repo" */
   repoFullName: string
   /** branch to check out for the worktree (default "main") */
@@ -34,7 +40,13 @@ export interface ContainerizedWorktreeOptions {
   image?: string
   /** Mount path inside container (default "/workspace") */
   mountPath?: string
+  /** Optional path to a local repository directory to copy into the container */
+  hostRepoPath?: string
 }
+
+// ---- Git identity defaults ----
+export const DEFAULT_GIT_USER_NAME = "Issue To PR agent"
+export const DEFAULT_GIT_USER_EMAIL = "agent@issuetopr.dev"
 
 /**
  * Creates a directory tree listing from within a container, replicating the logic
@@ -46,24 +58,34 @@ export interface ContainerizedWorktreeOptions {
  * - Directories themselves (only files are included)
  */
 export async function createContainerizedDirectoryTree(
-  exec: (
-    command: string
-  ) => Promise<{ stdout: string; stderr: string; exitCode: number }>,
+  containerName: string,
   containerDir: string = "/workspace"
 ): Promise<string[]> {
-  // TODO: Use `tree` instead
-  // TODO: Don't exclude node_modules, use .gitignore instead
-  // TODO: Don't skip hidden files/folders
+  /*
+    Builds a list of file paths inside the container using the `tree` CLI.
 
-  // Use find command to replicate the createDirectoryTree logic:
-  // - Find all files (not directories)
-  // - Exclude node_modules paths
-  // - Exclude hidden files/folders
-  // - Get relative paths from the container directory
-  const findCommand = `cd ${containerDir} && find . -type f ! -path "*/node_modules/*" ! -path "*/.*" | sed 's|^\\./||' | sort`
+    We leverage the `tree` command that is installed in our agent base image
+    (see `docker/agent-base/Dockerfile`).  The options used:
+
+    -a   : include hidden files as well
+    -f   : print the full path prefix for each file
+    -i   : no indentation lines (produces a plain list)
+    --noreport : omit the summary line at the end
+
+    By executing the command with `cwd` set to `containerDir`, the output
+    paths are relative to that directory.  Directories are suffixed with a
+    trailing `/` which we filter out so the resulting array contains only
+    file paths.
+  */
+
+  const treeCommand = "tree -afi --noreport" // list all files/directories, absolute paths off
 
   try {
-    const { stdout, stderr, exitCode } = await exec(findCommand)
+    const { stdout, stderr, exitCode } = await execInContainer({
+      name: containerName,
+      command: treeCommand,
+      cwd: containerDir,
+    })
 
     if (exitCode !== 0) {
       console.warn(`Directory tree generation failed: ${stderr}`)
@@ -73,7 +95,7 @@ export async function createContainerizedDirectoryTree(
     return stdout
       .split("\n")
       .map((line) => line.trim())
-      .filter((line) => line.length > 0)
+      .filter((line) => line.length > 0 && !line.endsWith("/") && line !== ".")
   } catch (error) {
     console.warn(`Failed to create directory tree: ${error}`)
     return []
@@ -111,11 +133,15 @@ export async function createContainerizedWorktree({
 
   const containerName = `agent-${workflowId}`.replace(/[^a-zA-Z0-9_.-]/g, "-")
 
-  // 4. Start container mounting the worktree
+  // 4. Start detached container mounting both the *clone* (read-only) and the *worktree* (rw)
   await startContainer({
     image,
-    hostDir: worktreeDir,
     name: containerName,
+    mounts: [
+      { hostPath: cloneDir, containerPath: cloneDir, readOnly: true },
+      { hostPath: worktreeDir, containerPath: worktreeDir },
+    ],
+    workdir: worktreeDir,
   })
 
   // Helper functions
@@ -140,6 +166,101 @@ export async function createContainerizedWorktree({
 
   return {
     worktreeDir,
+    containerName,
+    exec,
+    cleanup,
+    workflowId,
+  }
+}
+
+/**
+ * Sets up a Docker container with the repository cloned inside the container itself (no host worktree).
+ * This mirrors the manual workflow described by the user: a fresh container, Git credentials
+ * configured via the passed GitHub token, followed by cloning the repository inside /workspace.
+ *
+ * Compared to createContainerizedWorktree, this approach does NOT rely on git worktrees mounted
+ * from the host. All git operations happen entirely inside the container.
+ */
+export async function createContainerizedWorkspace({
+  repoFullName,
+  branch = "main",
+  workflowId = uuidv4(),
+  image = AGENT_BASE_IMAGE,
+  mountPath = "/workspace",
+  hostRepoPath,
+}: ContainerizedWorktreeOptions): Promise<ContainerizedWorktreeResult> {
+  // 1. Obtain a GitHub token (from user session if possible, otherwise app installation)
+  const authTokenResult = await getAuthToken()
+  const token = authTokenResult?.token
+
+  if (!token) {
+    throw new Error(
+      "Unable to obtain GitHub token for containerized workspace setup"
+    )
+  }
+
+  // 2. Start a detached container with GITHUB_TOKEN env set
+  const containerName = `agent-${workflowId}`.replace(/[^a-zA-Z0-9_.-]/g, "-")
+
+  await startContainer({
+    image,
+    name: containerName,
+    user: "root",
+    env: {
+      GITHUB_TOKEN: token,
+    },
+    workdir: mountPath,
+  })
+
+  // 3. Helper exec wrapper
+  const exec = async (command: string) =>
+    await execInContainer({
+      name: containerName,
+      command,
+      cwd: mountPath,
+    })
+
+  // 4. Configure Git inside the container
+  await exec(`git config --global user.name "${DEFAULT_GIT_USER_NAME}"`)
+  await exec(`git config --global user.email "${DEFAULT_GIT_USER_EMAIL}"`)
+  await exec("git config --global credential.helper store")
+  await exec(
+    'sh -c "printf \"https://%s:x-oauth-basic@github.com\\n\" \"$GITHUB_TOKEN\" > ~/.git-credentials"'
+  )
+
+  // If a host repository directory is provided, copy it into the container to
+  // avoid another network clone. Fallback to git clone when not provided.
+  if (hostRepoPath) {
+    // Ensure destination directory exists inside container
+    await exec(`mkdir -p ${mountPath}`)
+
+    // Copy contents (including hidden files) from hostRepoPath -> container
+    // Use docker cp with trailing /. to copy directory contents, not parent dir
+    await execHost(
+      `docker cp "${hostRepoPath}/." ${containerName}:${mountPath}`
+    )
+
+    // Fix ownership of the repository inside the container to avoid
+    // Git "dubious ownership" warnings caused by mismatched host UIDs.
+    await exec(`chown -R root:root ${mountPath}`)
+
+    // Reset to desired branch in case copied repo isn't on it
+    await exec(`git fetch origin && git checkout ${branch}`)
+  } else {
+    // 5. Clone the repository and checkout the requested branch
+    await exec(`git clone https://github.com/${repoFullName} ${mountPath}`)
+    await exec(`git checkout ${branch}`)
+  }
+
+  // 6. Cleanup helper
+  const cleanup = async () => {
+    await stopAndRemoveContainer(containerName)
+  }
+
+  // Reuse ContainerizedWorktreeResult type for compatibility. worktreeDir now represents the
+  // repository root inside the container (mountPath).
+  return {
+    worktreeDir: mountPath,
     containerName,
     exec,
     cleanup,

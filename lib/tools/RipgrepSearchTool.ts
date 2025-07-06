@@ -58,14 +58,12 @@ type RipgrepSearchParameters = z.infer<typeof searchParameters>
  */
 function buildRipgrepCommand({
   query,
-  searchPath,
   ignoreCase,
   hidden,
   follow,
   mode,
 }: {
   query: string
-  searchPath: string
   ignoreCase: boolean
   hidden: boolean
   follow: boolean
@@ -73,7 +71,6 @@ function buildRipgrepCommand({
 }): string {
   // Robustly escape the user's query and search path for the shell
   const quotedQuery = shellEscape(query)
-  const quotedPath = shellEscape(searchPath)
 
   let command = `rg --line-number --max-filesize 200K -C 3 --heading -n `
 
@@ -81,7 +78,7 @@ function buildRipgrepCommand({
     command += "-F " // use literal/fixed-string mode
   }
 
-  command += `${quotedQuery} ${quotedPath}`
+  command += quotedQuery
 
   if (ignoreCase) command += " -i"
   if (hidden) command += " --hidden"
@@ -112,14 +109,11 @@ async function fnHandler(
     // Build command targeting the repository root
     const ripgrepCmd = buildRipgrepCommand({
       query,
-      searchPath: "./",
       ...flags,
     })
 
-    const command = `cd "${env.root}" && ${ripgrepCmd}`
-
     try {
-      const { stdout } = await execPromise(command)
+      const { stdout } = await execPromise(ripgrepCmd, { cwd: env.root })
       return stdout
     } catch (error) {
       // Ripgrep conventions: exit 1 = no matches, exit 2 = error
@@ -145,10 +139,8 @@ async function fnHandler(
     }
   } else {
     // Container environment
-    const searchDir = env.mount ?? "/workspace"
     const command = buildRipgrepCommand({
       query,
-      searchPath: searchDir,
       ...flags,
     })
 

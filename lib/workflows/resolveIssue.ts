@@ -4,7 +4,6 @@
 // They can also all access the same data, such as the issue, the codebase, etc.
 
 import { CoderAgent } from "@/lib/agents/coder"
-import { createDirectoryTree } from "@/lib/fs"
 import { getAuthToken } from "@/lib/github"
 import { getIssueComments } from "@/lib/github/issues"
 import { checkRepoPermissions } from "@/lib/github/users"
@@ -28,7 +27,7 @@ import { createGetFileContentTool } from "@/lib/tools/GetFileContent"
 import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
 import { createSyncBranchTool } from "@/lib/tools/SyncBranchTool"
 import { createWriteFileContentTool } from "@/lib/tools/WriteFileContent"
-import { Plan, RepoSettings } from "@/lib/types"
+import { Plan, RepoEnvironment, RepoSettings } from "@/lib/types"
 import {
   GitHubIssue,
   GitHubRepository,
@@ -36,6 +35,10 @@ import {
   RepoPermissions,
 } from "@/lib/types/github"
 import { setupEnv } from "@/lib/utils/cli"
+import {
+  createContainerizedDirectoryTree,
+  createContainerizedWorkspace,
+} from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 
 interface ResolveIssueParams {
@@ -63,6 +66,7 @@ export const resolveIssue = async ({
   let userPermissions: RepoPermissions | null = null
 
   const repoFullName = repoFullNameSchema.parse(repository.full_name)
+  let containerCleanup: (() => Promise<void>) | null = null
   try {
     const repoSettings: RepoSettings | null =
       await getRepositorySettings(repoFullName)
@@ -100,14 +104,24 @@ export const resolveIssue = async ({
       }
     }
 
-    // Setup local repository
-    const baseDir = await setupLocalRepository({
+    // Ensure local repository exists and is up-to-date
+    const hostRepoPath = await setupLocalRepository({
       repoFullName: repository.full_name,
       workingBranch: repository.default_branch,
     })
+
+    // Setup containerized repository using the local copy
+    const { containerName, cleanup } = await createContainerizedWorkspace({
+      repoFullName: repository.full_name,
+      branch: repository.default_branch,
+      workflowId,
+      hostRepoPath,
+    })
+    const env: RepoEnvironment = { kind: "container", name: containerName }
+    containerCleanup = cleanup
     await createStatusEvent({
       workflowId,
-      content: `Setting up local repository`,
+      content: `Setting up containerized environment`,
     })
 
     // Setup environment
@@ -121,7 +135,7 @@ export const resolveIssue = async ({
 
     if (resolvedSetupCommands) {
       try {
-        const setupMsg = await setupEnv(baseDir, resolvedSetupCommands)
+        const setupMsg = await setupEnv(env, resolvedSetupCommands)
         await createStatusEvent({
           workflowId,
           content: setupMsg,
@@ -165,7 +179,7 @@ export const resolveIssue = async ({
     const span = trace.span({ name: "coordinate" })
 
     // Generate a directory tree of the codebase
-    const tree = await createDirectoryTree(baseDir)
+    const tree = await createContainerizedDirectoryTree(containerName)
 
     // Retrieve all the comments on the issue
     const comments = await getIssueComments({
@@ -184,12 +198,12 @@ export const resolveIssue = async ({
     coder.addSpan({ span, generationName: "resolveIssue" })
 
     // Load base tools
-    const getFileContentTool = createGetFileContentTool(baseDir)
-    const searchCodeTool = createRipgrepSearchTool(baseDir)
-    const writeFileTool = createWriteFileContentTool(baseDir)
-    const branchTool = createBranchTool(baseDir)
-    const commitTool = createCommitTool(baseDir, repository.default_branch)
-    const fileCheckTool = createFileCheckTool(baseDir)
+    const getFileContentTool = createGetFileContentTool(env)
+    const searchCodeTool = createRipgrepSearchTool(env)
+    const writeFileTool = createWriteFileContentTool(env)
+    const branchTool = createBranchTool(env)
+    const commitTool = createCommitTool(env, repository.default_branch)
+    const fileCheckTool = createFileCheckTool(env)
 
     // Add base tools to persistent coder
     coder.addTool(getFileContentTool)
@@ -210,7 +224,7 @@ export const resolveIssue = async ({
     ) {
       syncBranchTool = createSyncBranchTool(
         repoFullNameSchema.parse(repository.full_name),
-        baseDir,
+        env,
         sessionToken
       )
       createPRTool = createCreatePRTool(repository, issue.number)
@@ -328,5 +342,9 @@ export const resolveIssue = async ({
       are emitted. This ensures all consumers (frontend/infra) get proper error status updates.
     */
     throw error
+  } finally {
+    if (containerCleanup) {
+      await containerCleanup()
+    }
   }
 }

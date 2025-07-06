@@ -28,16 +28,25 @@ async function fnHandler(
     return `File written successfully to ${relativePath}`
   } else {
     // Container environment
-    const fileInContainer = path.posix.join(
-      env.mount ?? "/workspace",
-      relativePath
-    )
+
+    // Ensure the target directory exists
+    const dirPath = path.dirname(relativePath)
+    const mkdirResult = await execInContainer({
+      name: env.name,
+      command: `mkdir -p ${shellEscape(dirPath)}`,
+      cwd: env.mount,
+    })
+
+    if (mkdirResult.exitCode !== 0) {
+      throw new Error(`Failed to create directory: ${mkdirResult.stderr}`)
+    }
 
     // Use printf to write content, escaping single quotes and handling newlines
     const escapedContent = content.replace(/'/g, "'\\''")
     const { stderr, exitCode } = await execInContainer({
       name: env.name,
-      command: `printf '%s' ${shellEscape(escapedContent)} > ${shellEscape(fileInContainer)}`,
+      command: `printf '%s' ${shellEscape(escapedContent)} > ${shellEscape(relativePath)}`,
+      cwd: env.mount,
     })
 
     if (exitCode !== 0) {

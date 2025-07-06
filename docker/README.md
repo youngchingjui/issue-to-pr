@@ -74,6 +74,20 @@ A Python repo might need a Python image, etc.
 ./scripts/build-agent-image.sh
 ```
 
+> **Prerequisite**  
+> This script expects a Docker _Buildx_ builder named `container-builder` that uses the `docker-container` driver.  
+> Create and activate it (only once per machine) with:
+>
+> ```bash
+> # Verify that Docker Buildx is available
+> docker buildx version
+>
+> # Create and switch to the required builder
+> docker buildx create --name container-builder --driver docker-container --use
+> ```
+>
+> If you already have a suitable builder configured you can skip this step.
+
 The script uses **docker buildx** to build and push images for both `linux/amd64` and
 `linux/arm64` platforms.
 

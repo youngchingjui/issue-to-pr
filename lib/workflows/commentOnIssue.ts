@@ -21,8 +21,9 @@ import { BaseEvent as appBaseEvent, RepoEnvironment } from "@/lib/types"
 import { GitHubRepository } from "@/lib/types/github"
 import {
   createContainerizedDirectoryTree,
-  createContainerizedWorktree,
+  createContainerizedWorkspace,
 } from "@/lib/utils/container"
+import { setupLocalRepository } from "@/lib/utils/utils-server"
 
 interface GitHubError extends Error {
   status?: number
@@ -143,12 +144,19 @@ export default async function commentOnIssue(
       parentId: latestEvent.id,
     })
 
-    // Setup containerized worktree environment
-    const { containerName, exec, cleanup } = await createContainerizedWorktree({
+    // Ensure local repository exists and is up-to-date
+    const hostRepoPath = await setupLocalRepository({
+      repoFullName: repo.full_name,
+      workingBranch: repo.default_branch,
+    })
+
+    // Setup containerized workspace environment, copying from host path
+    const { containerName, cleanup } = await createContainerizedWorkspace({
       repoFullName: repo.full_name,
       branch: repo.default_branch,
       workflowId: jobId,
       image: AGENT_BASE_IMAGE,
+      hostRepoPath,
     }).catch((error) => {
       console.error("Failed to setup containerized environment:", {
         error,
@@ -173,7 +181,7 @@ export default async function commentOnIssue(
     })
 
     // Build directory tree using containerized version of createDirectoryTree
-    const tree = await createContainerizedDirectoryTree(exec)
+    const tree = await createContainerizedDirectoryTree(containerName)
 
     // Prepare the environment and tools for container execution
     const env: RepoEnvironment = { kind: "container", name: containerName }
