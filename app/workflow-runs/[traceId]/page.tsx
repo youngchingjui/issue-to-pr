@@ -16,7 +16,7 @@ import {
 import { getIssue } from "@/lib/github/issues"
 import { getWorkflowRunWithDetails } from "@/lib/neo4j/services/workflow"
 import { AnyEvent, Issue } from "@/lib/types"
-import { GitHubIssue } from "@/lib/types/github"
+import { GetIssueResult } from "@/lib/types/github"
 
 function EventRenderer({
   event,
@@ -62,12 +62,16 @@ export default async function WorkflowRunDetailPage({
 
   const { workflow, events, issue } = await getWorkflowRunWithDetails(traceId)
 
-  let githubIssue: GitHubIssue | null = null
+  let githubIssue: GetIssueResult | null = null
   if (issue) {
     githubIssue = await getIssue({
       fullName: issue.repoFullName,
       issueNumber: issue.number,
     })
+
+    if (githubIssue.type !== "success") {
+      notFound()
+    }
   }
 
   // If no workflow was found
@@ -114,7 +118,9 @@ export default async function WorkflowRunDetailPage({
           <div className="space-y-3">
             <h2 className="text-lg font-semibold">Associated Issue</h2>
             <div className="max-w-2xl">
-              <BaseGitHubItemCard item={{ ...githubIssue, type: "issue" }} />
+              <BaseGitHubItemCard
+                item={{ ...githubIssue.issue, type: "issue" }}
+              />
             </div>
           </div>
         )}

@@ -4,14 +4,14 @@ import { z } from "zod"
 import { getIssue } from "@/lib/github/issues"
 import { getPullRequest } from "@/lib/github/pullRequests"
 import { FetchGitHubItemRequestSchema } from "@/lib/schemas/api"
-import { GitHubIssue, PullRequest } from "@/lib/types/github"
+import { GetIssueResult, GitHubIssue, PullRequest } from "@/lib/types/github"
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
     const { type, number, fullName } = FetchGitHubItemRequestSchema.parse(body)
 
-    let data: GitHubIssue | PullRequest
+    let data: GitHubIssue | PullRequest | GetIssueResult
     if (type === "issue") {
       data = await getIssue({ fullName, issueNumber: number })
     } else {
