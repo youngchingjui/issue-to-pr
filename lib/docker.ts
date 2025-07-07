@@ -99,6 +99,21 @@ export async function startContainer({
   return stdout.trim()
 }
 
+/**
+ * Execute a shell command inside a running container.
+ *
+ * The provided `command` string will be automatically escaped so that it is
+ * safe to pass to `sh -c` inside the container. The resulting Docker command
+ * looks like:
+ *
+ * ```bash
+ * docker exec [--workdir <cwd>] <name> sh -c '<command>'
+ * ```
+ *
+ * Because this helper already performs the necessary escaping, callers SHOULD
+ * pass the raw command and **must not** pre-sanitize or quote it themselves.
+ * Otherwise the command may be double-escaped and fail to run as expected.
+ */
 export async function execInContainer({
   name,
   command,

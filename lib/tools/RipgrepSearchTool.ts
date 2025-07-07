@@ -1,13 +1,93 @@
-import { exec } from "child_process"
-import { promisify } from "util"
+import { spawn } from "child_process"
 import { z } from "zod"
 
 import { execInContainer } from "@/lib/docker"
 import { createTool } from "@/lib/tools/helper"
 import { asRepoEnvironment, RepoEnvironment, Tool } from "@/lib/types"
-import { shellEscape } from "@/lib/utils/cli"
 
-const execPromise = promisify(exec)
+/**
+ * Execute ripgrep using spawn to avoid shell escaping issues
+ */
+function executeRipgrep({
+  query,
+  ignoreCase,
+  hidden,
+  follow,
+  mode,
+  cwd,
+  timeout = 5000,
+}: {
+  query: string
+  ignoreCase: boolean
+  hidden: boolean
+  follow: boolean
+  mode: "literal" | "regex"
+  cwd: string
+  timeout?: number
+}): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  return new Promise((resolve, reject) => {
+    const args = [
+      "--line-number",
+      "--max-filesize",
+      "200K",
+      "-C",
+      "3",
+      "--heading",
+      "-n",
+    ]
+
+    if (mode === "literal") {
+      args.push("-F") // use literal/fixed-string mode
+    }
+
+    if (ignoreCase) args.push("-i")
+    if (hidden) args.push("--hidden")
+    if (follow) args.push("-L")
+
+    args.push(query)
+
+    const child = spawn("rg", args, {
+      cwd,
+      stdio: ["ignore", "pipe", "pipe"], // explicitly ignore stdin, pipe stdout/stderr
+    })
+
+    let stdout = ""
+    let stderr = ""
+    let resolved = false
+
+    child.stdout?.on("data", (data) => {
+      stdout += data.toString()
+    })
+
+    child.stderr?.on("data", (data) => {
+      stderr += data.toString()
+    })
+
+    const timeoutId = setTimeout(() => {
+      if (!resolved) {
+        child.kill("SIGTERM")
+        resolved = true
+        reject(new Error("Command timed out"))
+      }
+    }, timeout)
+
+    child.on("close", (code, signal) => {
+      if (!resolved) {
+        resolved = true
+        clearTimeout(timeoutId)
+        resolve({ stdout, stderr, exitCode: code || 0 })
+      }
+    })
+
+    child.on("error", (error) => {
+      if (!resolved) {
+        resolved = true
+        clearTimeout(timeoutId)
+        reject(error)
+      }
+    })
+  })
+}
 
 const name = "ripgrep_search"
 const description = `Searches for code in the local file system using ripgrep. Returns snippets of code containing the search term with 3 lines of context before and after each match. Note: These are just snippets - to fully understand the code's context, you should use a file reading tool to examine the complete file contents.
@@ -25,29 +105,25 @@ const searchParameters = z.object({
   ignoreCase: z
     .boolean()
     .optional()
-    .default(false)
     .describe(
       "Ignore case sensitivity. Default is false, meaning the search is case-sensitive. Use true to find matches regardless of case, e.g., 'function' will match 'Function'."
     ),
   hidden: z
     .boolean()
     .optional()
-    .default(false)
     .describe(
       "Include hidden files. Default is false, meaning hidden files are ignored. Use true to include files like '.env'."
     ),
   follow: z
     .boolean()
     .optional()
-    .default(false)
     .describe(
       "Follow symbolic links. Default is false, meaning symlinks are not followed. Use true to include files linked by symlinks in the search."
     ),
   mode: z
     .enum(["literal", "regex"])
     .optional()
-    .default("literal")
-    .describe('Search mode: "literal" (default, safer) or "regex"'),
+    .describe("Search mode: 'literal' (default, safer) or 'regex'"),
 })
 
 type RipgrepSearchParameters = z.infer<typeof searchParameters>
@@ -69,20 +145,21 @@ function buildRipgrepCommand({
   follow: boolean
   mode: "literal" | "regex"
 }): string {
-  // Robustly escape the user's query and search path for the shell
-  const quotedQuery = shellEscape(query)
-
-  let command = `rg --line-number --max-filesize 200K -C 3 --heading -n `
+  // Assemble the base ripgrep command. All option flags MUST appear before the
+  // search pattern; otherwise, ripgrep will treat them as PATH arguments and
+  // the command can hang or yield unexpected results.
+  let command = `rg --line-number --max-filesize 200K -C 3 --heading -n`
 
   if (mode === "literal") {
-    command += "-F " // use literal/fixed-string mode
+    command += " -F" // use literal/fixed-string mode
   }
-
-  command += quotedQuery
 
   if (ignoreCase) command += " -i"
   if (hidden) command += " --hidden"
   if (follow) command += " -L"
+
+  // Finally append the (quoted) search pattern
+  command += ` '${query}'`
 
   return command
 }
@@ -102,40 +179,44 @@ async function fnHandler(
   }
 
   if (!query || typeof query !== "string" || query.length === 0) {
-    throw new Error("Query string cannot be empty.")
+    return "Ripgrep search failed: Query string cannot be empty."
   }
 
   if (env.kind === "host") {
-    // Build command targeting the repository root
-    const ripgrepCmd = buildRipgrepCommand({
-      query,
-      ...flags,
-    })
-
     try {
-      const { stdout } = await execPromise(ripgrepCmd, { cwd: env.root })
-      return stdout
-    } catch (error) {
-      // Ripgrep conventions: exit 1 = no matches, exit 2 = error
-      const execError = error as { code?: number; stderr?: string }
-      const code = execError.code
-      const stderr = execError.stderr
+      const { stdout, stderr, exitCode } = await executeRipgrep({
+        query,
+        ...flags,
+        cwd: env.root,
+      })
 
-      if (code === 1) {
+      // Handle ripgrep exit codes
+      if (exitCode === 1) {
         return "No matching results found."
       }
 
-      if (code === 2) {
-        if (
-          typeof stderr === "string" &&
-          stderr.includes("regex parse error")
-        ) {
+      if (exitCode === 2) {
+        if (stderr.includes("regex parse error")) {
           return `Ripgrep regex error: ${stderr}`
         }
-        throw new Error(`Ripgrep search failed: ${stderr ?? error}`)
+        return `Ripgrep search failed: ${stderr}`
       }
 
-      throw new Error(`Unexpected ripgrep exit code: ${code}`)
+      if (exitCode !== 0) {
+        return `Ripgrep search failed: Unexpected ripgrep exit code: ${exitCode}. stderr: ${stderr}`
+      }
+
+      return stdout || "No matching results found."
+    } catch (error) {
+      if (String(error).includes("Command timed out")) {
+        return "Ripgrep search failed: Command timed out"
+      }
+
+      if (String(error).includes("ENOENT")) {
+        return "Ripgrep search failed: Ripgrep not found. Make sure ripgrep is installed."
+      }
+
+      return `Ripgrep search failed: ${String(error)}`
     }
   } else {
     // Container environment
@@ -154,7 +235,7 @@ async function fnHandler(
       if (exitCode === 1) {
         if (stderr.trim()) {
           // Docker exec failed (e.g., container not running) rather than no matches
-          throw new Error(`Ripgrep search failed: ${stderr}`)
+          return `Ripgrep search failed: ${stderr}`
         }
         return "No matching results found."
       }
@@ -162,22 +243,18 @@ async function fnHandler(
         if (stderr.includes("regex parse error")) {
           return `Ripgrep regex error: ${stderr}`
         }
-        throw new Error(`Ripgrep search failed: ${stderr}`)
+        return `Ripgrep search failed: ${stderr}`
       }
       if (exitCode === 127) {
-        throw new Error(
-          `Ripgrep not found in container. Make sure ripgrep is installed. stderr: ${stderr}`
-        )
+        return `Ripgrep search failed: Ripgrep not found in container. Make sure ripgrep is installed. stderr: ${stderr}`
       }
       if (exitCode !== 0) {
-        throw new Error(
-          `Unexpected ripgrep exit code: ${exitCode}. stderr: ${stderr}`
-        )
+        return `Ripgrep search failed: Unexpected ripgrep exit code: ${exitCode}. stderr: ${stderr}`
       }
 
       return stdout
     } catch (error) {
-      throw error
+      return `Ripgrep search failed: ${String(error)}`
     }
   }
 }

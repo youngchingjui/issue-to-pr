@@ -70,7 +70,7 @@ A Python repo might need a Python image, etc.
 ### Building the Agent Base Image
 
 ```bash
-# Build the multi-architecture agent image with ripgrep pre-installed
+# Build the multi-architecture agent image with ripgrep, Node.js 22, and pnpm pre-installed
 ./scripts/build-agent-image.sh
 ```
 
@@ -97,6 +97,8 @@ The image includes:
 - ripgrep (for code searching)
 - git (for repository operations)
 - curl (for HTTP requests)
+- Node.js v22 (with npm)
+- pnpm (Node.js alternative package manager)
 
 ### Using the Agent Base Image
 
