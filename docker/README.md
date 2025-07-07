@@ -62,55 +62,84 @@ This script will:
 
 ## Agent Base Image
 
-For containerized agent workflows, we use a custom base image with pre-installed tools.
+For containerized agent workflows, we use custom base images with pre-installed tools.
 
-However, in the future we may need to consider using different base images for different repositories.
-A Python repo might need a Python image, etc.
+### Node.js-based Agent Base Image
 
-### Building the Agent Base Image
+For most JavaScript/TypeScript projects, use the Node.js 22 image:
+
+#### Building the Node Agent Image
 
 ```bash
 # Build the multi-architecture agent image with ripgrep, Node.js 22, and pnpm pre-installed
 ./scripts/build-agent-image.sh
 ```
 
-> **Prerequisite**  
-> This script expects a Docker _Buildx_ builder named `container-builder` that uses the `docker-container` driver.  
-> Create and activate it (only once per machine) with:
->
-> ```bash
-> # Verify that Docker Buildx is available
-> docker buildx version
->
-> # Create and switch to the required builder
-> docker buildx create --name container-builder --driver docker-container --use
-> ```
->
-> If you already have a suitable builder configured you can skip this step.
+- **Image name:** `ghcr.io/youngchingjui/agent-base:latest` (or `:node22-*` tags)
 
-The script uses **docker buildx** to build and push images for both `linux/amd64` and
-`linux/arm64` platforms.
-
-The image includes:
-
+#### Included tools
 - Ubuntu 22.04 base
 - ripgrep (for code searching)
 - git (for repository operations)
 - curl (for HTTP requests)
 - Node.js v22 (with npm)
-- pnpm (Node.js alternative package manager)
+- pnpm (alternative package manager)
 
-### Using the Agent Base Image
+### Python 3.11-based Agent Base Image
 
-The image is automatically used by containerized workflows like `commentOnIssue`. It provides:
+For Python projects, use the Python 3.11 agent image:
 
+#### Building the Python Agent Image
+
+```bash
+# Use the --python flag (recommended tag is python3.11-latest)
+./scripts/build-agent-image.sh --python python3.11-latest
+
+# Or with multiple tags
+./scripts/build-agent-image.sh --python python3.11-1.0.0 python3.11-latest
+
+# Or with explicit Dockerfile path if customized
+./scripts/build-agent-image.sh --dockerfile=docker/agent-base/Dockerfile.python my-custom-tag
+```
+
+- **Image name:** `ghcr.io/youngchingjui/agent-base:python3.11-latest`
+
+#### Included tools
+- Debian (slim) base
+- ripgrep (for code searching)
+- git (for repository operations)
+- curl (for HTTP requests)
+- Python 3.11 (with pip)
+- Poetry (Python project/package manager)
+
+#### Notes
+- Both base images are multi-arch (`linux/amd64,linux/arm64`).
+- The build script'\''s `--python` flag switches to the Python image and recommended tags.
+- You can override the image name with the `AGENT_BASE_IMAGE` env var.
+
+### Prerequisites (for agent images)
+
+> **Docker Buildx** 
+> The scripts expect a Docker _Buildx_ builder named `container-builder` (driver: `docker-container`).
+>
+> ```bash
+> # Verify Docker Buildx
+> docker buildx version
+>
+> # Create/use the required builder (once per machine)
+> docker buildx create --name container-builder --driver docker-container --use
+> ```
+
+### How the Images Are Used
+
+These images are used by containerized workflows, enabling:
 - Process isolation for agent operations
 - Consistent tool environment
-- Pre-installed dependencies
+- Pre-installed dependencies for speed and reliability
 
-Image name: `ghcr.io/youngchingjui/agent-base:latest`
+---
 
-This is a private image, so you need to login with Docker to pull this image.
+Image builds will prompt for credentials when pushing to private registries. For public agent workflows with only Node tools, use the `node22-latest` tag.
 
 ## Neo4j Services
 

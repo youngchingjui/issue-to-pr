@@ -1,0 +1,27 @@
+# Lightweight base image with Python 3.11 and useful tools (Debian "bookworm-slim")
+FROM python:3.11-slim
+
+# Avoid interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install useful CLI tools: ripgrep, git, tree, curl (curl is typically available, but ensure it'\''s present)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        ripgrep \
+        git \
+        tree \
+        curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Poetry (official recommended method)
+RUN curl -sSL https://install.python-poetry.org | python3 - \
+    && ln -s /root/.local/bin/poetry /usr/local/bin/poetry
+
+# Verify toolchain versions for transparency
+RUN rg --version && git --version && python3 --version && pip --version && poetry --version
+
+# Set working directory where the agent will later receive a repository to work on
+WORKDIR /workspace
+
+# Default command keeps the container alive for interactive use
+CMD ["/bin/bash"]
