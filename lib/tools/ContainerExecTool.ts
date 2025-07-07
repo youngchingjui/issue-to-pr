@@ -2,7 +2,6 @@ import { z } from "zod"
 
 import { execInContainer } from "@/lib/docker"
 import { createTool } from "@/lib/tools/helper"
-import { shellEscape } from "@/lib/utils/cli"
 
 const execSchema = z.object({
   command: z

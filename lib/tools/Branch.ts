@@ -8,7 +8,6 @@ import {
 } from "@/lib/git"
 import { createTool } from "@/lib/tools/helper"
 import { asRepoEnvironment, RepoEnvironment, Tool } from "@/lib/types"
-import { shellEscape } from "@/lib/utils/cli"
 
 const branchParameters = z.object({
   branch: z.string().describe("The name of the branch to create or checkout"),
@@ -16,7 +15,7 @@ const branchParameters = z.object({
     .boolean()
     .nullable()
     .describe(
-      "Whether to create the branch if it doesn'\''t exist. Defaults to false."
+      "Whether to create the branch if it doesn't exist. Defaults to false."
     ),
 })
 
@@ -33,7 +32,7 @@ async function fnHandler(
       if (!exists && !createIfNotExists) {
         return JSON.stringify({
           status: "error",
-          message: `Branch '\''${branch}'\'' does not exist. Set createIfNotExists to true to create it.`,
+          message: `Branch '${branch}' does not exist. Set createIfNotExists to true to create it.`,
         })
       }
       if (!exists) {
@@ -41,13 +40,13 @@ async function fnHandler(
           await createBranch(branch, env.root)
           return JSON.stringify({
             status: "success",
-            message: `Created and checked out branch '\''${branch}'\''`,
+            message: `Created and checked out branch '${branch}'`,
             created: true,
           })
         } catch (error: unknown) {
           return JSON.stringify({
             status: "error",
-            message: `Failed to create branch '\''${branch}'\'': ${error instanceof Error ? error.message : String(error)}`,
+            message: `Failed to create branch '${branch}': ${error instanceof Error ? error.message : String(error)}`,
           })
         }
       } else {
@@ -55,13 +54,13 @@ async function fnHandler(
           await checkoutBranchQuietly(branch, env.root)
           return JSON.stringify({
             status: "success",
-            message: `Checked out existing branch '\''${branch}'\''`,
+            message: `Checked out existing branch '${branch}'`,
             created: false,
           })
         } catch (error: unknown) {
           return JSON.stringify({
             status: "error",
-            message: `Failed to checkout branch '\''${branch}'\'': ${error instanceof Error ? error.message : String(error)}`,
+            message: `Failed to checkout branch '${branch}': ${error instanceof Error ? error.message : String(error)}`,
           })
         }
       }
@@ -69,39 +68,39 @@ async function fnHandler(
       const exec = async (cmd: string) =>
         execInContainer({ name: env.name, command: cmd })
 
-      const { stdout: branchList } = await exec(`git branch --list ${shellEscape(branch)}`)
+      const { stdout: branchList } = await exec(`git branch --list ${branch}`)
       const exists = branchList.trim().length > 0
 
       if (!exists && !createIfNotExists) {
         return JSON.stringify({
           status: "error",
-          message: `Branch '\''${branch}'\'' does not exist. Set createIfNotExists to true to create it.`,
+          message: `Branch '${branch}' does not exist. Set createIfNotExists to true to create it.`,
         })
       }
       if (!exists) {
-        const { exitCode, stderr } = await exec(`git checkout -b ${shellEscape(branch)}`)
+        const { exitCode, stderr } = await exec(`git checkout -b ${branch}`)
         if (exitCode !== 0) {
           return JSON.stringify({
             status: "error",
-            message: `Failed to create branch '\''${branch}'\'': ${stderr}`,
+            message: `Failed to create branch '${branch}': ${stderr}`,
           })
         }
         return JSON.stringify({
           status: "success",
-          message: `Created and checked out branch '\''${branch}'\''`,
+          message: `Created and checked out branch '${branch}'`,
           created: true,
         })
       } else {
-        const { exitCode, stderr } = await exec(`git checkout -q ${shellEscape(branch)}`)
+        const { exitCode, stderr } = await exec(`git checkout -q ${branch}`)
         if (exitCode !== 0) {
           return JSON.stringify({
             status: "error",
-            message: `Failed to checkout branch '\''${branch}'\'': ${stderr}`,
+            message: `Failed to checkout branch '${branch}': ${stderr}`,
           })
         }
         return JSON.stringify({
           status: "success",
-          message: `Checked out existing branch '\''${branch}'\''`,
+          message: `Checked out existing branch '${branch}'`,
           created: false,
         })
       }

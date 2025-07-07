@@ -6,7 +6,6 @@ import { getFileContent } from "@/lib/fs"
 import { createTool } from "@/lib/tools/helper"
 import { asRepoEnvironment, RepoEnvironment, Tool } from "@/lib/types"
 import { relativePathSchema } from "@/lib/types/utils/path"
-import { shellEscape } from "@/lib/utils/cli"
 
 const name = "get_file_content"
 const description =
@@ -35,7 +34,7 @@ async function fnHandler(
       )
       const { stdout, stderr, exitCode } = await execInContainer({
         name: env.name,
-        command: `cat ${shellEscape(fileInContainer)}`,
+        command: `cat ${fileInContainer}`,
       })
 
       if (exitCode !== 0) {

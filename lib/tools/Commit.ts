@@ -61,7 +61,7 @@ async function fnHandler(
       } else {
         const { exitCode, stderr } = await execInContainer({
           name: env.name,
-          command: `git add ${shellEscape(filePath)}`,
+          command: `git add ${filePath}`,
         })
         if (exitCode !== 0) {
           return JSON.stringify({
