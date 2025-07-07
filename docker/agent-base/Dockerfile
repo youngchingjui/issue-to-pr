@@ -1,30 +1,26 @@
-# Explore why we can'\''t just use alpine, ubuntu might be heavier
-FROM ubuntu:22.04
+# Lightweight base image with Node 22 and npm pre-installed (Debian "bookworm-slim")
+FROM node:22-slim
 
 # Avoid interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Update package list
-RUN apt-get update
-
-# Install ripgrep, git, curl, tree
-RUN apt-get install -y \
-    ripgrep \
-    git \
-    curl \
-    tree
-
-# Install Node.js v22.x (with npm) and PNPM
-RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
-    apt-get install -y nodejs && \
-    npm install -g pnpm && \
+# Install useful CLI tools. Ripgrep, Git and tree come from Debian; curl is already present.
+# Afterwards clean the package lists to keep the image small.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        ripgrep \
+        git \
+        tree && \
     rm -rf /var/lib/apt/lists/*
 
-# Verify installations
+# Enable Corepack (bundled with Node 22) and activate the latest stable pnpm version
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# Verify toolchain versions for transparency
 RUN rg --version && git --version && node --version && npm --version && pnpm --version
 
-# Set working directory
+# Set working directory where the agent will later receive a repository to work on
 WORKDIR /workspace
 
-# Default command
+# Default command keeps the container alive for interactive use
 CMD ["/bin/bash"]
