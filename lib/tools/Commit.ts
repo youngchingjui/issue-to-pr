@@ -10,6 +10,7 @@ import {
 } from "@/lib/git"
 import { createTool } from "@/lib/tools/helper"
 import { asRepoEnvironment, RepoEnvironment, Tool } from "@/lib/types"
+import { shellEscape } from "@/lib/utils/cli"
 
 const commitParameters = z.object({
   files: z
@@ -60,7 +61,7 @@ async function fnHandler(
       } else {
         const { exitCode, stderr } = await execInContainer({
           name: env.name,
-          command: `git add '${filePath.replace(/'/g, "'\\''")}'`,
+          command: `git add ${shellEscape(filePath)}`,
         })
         if (exitCode !== 0) {
           return JSON.stringify({
@@ -76,7 +77,7 @@ async function fnHandler(
     } else {
       const { exitCode, stderr } = await execInContainer({
         name: env.name,
-        command: `git commit -m ${JSON.stringify(commitMessage)}`,
+        command: `git commit -m ${shellEscape(commitMessage)}`,
       })
       if (exitCode !== 0) {
         return JSON.stringify({

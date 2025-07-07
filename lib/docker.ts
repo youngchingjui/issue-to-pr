@@ -32,7 +32,7 @@ export interface StartDetachedContainerOptions {
 
 /**
  * Starts a detached Docker container (`docker run -d`) that simply tails
- * `/dev/null` so it stays alive and returns the new container's ID.
+ * `/dev/null` so it stays alive and returns the new container'\''s ID.
  *
  * The helper constructs the appropriate command-line flags for container
  * name, non-root user, bind-mounts, environment variables, and working
@@ -74,7 +74,7 @@ export async function startContainer({
 
   // 2. Build environment variable flags: -e "KEY=value"
   const envFlags = Object.entries(env).map(
-    ([key, value]) => `-e \"${key}=${value.replace(/"/g, '\\\"')}\"`
+    ([key, value]) => `-e \"${key}=${value.replace(/"/g, '\''\\\"'\'')}\"`
   )
 
   // 3. Determine working directory
@@ -102,17 +102,15 @@ export async function startContainer({
 /**
  * Execute a shell command inside a running container.
  *
- * The provided `command` string will be automatically escaped so that it is
- * safe to pass to `sh -c` inside the container. The resulting Docker command
- * looks like:
+ * The `command` is passed directly to `sh -c` inside the container, unescaped.
+ * It is the caller'\''s responsibility to properly escape *any* variables to avoid shell interpretation issues or injection risks.
  *
+ * Example:
  * ```bash
- * docker exec [--workdir <cwd>] <name> sh -c '<command>'
+ * docker exec [--workdir <cwd>] <name> sh -c <command>
  * ```
  *
- * Because this helper already performs the necessary escaping, callers SHOULD
- * pass the raw command and **must not** pre-sanitize or quote it themselves.
- * Otherwise the command may be double-escaped and fail to run as expected.
+ * The command must already be quoted/escaped as needed for a POSIX shell.
  */
 export async function execInContainer({
   name,
@@ -124,7 +122,7 @@ export async function execInContainer({
   cwd?: string
 }): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const workdirFlag = cwd ? `--workdir \"${cwd}\"` : ""
-  const execCmd = `docker exec ${workdirFlag} ${name} sh -c '${command.replace(/'/g, "'\\''")}'`
+  const execCmd = `docker exec ${workdirFlag} ${name} sh -c ${command}`
   try {
     const { stdout, stderr } = await execPromise(execCmd)
     return { stdout, stderr, exitCode: 0 }
@@ -155,7 +153,7 @@ export async function stopAndRemoveContainer(name: string): Promise<void> {
 export async function isContainerRunning(name: string): Promise<boolean> {
   try {
     const { stdout } = await execPromise(
-      `docker inspect -f '{{.State.Running}}' ${name}`
+      `docker inspect -f '\''{{.State.Running}}'\'' ${name}`
     )
     return stdout.trim() === "true"
   } catch {
@@ -175,7 +173,7 @@ export interface RunningContainer {
  */
 export async function listRunningContainers(): Promise<RunningContainer[]> {
   try {
-    const { stdout } = await execPromise("docker ps --format '{{json .}}'")
+    const { stdout } = await execPromise("docker ps --format '\''{{json .}}'\''")
     const lines = stdout.trim().split("\n").filter(Boolean)
     return lines.map((line) => {
       const data = JSON.parse(line) as Record<string, string>

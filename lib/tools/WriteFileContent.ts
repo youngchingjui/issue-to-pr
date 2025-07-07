@@ -41,11 +41,11 @@ async function fnHandler(
       throw new Error(`Failed to create directory: ${mkdirResult.stderr}`)
     }
 
-    // Use printf to write content, escaping single quotes and handling newlines
-    const escapedContent = content.replace(/'/g, "'\\''")
+    // Use printf to write content, shell-escaping the content and path (no double escapes)
     const { stderr, exitCode } = await execInContainer({
       name: env.name,
-      command: `printf '%s' ${shellEscape(escapedContent)} > ${shellEscape(relativePath)}`,
+      // printf needs the content and file path both shell-escaped, no manual escaping of content
+      command: `printf %s ${shellEscape(content)} > ${shellEscape(relativePath)}`,
       cwd: env.mount,
     })
 

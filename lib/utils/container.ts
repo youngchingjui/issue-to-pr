@@ -1,5 +1,5 @@
 import { exec as hostExec } from "child_process"
-import os from "os"
+os from "os"
 import path from "path"
 import util from "util"
 import { v4 as uuidv4 } from "uuid"
@@ -13,6 +13,7 @@ import {
 import { addWorktree, removeWorktree } from "@/lib/git"
 import { getAuthToken } from "@/lib/github"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
+import { shellEscape } from "@/lib/utils/cli"
 
 // Promisified exec for host-side commands (e.g., docker cp)
 const execHost = util.promisify(hostExec)
@@ -146,6 +147,7 @@ export async function createContainerizedWorktree({
 
   // Helper functions
   const exec = async (command: string) => {
+    // For safety, wrap the command if coming from user input or variable if used here
     return await execInContainer({
       name: containerName,
       command,
@@ -221,18 +223,19 @@ export async function createContainerizedWorkspace({
     })
 
   // 4. Configure Git inside the container
-  await exec(`git config --global user.name "${DEFAULT_GIT_USER_NAME}"`)
-  await exec(`git config --global user.email "${DEFAULT_GIT_USER_EMAIL}"`)
+  await exec(`git config --global user.name ${shellEscape(DEFAULT_GIT_USER_NAME)}`)
+  await exec(`git config --global user.email ${shellEscape(DEFAULT_GIT_USER_EMAIL)}`)
   await exec("git config --global credential.helper store")
   await exec(
-    'sh -c "printf \"https://%s:x-oauth-basic@github.com\\n\" \"$GITHUB_TOKEN\" > ~/.git-credentials"'
+    // The token does not need shellEscape as it is embedded by printf escape rules
+    '\''sh -c "printf \"https://%s:x-oauth-basic@github.com\\n\" \"$GITHUB_TOKEN\" > ~/.git-credentials"'\''
   )
 
   // If a host repository directory is provided, copy it into the container to
   // avoid another network clone. Fallback to git clone when not provided.
   if (hostRepoPath) {
     // Ensure destination directory exists inside container
-    await exec(`mkdir -p ${mountPath}`)
+    await exec(`mkdir -p ${shellEscape(mountPath)}`)
 
     // Copy contents (including hidden files) from hostRepoPath -> container
     // Use docker cp with trailing /. to copy directory contents, not parent dir
@@ -242,14 +245,14 @@ export async function createContainerizedWorkspace({
 
     // Fix ownership of the repository inside the container to avoid
     // Git "dubious ownership" warnings caused by mismatched host UIDs.
-    await exec(`chown -R root:root ${mountPath}`)
+    await exec(`chown -R root:root ${shellEscape(mountPath)}`)
 
-    // Reset to desired branch in case copied repo isn't on it
-    await exec(`git fetch origin && git checkout ${branch}`)
+    // Reset to desired branch in case copied repo isn'\''t on it
+    await exec(`git fetch origin && git checkout ${shellEscape(branch)}`)
   } else {
     // 5. Clone the repository and checkout the requested branch
-    await exec(`git clone https://github.com/${repoFullName} ${mountPath}`)
-    await exec(`git checkout ${branch}`)
+    await exec(`git clone https://github.com/${repoFullName} ${shellEscape(mountPath)}`)
+    await exec(`git checkout ${shellEscape(branch)}`)
   }
 
   // 6. Cleanup helper

@@ -5,35 +5,36 @@ import { z } from "zod"
 import { execInContainer } from "@/lib/docker"
 import { createTool } from "@/lib/tools/helper"
 import { asRepoEnvironment, RepoEnvironment, Tool } from "@/lib/types"
+import { shellEscape } from "@/lib/utils/cli"
 
 const execPromise = promisify(exec)
 
 const name = "ripgrep_search"
-const description = `Searches for code in the local file system using ripgrep. Returns snippets of code containing the search term with 3 lines of context before and after each match. Note: These are just snippets - to fully understand the code's context, you should use a file reading tool to examine the complete file contents.
+const description = `Searches for code in the local file system using ripgrep. Returns snippets of code containing the search term with 3 lines of context before and after each match. Note: These are just snippets - to fully understand the code'\''s context, you should use a file reading tool to examine the complete file contents.
 
 The tool supports both literal (fixed-string) and regex search modes. By default, search queries are treated as literal strings (no regex interpretation, safer). To enable regex matching, specify mode: "regex" in the parameters.
-- mode: "literal" (default, safer) — uses ripgrep's -F flag, interprets search as a fixed string, safe for special characters like ?, *, [, ]
+- mode: "literal" (default, safer) — uses ripgrep'\''s -F flag, interprets search as a fixed string, safe for special characters like ?, *, [, ]
 - mode: "regex" — disables -F, allows regex pattern searches, may return ripgrep errors if regex is malformed.`
 
 const searchParameters = z.object({
   query: z
     .string()
     .describe(
-      "The search query to use for searching code. Example: 'functionName' to find all occurrences of 'functionName' in the codebase."
+      "The search query to use for searching code. Example: '\''functionName'\'' to find all occurrences of '\''functionName'\'' in the codebase."
     ),
   ignoreCase: z
     .boolean()
     .optional()
     .default(false)
     .describe(
-      "Ignore case sensitivity. Default is false, meaning the search is case-sensitive. Use true to find matches regardless of case, e.g., 'function' will match 'Function'."
+      "Ignore case sensitivity. Default is false, meaning the search is case-sensitive. Use true to find matches regardless of case, e.g., '\''function'\'' will match '\''Function'\''."
     ),
   hidden: z
     .boolean()
     .optional()
     .default(false)
     .describe(
-      "Include hidden files. Default is false, meaning hidden files are ignored. Use true to include files like '.env'."
+      "Include hidden files. Default is false, meaning hidden files are ignored. Use true to include files like '\''.env'\''."
     ),
   follow: z
     .boolean()
@@ -46,7 +47,7 @@ const searchParameters = z.object({
     .enum(["literal", "regex"])
     .optional()
     .default("literal")
-    .describe('Search mode: "literal" (default, safer) or "regex"'),
+    .describe('\''Search mode: "literal" (default, safer) or "regex"'\''),
 })
 
 type RipgrepSearchParameters = z.infer<typeof searchParameters>
@@ -68,16 +69,14 @@ function buildRipgrepCommand({
   follow: boolean
   mode: "literal" | "regex"
 }): string {
-  // Build the base ripgrep command. We add quoting around the raw query string so it
-  // is treated as a single argument, but skip any additional sanitization because
-  // `execInContainer` already escapes the entire command string.
+  // Sanitize the query using shellEscape so it'\''s safe for shell execution
   let command = `rg --line-number --max-filesize 200K -C 3 --heading -n `
 
   if (mode === "literal") {
     command += "-F " // use literal/fixed-string mode
   }
 
-  command += `'${query}'`
+  command += `${shellEscape(query)}`
 
   if (ignoreCase) command += " -i"
   if (hidden) command += " --hidden"

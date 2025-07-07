@@ -33,7 +33,7 @@ async function handler(
   }
 
   // Basic sanitisation to remove potentially dangerous characters (except space and tab).
-  const sanitizedCommand = cliCommand.replace(/[^\p{L}\p{N}_\-.:/\\ \t]/gu, "")
+  const sanitizedCommand = cliCommand.replace(/[^\p{L}\p{N}_\-.:\/\\ \t]/gu, "")
 
   try {
     if (env.kind === "host") {

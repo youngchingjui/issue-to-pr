@@ -2,6 +2,7 @@ import { z } from "zod"
 
 import { execInContainer } from "@/lib/docker"
 import { createTool } from "@/lib/tools/helper"
+import { shellEscape } from "@/lib/utils/cli"
 
 const execSchema = z.object({
   command: z
@@ -20,6 +21,8 @@ export const createContainerExecTool = (containerName: string) =>
       "Run a shell command inside the docker container that hosts the worktree. Returns stdout and stderr.",
     schema: execSchema,
     handler: async (params: ExecParams) => {
+      // Since the input command could come from the user, remind future devs to shell-escape when appropriate
+      // e.g., pass `shellEscape()` if variables are interpolated
       const { stdout, stderr } = await execInContainer({
         name: containerName,
         command: params.command,

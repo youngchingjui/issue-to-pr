@@ -40,6 +40,7 @@ async function handler(
       })
       return { stdout, stderr, exitCode: 0 }
     } else {
+      // No additional escaping needed, as all escaping should be done by caller/tool if needed
       const { stdout, stderr, exitCode } = await execInContainer({
         name: env.name,
         command: cliCommand,
