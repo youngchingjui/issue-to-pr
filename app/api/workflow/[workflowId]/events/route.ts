@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 
-import { getEventHistory } from "@/lib/services/redis-stream"
+import { getWorkflowRunWithDetails } from "@/lib/neo4j/services/workflow"
 
 // GET /api/workflow/:workflowId/events - returns event list for polling
 export async function GET(
@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: { workflowId: string } }
 ) {
   try {
-    const events = await getEventHistory(params.workflowId)
+    const events = await getWorkflowRunWithDetails(params.workflowId)
     return NextResponse.json(events)
   } catch (err) {
     return NextResponse.json(
