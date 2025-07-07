@@ -218,15 +218,21 @@ export const repoSettingsSchema = z.object({
   autoRunCommentOnIssue: z
     .boolean()
     .optional()
-    .describe("Automatically run the commentOnIssue workflow when a new issue is created"),
+    .describe(
+      "Automatically run the commentOnIssue workflow when a new issue is created"
+    ),
   autoPostIssueCommentToGitHub: z
     .boolean()
     .optional()
-    .describe("Post the generated comment back to GitHub after commentOnIssue completes"),
+    .describe(
+      "Post the generated comment back to GitHub after commentOnIssue completes"
+    ),
   autoRunResolveIssue: z
     .boolean()
     .optional()
-    .describe("Automatically run the resolveIssue workflow when a new issue is created"),
+    .describe(
+      "Automatically run the resolveIssue workflow when a new issue is created"
+    ),
   autoPostPrToGitHub: z
     .boolean()
     .optional()
