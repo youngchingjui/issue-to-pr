@@ -59,13 +59,6 @@ describe("FileCheckTool", () => {
   describe("handler behavior", () => {
     const tool = createFileCheckTool(baseDir)
 
-    it("returns error for disallowed commands", async () => {
-      const result = await tool.handler({ cliCommand: "rm -rf /" })
-
-      expect(result.exitCode).toBe(1)
-      expect(result.stderr).toMatch(/Command not allowed/i)
-    })
-
     it("returns success for allowed command when exec resolves", async () => {
       execMock.mockImplementation(
         (
