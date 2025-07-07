@@ -215,6 +215,28 @@ export const repoSettingsSchema = z.object({
     .describe(
       "Setup commands to run when the repository is cloned. e.g. ['npm install', 'pip install -r requirements.txt']"
     ),
+  autoRunCommentOnIssue: z
+    .boolean()
+    .optional()
+    .describe(
+      "Automatically run the commentOnIssue workflow when a new issue is created"
+    ),
+  autoPostIssueCommentToGitHub: z
+    .boolean()
+    .optional()
+    .describe(
+      "Post the generated comment back to GitHub after commentOnIssue completes"
+    ),
+  autoRunResolveIssue: z
+    .boolean()
+    .optional()
+    .describe(
+      "Automatically run the resolveIssue workflow when a new issue is created"
+    ),
+  autoPostPrToGitHub: z
+    .boolean()
+    .optional()
+    .describe("Create a pull request on GitHub after resolveIssue completes"),
   lastUpdated: z.date().optional(),
 })
 export type RepoSettings = z.infer<typeof repoSettingsSchema>

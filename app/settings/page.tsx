@@ -72,6 +72,20 @@ export default async function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Card className="max-w-md">
+        <CardHeader>
+          <CardTitle>Repository Settings</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground mb-1">
+            Manage automation options for a specific repository.
+          </p>
+          <a href={`/${user.login}`} className="underline hover:text-blue-600">
+            Select a repository
+          </a>
+        </CardContent>
+      </Card>
     </main>
   )
 }
