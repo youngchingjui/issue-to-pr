@@ -2,7 +2,6 @@
 
 import useSWR from "swr"
 
-// Copied and inlined EventRenderer from /app/workflow-runs/[traceId]/page to keep DRY
 import {
   ErrorEvent,
   LLMResponseEvent,
@@ -59,7 +58,7 @@ export default function WorkflowTimeline({
   initialEvents?: AnyEvent[]
 }) {
   const { data: events = initialEvents } = useSWR(
-    `/api/workflow/${workflowId}/events`,
+    `${process.env.NEXT_PUBLIC_API_URL}/api/workflow/${workflowId}/events`,
     fetcher,
     { refreshInterval: 1000, fallbackData: initialEvents }
   )

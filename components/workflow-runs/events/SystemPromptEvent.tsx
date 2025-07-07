@@ -1,5 +1,3 @@
-"use server"
-
 import ReactMarkdown from "react-markdown"
 
 import { CollapsibleContent } from "@/components/ui/collapsible-content"
@@ -10,7 +8,7 @@ export interface Props {
   event: SystemPrompt
 }
 
-export async function SystemPromptEvent({ event }: Props) {
+export function SystemPromptEvent({ event }: Props) {
   const headerContent = (
     <>
       <div className="text-xs font-medium text-blue-500 dark:text-blue-400">

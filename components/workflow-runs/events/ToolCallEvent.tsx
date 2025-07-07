@@ -1,5 +1,3 @@
-"use server"
-
 import { Code2 } from "lucide-react"
 
 import { EventTime } from "@/components/workflow-runs/events"
@@ -9,7 +7,7 @@ export interface Props {
   event: ToolCall
 }
 
-export async function ToolCallEvent({ event }: Props) {
+export function ToolCallEvent({ event }: Props) {
   const args = JSON.parse(event.args)
 
   return (

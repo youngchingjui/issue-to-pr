@@ -1,5 +1,3 @@
-"use server"
-
 import { CheckCircle2 } from "lucide-react"
 
 import { EventTime } from "@/components/workflow-runs/events"
@@ -9,7 +7,7 @@ interface Props {
   event: StatusEvent | WorkflowStateEvent
 }
 
-export async function StatusUpdate({ event }: Props) {
+export function StatusUpdate({ event }: Props) {
   let displayText: string | undefined
   if (event.type === "status") {
     displayText = event.content
