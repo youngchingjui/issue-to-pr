@@ -4,6 +4,8 @@ import { Loader2 } from "lucide-react"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import {
   Select,
   SelectContent,
@@ -94,6 +96,54 @@ export default function RepoSettingsForm({
           rows={4}
           disabled={loading}
         />
+      </div>
+      <div className="mb-4 space-y-2">
+        <p className="font-medium">Issue Automation (UI only)</p>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="auto-run-comment" className="text-sm text-muted-foreground">
+            Auto-run commentOnIssue
+          </Label>
+          <Switch
+            id="auto-run-comment"
+            checked={settings.autoRunCommentOnIssue ?? false}
+            onCheckedChange={(val) => handleChange("autoRunCommentOnIssue", val)}
+            disabled
+          />
+        </div>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="post-issue-comment" className="text-sm text-muted-foreground">
+            Post comment to GitHub
+          </Label>
+          <Switch
+            id="post-issue-comment"
+            checked={settings.autoPostIssueCommentToGitHub ?? false}
+            onCheckedChange={(val) => handleChange("autoPostIssueCommentToGitHub", val)}
+            disabled
+          />
+        </div>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="auto-run-resolve" className="text-sm text-muted-foreground">
+            Auto-run resolveIssue
+          </Label>
+          <Switch
+            id="auto-run-resolve"
+            checked={settings.autoRunResolveIssue ?? false}
+            onCheckedChange={(val) => handleChange("autoRunResolveIssue", val)}
+            disabled
+          />
+        </div>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="post-pr" className="text-sm text-muted-foreground">
+            Create PR on GitHub
+          </Label>
+          <Switch
+            id="post-pr"
+            checked={settings.autoPostPrToGitHub ?? false}
+            onCheckedChange={(val) => handleChange("autoPostPrToGitHub", val)}
+            disabled
+          />
+        </div>
+        <p className="text-xs text-muted-foreground">Workflow automation settings are coming soon.</p>
       </div>
       {errMsg && <div className="mb-2 text-red-600">{errMsg}</div>}
       {successMsg && <div className="mb-2 text-green-700">{successMsg}</div>}
