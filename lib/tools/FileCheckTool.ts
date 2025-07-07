@@ -6,131 +6,6 @@ import { execInContainer } from "@/lib/docker"
 import { createTool } from "@/lib/tools/helper"
 import { asRepoEnvironment, RepoEnvironment, Tool } from "@/lib/types"
 
-// Allow-listed CLI commands that are considered safe, **read-only** code-quality tools.
-// Grouped by language but flattened into a single Set for quick lookup.
-const ALLOWED_COMMANDS = new Set<string>([
-  // JavaScript / TypeScript
-  "eslint",
-  "tsc",
-  "jshint",
-  "jslint",
-  "prettier",
-  "sonarjs",
-  // Python
-  "pylint",
-  "flake8",
-  "pyflakes",
-  "mypy",
-  "black",
-  "isort",
-  "bandit",
-  "pydocstyle",
-  "pyright",
-  // Java
-  "checkstyle",
-  "pmd",
-  "spotbugs",
-  "errorprone",
-  "sonarjava",
-  "archunit",
-  // C# / .NET
-  "stylecop",
-  "fxcop",
-  "roslyn",
-  "sonarcsharp",
-  // C / C++
-  "clang-tidy",
-  "cppcheck",
-  "cpplint",
-  "clang",
-  "coverity",
-  "splint",
-  // Go
-  "golint",
-  "go",
-  "staticcheck",
-  "gosimple",
-  "errcheck",
-  "ineffassign",
-  "govet",
-  "revive",
-  // Ruby
-  "rubocop",
-  "reek",
-  "brakeman",
-  "flog",
-  "flay",
-  // PHP
-  "phpcs",
-  "phpstan",
-  "psalm",
-  "phpmd",
-  // Swift
-  "swiftlint",
-  "swiftformat",
-  // Kotlin
-  "detekt",
-  "ktlint",
-  // Rust
-  "clippy",
-  "rustfmt",
-  "cargo",
-  "cargo-audit",
-  "cargo-deny",
-  // Scala
-  "scalastyle",
-  "scapegoat",
-  "wartremover",
-  "scalafix",
-  // Shell
-  "shellcheck",
-  "shfmt",
-  // Perl
-  "perlcritic",
-  "perltidy",
-  // HTML/CSS
-  "stylelint",
-  "htmlhint",
-  "csslint",
-  "lighthouse",
-  // SQL
-  "sqlfluff",
-  "sqlint",
-  "sqlcheck",
-  // Dart
-  "dartanalyzer",
-  "dart",
-  // Objective-C
-  "oclint",
-  "infer",
-  // Elixir
-  "credo",
-  // Haskell
-  "hlint",
-  // Lua
-  "luacheck",
-  // R
-  "lintr",
-  // Groovy
-  "codenarc",
-  // Erlang
-  "elvis",
-  // Fortran
-  "ftnchek",
-  "fortranlint",
-  // Matlab
-  "mlint",
-  // VHDL/Verilog
-  "verilator",
-  "vhdl-linter",
-  // General / Multi-language
-  "sonarqube",
-  "codacy",
-  "codeclimate",
-  "lgtm",
-  "deepsource",
-])
-
 // Input schema (what the LLM Agent provides)
 const fileCheckParameters = z.object({
   cliCommand: z
@@ -157,19 +32,8 @@ async function handler(
     }
   }
 
-  // Extract the first token (the command itself) to validate against allow-list.
-  const firstToken = cliCommand.trim().split(/\s+/)[0]?.toLowerCase()
-
-  if (!firstToken || !ALLOWED_COMMANDS.has(firstToken)) {
-    return {
-      stdout: "",
-      stderr: "Command not allowed. Must be a read-only code-quality tool.",
-      exitCode: 1,
-    }
-  }
-
   // Basic sanitisation to remove potentially dangerous characters (except space and tab).
-  const sanitizedCommand = cliCommand.replace(/[^a-zA-Z0-9_\-.:/\\ \t]/g, "")
+  const sanitizedCommand = cliCommand.replace(/[^\p{L}\p{N}_\-.:/\\ \t]/gu, "")
 
   try {
     if (env.kind === "host") {
