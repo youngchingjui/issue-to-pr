@@ -25,6 +25,7 @@ import { createCreatePRTool } from "@/lib/tools/CreatePRTool"
 import { createFileCheckTool } from "@/lib/tools/FileCheckTool"
 import { createGetFileContentTool } from "@/lib/tools/GetFileContent"
 import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
+import { createSetupRepoTool } from "@/lib/tools/SetupRepoTool"
 import { createSyncBranchTool } from "@/lib/tools/SyncBranchTool"
 import { createWriteFileContentTool } from "@/lib/tools/WriteFileContent"
 import { Plan, RepoEnvironment, RepoSettings } from "@/lib/types"
@@ -198,6 +199,7 @@ export const resolveIssue = async ({
     coder.addSpan({ span, generationName: "resolveIssue" })
 
     // Load base tools
+    const setupRepoTool = createSetupRepoTool(env)
     const getFileContentTool = createGetFileContentTool(env)
     const searchCodeTool = createRipgrepSearchTool(env)
     const writeFileTool = createWriteFileContentTool(env)
@@ -206,6 +208,7 @@ export const resolveIssue = async ({
     const fileCheckTool = createFileCheckTool(env)
 
     // Add base tools to persistent coder
+    coder.addTool(setupRepoTool)
     coder.addTool(getFileContentTool)
     coder.addTool(writeFileTool)
     coder.addTool(searchCodeTool)

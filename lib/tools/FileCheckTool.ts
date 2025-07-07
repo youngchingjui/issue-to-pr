@@ -237,9 +237,10 @@ export function createFileCheckTool(
     description: `
       Run a READ-ONLY code-quality CLI command (e.g., eslint, tsc, prettier) on specified file(s).
       The agent MUST:
-      1. Provide the full CLI command in 'cliCommand'.
+      1. Provide the full CLI command in '\''cliCommand'\''.
       2. Only use commands that check code; NEVER use other types of CLI commands.
-      3. Derive the command from the project's existing scripts/config when possible.
+      3. Derive the command from the project'\''s existing scripts/config when possible.
+      NOTE: If this check fails due to missing dependencies, you may need to run the SetupRepoTool first to install packages or set up your environment.
     `,
     schema: fileCheckParameters,
     handler: (params: z.infer<typeof fileCheckParameters>) =>
