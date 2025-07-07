@@ -5,7 +5,6 @@ import { z } from "zod"
 import { execInContainer } from "@/lib/docker"
 import { createTool } from "@/lib/tools/helper"
 import { asRepoEnvironment, RepoEnvironment, Tool } from "@/lib/types"
-import { shellEscape } from "@/lib/utils/cli"
 
 const execPromise = promisify(exec)
 
@@ -69,16 +68,16 @@ function buildRipgrepCommand({
   follow: boolean
   mode: "literal" | "regex"
 }): string {
-  // Robustly escape the user's query and search path for the shell
-  const quotedQuery = shellEscape(query)
-
+  // Build the base ripgrep command. We add quoting around the raw query string so it
+  // is treated as a single argument, but skip any additional sanitization because
+  // `execInContainer` already escapes the entire command string.
   let command = `rg --line-number --max-filesize 200K -C 3 --heading -n `
 
   if (mode === "literal") {
     command += "-F " // use literal/fixed-string mode
   }
 
-  command += quotedQuery
+  command += `'${query}'`
 
   if (ignoreCase) command += " -i"
   if (hidden) command += " --hidden"
