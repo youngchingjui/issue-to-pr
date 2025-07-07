@@ -20,7 +20,7 @@
     "test:coverage": "jest --coverage",
     "test:components": "jest --selectProjects dom",
     "test:node": "jest --selectProjects node",
-    "test:agent": "NODE_OPTIONS='--experimental-vm-modules' jest -c __tests__/config/jest.config.agent.ts"
+    "test:agent": "NODE_OPTIONS='\''--experimental-vm-modules'\'' jest -c __tests__/config/jest.config.agent.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "4",
@@ -50,6 +50,7 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "dockerode": "^4.4.7",
     "exponential-backoff": "^3.1.2",
     "framer-motion": "^12.4.10",
     "gray-matter": "^4.0.3",
