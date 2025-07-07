@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Build the custom agent base image with ripgrep pre-installed
+# Build the custom agent base image with ripgrep, Node.js 22, and pnpm pre-installed
 # This image is used for containerized agent workflows
 
 set -e
@@ -30,8 +30,11 @@ echo "Testing image..."
 docker run --rm "${IMAGE_NAME}:${IMAGE_TAG}" rg --version
 docker run --rm "${IMAGE_NAME}:${IMAGE_TAG}" git --version
 docker run --rm "${IMAGE_NAME}:${IMAGE_TAG}" curl --version
+docker run --rm "${IMAGE_NAME}:${IMAGE_TAG}" node --version
+docker run --rm "${IMAGE_NAME}:${IMAGE_TAG}" npm --version
+docker run --rm "${IMAGE_NAME}:${IMAGE_TAG}" pnpm --version
 
 echo "✅ Custom agent image is ready for use"
 echo "Image: ${IMAGE_NAME}:${IMAGE_TAG}"
 echo "Platforms: ${PLATFORMS}"
-echo "Includes: ripgrep, git, curl"
+echo "Includes: ripgrep, git, curl, nodejs (npm), pnpm"

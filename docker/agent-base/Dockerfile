@@ -1,4 +1,4 @@
-# Explore why we can't just use alpine, ubuntu might be heavier
+# Explore why we can'\''t just use alpine, ubuntu might be heavier
 FROM ubuntu:22.04
 
 # Avoid interactive prompts during package installation
@@ -14,14 +14,17 @@ RUN apt-get install -y \
     curl \
     tree
 
-# Clean up APT cache to keep the image small
-RUN rm -rf /var/lib/apt/lists/*
+# Install Node.js v22.x (with npm) and PNPM
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    apt-get install -y nodejs && \
+    npm install -g pnpm && \
+    rm -rf /var/lib/apt/lists/*
 
 # Verify installations
-RUN rg --version && git --version
+RUN rg --version && git --version && node --version && npm --version && pnpm --version
 
 # Set working directory
 WORKDIR /workspace
 
 # Default command
-CMD ["/bin/bash"] 
+CMD ["/bin/bash"]
