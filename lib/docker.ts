@@ -32,7 +32,7 @@ export interface StartDetachedContainerOptions {
 
 /**
  * Starts a detached Docker container (`docker run -d`) that simply tails
- * `/dev/null` so it stays alive and returns the new container'\''s ID.
+ * `/dev/null` so it stays alive and returns the new container's ID.
  *
  * The helper constructs the appropriate command-line flags for container
  * name, non-root user, bind-mounts, environment variables, and working
@@ -74,7 +74,7 @@ export async function startContainer({
 
   // 2. Build environment variable flags: -e "KEY=value"
   const envFlags = Object.entries(env).map(
-    ([key, value]) => `-e \"${key}=${value.replace(/"/g, '\''\\\"'\'')}\"`
+    ([key, value]) => `-e \"${key}=${value.replace(/"/g, '\\\"')}\"`
   )
 
   // 3. Determine working directory
@@ -103,7 +103,7 @@ export async function startContainer({
  * Execute a shell command inside a running container.
  *
  * The `command` is passed directly to `sh -c` inside the container, unescaped.
- * It is the caller'\''s responsibility to properly escape *any* variables to avoid shell interpretation issues or injection risks.
+ * It is the caller's responsibility to properly escape *any* variables to avoid shell interpretation issues or injection risks.
  *
  * Example:
  * ```bash
@@ -153,7 +153,7 @@ export async function stopAndRemoveContainer(name: string): Promise<void> {
 export async function isContainerRunning(name: string): Promise<boolean> {
   try {
     const { stdout } = await execPromise(
-      `docker inspect -f '\''{{.State.Running}}'\'' ${name}`
+      `docker inspect -f '{{.State.Running}}' ${name}`
     )
     return stdout.trim() === "true"
   } catch {
@@ -173,7 +173,7 @@ export interface RunningContainer {
  */
 export async function listRunningContainers(): Promise<RunningContainer[]> {
   try {
-    const { stdout } = await execPromise("docker ps --format '\''{{json .}}'\''")
+    const { stdout } = await execPromise("docker ps --format '{{json .}}'")
     const lines = stdout.trim().split("\n").filter(Boolean)
     return lines.map((line) => {
       const data = JSON.parse(line) as Record<string, string>

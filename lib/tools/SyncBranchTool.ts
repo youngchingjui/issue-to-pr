@@ -8,7 +8,6 @@ import { createTool } from "@/lib/tools/helper"
 import { asRepoEnvironment, RepoEnvironment, Tool } from "@/lib/types"
 import { RepoFullName } from "@/lib/types/github"
 import { getCloneUrlWithAccessToken } from "@/lib/utils/utils-common"
-import { shellEscape } from "@/lib/utils/cli"
 
 const syncBranchParameters = z.object({
   branch: z
@@ -28,7 +27,7 @@ async function fnHandler(
 ): Promise<string> {
   const { branch } = params
   try {
-    // Create branch on remote if it doesn'\''t exist
+    // Create branch on remote if it doesn't exist
     const branchExists = await checkBranchExists(repoFullName.fullName, branch)
     if (!branchExists) {
       const branchCreationResult = await createBranch(
@@ -47,7 +46,7 @@ async function fnHandler(
     if (env.kind === "host") {
       await pushBranch(branch, env.root, token, repoFullName.fullName)
     } else {
-      // Ensure the '\''origin'\'' remote embeds authentication
+      // Ensure the 'origin' remote embeds authentication
       const authenticatedUrl = getCloneUrlWithAccessToken(
         repoFullName.fullName,
         token
@@ -57,7 +56,7 @@ async function fnHandler(
       const { exitCode: setUrlExit, stderr: setUrlErr } = await execInContainer(
         {
           name: env.name,
-          command: `git remote set-url origin ${shellEscape(authenticatedUrl)}`,
+          command: `git remote set-url origin ${authenticatedUrl}`,
         }
       )
       if (setUrlExit !== 0) {
@@ -69,7 +68,7 @@ async function fnHandler(
 
       const { exitCode, stderr } = await execInContainer({
         name: env.name,
-        command: `git push origin ${shellEscape(branch)}`,
+        command: `git push origin ${branch}`,
       })
       if (exitCode !== 0) {
         return JSON.stringify({
@@ -80,7 +79,7 @@ async function fnHandler(
     }
     return JSON.stringify({
       status: "success",
-      message: `Successfully pushed branch '\''${branch}'\'' to remote`,
+      message: `Successfully pushed branch '${branch}' to remote`,
     })
   } catch (error: unknown) {
     return JSON.stringify({
@@ -113,7 +112,7 @@ export function createSyncBranchTool(
   return createTool({
     name: "sync_branch_to_remote",
     description:
-      "Pushes the current branch and its commits to the remote GitHub repository. Similar to '\''git push origin HEAD'\''. Will create the remote branch if it doesn'\''t exist.",
+      "Pushes the current branch and its commits to the remote GitHub repository. Similar to 'git push origin HEAD'. Will create the remote branch if it doesn't exist.",
     schema: syncBranchParameters,
     handler: (params: SyncBranchParams) =>
       fnHandler(repoFullName, env, params, token),

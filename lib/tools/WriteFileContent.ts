@@ -5,7 +5,6 @@ import { execInContainer } from "@/lib/docker"
 import { writeFile } from "@/lib/fs"
 import { createTool } from "@/lib/tools/helper"
 import { asRepoEnvironment, RepoEnvironment, Tool } from "@/lib/types"
-import { shellEscape } from "@/lib/utils/cli"
 
 const writeFileContentParameters = z.object({
   relativePath: z
@@ -33,7 +32,7 @@ async function fnHandler(
     const dirPath = path.dirname(relativePath)
     const mkdirResult = await execInContainer({
       name: env.name,
-      command: `mkdir -p ${shellEscape(dirPath)}`,
+      command: `mkdir -p ${dirPath}`,
       cwd: env.mount,
     })
 
@@ -41,11 +40,29 @@ async function fnHandler(
       throw new Error(`Failed to create directory: ${mkdirResult.stderr}`)
     }
 
-    // Use printf to write content, shell-escaping the content and path (no double escapes)
+    // Use a single-quoted here-document (<<'DELIM') so the file content is
+    // written verbatim – no variable expansion, no command substitution,
+    // and robust support for multi-line data.
+
+    // 1. Pick a delimiter that does **not** appear in the content to avoid
+    //    premature termination of the here-doc. Start with "EOF" and append
+    //    "_END" until it is unique.
+    let delimiter = "EOF"
+    while (content.includes(`\n${delimiter}`) || content.endsWith(delimiter)) {
+      delimiter += "_END"
+    }
+
+    // 2. Build the here-doc command.  We rely on the single-quoted delimiter
+    //    variant to disable all expansions inside the body.
+    const heredocCommand = [
+      `cat <<'${delimiter}' > ${relativePath}`,
+      content,
+      delimiter,
+    ].join("\n")
+
     const { stderr, exitCode } = await execInContainer({
       name: env.name,
-      // printf needs the content and file path both shell-escaped, no manual escaping of content
-      command: `printf %s ${shellEscape(content)} > ${shellEscape(relativePath)}`,
+      command: heredocCommand,
       cwd: env.mount,
     })
 
