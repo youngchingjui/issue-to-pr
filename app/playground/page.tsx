@@ -17,6 +17,7 @@ const DEFAULT_TOOLS = [
 import { auth } from "@/auth"
 import OAuthTokenCard from "@/components/auth/OAuthTokenCard"
 import AgentWorkflowClient from "@/components/playground/AgentWorkflowClient"
+import RipgrepSearchCard from "@/components/playground/RipgrepSearchCard"
 
 export default async function PlaygroundPage() {
   const session = await auth()
@@ -26,6 +27,7 @@ export default async function PlaygroundPage() {
     <div className="space-y-8 px-4 py-8 md:container md:mx-auto">
       {token ? <OAuthTokenCard token={token} /> : null}
       <AgentWorkflowClient defaultTools={DEFAULT_TOOLS} />
+      <RipgrepSearchCard />
     </div>
   )
 }
