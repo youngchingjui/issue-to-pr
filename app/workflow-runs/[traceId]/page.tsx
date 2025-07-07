@@ -4,11 +4,10 @@ import { notFound } from "next/navigation"
 
 import BaseGitHubItemCard from "@/components/github/BaseGitHubItemCard"
 import { Button } from "@/components/ui/button"
+import WorkflowTimeline from "@/components/workflow-runs/WorkflowTimeline"
 import { getIssue } from "@/lib/github/issues"
 import { getWorkflowRunWithDetails } from "@/lib/neo4j/services/workflow"
-import { AnyEvent, Issue } from "@/lib/types"
 import { GetIssueResult } from "@/lib/types/github"
-import WorkflowTimeline from "@/components/workflow-runs/WorkflowTimeline"
 
 // Keep for server data fetch typing and reuse
 export default async function WorkflowRunDetailPage({
@@ -84,7 +83,11 @@ export default async function WorkflowRunDetailPage({
         )}
 
         {/* Timeline Section */}
-        <WorkflowTimeline workflowId={traceId} issue={issue} initialEvents={events} />
+        <WorkflowTimeline
+          workflowId={traceId}
+          issue={issue}
+          initialEvents={events}
+        />
       </div>
     </main>
   )

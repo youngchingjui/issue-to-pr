@@ -1,7 +1,7 @@
-"use client";
+"use client"
 
-import useSWR from "swr";
-import { AnyEvent, Issue } from "@/lib/types";
+import useSWR from "swr"
+
 // Copied and inlined EventRenderer from /app/workflow-runs/[traceId]/page to keep DRY
 import {
   ErrorEvent,
@@ -11,51 +11,58 @@ import {
   ToolCallEvent,
   ToolCallResultEvent,
   UserMessageEvent,
-} from "@/components/workflow-runs/events";
+} from "@/components/workflow-runs/events"
+import { AnyEvent, Issue } from "@/lib/types"
 
-function EventRenderer({ event, issue }: { event: AnyEvent; issue?: Issue }): React.ReactNode {
+function EventRenderer({
+  event,
+  issue,
+}: {
+  event: AnyEvent
+  issue?: Issue
+}): React.ReactNode {
   switch (event.type) {
     case "status":
-      return <StatusUpdate event={event} />;
+      return <StatusUpdate event={event} />
     case "systemPrompt":
-      return <SystemPromptEvent event={event} />;
+      return <SystemPromptEvent event={event} />
     case "userMessage":
-      return <UserMessageEvent event={event} />;
+      return <UserMessageEvent event={event} />
     case "llmResponse":
     case "llmResponseWithPlan":
-      return <LLMResponseEvent event={event} issue={issue} />;
+      return <LLMResponseEvent event={event} issue={issue} />
     case "toolCall":
-      return <ToolCallEvent event={event} />;
+      return <ToolCallEvent event={event} />
     case "toolCallResult":
-      return <ToolCallResultEvent event={event} />;
+      return <ToolCallResultEvent event={event} />
     case "workflowState":
-      return <StatusUpdate event={event} />;
+      return <StatusUpdate event={event} />
     case "reviewComment":
-      return <UserMessageEvent event={event} />;
+      return <UserMessageEvent event={event} />
     case "error":
-      return <ErrorEvent event={event} />;
+      return <ErrorEvent event={event} />
     default:
-      console.error(`Unrecognized event: ${JSON.stringify(event)}`);
-      return null;
+      console.error(`Unrecognized event: ${JSON.stringify(event)}`)
+      return null
   }
 }
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
 export default function WorkflowTimeline({
   workflowId,
   issue,
   initialEvents = [],
 }: {
-  workflowId: string;
-  issue?: Issue;
-  initialEvents?: AnyEvent[];
+  workflowId: string
+  issue?: Issue
+  initialEvents?: AnyEvent[]
 }) {
   const { data: events = initialEvents } = useSWR(
     `/api/workflow/${workflowId}/events`,
     fetcher,
     { refreshInterval: 1000, fallbackData: initialEvents }
-  );
+  )
 
   return (
     <div className="space-y-3">
@@ -72,5 +79,5 @@ export default function WorkflowTimeline({
         )}
       </div>
     </div>
-  );
+  )
 }

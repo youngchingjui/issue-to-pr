@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getEventHistory } from "@/lib/services/redis-stream";
+import { NextRequest, NextResponse } from "next/server"
+
+import { getEventHistory } from "@/lib/services/redis-stream"
 
 // GET /api/workflow/:workflowId/events - returns event list for polling
 export async function GET(
@@ -7,9 +8,12 @@ export async function GET(
   { params }: { params: { workflowId: string } }
 ) {
   try {
-    const events = await getEventHistory(params.workflowId);
-    return NextResponse.json(events);
+    const events = await getEventHistory(params.workflowId)
+    return NextResponse.json(events)
   } catch (err) {
-    return NextResponse.json({ error: "Failed to get events" }, { status: 500 });
+    return NextResponse.json(
+      { error: `Failed to get events: ${err}` },
+      { status: 500 }
+    )
   }
 }

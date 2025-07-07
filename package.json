@@ -20,7 +20,7 @@
     "test:coverage": "jest --coverage",
     "test:components": "jest --selectProjects dom",
     "test:node": "jest --selectProjects node",
-    "test:agent": "NODE_OPTIONS='\''--experimental-vm-modules'\'' jest -c __tests__/config/jest.config.agent.ts"
+    "test:agent": "NODE_OPTIONS='''--experimental-vm-modules''' jest -c __tests__/config/jest.config.agent.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "4",
