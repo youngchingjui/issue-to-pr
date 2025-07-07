@@ -1,5 +1,4 @@
 import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
-import path from "path"
 
 describe("RipgrepSearchTool", () => {
   const baseDir = process.cwd()
@@ -9,7 +8,10 @@ describe("RipgrepSearchTool", () => {
     let result
     let error
     try {
-      result = await tool.handler({ query: "", mode: "literal" })
+      result = await tool.handler({
+        query: "",
+        mode: "literal",
+      })
     } catch (e) {
       error = e
     }
@@ -18,11 +20,13 @@ describe("RipgrepSearchTool", () => {
     expect(result).toMatch(/search failed: Query string cannot be empty/i)
   })
 
-  it("returns '\''No matching results found.'\'' for non-existent text", async () => {
-    const result = await tool.handler({ query: "___nothing_42___should_ever_have_this" })
+  it("returns 'No matching results found.' for non-existent text", async () => {
+    const result = await tool.handler({
+      query: `___nothing_42___should_ever_have_this ${Math.random()}`,
+    })
     expect(typeof result).toBe("string")
-    expect(result).toMatch(/no matching results/i)
-  })
+    expect(result).toMatch(/No matching results found/i)
+  }, 30000)
 
   it("returns a ripgrep regex error for bad regex (mode: regex)", async () => {
     const result = await tool.handler({ query: "[unclosed", mode: "regex" })
