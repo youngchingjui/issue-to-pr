@@ -1,6 +1,5 @@
 import { ThinkerAgent } from "@/lib/agents/thinker"
 import { AUTH_CONFIG } from "@/lib/auth/config"
-import { AGENT_BASE_IMAGE } from "@/lib/docker"
 import { isContainerRunning } from "@/lib/docker"
 import {
   createIssueComment,
@@ -18,6 +17,7 @@ import { createContainerExecTool } from "@/lib/tools/ContainerExecTool"
 import { createGetFileContentTool } from "@/lib/tools/GetFileContent"
 import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
 import { BaseEvent as appBaseEvent, RepoEnvironment } from "@/lib/types"
+import { AGENT_BASE_IMAGE } from "@/lib/types/docker"
 import { GitHubRepository } from "@/lib/types/github"
 import {
   createContainerizedDirectoryTree,

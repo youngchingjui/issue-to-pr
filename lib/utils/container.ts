@@ -4,7 +4,6 @@ import path from "path"
 import util from "util"
 import { v4 as uuidv4 } from "uuid"
 
-import { AGENT_BASE_IMAGE } from "@/lib/docker"
 import {
   execInContainer,
   startContainer,
@@ -12,6 +11,7 @@ import {
 } from "@/lib/docker"
 import { addWorktree, removeWorktree } from "@/lib/git"
 import { getAuthToken } from "@/lib/github"
+import { AGENT_BASE_IMAGE } from "@/lib/types/docker"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 
 // Promisified exec for host-side commands (e.g., docker cp)

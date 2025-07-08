@@ -1,22 +1,12 @@
-import { exec } from "child_process"
-import util from "util"
+"use server"
 
-// --- NEW: Dockerode import for execInContainerWithDockerode ---
+import { exec } from "child_process"
 import Docker from "dockerode"
+import util from "util"
 
 const execPromise = util.promisify(exec)
 
-// Default image name and literal type
-const DEFAULT_AGENT_BASE_IMAGE = "ghcr.io/youngchingjui/agent-base" as const
-
-// Image name that can be overridden via environment variable
-export const AGENT_BASE_IMAGE: string =
-  process.env.AGENT_BASE_IMAGE ?? DEFAULT_AGENT_BASE_IMAGE
-
-// Literal type representing the default image (useful for narrowing)
-export type AgentBaseImage = typeof DEFAULT_AGENT_BASE_IMAGE
-
-export interface StartDetachedContainerOptions {
+interface StartDetachedContainerOptions {
   image: string
   name: string
   /** UID:GID string; default keeps container non-root */
@@ -35,7 +25,7 @@ export interface StartDetachedContainerOptions {
 
 /**
  * Starts a detached Docker container (`docker run -d`) that simply tails
- * `/dev/null` so it stays alive and returns the new container'\''s ID.
+ * `/dev/null` so it stays alive and returns the new container's ID.
  *
  * The helper constructs the appropriate command-line flags for container
  * name, non-root user, bind-mounts, environment variables, and working
@@ -77,7 +67,7 @@ export async function startContainer({
 
   // 2. Build environment variable flags: -e "KEY=value"
   const envFlags = Object.entries(env).map(
-    ([key, value]) => `-e \"${key}=${value.replace(/"/g, '\''\\\"'\'')}\"`
+    ([key, value]) => `-e \"${key}=${value.replace(/"/g, '\\\"')}\"`
   )
 
   // 3. Determine working directory
@@ -119,13 +109,21 @@ export async function execInContainerWithDockerode({
   cwd?: string
 }): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   if (!name || typeof name !== "string" || !name.trim()) {
-    return { stdout: "", stderr: "Container name must not be empty.", exitCode: 1 }
+    return {
+      stdout: "",
+      stderr: "Container name must not be empty.",
+      exitCode: 1,
+    }
   }
   let docker: Docker
   try {
     docker = new Docker({ socketPath: "/var/run/docker.sock" })
   } catch (e: unknown) {
-    return { stdout: "", stderr: `Failed to initialize Dockerode: ${e}`, exitCode: 1 }
+    return {
+      stdout: "",
+      stderr: `Failed to initialize Dockerode: ${e}`,
+      exitCode: 1,
+    }
   }
   let container: Docker.Container
   try {
@@ -136,7 +134,11 @@ export async function execInContainerWithDockerode({
       return { stdout: "", stderr: "Container is not running.", exitCode: 1 }
     }
   } catch (e: unknown) {
-    return { stdout: "", stderr: `Container not found or not running: ${e}`, exitCode: 1 }
+    return {
+      stdout: "",
+      stderr: `Container not found or not running: ${e}`,
+      exitCode: 1,
+    }
   }
   try {
     // Use shell to match parity with the CLI version
@@ -173,7 +175,8 @@ export async function execInContainerWithDockerode({
     return {
       stdout,
       stderr,
-      exitCode: typeof inspectRes.ExitCode === "number" ? inspectRes.ExitCode : 0,
+      exitCode:
+        typeof inspectRes.ExitCode === "number" ? inspectRes.ExitCode : 0,
     }
   } catch (e: unknown) {
     return {
@@ -184,9 +187,9 @@ export async function execInContainerWithDockerode({
   }
 }
 
-/** 
+/**
  * @deprecated Prefer execInContainerWithDockerode for robust inside-container execution.
-*/
+ */
 export async function execInContainer({
   name,
   command,
@@ -197,7 +200,7 @@ export async function execInContainer({
   cwd?: string
 }): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const workdirFlag = cwd ? `--workdir \"${cwd}\"` : ""
-  const execCmd = `docker exec ${workdirFlag} ${name} sh -c '\''${command.replace(/'\''/g, "'\''\\'\'''\''")}'\''`
+  const execCmd = `docker exec ${workdirFlag} ${name} sh -c '${command.replace(/'/g, "'\\''")}'`
   try {
     const { stdout, stderr } = await execPromise(execCmd)
     return { stdout, stderr, exitCode: 0 }
@@ -228,7 +231,7 @@ export async function stopAndRemoveContainer(name: string): Promise<void> {
 export async function isContainerRunning(name: string): Promise<boolean> {
   try {
     const { stdout } = await execPromise(
-      `docker inspect -f '\''{{.State.Running}}'\'' ${name}`
+      `docker inspect -f '{{.State.Running}}' ${name}`
     )
     return stdout.trim() === "true"
   } catch {
@@ -248,7 +251,7 @@ export interface RunningContainer {
  */
 export async function listRunningContainers(): Promise<RunningContainer[]> {
   try {
-    const { stdout } = await execPromise("docker ps --format '\''{{json .}}'\''")
+    const { stdout } = await execPromise("docker ps --format '{{json .}}'")
     const lines = stdout.trim().split("\n").filter(Boolean)
     return lines.map((line) => {
       const data = JSON.parse(line) as Record<string, string>
