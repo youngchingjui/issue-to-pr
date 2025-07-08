@@ -18,6 +18,8 @@ import {
   launchAgentBaseContainer,
   stopContainer,
 } from "@/lib/actions/docker"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { toast } from "@/lib/hooks/use-toast"
 
 interface ContainerEnv {
   id: string
@@ -26,9 +28,14 @@ interface ContainerEnv {
   status: string
 }
 
-export default function ContainerEnvironmentManager() {
+interface Props {
+  selectedRepo: string
+}
+
+export default function ContainerEnvironmentManager({ selectedRepo }: Props) {
   const router = useRouter()
   const [containers, setContainers] = useState<ContainerEnv[]>([])
+  const [copying, setCopying] = useState<string|null>(null)
 
   const refreshContainers = async () => {
     const result = await getRunningContainers()
@@ -45,6 +52,32 @@ export default function ContainerEnvironmentManager() {
     await stopContainer(name)
     await refreshContainers()
     router.refresh()
+  }
+
+  const handleCopyRepo = async (containerName: string) => {
+    if (!selectedRepo) return
+    setCopying(containerName)
+    try {
+      const resp = await fetch("/api/playground/copy-repo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repoFullName: selectedRepo, containerName }),
+      })
+      const json = await resp.json()
+      if (resp.ok && json.success) {
+        toast({ description: `Copied repo to ${containerName}` })
+      } else {
+        toast({
+          description: json.error || `Failed to copy repo to ${containerName}`,
+          variant: "destructive",
+        })
+      }
+    } catch (err: any) {
+      toast({ description: String(err), variant: "destructive" })
+    } finally {
+      setCopying(null)
+      await refreshContainers()
+    }
   }
 
   useEffect(() => {
@@ -80,7 +113,7 @@ export default function ContainerEnvironmentManager() {
                 <TableCell>{c.name}</TableCell>
                 <TableCell>{c.image}</TableCell>
                 <TableCell>{c.status}</TableCell>
-                <TableCell>
+                <TableCell className="flex gap-2">
                   <Button
                     size="sm"
                     variant="destructive"
@@ -88,6 +121,29 @@ export default function ContainerEnvironmentManager() {
                   >
                     Stop
                   </Button>
+                  <TooltipProvider delayDuration={150}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            disabled={!selectedRepo || copying === c.name}
+                            onClick={() => handleCopyRepo(c.name)}
+                          >
+                            {copying === c.name ? "Copying..." : "Copy to Container"}
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {selectedRepo
+                          ? copying === c.name
+                            ? "Copying repository into the container..."
+                            : "Copy the selected repo into this container"
+                          : "Select a repository to copy"}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </TableCell>
               </TableRow>
             ))}
@@ -107,3 +163,4 @@ export default function ContainerEnvironmentManager() {
     </Card>
   )
 }
+
