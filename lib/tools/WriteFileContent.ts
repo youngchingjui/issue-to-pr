@@ -1,11 +1,10 @@
 import path from "path"
 import { z } from "zod"
 
-import { execInContainer } from "@/lib/docker"
+import { writeFileInContainer } from "@/lib/docker"
 import { writeFile } from "@/lib/fs"
 import { createTool } from "@/lib/tools/helper"
 import { asRepoEnvironment, RepoEnvironment, Tool } from "@/lib/types"
-import { shellEscape } from "@/lib/utils/cli"
 
 const writeFileContentParameters = z.object({
   relativePath: z
@@ -27,31 +26,19 @@ async function fnHandler(
     await writeFile(fullPath, content)
     return `File written successfully to ${relativePath}`
   } else {
-    // Container environment
-
-    // Ensure the target directory exists
-    const dirPath = path.dirname(relativePath)
-    const mkdirResult = await execInContainer({
+    // Container environment using Docker helper
+    const { exitCode, stderr } = await writeFileInContainer({
       name: env.name,
-      command: `mkdir -p ${shellEscape(dirPath)}`,
-      cwd: env.mount,
-    })
-
-    if (mkdirResult.exitCode !== 0) {
-      throw new Error(`Failed to create directory: ${mkdirResult.stderr}`)
-    }
-
-    // Use printf to write content, escaping single quotes and handling newlines
-    const escapedContent = content.replace(/'/g, "'\\''")
-    const { stderr, exitCode } = await execInContainer({
-      name: env.name,
-      command: `printf '%s' ${shellEscape(escapedContent)} > ${shellEscape(relativePath)}`,
-      cwd: env.mount,
+      workdir: env.mount ?? "/workspace",
+      relPath: relativePath,
+      contents: content,
+      makeDirs: true,
     })
 
     if (exitCode !== 0) {
       throw new Error(`Failed to write file: ${stderr}`)
     }
+
     return `File written successfully to ${relativePath}`
   }
 }
