@@ -17,6 +17,7 @@ const DEFAULT_TOOLS = [
 import { auth } from "@/auth"
 import OAuthTokenCard from "@/components/auth/OAuthTokenCard"
 import AgentWorkflowClient from "@/components/playground/AgentWorkflowClient"
+import DockerodeExecCard from "@/components/playground/DockerodeExecCard"
 import RipgrepSearchCard from "@/components/playground/RipgrepSearchCard"
 
 export default async function PlaygroundPage() {
@@ -28,6 +29,7 @@ export default async function PlaygroundPage() {
       {token ? <OAuthTokenCard token={token} /> : null}
       <AgentWorkflowClient defaultTools={DEFAULT_TOOLS} />
       <RipgrepSearchCard />
+      <DockerodeExecCard />
     </div>
   )
 }
