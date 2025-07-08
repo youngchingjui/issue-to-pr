@@ -51,14 +51,15 @@ export async function getUserOpenAIApiKey(): Promise<string | null> {
   return key ? key : null
 }
 
-// --- PLAYGROUND: User Role Management (Add/Remove/Get) ---
-
 /**
  * Add a role/tag to a user by username.
  * Throws if user does not exist.
  * Returns updated roles array.
  */
-export async function addRoleToUser(username: string, role: string): Promise<string[]> {
+export async function addRoleToUser(
+  username: string,
+  role: string
+): Promise<string[]> {
   if (!username || !role) throw new Error("Username and role are required")
   const session = await n4j.getSession()
   try {
@@ -82,7 +83,10 @@ export async function addRoleToUser(username: string, role: string): Promise<str
  * Throws if user does not exist.
  * Returns updated roles array.
  */
-export async function removeRoleFromUser(username: string, role: string): Promise<string[]> {
+export async function removeRoleFromUser(
+  username: string,
+  role: string
+): Promise<string[]> {
   if (!username || !role) throw new Error("Username and role are required")
   const session = await n4j.getSession()
   try {
@@ -124,4 +128,3 @@ export async function getUserRoles(username: string): Promise<string[]> {
     await session.close()
   }
 }
-

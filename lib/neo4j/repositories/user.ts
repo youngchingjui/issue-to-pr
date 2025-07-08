@@ -102,4 +102,3 @@ export async function getUserRoles(
   )
   return res.records[0]?.get("roles") ?? []
 }
-
