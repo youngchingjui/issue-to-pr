@@ -466,7 +466,7 @@ export default function AgentWorkflowClient({
           </CardContent>
         </Card>
 
-        <ContainerEnvironmentManager />
+        <ContainerEnvironmentManager selectedRepo={selectedRepo} />
       </div>
       <div className="flex justify-end">
         <Button onClick={startRun} disabled={isRunning}>

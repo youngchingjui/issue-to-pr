@@ -1,4 +1,5 @@
 import { exec as hostExec } from "child_process"
+import Docker from "dockerode"
 import os from "os"
 import path from "path"
 import util from "util"
@@ -265,5 +266,61 @@ export async function createContainerizedWorkspace({
     exec,
     cleanup,
     workflowId,
+  }
+}
+
+/**
+ * Copy a local repository into an existing running container using dockerode.
+ *
+ * This function extracts the file copying logic from createContainerizedWorkspace
+ * to work with existing containers rather than creating new ones.
+ */
+export async function copyRepoToExistingContainer({
+  hostRepoPath,
+  containerName,
+  mountPath = "/workspace",
+}: {
+  hostRepoPath: string
+  containerName: string
+  mountPath?: string
+}): Promise<void> {
+  // Initialize dockerode
+  let docker: Docker
+  try {
+    docker = new Docker({ socketPath: "/var/run/docker.sock" })
+  } catch (e: unknown) {
+    throw new Error(`Failed to initialize Dockerode: ${e}`)
+  }
+
+  // Get the container
+  let container: Docker.Container
+  try {
+    container = docker.getContainer(containerName)
+    // Check if the container exists & is running
+    const data = await container.inspect()
+    if (!data.State.Running) {
+      throw new Error("Container is not running")
+    }
+  } catch (e: unknown) {
+    throw new Error(`Container not found or not running: ${e}`)
+  }
+
+  try {
+    // Copy files directly from host to target directory in container
+    await execHost(
+      `docker cp "${hostRepoPath}/." ${containerName}:${mountPath}`
+    )
+
+    // Fix ownership using dockerode exec
+    const chownExec = await container.exec({
+      Cmd: ["chown", "-R", "root:root", mountPath],
+      AttachStdout: true,
+      AttachStderr: true,
+      User: "root:root",
+    })
+
+    await chownExec.start({})
+  } catch (e: unknown) {
+    throw new Error(`Failed to copy repository to container: ${e}`)
   }
 }
