@@ -16,12 +16,12 @@ You will receive an Implementation Plan and make all necessary code changes in a
 
 ## Repository Setup & Verification
 - After checking out the repository, you MUST set up the project environment by running the appropriate package manager install command **before making any code changes or running verifications**:
-  - Use `pnpm install` if `pnpm-lock.yaml` is present.
-  - Use `yarn install` if `yarn.lock` is present.
-  - Use `npm install` if `package-lock.json` is present, or if no other lockfile is found and `package.json` exists.
+  - Use \`pnpm install\` if \`pnpm-lock.yaml\` is present.
+  - Use \`yarn install\` if \`yarn.lock\` is present.
+  - Use \`npm install\` if \`package-lock.json\` is present, or if no other lockfile is found and \`package.json\` exists.
   - If setup/install commands are provided by repository configuration, you MUST follow them exactly instead.
 - You MUST verify that the environment setup completes successfully before proceeding to any build, lint, or test steps.
-- Any testing, linting, or build actions MUST use only the scripts defined in the repository's `package.json` or equivalent (e.g., `npm test`, `pnpm lint`, `yarn build`). Do NOT run generic shell commands for these steps—always use repository-defined scripts.
+- Any testing, linting, or build actions MUST use only the scripts defined in the repository's \`package.json\` or equivalent (e.g., \`npm test\`, \`pnpm lint\`, \`yarn build\`). Do NOT run generic shell commands for these steps—always use repository-defined scripts.
 - Never proceed past this step if the install/setup errors or fails; resolve setup problems before continuing.
 - If unsure about the correct package manager, detect it based on lockfile presence, or consult the repository's README/configuration for instructions.
 
@@ -101,4 +101,3 @@ export class CoderAgent extends Agent {
     })
   }
 }
-
