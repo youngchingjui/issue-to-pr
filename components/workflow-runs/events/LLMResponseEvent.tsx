@@ -11,6 +11,46 @@ import { CollapsibleContent } from "@/components/ui/collapsible-content"
 import { EventTime } from "@/components/workflow-runs/events"
 import { CopyMarkdownButton } from "@/components/workflow-runs/events/CopyMarkdownButton"
 import { Issue, LLMResponse, LLMResponseWithPlan } from "@/lib/types"
+import { toast } from "@/lib/hooks/use-toast"
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip"
+import * as React from "react"
+
+// Inline client/test button for firing resolveIssue UX with toasts only (no backend)
+function ResolveIssueTestButton() {
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (Math.random() < 0.5) {
+                toast({
+                  title: "Resolution Launch Succeeded (Test)",
+                  description: "UI test: ResolveIssue button fired. No backend action was called.",
+                })
+              } else {
+                toast({
+                  title: "Failed to Launch Resolution (Test)",
+                  description: "UI test: No backend action. This is an error toast for demonstration only.",
+                  variant: "destructive",
+                })
+              }
+            }}
+            className="ml-2"
+            aria-label="Launch resolveIssue (UI Test)"
+          >
+            Resolve Issue (UI Test)
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          <span>This button is for UI testing only; it does not launch any backend.</span>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  )
+}
 
 // Some LLM response event nodes will also be a Plan node
 export interface Props {
@@ -39,6 +79,7 @@ export async function LLMResponseEvent({ event, issue }: Props) {
               </Button>
             </Link>
             <PostToGitHubButton content={event.content} issue={issue} />
+            <ResolveIssueTestButton />
           </>
         )}
         <CopyMarkdownButton content={event.content} />
@@ -58,3 +99,4 @@ export async function LLMResponseEvent({ event, issue }: Props) {
     </CollapsibleContent>
   )
 }
+
