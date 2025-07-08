@@ -45,8 +45,23 @@ RUN rg --version \
  && pip3 --version \
  && poetry --version
 
+# --- AGENT BASE CUSTOMIZATION ---
+# NOTE: This project requires pnpm for all Node.js package management!
+# Running npm install is NOT SUPPORTED and will fail on many repositories.
+# See /workspace/README.md for more info.
+
+# Ensure workspace is owned by node user (prevents Git dubious ownership errors)
+RUN chown -R node:node /workspace
+
+# Optionally, configure git to trust the workspace, as user and for volume mounts.
+RUN git config --global --add safe.directory /workspace
+
 # Set working directory where the agent will later receive a repository to work on
 WORKDIR /workspace
 
+# Switch to the non-root "node" user for best security & correct file permissions
+USER node
+
 # Default command keeps the container alive for interactive use
 CMD ["/bin/bash"]
+

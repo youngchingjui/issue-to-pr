@@ -1,0 +1,13 @@
+#############################################################
+# YOU ARE RUNNING INSIDE AN AGENT CONTAINER WITH pnpm ONLY! #
+#############################################################
+
+Note: 'npm install' is NOT SUPPORTED in this repo or environment!
+
+- Use 'pnpm install' and other pnpm commands for all installs
+- This base image will not guarantee npm install works
+- See /docker/agent-base/README.md and root project README.md
+
+If you see 'npm ERR! ERESOLVE unable to resolve dependency tree',
+you are using the wrong package manager.
+
