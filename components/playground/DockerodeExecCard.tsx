@@ -5,7 +5,7 @@ import { useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { runLsInContainerWithDockerode } from "@/lib/actions/dockerode-exec"
+import { execInContainerWithDockerode } from "@/lib/docker"
 
 export default function DockerodeExecCard() {
   const [containerName, setContainerName] = useState("")
@@ -22,12 +22,14 @@ export default function DockerodeExecCard() {
     }
     startTransition(async () => {
       try {
-        const { result, error } =
-          await runLsInContainerWithDockerode(containerName)
-        if (error) {
-          setErrorMsg(error)
+        const { stdout, stderr, exitCode } = await execInContainerWithDockerode({
+          name: containerName,
+          command: "ls -la",
+        })
+        if (exitCode !== 0) {
+          setErrorMsg(stderr || `Exited with code ${exitCode}`)
         } else {
-          setOutput(result || "No output.")
+          setOutput(stdout || "No output.")
         }
       } catch (e: unknown) {
         setErrorMsg(`An error occurred: ${e}`)

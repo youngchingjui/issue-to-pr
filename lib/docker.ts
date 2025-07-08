@@ -1,6 +1,9 @@
 import { exec } from "child_process"
 import util from "util"
 
+// --- NEW: Dockerode import for execInContainerWithDockerode ---
+import Docker from "dockerode"
+
 const execPromise = util.promisify(exec)
 
 // Default image name and literal type
@@ -32,7 +35,7 @@ export interface StartDetachedContainerOptions {
 
 /**
  * Starts a detached Docker container (`docker run -d`) that simply tails
- * `/dev/null` so it stays alive and returns the new container's ID.
+ * `/dev/null` so it stays alive and returns the new container'\''s ID.
  *
  * The helper constructs the appropriate command-line flags for container
  * name, non-root user, bind-mounts, environment variables, and working
@@ -74,7 +77,7 @@ export async function startContainer({
 
   // 2. Build environment variable flags: -e "KEY=value"
   const envFlags = Object.entries(env).map(
-    ([key, value]) => `-e \"${key}=${value.replace(/"/g, '\\\"')}\"`
+    ([key, value]) => `-e \"${key}=${value.replace(/"/g, '\''\\\"'\'')}\"`
   )
 
   // 3. Determine working directory
@@ -100,20 +103,90 @@ export async function startContainer({
 }
 
 /**
- * Execute a shell command inside a running container.
- *
- * The provided `command` string will be automatically escaped so that it is
- * safe to pass to `sh -c` inside the container. The resulting Docker command
- * looks like:
- *
- * ```bash
- * docker exec [--workdir <cwd>] <name> sh -c '<command>'
- * ```
- *
- * Because this helper already performs the necessary escaping, callers SHOULD
- * pass the raw command and **must not** pre-sanitize or quote it themselves.
- * Otherwise the command may be double-escaped and fail to run as expected.
+ * Executes a shell command in a running container using Dockerode.
+ * @param name Container name or ID
+ * @param command Shell command to run (sh -c)
+ * @param cwd Optional working directory inside container
+ * @returns { stdout, stderr, exitCode }
  */
+export async function execInContainerWithDockerode({
+  name,
+  command,
+  cwd,
+}: {
+  name: string
+  command: string
+  cwd?: string
+}): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  if (!name || typeof name !== "string" || !name.trim()) {
+    return { stdout: "", stderr: "Container name must not be empty.", exitCode: 1 }
+  }
+  let docker: Docker
+  try {
+    docker = new Docker({ socketPath: "/var/run/docker.sock" })
+  } catch (e: unknown) {
+    return { stdout: "", stderr: `Failed to initialize Dockerode: ${e}`, exitCode: 1 }
+  }
+  let container: Docker.Container
+  try {
+    container = docker.getContainer(name)
+    // Check if the container exists & is running
+    const data = await container.inspect()
+    if (!data.State.Running) {
+      return { stdout: "", stderr: "Container is not running.", exitCode: 1 }
+    }
+  } catch (e: unknown) {
+    return { stdout: "", stderr: `Container not found or not running: ${e}`, exitCode: 1 }
+  }
+  try {
+    // Use shell to match parity with the CLI version
+    const exec = await container.exec({
+      Cmd: ["sh", "-c", command],
+      AttachStdout: true,
+      AttachStderr: true,
+      WorkingDir: cwd,
+    })
+    const stream = await exec.start({})
+    let stdout = ""
+    let stderr = ""
+    await new Promise<void>((resolve, reject) => {
+      container.modem.demuxStream(
+        stream,
+        {
+          write(chunk: Buffer | string) {
+            stdout += chunk.toString()
+          },
+          end: () => {},
+        },
+        {
+          write(chunk: Buffer | string) {
+            stderr += chunk.toString()
+          },
+          end: () => {},
+        }
+      )
+      stream.on("end", resolve)
+      stream.on("error", reject)
+    })
+    // Get exit code
+    const inspectRes = await exec.inspect()
+    return {
+      stdout,
+      stderr,
+      exitCode: typeof inspectRes.ExitCode === "number" ? inspectRes.ExitCode : 0,
+    }
+  } catch (e: unknown) {
+    return {
+      stdout: "",
+      stderr: `Failed to exec in container: ${e}`,
+      exitCode: 1,
+    }
+  }
+}
+
+/** 
+ * @deprecated Prefer execInContainerWithDockerode for robust inside-container execution.
+*/
 export async function execInContainer({
   name,
   command,
@@ -124,7 +197,7 @@ export async function execInContainer({
   cwd?: string
 }): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const workdirFlag = cwd ? `--workdir \"${cwd}\"` : ""
-  const execCmd = `docker exec ${workdirFlag} ${name} sh -c '${command.replace(/'/g, "'\\''")}'`
+  const execCmd = `docker exec ${workdirFlag} ${name} sh -c '\''${command.replace(/'\''/g, "'\''\\'\'''\''")}'\''`
   try {
     const { stdout, stderr } = await execPromise(execCmd)
     return { stdout, stderr, exitCode: 0 }
@@ -155,7 +228,7 @@ export async function stopAndRemoveContainer(name: string): Promise<void> {
 export async function isContainerRunning(name: string): Promise<boolean> {
   try {
     const { stdout } = await execPromise(
-      `docker inspect -f '{{.State.Running}}' ${name}`
+      `docker inspect -f '\''{{.State.Running}}'\'' ${name}`
     )
     return stdout.trim() === "true"
   } catch {
@@ -175,7 +248,7 @@ export interface RunningContainer {
  */
 export async function listRunningContainers(): Promise<RunningContainer[]> {
   try {
-    const { stdout } = await execPromise("docker ps --format '{{json .}}'")
+    const { stdout } = await execPromise("docker ps --format '\''{{json .}}'\''")
     const lines = stdout.trim().split("\n").filter(Boolean)
     return lines.map((line) => {
       const data = JSON.parse(line) as Record<string, string>
