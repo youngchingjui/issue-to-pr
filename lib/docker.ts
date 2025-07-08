@@ -3,6 +3,7 @@
 import { exec } from "child_process"
 import Docker from "dockerode"
 import util from "util"
+import { z } from "zod"
 
 const execPromise = util.promisify(exec)
 
@@ -147,6 +148,7 @@ export async function execInContainerWithDockerode({
       AttachStdout: true,
       AttachStderr: true,
       WorkingDir: cwd,
+      User: "root:root",
     })
     const stream = await exec.start({})
     let stdout = ""
@@ -265,5 +267,139 @@ export async function listRunningContainers(): Promise<RunningContainer[]> {
   } catch (error) {
     console.error("[ERROR] Failed to list running containers:", error)
     return []
+  }
+}
+
+/**
+ * Zod schema for writeFileInContainer parameters
+ */
+const writeFileInContainerSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Container name cannot be empty")
+    .max(253, "Container name too long") // Docker container name limit
+    .regex(/^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/, "Invalid container name format"),
+
+  workdir: z
+    .string()
+    .trim()
+    .min(1, "Working directory cannot be empty")
+    .max(4096, "Working directory path too long") // Common filesystem limit
+    .regex(/^\/.*/, "Working directory must be an absolute path")
+    .refine(
+      (path) => !path.includes(".."),
+      "Working directory cannot contain '..'"
+    ),
+
+  relPath: z
+    .string()
+    .trim()
+    .min(1, "Relative file path cannot be empty")
+    .max(4096, "File path too long")
+    .refine(
+      (path) => !path.startsWith("/"),
+      "Path must be relative (cannot start with '/')"
+    )
+    .refine(
+      (path) => !path.includes(".."),
+      "Path cannot contain '..' for security"
+    )
+    .refine(
+      (path) => path.length > 0 && !path.startsWith("."),
+      "Path cannot start with '.'"
+    )
+    .refine(
+      (path) => !/[<>:"|?*\x00-\x1f]/.test(path),
+      "Path contains invalid characters"
+    )
+    .refine(
+      (path) =>
+        !path
+          .split("/")
+          .some(
+            (segment) => segment === "" || segment === "." || segment === ".."
+          ),
+      "Path cannot contain empty segments or '.', '..'"
+    ),
+
+  contents: z
+    .string()
+    .max(50 * 1024 * 1024, "File contents too large (max 50MB)"), // 50MB limit
+
+  makeDirs: z.boolean().default(true),
+})
+
+/**
+ * Type for writeFileInContainer parameters
+ */
+export type WriteFileInContainerParams = z.input<
+  typeof writeFileInContainerSchema
+>
+
+/**
+ * Write file contents to a path inside a running container using Dockerode.
+ *
+ * @param name Container name or ID
+ * @param workdir Base working directory inside the container
+ * @param relPath Relative file path from workdir
+ * @param contents File contents to write
+ * @param makeDirs Whether to create parent directories if they don't exist
+ * @returns { stdout, stderr, exitCode }
+ */
+export async function writeFileInContainer(
+  params: WriteFileInContainerParams
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  // Validate input parameters with Zod
+  const validationResult = writeFileInContainerSchema.safeParse(params)
+
+  if (!validationResult.success) {
+    const errorMessages = validationResult.error.errors
+      .map((err) => `${err.path.join(".")}: ${err.message}`)
+      .join("; ")
+
+    return {
+      stdout: "",
+      stderr: `Input validation failed: ${errorMessages}`,
+      exitCode: 1,
+    }
+  }
+
+  const { name, workdir, relPath, contents, makeDirs } = validationResult.data
+
+  // Construct the full path (Zod validation ensures relPath is safe)
+  const fullPath = `${workdir.replace(/\/$/, "")}/${relPath}`
+
+  // Build the command
+  let command = ""
+
+  if (makeDirs) {
+    // Create parent directories if needed
+    command += `mkdir -p "$(dirname "${fullPath}")" && `
+  }
+
+  // Use heredoc to safely write contents (avoids escaping issues)
+  command += `cat > "${fullPath}" << 'WRITE_FILE_EOF'\n${contents}\nWRITE_FILE_EOF`
+
+  // Execute the command
+  try {
+    const result = await execInContainerWithDockerode({
+      name,
+      command,
+      cwd: workdir,
+    })
+
+    // If successful, add the file path to stdout for confirmation
+    if (result.exitCode === 0) {
+      result.stdout = `File successfully written to: ${fullPath}\n${result.stdout}`
+    }
+
+    return result
+  } catch (e: unknown) {
+    return {
+      stdout: "",
+      stderr: `Failed to write file: ${e}`,
+      exitCode: 1,
+    }
   }
 }
