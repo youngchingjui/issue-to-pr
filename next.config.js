@@ -67,9 +67,11 @@ const nextConfig = {
       })
     })
 
-    // Avoid loading cpu-features to client side, from dockerode
     if (isServer) {
+      // Avoid loading cpu-features to client side, from dockerode
       config.externals.push("cpu-features")
+      // Also exclude ssh2 and its native bindings since we only use local socket
+      config.externals.push("ssh2")
     }
 
     return config
