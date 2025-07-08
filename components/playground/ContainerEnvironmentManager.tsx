@@ -17,7 +17,7 @@ import {
   getRunningContainers,
   launchAgentBaseContainer,
   stopContainer,
-} from "@/lib/actions/docker"
+} from "@/lib/docker"
 
 interface ContainerEnv {
   id: string
