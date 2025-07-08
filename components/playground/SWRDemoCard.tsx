@@ -1,13 +1,10 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useCallback, useState } from "react"
 import useSWR from "swr"
-import { v4 as uuidv4 } from "uuid"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-
-const DEMO_PREFIX = "demo-swr-"
 
 function fetcher(url: string) {
   return fetch(url).then((res) => res.json())
@@ -70,12 +67,19 @@ export default function SWRDemoCard() {
             <div>No demo runs in progress.</div>
           ) : (
             <ul className="space-y-2">
-              {demoRuns?.map((run: any) => (
-                <li key={run.id} className="flex items-center gap-2 border rounded px-3 py-2">
-                  <code className="text-xs font-mono text-muted-foreground">{run.id}</code>
-                  <span className="ml-2 badge bg-muted px-2 rounded text-xs">{run.state}</span>
+              {demoRuns?.map((run) => (
+                <li
+                  key={run.id}
+                  className="flex items-center gap-2 border rounded px-3 py-2"
+                >
+                  <code className="text-xs font-mono text-muted-foreground">
+                    {run.id}
+                  </code>
+                  <span className="ml-2 badge bg-muted px-2 rounded text-xs">
+                    {run.state}
+                  </span>
                   <Button
-                    size="xs"
+                    size="sm"
                     variant={selectedRun === run.id ? "default" : "secondary"}
                     onClick={() => setSelectedRun(run.id)}
                     disabled={selectedRun === run.id}
@@ -83,7 +87,7 @@ export default function SWRDemoCard() {
                     View Events
                   </Button>
                   <Button
-                    size="xs"
+                    size="sm"
                     onClick={() => handleDelete(run.id)}
                     variant="destructive"
                     disabled={deletingId === run.id}
@@ -99,7 +103,9 @@ export default function SWRDemoCard() {
           <DemoWorkflowEventStream runId={selectedRun} key={selectedRun} />
         )}
         <div className="mt-2 text-xs text-muted-foreground">
-          This demo allows you to create, list, and remove test workflows. Selecting a workflow subscribes to its real-time events (useful for SWR/SSE demo).
+          This demo allows you to create, list, and remove test workflows.
+          Selecting a workflow subscribes to its real-time events (useful for
+          SWR/SSE demo).
         </div>
       </CardContent>
     </Card>
@@ -122,10 +128,17 @@ function DemoWorkflowEventStream({ runId }: { runId: string }) {
         <div>No events yet.</div>
       ) : (
         <ol className="text-xs font-mono mt-2 space-y-1">
-          {details.events.map((ev: any, i: number) => (
+          {details.events.map((ev, i) => (
             <li key={ev.id ?? i}>
-              <span className="text-muted-foreground mr-1">[{new Date(ev.createdAt).toLocaleTimeString()}]</span>"
-              <span>{typeof ev.content === "string" ? ev.content : JSON.stringify(ev.content)}</span>
+              <span className="text-muted-foreground mr-1">
+                [{new Date(ev.createdAt).toLocaleTimeString()}]
+              </span>
+              &quot;
+              <span>
+                {typeof ev.content === "string"
+                  ? ev.content
+                  : JSON.stringify(ev.content)}
+              </span>
             </li>
           ))}
         </ol>
@@ -133,4 +146,3 @@ function DemoWorkflowEventStream({ runId }: { runId: string }) {
     </div>
   )
 }
-

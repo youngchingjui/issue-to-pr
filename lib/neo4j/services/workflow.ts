@@ -93,7 +93,9 @@ export async function initializeWorkflowRun({
 export async function listWorkflowRuns(issue?: {
   repoFullName: string
   issueNumber: number
-}): Promise<(AppWorkflowRun & { state: WorkflowRunState; issue?: AppIssue })[]> {
+}): Promise<
+  (AppWorkflowRun & { state: WorkflowRunState; issue?: AppIssue })[]
+> {
   const session = await n4j.getSession()
   try {
     const result = await session.executeRead(async (tx) => {
