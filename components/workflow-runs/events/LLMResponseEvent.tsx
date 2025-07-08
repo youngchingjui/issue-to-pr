@@ -2,10 +2,12 @@
 
 import { ExternalLink } from "lucide-react"
 import Link from "next/link"
+import * as React from "react"
 import ReactMarkdown from "react-markdown"
 
 import { FeedbackButton } from "@/components/common/FeedbackButton"
 import { PostToGitHubButton } from "@/components/issues/actions/PostToGitHubButton"
+import { ResolveIssueTestButton } from "@/components/issues/actions/ResolveIssueTestButton"
 import { Button } from "@/components/ui/button"
 import { CollapsibleContent } from "@/components/ui/collapsible-content"
 import { EventTime } from "@/components/workflow-runs/events"
@@ -13,7 +15,7 @@ import { CopyMarkdownButton } from "@/components/workflow-runs/events/CopyMarkdo
 import { Issue, LLMResponse, LLMResponseWithPlan } from "@/lib/types"
 
 // Some LLM response event nodes will also be a Plan node
-export interface Props {
+interface Props {
   event: LLMResponse | LLMResponseWithPlan
   issue?: Issue
 }
@@ -39,6 +41,7 @@ export async function LLMResponseEvent({ event, issue }: Props) {
               </Button>
             </Link>
             <PostToGitHubButton content={event.content} issue={issue} />
+            <ResolveIssueTestButton />
           </>
         )}
         <CopyMarkdownButton content={event.content} />
