@@ -3,7 +3,11 @@
 import { exec } from "child_process"
 import Docker from "dockerode"
 import util from "util"
-import { z } from "zod"
+
+import {
+  WriteFileInContainerParams,
+  writeFileInContainerSchema,
+} from "@/lib/types/docker"
 
 const execPromise = util.promisify(exec)
 
@@ -269,73 +273,6 @@ export async function listRunningContainers(): Promise<RunningContainer[]> {
     return []
   }
 }
-
-/**
- * Zod schema for writeFileInContainer parameters
- */
-const writeFileInContainerSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, "Container name cannot be empty")
-    .max(253, "Container name too long") // Docker container name limit
-    .regex(/^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/, "Invalid container name format"),
-
-  workdir: z
-    .string()
-    .trim()
-    .min(1, "Working directory cannot be empty")
-    .max(4096, "Working directory path too long") // Common filesystem limit
-    .regex(/^\/.*/, "Working directory must be an absolute path")
-    .refine(
-      (path) => !path.includes(".."),
-      "Working directory cannot contain '..'"
-    ),
-
-  relPath: z
-    .string()
-    .trim()
-    .min(1, "Relative file path cannot be empty")
-    .max(4096, "File path too long")
-    .refine(
-      (path) => !path.startsWith("/"),
-      "Path must be relative (cannot start with '/')"
-    )
-    .refine(
-      (path) => !path.includes(".."),
-      "Path cannot contain '..' for security"
-    )
-    .refine(
-      (path) => path.length > 0 && !path.startsWith("."),
-      "Path cannot start with '.'"
-    )
-    .refine(
-      (path) => !/[<>:"|?*\x00-\x1f]/.test(path),
-      "Path contains invalid characters"
-    )
-    .refine(
-      (path) =>
-        !path
-          .split("/")
-          .some(
-            (segment) => segment === "" || segment === "." || segment === ".."
-          ),
-      "Path cannot contain empty segments or '.', '..'"
-    ),
-
-  contents: z
-    .string()
-    .max(50 * 1024 * 1024, "File contents too large (max 50MB)"), // 50MB limit
-
-  makeDirs: z.boolean().default(true),
-})
-
-/**
- * Type for writeFileInContainer parameters
- */
-export type WriteFileInContainerParams = z.input<
-  typeof writeFileInContainerSchema
->
 
 /**
  * Write file contents to a path inside a running container using Dockerode.
