@@ -29,7 +29,7 @@ export async function runLsInContainerWithDockerode(
       return { error: "Container is not running." }
     }
   } catch (e: unknown) {
-    return { error: "Container not found or not running." }
+    return { error: `Container not found or not running: ${e}` }
   }
   try {
     const exec = await container.exec({
