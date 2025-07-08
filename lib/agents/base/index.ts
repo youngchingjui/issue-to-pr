@@ -191,6 +191,7 @@ export class Agent {
     const params: ChatCompletionCreateParamsNonStreaming = {
       model: this.model,
       messages: this.messages,
+      store: true,
     }
 
     if (this.tools.length > 0) {
