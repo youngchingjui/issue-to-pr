@@ -161,3 +161,44 @@ export async function getWorkflowRunMessages(
     await session.close()
   }
 }
+
+/**
+ * Deletes a workflow run and all its attached events in a single atomic transaction.
+ * Maintains event chain/relationship consistency by deleting all events then deleting the workflow run node.
+ * Throws if the workflow run does not exist.
+ */
+export async function deleteWorkflowRunWithEvents(workflowRunId: string): Promise<void> {
+  const session = await n4j.getSession()
+  try {
+    await session.executeWrite(async (tx) => {
+      // Match all events in the event chain for this workflow run
+      const eventIdsResult = await tx.run(
+        `MATCH (w:WorkflowRun {id: $workflowRunId})-[:STARTS_WITH|NEXT*]->(e:Event)
+         RETURN e.id AS eventId`,
+        { workflowRunId }
+      )
+      const eventIds = eventIdsResult.records.map((rec) => rec.get('eventId'))
+
+      // Delete all events (detaching them will remove relationships too)
+      if(eventIds.length > 0) {
+        await tx.run(
+          `MATCH (e:Event) WHERE e.id IN $eventIds DETACH DELETE e`,
+          { eventIds }
+        )
+      }
+
+      // Delete the workflow run node itself
+      const result = await tx.run(
+        `MATCH (w:WorkflowRun {id: $workflowRunId}) DETACH DELETE w RETURN COUNT(w) as count` ,
+        { workflowRunId }
+      )
+      const deletedCount = result.records[0]?.get("count")
+      if (!deletedCount || deletedCount.toInt() === 0) {
+        throw new Error("WorkflowRun not found")
+      }
+    })
+  } finally {
+    await session.close()
+  }
+}
+
