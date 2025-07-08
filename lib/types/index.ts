@@ -197,6 +197,7 @@ export const settingsSchema = z.object({
     .date()
     .describe("The date and time when the settings were last updated.")
     .default(new Date()),
+  roles: z.array(z.string()).describe("Roles or tags for user").optional(),
   // Add more user-specific settings here as needed
 })
 
@@ -250,7 +251,7 @@ export const blogPostSchema = z.object({
 })
 
 // ---- Repo Environment Type ----
-// Represents where repository operations are executed – either directly on the host
+// Represents where repository operations are executed  either directly on the host
 // file-system or inside a named Docker container (optionally with a different mount path).
 export type RepoEnvironment =
   | { kind: "host"; root: string }
@@ -292,3 +293,4 @@ export type WorkflowRun = z.infer<typeof workflowRunSchema>
 export type WorkflowRunState = z.infer<typeof workflowRunStateSchema>
 export type WorkflowStateEvent = z.infer<typeof workflowStateEventSchema>
 export type WorkflowType = z.infer<typeof workflowTypeEnum>
+
