@@ -27,11 +27,11 @@ export default async function PlaygroundPage() {
 
   return (
     <div className="space-y-8 px-4 py-8 md:container md:mx-auto">
-      {token ? <OAuthTokenCard token={token} /> : null}
       <AgentWorkflowClient defaultTools={DEFAULT_TOOLS} />
       <RipgrepSearchCard />
       <DockerodeExecCard />
       <WriteFileCard />
+      {token ? <OAuthTokenCard token={token} /> : null}
     </div>
   )
 }
