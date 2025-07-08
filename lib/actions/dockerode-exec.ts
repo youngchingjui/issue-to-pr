@@ -15,8 +15,8 @@ export async function runLsInContainerWithDockerode(
   let docker: Docker
   try {
     docker = new Docker({ socketPath: "/var/run/docker.sock" })
-  } catch (e: any) {
-    return { error: `Failed to initialize Dockerode: ${e?.message || e}` }
+  } catch (e: unknown) {
+    return { error: `Failed to initialize Dockerode: ${e}` }
   }
   let container: Docker.Container
   try {
@@ -26,7 +26,7 @@ export async function runLsInContainerWithDockerode(
     if (!data.State.Running) {
       return { error: "Container is not running." }
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     return { error: "Container not found or not running." }
   }
   try {
@@ -59,7 +59,9 @@ export async function runLsInContainerWithDockerode(
       stream.on("error", reject)
     })
     return { result: output }
-  } catch (e: any) {
-    return { error: e?.message || "Failed to exec ls -la in container." }
+  } catch (e: unknown) {
+    return {
+      error: `Failed to exec ls -la in container: ${e}`,
+    }
   }
 }

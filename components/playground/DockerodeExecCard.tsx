@@ -1,10 +1,10 @@
 "use client"
 
 import { useState, useTransition } from "react"
+
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { toast } from "@/lib/hooks/use-toast"
 import { runLsInContainerWithDockerode } from "@/lib/actions/dockerode-exec"
 
 export default function DockerodeExecCard() {
@@ -22,14 +22,15 @@ export default function DockerodeExecCard() {
     }
     startTransition(async () => {
       try {
-        const { result, error } = await runLsInContainerWithDockerode(containerName)
+        const { result, error } =
+          await runLsInContainerWithDockerode(containerName)
         if (error) {
           setErrorMsg(error)
         } else {
           setOutput(result || "No output.")
         }
-      } catch (e: any) {
-        setErrorMsg(e?.message || "An error occurred")
+      } catch (e: unknown) {
+        setErrorMsg(`An error occurred: ${e}`)
       }
     })
   }
@@ -37,23 +38,28 @@ export default function DockerodeExecCard() {
   return (
     <Card className="max-w-md w-full mx-auto mb-4 bg-white/70 border border-dashed border-slate-300 shadow-sm">
       <CardHeader>
-        <CardTitle className="text-base">Dockerode: <code>ls -la</code> in Container</CardTitle>
+        <CardTitle className="text-base">
+          Dockerode: <code>ls -la</code> in Container
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-muted-foreground" htmlFor="containerNameInput">
+          <label
+            className="block text-sm font-medium text-muted-foreground"
+            htmlFor="containerNameInput"
+          >
             Container Name
           </label>
           <Input
             id="containerNameInput"
             value={containerName}
-            onChange={e => setContainerName(e.target.value)}
+            onChange={(e) => setContainerName(e.target.value)}
             placeholder="my-container"
             disabled={isPending}
             autoFocus
             className="mb-2"
           />
-          <Button onClick={handleExec} loading={isPending} disabled={isPending} type="button">
+          <Button onClick={handleExec} disabled={isPending} type="button">
             {isPending ? "Running..." : "Run ls -la"}
           </Button>
           {output !== null && (

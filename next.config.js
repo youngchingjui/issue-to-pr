@@ -67,6 +67,11 @@ const nextConfig = {
       })
     })
 
+    // Avoid loading cpu-features to client side, from dockerode
+    if (isServer) {
+      config.externals.push("cpu-features")
+    }
+
     return config
   },
 }

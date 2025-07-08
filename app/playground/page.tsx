@@ -17,8 +17,8 @@ const DEFAULT_TOOLS = [
 import { auth } from "@/auth"
 import OAuthTokenCard from "@/components/auth/OAuthTokenCard"
 import AgentWorkflowClient from "@/components/playground/AgentWorkflowClient"
-import RipgrepSearchCard from "@/components/playground/RipgrepSearchCard"
 import DockerodeExecCard from "@/components/playground/DockerodeExecCard"
+import RipgrepSearchCard from "@/components/playground/RipgrepSearchCard"
 
 export default async function PlaygroundPage() {
   const session = await auth()
