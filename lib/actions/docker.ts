@@ -1,6 +1,6 @@
 "use server"
 
-import { AGENT_BASE_IMAGE } from "@/lib/docker"
+import { AGENT_BASE_IMAGE, writeFileInContainer } from "@/lib/docker"
 import {
   listRunningContainers,
   RunningContainer,
@@ -27,4 +27,19 @@ export async function launchAgentBaseContainer() {
 
 export async function stopContainer(name: string) {
   await stopAndRemoveContainer(name)
+}
+
+// Server action for UI to write a file into a running container
+export async function writeFileToContainer(options: {
+  name: string
+  workdir: string
+  relativePath: string
+  contents: string
+}): Promise<{ result: string | null; error: string | null }> {
+  try {
+    await writeFileInContainer(options)
+    return { result: `File successfully written to ${options.relativePath}`, error: null }
+  } catch (err) {
+    return { result: null, error: (err as Error).message }
+  }
 }

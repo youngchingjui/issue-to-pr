@@ -1,5 +1,7 @@
 import { exec } from "child_process"
 import util from "util"
+import path from "path"
+import { relativePathSchema } from "@/lib/types/utils/path"
 
 const execPromise = util.promisify(exec)
 
@@ -32,7 +34,7 @@ export interface StartDetachedContainerOptions {
 
 /**
  * Starts a detached Docker container (`docker run -d`) that simply tails
- * `/dev/null` so it stays alive and returns the new container's ID.
+ * `/dev/null` so it stays alive and returns the new container'\''s ID.
  *
  * The helper constructs the appropriate command-line flags for container
  * name, non-root user, bind-mounts, environment variables, and working
@@ -74,7 +76,7 @@ export async function startContainer({
 
   // 2. Build environment variable flags: -e "KEY=value"
   const envFlags = Object.entries(env).map(
-    ([key, value]) => `-e \"${key}=${value.replace(/"/g, '\\\"')}\"`
+    ([key, value]) => `-e \"${key}=${value.replace(/"/g, '\''\\\"'\'')}\"`
   )
 
   // 3. Determine working directory
@@ -107,7 +109,7 @@ export async function startContainer({
  * looks like:
  *
  * ```bash
- * docker exec [--workdir <cwd>] <name> sh -c '<command>'
+ * docker exec [--workdir <cwd>] <name> sh -c '\''<command>'\''
  * ```
  *
  * Because this helper already performs the necessary escaping, callers SHOULD
@@ -124,7 +126,7 @@ export async function execInContainer({
   cwd?: string
 }): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const workdirFlag = cwd ? `--workdir \"${cwd}\"` : ""
-  const execCmd = `docker exec ${workdirFlag} ${name} sh -c '${command.replace(/'/g, "'\\''")}'`
+  const execCmd = `docker exec ${workdirFlag} ${name} sh -c '\''${command.replace(/'\''/g, "'\''\\'\'''\''")}'\''`
   try {
     const { stdout, stderr } = await execPromise(execCmd)
     return { stdout, stderr, exitCode: 0 }
@@ -155,7 +157,7 @@ export async function stopAndRemoveContainer(name: string): Promise<void> {
 export async function isContainerRunning(name: string): Promise<boolean> {
   try {
     const { stdout } = await execPromise(
-      `docker inspect -f '{{.State.Running}}' ${name}`
+      `docker inspect -f '\''{{.State.Running}}'\'' ${name}`
     )
     return stdout.trim() === "true"
   } catch {
@@ -175,7 +177,7 @@ export interface RunningContainer {
  */
 export async function listRunningContainers(): Promise<RunningContainer[]> {
   try {
-    const { stdout } = await execPromise("docker ps --format '{{json .}}'")
+    const { stdout } = await execPromise("docker ps --format '\''{{json .}}'\''")
     const lines = stdout.trim().split("\n").filter(Boolean)
     return lines.map((line) => {
       const data = JSON.parse(line) as Record<string, string>
@@ -190,4 +192,72 @@ export async function listRunningContainers(): Promise<RunningContainer[]> {
     console.error("[ERROR] Failed to list running containers:", error)
     return []
   }
+}
+
+/**
+ * Write a file in a running Docker container, using /bin/sh and tee via execInContainer. Handles multi-line and arbitrary file contents by streaming stdin via tee. 
+ * 
+ * Throws if path is unsafe or writing fails. 
+ */
+export async function writeFileInContainer({
+  name,
+  workdir,
+  relativePath,
+  contents,
+}: {
+  name: string
+  workdir: string
+  relativePath: string
+  contents: string
+}): Promise<void | Error> {
+  // Validate path: must be relative, no .., no abs, etc
+  const relCheck = relativePathSchema.safeParse(relativePath)
+  if (!relCheck.success) {
+    throw new Error(`Invalid relativePath: ${relCheck.error.message}`)
+  }
+  if (!workdir || typeof workdir !== "string" || workdir[0] !== "/") {
+    throw new Error("Workdir must be an absolute directory in the container.")
+  }
+  // Compose target file path
+  const targetPath = path.posix.join(workdir, relativePath)
+  // Use tee for multiline/large content
+  // Construct: sh -c '\''cat > /path/to/file'\''
+  // We stream the contents to the container as stdin
+  // Note: execInContainer uses sh -c '\''...'\'' so we must ensure newlines and content are passed as stdin, not via shell args.
+  // Because child_process.promisify doesn'\''t support stdin piping,
+  // we need to manually construct a "docker exec" command and pipe to it.
+  //
+  // Instead of using execInContainer, use spawn + pipe for this purpose (uses shell redirection safely).
+
+  const { spawn } = await import("child_process")
+  const dockerArgs = [
+    "exec",
+    "-i",
+    "--workdir",
+    workdir,
+    name,
+    "sh",
+    "-c",
+    `cat > '\''${targetPath.replace(/'\''/g, "'\''\\'\'''\''")}'\''`,
+  ]
+
+  return new Promise((resolve, reject) => {
+    const proc = spawn("docker", dockerArgs, { stdio: ["pipe", "pipe", "pipe"] })
+    proc.stdin.write(contents)
+    proc.stdin.end()
+    let stderr = ""
+    proc.stderr.on("data", (chunk) => {
+      stderr += chunk.toString()
+    })
+    proc.on("close", (code) => {
+      if (code === 0) {
+        resolve()
+      } else {
+        reject(new Error(`docker exec failed: ${stderr.trim()}`))
+      }
+    })
+    proc.on("error", (err) => {
+      reject(err)
+    })
+  })
 }
