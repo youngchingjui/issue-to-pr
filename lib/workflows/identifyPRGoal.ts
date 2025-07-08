@@ -11,7 +11,7 @@ import {
   createStatusEvent,
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
-import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
+import { initializeWorkflowRun, checkCancelRequested } from "@/lib/neo4j/services/workflow"
 import { createGetIssueTool } from "@/lib/tools/GetIssueTool"
 import { GitHubIssue } from "@/lib/types/github"
 
@@ -50,6 +50,13 @@ export async function identifyPRGoal({
       state: "running",
     })
 
+    // Cancel check
+    if (await checkCancelRequested(workflowId)) {
+      await createStatusEvent({ workflowId, content: "Cancelled by user" })
+      await createWorkflowStateEvent({ workflowId, state: "cancelled" })
+      return "Workflow cancelled"
+    }
+
     await createStatusEvent({
       workflowId,
       content: "fetching_repo",
@@ -61,6 +68,13 @@ export async function identifyPRGoal({
       workflowId,
       content: "Fetching PR details",
     })
+
+    // Cancel check
+    if (await checkCancelRequested(workflowId)) {
+      await createStatusEvent({ workflowId, content: "Cancelled by user" })
+      await createWorkflowStateEvent({ workflowId, state: "cancelled" })
+      return "Workflow cancelled"
+    }
 
     const pr = await getPullRequest({ repoFullName, pullNumber })
     const comments = await getPullRequestComments({ repoFullName, pullNumber })
@@ -99,6 +113,13 @@ Available tools:
 
     await agent.addMessage(initialMessage)
 
+    // Cancel check
+    if (await checkCancelRequested(workflowId)) {
+      await createStatusEvent({ workflowId, content: "Cancelled by user" })
+      await createWorkflowStateEvent({ workflowId, state: "cancelled" })
+      return "Workflow cancelled"
+    }
+
     await createStatusEvent({
       workflowId,
       content: "Starting PR goal analysis",
@@ -115,7 +136,7 @@ Available tools:
     const lastMessage = result.messages[result.messages.length - 1]
     if (typeof lastMessage.content !== "string") {
       throw new Error(
-        `Last message content is not a string. Here's the content: ${JSON.stringify(
+        `Last message content is not a string. Here'\''s the content: ${JSON.stringify(
           lastMessage.content
         )}`
       )

@@ -22,13 +22,14 @@ export async function create(
 ): Promise<WorkflowRun> {
   const result = await tx.run<{ w: Node<Integer, WorkflowRun, "WorkflowRun"> }>(
     `
-    CREATE (w:WorkflowRun {id: $id, type: $type, createdAt: datetime(), postToGithub: $postToGithub}) 
+    CREATE (w:WorkflowRun {id: $id, type: $type, createdAt: datetime(), postToGithub: $postToGithub, cancelRequested: $cancelRequested}) 
     RETURN w
     `,
     {
       id: workflowRun.id,
       type: workflowRun.type,
       postToGithub: workflowRun.postToGithub ?? null,
+      cancelRequested: workflowRun.cancelRequested ?? null,
     }
   )
   return workflowRunSchema.parse(result.records[0].get("w").properties)
@@ -46,6 +47,28 @@ export async function get(
   return raw ? workflowRunSchema.parse(raw) : null
 }
 
+export async function setCancelRequested(
+  tx: ManagedTransaction,
+  workflowId: string
+): Promise<void> {
+  await tx.run(
+    `MATCH (w:WorkflowRun {id: $workflowId}) SET w.cancelRequested = true`,
+    { workflowId }
+  )
+}
+
+export async function getCancelRequested(
+  tx: ManagedTransaction,
+  workflowId: string
+): Promise<boolean> {
+  const result = await tx.run<{ cancelRequested: boolean }>(
+    `MATCH (w:WorkflowRun {id: $workflowId}) RETURN w.cancelRequested AS cancelRequested`,
+    { workflowId }
+  )
+  // If no match, assume not cancelled
+  return result.records[0]?.get("cancelRequested") === true
+}
+
 // Modified: Now includes the issue as an extra field per workflow run
 export async function listAll(
   tx: ManagedTransaction
@@ -56,7 +79,7 @@ export async function listAll(
     i: Node<Integer, Issue, "Issue"> | null
   }>(
     `MATCH (w:WorkflowRun)
-    OPTIONAL MATCH (w)-[:STARTS_WITH|NEXT*]->(e:Event {type: 'workflowState'})
+    OPTIONAL MATCH (w)-[:STARTS_WITH|NEXT*]->(e:Event {type: '\''workflowState'\''})
     OPTIONAL MATCH (w)-[:BASED_ON_ISSUE]->(i:Issue)
     WITH w, e, i
     ORDER BY e.createdAt DESC
@@ -91,7 +114,7 @@ export async function listForIssue(
     i: Node<Integer, Issue, "Issue"> | null
   }>(
     `MATCH (w:WorkflowRun)-[:BASED_ON_ISSUE]->(i:Issue {number: $issue.number, repoFullName: $issue.repoFullName})
-    OPTIONAL MATCH (w)-[:STARTS_WITH|NEXT*]->(e:Event {type: 'workflowState'})
+    OPTIONAL MATCH (w)-[:STARTS_WITH|NEXT*]->(e:Event {type: '\''workflowState'\''})
     WITH w, e, i
     ORDER BY e.createdAt DESC
     WITH w, collect(e)[0] as latestWorkflowState, i
@@ -201,7 +224,7 @@ export async function mergeIssueLink(
   const result = await tx.run(
     `
     MERGE (w:WorkflowRun {id: $workflowRun.id})
-      ON CREATE SET w.type = $workflowRun.type, w.createdAt = datetime(), w.postToGithub = $workflowRun.postToGithub
+      ON CREATE SET w.type = $workflowRun.type, w.createdAt = datetime(), w.postToGithub = $workflowRun.postToGithub, w.cancelRequested = $workflowRun.cancelRequested
     MERGE (i:Issue {repoFullName: $issue.repoFullName, number: $issue.number})
     MERGE (w)-[:BASED_ON_ISSUE]->(i)
     RETURN w, i
@@ -217,7 +240,7 @@ export async function mergeIssueLink(
 }
 
 export const toAppWorkflowRun = (dbRun: WorkflowRun): AppWorkflowRun => {
-  // NOTE: Currently there's no transformation needed.
+  // NOTE: Currently there'\''s no transformation needed.
   // This function is placeholder for future transformations.
   return {
     ...dbRun,

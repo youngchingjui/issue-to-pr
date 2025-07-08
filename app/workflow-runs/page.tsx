@@ -31,16 +31,16 @@ export default async function WorkflowRunsPage() {
                     Run ID
                   </TableHead>
                   <TableHead className="py-4 text-base font-medium">
-                    Status
-                  </TableHead>
-                  <TableHead className="py-4 text-base font-medium">
-                    Started
+                    Type
                   </TableHead>
                   <TableHead className="py-4 text-base font-medium">
                     Issue
                   </TableHead>
                   <TableHead className="py-4 text-base font-medium">
-                    Workflow Type
+                    Status
+                  </TableHead>
+                  <TableHead className="py-4 text-base font-medium">
+                    Started
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -55,6 +55,21 @@ export default async function WorkflowRunsPage() {
                         {workflow.id.slice(0, 8)}
                       </Link>
                     </TableCell>
+                    <TableCell className="py-4">
+                      <Badge variant="secondary">{workflow.type}</Badge>
+                    </TableCell>
+                    <TableCell className="py-4">
+                      {workflow.issue?.number && workflow.issue?.repoFullName ? (
+                        <Link
+                          href={`/${workflow.issue.repoFullName}/issues/${workflow.issue.number}`}
+                          className="text-blue-600 hover:underline"
+                        >
+                          #{workflow.issue.number} @ {workflow.issue.repoFullName}
+                        </Link>
+                      ) : (
+                        <span className="text-muted-foreground">N/A</span>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <Badge
                         variant={
@@ -62,7 +77,14 @@ export default async function WorkflowRunsPage() {
                             ? "default"
                             : workflow.state === "error"
                               ? "destructive"
-                              : "secondary"
+                              : workflow.state === "cancelled"
+                                ? "outline"
+                                : "secondary"
+                        }
+                        className={
+                          workflow.state === "cancelled"
+                            ? "bg-red-200 text-red-800 border-red-500 font-bold"
+                            : ""
                         }
                       >
                         {workflow.state}
@@ -75,19 +97,6 @@ export default async function WorkflowRunsPage() {
                           })
                         : "N/A"}
                     </TableCell>
-                    <TableCell className="py-4">
-                      {workflow.issue ? (
-                        <Link
-                          href={`/${workflow.issue.repoFullName}/issues/${workflow.issue.number}`}
-                          className="text-blue-700 hover:underline"
-                        >
-                          {workflow.issue.repoFullName}#{workflow.issue.number}
-                        </Link>
-                      ) : (
-                        <span className="text-zinc-400">N/A</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="py-4">{workflow.type}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

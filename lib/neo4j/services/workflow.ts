@@ -10,6 +10,8 @@ import {
   listAll,
   listForIssue,
   mergeIssueLink,
+  setCancelRequested,
+  getCancelRequested,
   toAppWorkflowRun,
 } from "@/lib/neo4j/repositories/workflowRun"
 import {
@@ -87,9 +89,26 @@ export async function initializeWorkflowRun({
   }
 }
 
-/**
- * Now returns workflows with optional 'issue' field & proper type
- */
+export async function requestCancelWorkflowRun(workflowId: string): Promise<void> {
+  const session = await n4j.getSession()
+  try {
+    await session.executeWrite((tx) => setCancelRequested(tx, workflowId))
+  } finally {
+    await session.close()
+  }
+}
+
+export async function checkCancelRequested(workflowId: string): Promise<boolean> {
+  const session = await n4j.getSession()
+  try {
+    return await session.executeRead(async (tx) => {
+      return await getCancelRequested(tx, workflowId)
+    })
+  } finally {
+    await session.close()
+  }
+}
+
 export async function listWorkflowRuns(issue?: {
   repoFullName: string
   issueNumber: number
