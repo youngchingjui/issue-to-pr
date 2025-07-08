@@ -12,7 +12,7 @@ import {
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
 import { tagMessageAsPlan } from "@/lib/neo4j/services/plan"
-import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
+import { initializeWorkflowRun, checkCancelRequested } from "@/lib/neo4j/services/workflow"
 import { createContainerExecTool } from "@/lib/tools/ContainerExecTool"
 import { createGetFileContentTool } from "@/lib/tools/GetFileContent"
 import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
@@ -66,6 +66,13 @@ export default async function commentOnIssue(
       workflowId: jobId,
     })
 
+    // Cancel check
+    if (await checkCancelRequested(jobId)) {
+      await createStatusEvent({ workflowId: jobId, content: "Cancelled by user" })
+      await createWorkflowStateEvent({ workflowId: jobId, state: "cancelled" })
+      return
+    }
+
     // Get the issue
     const issueResult = await getIssue({
       fullName: repo.full_name,
@@ -90,6 +97,13 @@ export default async function commentOnIssue(
       workflowId: jobId,
       parentId: latestEvent.id,
     })
+
+    // Cancel check
+    if (await checkCancelRequested(jobId)) {
+      await createStatusEvent({ workflowId: jobId, content: "Cancelled by user" })
+      await createWorkflowStateEvent({ workflowId: jobId, state: "cancelled" })
+      return
+    }
 
     // Only post to GitHub if postToGithub is true
     if (postToGithub) {
@@ -124,7 +138,7 @@ export default async function commentOnIssue(
             )
           if (isIntegrationError && AUTH_CONFIG.isUsingOAuth()) {
             throw new Error(
-              "Permission denied: You don't have write access to this repository. " +
+              "Permission denied: You don'\''t have write access to this repository. " +
                 "Please ensure you have the necessary permissions to comment on this issue."
             )
           }
@@ -140,6 +154,13 @@ export default async function commentOnIssue(
           `Failed to create comment: ${githubError.response?.data?.message || githubError.message}`
         )
       }
+    }
+
+    // Cancel check
+    if (await checkCancelRequested(jobId)) {
+      await createStatusEvent({ workflowId: jobId, content: "Cancelled by user" })
+      await createWorkflowStateEvent({ workflowId: jobId, state: "cancelled" })
+      return
     }
 
     latestEvent = await createStatusEvent({
@@ -176,6 +197,13 @@ export default async function commentOnIssue(
     const running = await isContainerRunning(containerName)
     if (!running) {
       throw new Error(`Container ${containerName} failed to start`)
+    }
+
+    // Cancel check
+    if (await checkCancelRequested(jobId)) {
+      await createStatusEvent({ workflowId: jobId, content: "Cancelled by user" })
+      await createWorkflowStateEvent({ workflowId: jobId, state: "cancelled" })
+      return
     }
 
     latestEvent = await createStatusEvent({
@@ -222,8 +250,15 @@ export default async function commentOnIssue(
     if (tree && tree.length > 0) {
       await thinker.addMessage({
         role: "user",
-        content: `Here is the codebase's file structure:\n${tree.join("\n")}`,
+        content: `Here is the codebase'\''s file structure:\n${tree.join("\n")}`,
       })
+    }
+
+    // Cancel check
+    if (await checkCancelRequested(jobId)) {
+      await createStatusEvent({ workflowId: jobId, content: "Cancelled by user" })
+      await createWorkflowStateEvent({ workflowId: jobId, state: "cancelled" })
+      return
     }
 
     const response = await thinker.runWithFunctions()
@@ -253,6 +288,13 @@ export default async function commentOnIssue(
       )
     }
 
+    // Cancel check
+    if (await checkCancelRequested(jobId)) {
+      await createStatusEvent({ workflowId: jobId, content: "Cancelled by user" })
+      await createWorkflowStateEvent({ workflowId: jobId, state: "cancelled" })
+      return
+    }
+
     // The response is the final Plan.
     await tagMessageAsPlan({
       eventId: lastAssistantMessage.id,
@@ -271,7 +313,7 @@ export default async function commentOnIssue(
 
       if (typeof lastAssistantMessage.content !== "string") {
         throw new Error(
-          `Last message content is not a string. Here's the content: ${JSON.stringify(
+          `Last message content is not a string. Here'\''s the content: ${JSON.stringify(
             lastAssistantMessage.content
           )}`
         )

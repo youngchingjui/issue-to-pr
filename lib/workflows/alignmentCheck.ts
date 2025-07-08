@@ -17,7 +17,7 @@ import {
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
 import { listPlansForIssue } from "@/lib/neo4j/services/plan"
-import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
+import { initializeWorkflowRun, checkCancelRequested } from "@/lib/neo4j/services/workflow"
 import { createIssueCommentTool } from "@/lib/tools/IssueCommentTool"
 import { AgentConstructorParams, Plan } from "@/lib/types"
 import {
@@ -94,6 +94,13 @@ export async function alignmentCheck({
     })
     const span = trace.span({ name: `Alignment Check PR#${pullNumber}` })
 
+    // Cancel check
+    if (await checkCancelRequested(workflowId)) {
+      await createStatusEvent({ workflowId, content: "Cancelled by user" })
+      await createWorkflowStateEvent({ workflowId, state: "cancelled" })
+      return { content: undefined, alignmentAnalysisNodeId: undefined }
+    }
+
     // 1. Fetch any missing data
     if (!pr) {
       pr = await getPullRequest({ repoFullName, pullNumber })
@@ -143,6 +150,13 @@ export async function alignmentCheck({
       }
     }
 
+    // Cancel check
+    if (await checkCancelRequested(workflowId)) {
+      await createStatusEvent({ workflowId, content: "Cancelled by user" })
+      await createWorkflowStateEvent({ workflowId, state: "cancelled" })
+      return { content: undefined, alignmentAnalysisNodeId: undefined }
+    }
+
     // 2. Fetch Issue and Plan context (optional if not found, or use provided)
     if (!issue) {
       try {
@@ -178,6 +192,13 @@ export async function alignmentCheck({
         })
         throw e
       }
+    }
+
+    // Cancel check
+    if (await checkCancelRequested(workflowId)) {
+      await createStatusEvent({ workflowId, content: "Cancelled by user" })
+      await createWorkflowStateEvent({ workflowId, state: "cancelled" })
+      return { content: undefined, alignmentAnalysisNodeId: undefined }
     }
 
     // 3. Init agent

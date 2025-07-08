@@ -13,7 +13,7 @@ import {
   createStatusEvent,
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
-import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
+import { initializeWorkflowRun, checkCancelRequested } from "@/lib/neo4j/services/workflow"
 import { createGetFileContentTool } from "@/lib/tools/GetFileContent"
 import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
 import {
@@ -52,9 +52,9 @@ export async function reviewPullRequest({
     // - Which functions do these changes impact?
     // - What other files use these functions? Do they need to change?
     // - Digging deep into nested functions, what is the best way to incorporate all these changes? Is it by making changes at every step of the nesting? Or is there a more eloquent way to implement the overall goal (restate the issue).
-    // - Are there changes here that don't belong to this PR? Ie they don't address the issue at hand? And should they be separated into a separate PR?
+    // - Are there changes here that don'\''t belong to this PR? Ie they don'\''t address the issue at hand? And should they be separated into a separate PR?
     // The LLM will be given tools to help it answer these questions
-    // The final output should be the LLM's assessment of the pull request
+    // The final output should be the LLM'\''s assessment of the pull request
 
     // Must provide either `pullNumber` or `diff`, but not both
     if (!pullNumber && !diff) {
@@ -81,6 +81,13 @@ export async function reviewPullRequest({
       workflowId,
       state: "running",
     })
+
+    // Cancel check
+    if (await checkCancelRequested(workflowId)) {
+      await createStatusEvent({ workflowId, content: "Cancelled by user" })
+      await createWorkflowStateEvent({ workflowId, state: "cancelled" })
+      return
+    }
 
     // Start a trace for this workflow
     let traceName: string
@@ -131,6 +138,13 @@ export async function reviewPullRequest({
       throw new Error("No diff provided")
     }
 
+    // Cancel check
+    if (await checkCancelRequested(workflowId)) {
+      await createStatusEvent({ workflowId, content: "Cancelled by user" })
+      await createWorkflowStateEvent({ workflowId, state: "cancelled" })
+      return
+    }
+
     let updatedBaseDir = baseDir
     if (!baseDir) {
       await createStatusEvent({
@@ -143,6 +157,13 @@ export async function reviewPullRequest({
         repoFullName,
         workingBranch: repo.default_branch,
       })
+    }
+
+    // Cancel check
+    if (await checkCancelRequested(workflowId)) {
+      await createStatusEvent({ workflowId, content: "Cancelled by user" })
+      await createWorkflowStateEvent({ workflowId, state: "cancelled" })
+      return
     }
 
     const tree = await createDirectoryTree(updatedBaseDir || "")
@@ -186,7 +207,6 @@ export async function reviewPullRequest({
     }
     ## Codebase directory\n
     ${tree.join("\n")}\n
-
     ${formattedComments ? `## Comments\n${formattedComments}\n` : ""}
 
     ${formattedReviews ? `## Reviews\n${formattedReviews}\n` : ""}
@@ -206,6 +226,13 @@ export async function reviewPullRequest({
       workflowId,
       content: "Starting PR review analysis",
     })
+
+    // Cancel check
+    if (await checkCancelRequested(workflowId)) {
+      await createStatusEvent({ workflowId, content: "Cancelled by user" })
+      await createWorkflowStateEvent({ workflowId, state: "cancelled" })
+      return
+    }
 
     const response = await reviewer.runWithFunctions()
 

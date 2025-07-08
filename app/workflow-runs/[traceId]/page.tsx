@@ -1,6 +1,7 @@
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { useState } from "react"
 
 import BaseGitHubItemCard from "@/components/github/BaseGitHubItemCard"
 import { Button } from "@/components/ui/button"
@@ -53,6 +54,10 @@ function EventRenderer({
   }
 }
 
+async function handleStop(workflowId: string) {
+  await fetch(`/api/workflow/${workflowId}/cancel`, { method: "POST" })
+}
+
 export default async function WorkflowRunDetailPage({
   params,
 }: {
@@ -85,6 +90,10 @@ export default async function WorkflowRunDetailPage({
     )
   }
 
+  // Determine if workflow is running or cancelled to show the Stop button
+  const isRunning = workflow.state === "running"
+  const isCancelled = workflow.state === "cancelled"
+
   return (
     <main className="container mx-auto p-4">
       <div className="flex flex-col gap-6 max-w-4xl mx-auto">
@@ -110,6 +119,25 @@ export default async function WorkflowRunDetailPage({
                 ? "Comment on Issue"
                 : workflow.type}
             </p>
+          )}
+          {workflow.state && workflow.state === "cancelled" && (
+            <span className="inline-block px-3 py-1 rounded bg-red-200 text-red-700 text-xs font-bold ml-2 uppercase">
+              Cancelled
+            </span>
+          )}
+          {/* If running, show stop button */}
+          {workflow.state === "running" && (
+            <form
+              action={async () => {
+                '\''use server'\'';
+                await fetch(`/api/workflow/${workflow.id}/cancel`, { method: "POST" })
+              }}
+              style={{ display: '\''inline-block'\'', marginLeft: 12 }}
+            >
+              <Button variant="destructive" type="submit">
+                Stop
+              </Button>
+            </form>
           )}
         </div>
 

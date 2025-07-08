@@ -22,6 +22,17 @@ import {
   workflowTypeEnum,
 } from "@/lib/types"
 
+// Add '\''cancelled'\'' to workflow run state
+export const workflowRunStateWithCancelledSchema = z.enum([
+  "running",
+  "completed",
+  "error",
+  "cancelled",
+])
+export type WorkflowRunStateWithCancelled = z.infer<
+  typeof workflowRunStateWithCancelledSchema
+>
+
 // Re-export for Neo4j DB layer
 export { workflowRunStateSchema, workflowTypeEnum }
 export type { WorkflowRunState, WorkflowType }
@@ -43,9 +54,11 @@ export const issueSchema = appIssueSchema
     })
   )
 
+// Add cancelRequested field to schema
 export const workflowRunSchema = appWorkflowRunSchema.merge(
   z.object({
     createdAt: z.instanceof(DateTime),
+    cancelRequested: z.boolean().optional(),
   })
 )
 
@@ -145,7 +158,9 @@ export type SystemPrompt = z.infer<typeof systemPromptSchema>
 export type ToolCall = z.infer<typeof toolCallSchema>
 export type ToolCallResult = z.infer<typeof toolCallResultSchema>
 export type UserMessage = z.infer<typeof userMessageSchema>
-export type WorkflowRun = z.infer<typeof workflowRunSchema>
+export type WorkflowRun = z.infer<typeof workflowRunSchema> & {
+  cancelRequested?: boolean
+}
 export type WorkflowStateEvent = z.infer<typeof workflowStateEventSchema>
 
 export function isLLMResponseWithPlan(

@@ -18,7 +18,7 @@ import {
   listPlansForIssue,
 } from "@/lib/neo4j/services/plan"
 import { getRepositorySettings } from "@/lib/neo4j/services/repository"
-import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
+import { initializeWorkflowRun, checkCancelRequested } from "@/lib/neo4j/services/workflow"
 import { createBranchTool } from "@/lib/tools/Branch"
 import { createCommitTool } from "@/lib/tools/Commit"
 import { createCreatePRTool } from "@/lib/tools/CreatePRTool"
@@ -92,6 +92,13 @@ export const resolveIssue = async ({
       content: `Starting workflow for issue #${issue.number} in ${repository.full_name}`,
     })
 
+    // Cancel check
+    if (await checkCancelRequested(workflowId)) {
+      await createStatusEvent({ workflowId, content: "Cancelled by user" })
+      await createWorkflowStateEvent({ workflowId, state: "cancelled" })
+      return
+    }
+
     // Check permissions if PR creation is intended
     if (createPR) {
       userPermissions = await checkRepoPermissions(repository.full_name)
@@ -101,7 +108,7 @@ export const resolveIssue = async ({
           workflowId,
           content: `Warning: Insufficient permissions to create PR (${userPermissions.reason}). Code will be generated locally only.`,
         })
-        // Proceed with the workflow, but PR won't be created
+        // Proceed with the workflow, but PR won'\''t be created
       }
     }
 
@@ -124,6 +131,13 @@ export const resolveIssue = async ({
       workflowId,
       content: `Setting up containerized environment`,
     })
+
+    // Cancel check
+    if (await checkCancelRequested(workflowId)) {
+      await createStatusEvent({ workflowId, content: "Cancelled by user" })
+      await createWorkflowStateEvent({ workflowId, state: "cancelled" })
+      return
+    }
 
     // Setup environment
     let resolvedSetupCommands: string | string[] = ""
@@ -171,6 +185,13 @@ export const resolveIssue = async ({
           "Could not obtain authentication token for pushing branch"
         )
       }
+    }
+
+    // Cancel check
+    if (await checkCancelRequested(workflowId)) {
+      await createStatusEvent({ workflowId, content: "Cancelled by user" })
+      await createWorkflowStateEvent({ workflowId, state: "cancelled" })
+      return
     }
 
     // Start a trace for this workflow
@@ -244,7 +265,7 @@ export const resolveIssue = async ({
       await createStatusEvent({
         workflowId,
         content:
-          "You don't have sufficient permissions to push commits or create pull requests on this repository. Changes will only be made locally.",
+          "You don'\''t have sufficient permissions to push commits or create pull requests on this repository. Changes will only be made locally.",
       })
     }
 
@@ -274,8 +295,15 @@ export const resolveIssue = async ({
     if (tree && tree.length > 0) {
       await coder.addMessage({
         role: "user",
-        content: `Here is the codebase's tree directory:\n${tree.join("\n")}`,
+        content: `Here is the codebase'\''s tree directory:\n${tree.join("\n")}`,
       })
+    }
+
+    // Cancel check
+    if (await checkCancelRequested(workflowId)) {
+      await createStatusEvent({ workflowId, content: "Cancelled by user" })
+      await createWorkflowStateEvent({ workflowId, state: "cancelled" })
+      return
     }
 
     let plan: Plan | undefined
@@ -314,6 +342,13 @@ export const resolveIssue = async ({
       workflowId,
       content: "Starting code implementation",
     })
+
+    // Cancel check
+    if (await checkCancelRequested(workflowId)) {
+      await createStatusEvent({ workflowId, content: "Cancelled by user" })
+      await createWorkflowStateEvent({ workflowId, state: "cancelled" })
+      return
+    }
 
     const coderResult = await coder.runWithFunctions()
 
