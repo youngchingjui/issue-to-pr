@@ -205,7 +205,6 @@ export class Agent {
     await this.addMessage(response.choices[0].message)
 
     if (response.choices[0].message.tool_calls) {
-      // --- Parallelized tool call processing ---
       const toolCallPromises = response.choices[0].message.tool_calls.map(
         async (toolCall) => {
           const tool = this.tools.find(
@@ -388,4 +387,3 @@ export class Agent {
     }
   }
 }
-
