@@ -4,6 +4,11 @@ import { exec } from "child_process"
 import Docker from "dockerode"
 import util from "util"
 
+import {
+  WriteFileInContainerParams,
+  writeFileInContainerSchema,
+} from "@/lib/types/docker"
+
 const execPromise = util.promisify(exec)
 
 interface StartDetachedContainerOptions {
@@ -147,6 +152,7 @@ export async function execInContainerWithDockerode({
       AttachStdout: true,
       AttachStderr: true,
       WorkingDir: cwd,
+      User: "root:root",
     })
     const stream = await exec.start({})
     let stdout = ""
@@ -265,5 +271,72 @@ export async function listRunningContainers(): Promise<RunningContainer[]> {
   } catch (error) {
     console.error("[ERROR] Failed to list running containers:", error)
     return []
+  }
+}
+
+/**
+ * Write file contents to a path inside a running container using Dockerode.
+ *
+ * @param name Container name or ID
+ * @param workdir Base working directory inside the container
+ * @param relPath Relative file path from workdir
+ * @param contents File contents to write
+ * @param makeDirs Whether to create parent directories if they don't exist
+ * @returns { stdout, stderr, exitCode }
+ */
+export async function writeFileInContainer(
+  params: WriteFileInContainerParams
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  // Validate input parameters with Zod
+  const validationResult = writeFileInContainerSchema.safeParse(params)
+
+  if (!validationResult.success) {
+    const errorMessages = validationResult.error.errors
+      .map((err) => `${err.path.join(".")}: ${err.message}`)
+      .join("; ")
+
+    return {
+      stdout: "",
+      stderr: `Input validation failed: ${errorMessages}`,
+      exitCode: 1,
+    }
+  }
+
+  const { name, workdir, relPath, contents, makeDirs } = validationResult.data
+
+  // Construct the full path (Zod validation ensures relPath is safe)
+  const fullPath = `${workdir.replace(/\/$/, "")}/${relPath}`
+
+  // Build the command
+  let command = ""
+
+  if (makeDirs) {
+    // Create parent directories if needed
+    command += `mkdir -p "$(dirname "${fullPath}")" && `
+  }
+
+  // Use heredoc to safely write contents (avoids escaping issues)
+  command += `cat > "${fullPath}" << 'WRITE_FILE_EOF'\n${contents}\nWRITE_FILE_EOF`
+
+  // Execute the command
+  try {
+    const result = await execInContainerWithDockerode({
+      name,
+      command,
+      cwd: workdir,
+    })
+
+    // If successful, add the file path to stdout for confirmation
+    if (result.exitCode === 0) {
+      result.stdout = `File successfully written to: ${fullPath}\n${result.stdout}`
+    }
+
+    return result
+  } catch (e: unknown) {
+    return {
+      stdout: "",
+      stderr: `Failed to write file: ${e}`,
+      exitCode: 1,
+    }
   }
 }

@@ -19,6 +19,7 @@ import OAuthTokenCard from "@/components/auth/OAuthTokenCard"
 import AgentWorkflowClient from "@/components/playground/AgentWorkflowClient"
 import DockerodeExecCard from "@/components/playground/DockerodeExecCard"
 import RipgrepSearchCard from "@/components/playground/RipgrepSearchCard"
+import WriteFileCard from "@/components/playground/WriteFileCard"
 
 export default async function PlaygroundPage() {
   const session = await auth()
@@ -26,10 +27,11 @@ export default async function PlaygroundPage() {
 
   return (
     <div className="space-y-8 px-4 py-8 md:container md:mx-auto">
-      {token ? <OAuthTokenCard token={token} /> : null}
       <AgentWorkflowClient defaultTools={DEFAULT_TOOLS} />
       <RipgrepSearchCard />
       <DockerodeExecCard />
+      <WriteFileCard />
+      {token ? <OAuthTokenCard token={token} /> : null}
     </div>
   )
 }
