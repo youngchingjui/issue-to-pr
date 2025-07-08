@@ -83,16 +83,22 @@ echo "Image built successfully!"
 # Use the first tag for smoke-tests
 TEST_TAG="${TAGS[0]}"
 
+echo "Pulling image for smoke tests: ${IMAGE_NAME}:${TEST_TAG}"
+docker pull "${IMAGE_NAME}:${TEST_TAG}"
+
 echo "Running smoke tests on: ${IMAGE_NAME}:${TEST_TAG}"
 
-docker run --rm "${IMAGE_NAME}:${TEST_TAG}" rg --version
-docker run --rm "${IMAGE_NAME}:${TEST_TAG}" git --version
-docker run --rm "${IMAGE_NAME}:${TEST_TAG}" curl --version
-docker run --rm "${IMAGE_NAME}:${TEST_TAG}" node --version
-docker run --rm "${IMAGE_NAME}:${TEST_TAG}" npm --version
-docker run --rm "${IMAGE_NAME}:${TEST_TAG}" pnpm --version
+docker run --rm "${IMAGE_NAME}:${TEST_TAG}" bash -c "rg --version"
+docker run --rm "${IMAGE_NAME}:${TEST_TAG}" bash -c "git --version"
+docker run --rm "${IMAGE_NAME}:${TEST_TAG}" bash -c "curl --version"
+docker run --rm "${IMAGE_NAME}:${TEST_TAG}" bash -c "node --version"
+docker run --rm "${IMAGE_NAME}:${TEST_TAG}" bash -c "npm --version"
+docker run --rm "${IMAGE_NAME}:${TEST_TAG}" bash -c "pnpm --version"
+docker run --rm "${IMAGE_NAME}:${TEST_TAG}" bash -c "python3 --version"
+docker run --rm "${IMAGE_NAME}:${TEST_TAG}" bash -c "pip3 --version"
+docker run --rm "${IMAGE_NAME}:${TEST_TAG}" bash -c "poetry --version"
 
 echo "✅ Custom agent image is ready for use"
 echo "Image tags: ${TAGS[*]}"
 echo "Platforms: ${PLATFORMS}"
-echo "Includes: ripgrep, git, curl, nodejs (npm), pnpm"
+echo "Includes: ripgrep, git, curl, nodejs (npm), pnpm, python3, pip3, poetry"
