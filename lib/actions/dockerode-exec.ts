@@ -1,6 +1,8 @@
 "use server"
 import Docker from "dockerode"
 
+// TODO: These functions probably belong in the /lib/docker.ts file.
+
 /**
  * Executes `ls -la` in the specified running container using dockerode.
  * Returns either { result: string } or { error: string }.
