@@ -32,7 +32,7 @@ export interface StartDetachedContainerOptions {
 
 /**
  * Starts a detached Docker container (`docker run -d`) that simply tails
- * `/dev/null` so it stays alive and returns the new container's ID.
+ * `/dev/null` so it stays alive and returns the new container'\''s ID.
  *
  * The helper constructs the appropriate command-line flags for container
  * name, non-root user, bind-mounts, environment variables, and working
@@ -74,7 +74,7 @@ export async function startContainer({
 
   // 2. Build environment variable flags: -e "KEY=value"
   const envFlags = Object.entries(env).map(
-    ([key, value]) => `-e \"${key}=${value.replace(/"/g, '\\\"')}\"`
+    ([key, value]) => `-e \"${key}=${value.replace(/"/g, '\''\\\"'\'')}\"`
   )
 
   // 3. Determine working directory
@@ -107,7 +107,7 @@ export async function startContainer({
  * looks like:
  *
  * ```bash
- * docker exec [--workdir <cwd>] <name> sh -c '<command>'
+ * docker exec [--workdir <cwd>] <name> sh -c '\''<command>'\''
  * ```
  *
  * Because this helper already performs the necessary escaping, callers SHOULD
@@ -124,7 +124,7 @@ export async function execInContainer({
   cwd?: string
 }): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const workdirFlag = cwd ? `--workdir \"${cwd}\"` : ""
-  const execCmd = `docker exec ${workdirFlag} ${name} sh -c '${command.replace(/'/g, "'\\''")}'`
+  const execCmd = `docker exec ${workdirFlag} ${name} sh -c '\''${command.replace(/'\''/g, "'\''\\'\'''\''")}'\''`
   try {
     const { stdout, stderr } = await execPromise(execCmd)
     return { stdout, stderr, exitCode: 0 }
@@ -155,7 +155,7 @@ export async function stopAndRemoveContainer(name: string): Promise<void> {
 export async function isContainerRunning(name: string): Promise<boolean> {
   try {
     const { stdout } = await execPromise(
-      `docker inspect -f '{{.State.Running}}' ${name}`
+      `docker inspect -f '\''{{.State.Running}}'\'' ${name}`
     )
     return stdout.trim() === "true"
   } catch {
@@ -175,7 +175,7 @@ export interface RunningContainer {
  */
 export async function listRunningContainers(): Promise<RunningContainer[]> {
   try {
-    const { stdout } = await execPromise("docker ps --format '{{json .}}'")
+    const { stdout } = await execPromise("docker ps --format '\''{{json .}}'\''")
     const lines = stdout.trim().split("\n").filter(Boolean)
     return lines.map((line) => {
       const data = JSON.parse(line) as Record<string, string>
@@ -191,3 +191,34 @@ export async function listRunningContainers(): Promise<RunningContainer[]> {
     return []
   }
 }
+
+// --- BEGIN MIGRATED SERVER ACTIONS ---
+
+/**
+ * Returns all running containers whose image matches AGENT_BASE_IMAGE.
+ */
+export async function getRunningContainers(): Promise<RunningContainer[]> {
+  const containers = await listRunningContainers()
+  return containers.filter((c) => c.image.startsWith(AGENT_BASE_IMAGE))
+}
+
+/**
+ * Launches a new detached agent base container and returns its name.
+ */
+export async function launchAgentBaseContainer() {
+  const name = `agent-${Date.now()}`
+  await startContainer({
+    image: AGENT_BASE_IMAGE,
+    name,
+  })
+  return name
+}
+
+/**
+ * Stops and removes a container by name.
+ */
+export async function stopContainer(name: string) {
+  await stopAndRemoveContainer(name)
+}
+
+// --- END MIGRATED SERVER ACTIONS ---
