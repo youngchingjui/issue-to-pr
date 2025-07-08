@@ -50,3 +50,81 @@ export async function getUserOpenAIApiKey(): Promise<string | null> {
   const key = settings.openAIApiKey?.trim()
   return key ? key : null
 }
+
+/**
+ * Add a role/tag to a user by username.
+ * Throws if user does not exist.
+ * Returns updated roles array.
+ */
+export async function addRoleToUser(
+  username: string,
+  role: string
+): Promise<string[]> {
+  if (!username || !role) throw new Error("Username and role are required")
+  const session = await n4j.getSession()
+  try {
+    // Check user existence
+    const exists = await session.executeRead((tx) =>
+      userRepo.getUserSettings(tx, username)
+    )
+    if (!exists) throw new Error("User not found")
+    // Add role
+    const roles = await session.executeWrite((tx) =>
+      userRepo.addRoleToUser(tx, username, role)
+    )
+    return roles
+  } finally {
+    await session.close()
+  }
+}
+
+/**
+ * Remove a role/tag from a user by username.
+ * Throws if user does not exist.
+ * Returns updated roles array.
+ */
+export async function removeRoleFromUser(
+  username: string,
+  role: string
+): Promise<string[]> {
+  if (!username || !role) throw new Error("Username and role are required")
+  const session = await n4j.getSession()
+  try {
+    // Check user existence
+    const exists = await session.executeRead((tx) =>
+      userRepo.getUserSettings(tx, username)
+    )
+    if (!exists) throw new Error("User not found")
+    // Remove role
+    const roles = await session.executeWrite((tx) =>
+      userRepo.removeRoleFromUser(tx, username, role)
+    )
+    return roles
+  } finally {
+    await session.close()
+  }
+}
+
+/**
+ * Fetch a user's roles/tags array by username.
+ * Throws if user does not exist.
+ * Returns the roles array (empty if none).
+ */
+export async function getUserRoles(username: string): Promise<string[]> {
+  if (!username) throw new Error("Username is required")
+  const session = await n4j.getSession()
+  try {
+    // Check user existence
+    const exists = await session.executeRead((tx) =>
+      userRepo.getUserSettings(tx, username)
+    )
+    if (!exists) throw new Error("User not found")
+    // Get roles
+    const roles = await session.executeRead((tx) =>
+      userRepo.getUserRoles(tx, username)
+    )
+    return roles
+  } finally {
+    await session.close()
+  }
+}

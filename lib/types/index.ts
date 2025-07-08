@@ -197,6 +197,7 @@ export const settingsSchema = z.object({
     .date()
     .describe("The date and time when the settings were last updated.")
     .default(new Date()),
+  roles: z.array(z.string()).describe("Roles or tags for user").optional(),
   // Add more user-specific settings here as needed
 })
 
