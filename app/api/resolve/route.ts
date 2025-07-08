@@ -12,8 +12,14 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
-    const { issueNumber, repoFullName, createPR, environment, installCommand } =
-      ResolveRequestSchema.parse(body)
+    const {
+      issueNumber,
+      repoFullName,
+      createPR,
+      environment,
+      installCommand,
+      planId,
+    } = ResolveRequestSchema.parse(body)
     const apiKey = await getUserOpenAIApiKey()
     if (!apiKey) {
       return NextResponse.json(
@@ -45,6 +51,7 @@ export async function POST(request: NextRequest) {
           apiKey,
           jobId,
           createPR,
+          planId,
           ...(environment && { environment }),
           ...(installCommand && { installCommand }),
         })
@@ -73,3 +80,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+

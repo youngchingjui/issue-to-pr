@@ -76,4 +76,6 @@ export const ResolveRequestSchema = z.object({
   createPR: z.boolean().default(false),
   environment: z.enum(["typescript", "python"]).optional(),
   installCommand: z.string().optional(),
+  planId: z.string().optional(),
 })
+

@@ -7,7 +7,7 @@ import ReactMarkdown from "react-markdown"
 
 import { FeedbackButton } from "@/components/common/FeedbackButton"
 import { PostToGitHubButton } from "@/components/issues/actions/PostToGitHubButton"
-import { ResolveIssueTestButton } from "@/components/issues/actions/ResolveIssueTestButton"
+import { ResolveIssueButton } from "@/components/issues/actions/ResolveIssueButton"
 import { Button } from "@/components/ui/button"
 import { CollapsibleContent } from "@/components/ui/collapsible-content"
 import { EventTime } from "@/components/workflow-runs/events"
@@ -41,7 +41,7 @@ export async function LLMResponseEvent({ event, issue }: Props) {
               </Button>
             </Link>
             <PostToGitHubButton content={event.content} issue={issue} />
-            <ResolveIssueTestButton />
+            <ResolveIssueButton planId={event.plan.id} issueNumber={issue.number} repoFullName={issue.repoFullName} createPR={true} />
           </>
         )}
         <CopyMarkdownButton content={event.content} />
@@ -61,3 +61,4 @@ export async function LLMResponseEvent({ event, issue }: Props) {
     </CollapsibleContent>
   )
 }
+
