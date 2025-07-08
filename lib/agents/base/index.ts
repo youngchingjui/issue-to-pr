@@ -205,83 +205,136 @@ export class Agent {
     await this.addMessage(response.choices[0].message)
 
     if (response.choices[0].message.tool_calls) {
-      for (const toolCall of response.choices[0].message.tool_calls) {
-        const tool = this.tools.find(
-          (t) => t.function.name === toolCall.function.name
-        )
-        if (tool) {
-          // Track tool call event
-          if (this.jobId) {
-            await createToolCallEvent({
-              workflowId: this.jobId,
-              toolName: toolCall.function.name,
-              toolCallId: toolCall.id,
-              args: toolCall.function.arguments,
-            })
-          }
-
-          const validationResult = tool.schema.safeParse(
-            JSON.parse(toolCall.function.arguments)
+      // --- Parallelized tool call processing ---
+      const toolCallPromises = response.choices[0].message.tool_calls.map(
+        async (toolCall) => {
+          const tool = this.tools.find(
+            (t) => t.function.name === toolCall.function.name
           )
-          if (!validationResult.success) {
-            const errorContent = `Validation failed for tool ${toolCall.function.name}: ${validationResult.error.message}`
-            console.error(errorContent)
-
-            // Track error event
+          if (tool) {
+            // Track tool call event
             if (this.jobId) {
-              await createToolCallResultEvent({
+              await createToolCallEvent({
                 workflowId: this.jobId,
-                toolCallId: toolCall.id,
                 toolName: toolCall.function.name,
-                content: errorContent,
+                toolCallId: toolCall.id,
+                args: toolCall.function.arguments,
               })
             }
 
-            // Surface the validation error back to the LLM through a tool response
+            let validationResult
+            try {
+              validationResult = tool.schema.safeParse(
+                JSON.parse(toolCall.function.arguments)
+              )
+            } catch (err) {
+              // JSON parse error
+              const errorContent = `Validation failed for tool ${toolCall.function.name}: Invalid arguments (not JSON): ${String(err)}`
+              console.error(errorContent)
+              if (this.jobId) {
+                await createToolCallResultEvent({
+                  workflowId: this.jobId,
+                  toolCallId: toolCall.id,
+                  toolName: toolCall.function.name,
+                  content: errorContent,
+                })
+              }
+              await this.addMessage({
+                role: "tool",
+                content: errorContent,
+                tool_call_id: toolCall.id,
+              })
+              return
+            }
+
+            if (!validationResult.success) {
+              const errorContent = `Validation failed for tool ${toolCall.function.name}: ${validationResult.error.message}`
+              console.error(errorContent)
+
+              // Track error event
+              if (this.jobId) {
+                await createToolCallResultEvent({
+                  workflowId: this.jobId,
+                  toolCallId: toolCall.id,
+                  toolName: toolCall.function.name,
+                  content: errorContent,
+                })
+              }
+
+              // Surface the validation error back to the LLM through a tool response
+              await this.addMessage({
+                role: "tool",
+                content: errorContent,
+                tool_call_id: toolCall.id,
+              })
+              return
+            }
+
+            try {
+              const toolResponse = await tool.handler(validationResult.data)
+              let toolResponseString: string
+              if (typeof toolResponse !== "string") {
+                toolResponseString = JSON.stringify(toolResponse)
+              } else {
+                toolResponseString = toolResponse
+              }
+
+              // First track message here, instead of this.trackMessage (inside this.addMessage)
+              // Because ChatCompletionMessageParam does not have `toolName` property
+              if (this.jobId) {
+                await createToolCallResultEvent({
+                  workflowId: this.jobId,
+                  toolCallId: toolCall.id,
+                  toolName: toolCall.function.name,
+                  content: toolResponseString,
+                })
+              }
+
+              await this.addMessage({
+                role: "tool",
+                content: toolResponseString,
+                tool_call_id: toolCall.id,
+              })
+            } catch (err) {
+              // Handler error
+              const errorContent = `Handler failed for tool ${toolCall.function.name}: ${String(
+                err
+              )}`
+              console.error(errorContent)
+              if (this.jobId) {
+                await createToolCallResultEvent({
+                  workflowId: this.jobId,
+                  toolCallId: toolCall.id,
+                  toolName: toolCall.function.name,
+                  content: errorContent,
+                })
+              }
+              await this.addMessage({
+                role: "tool",
+                content: errorContent,
+                tool_call_id: toolCall.id,
+              })
+            }
+          } else {
+            const errorContent = `Tool ${toolCall.function.name} not found`
+            console.error(errorContent)
+            // Track error event
+            if (this.jobId) {
+              await createErrorEvent({
+                workflowId: this.jobId,
+                content: errorContent,
+              })
+            }
             await this.addMessage({
               role: "tool",
               content: errorContent,
               tool_call_id: toolCall.id,
             })
-            continue
-          }
-
-          const toolResponse = await tool.handler(validationResult.data)
-
-          let toolResponseString: string
-          if (typeof toolResponse !== "string") {
-            toolResponseString = JSON.stringify(toolResponse)
-          } else {
-            toolResponseString = toolResponse
-          }
-
-          // First track message here, instead of this.trackMessage (inside this.addMessage)
-          // Because ChatCompletionMessageParam does not have `toolName` property
-          if (this.jobId) {
-            await createToolCallResultEvent({
-              workflowId: this.jobId,
-              toolCallId: toolCall.id,
-              toolName: toolCall.function.name,
-              content: toolResponseString,
-            })
-          }
-
-          await this.addMessage({
-            role: "tool",
-            content: toolResponseString,
-            tool_call_id: toolCall.id,
-          })
-        } else {
-          console.error(`Tool ${toolCall.function.name} not found`)
-          // Track error event
-          if (this.jobId) {
-            await createErrorEvent({
-              workflowId: this.jobId,
-              content: `Tool ${toolCall.function.name} not found`,
-            })
           }
         }
-      }
+      )
+      // Wait for all tool call promises in parallel
+      await Promise.all(toolCallPromises)
       return await this.runWithFunctions()
     } else {
       return {
@@ -335,3 +388,4 @@ export class Agent {
     }
   }
 }
+
