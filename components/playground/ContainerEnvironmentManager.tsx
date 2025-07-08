@@ -14,11 +14,16 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import {
   getRunningContainers,
   launchAgentBaseContainer,
   stopContainer,
 } from "@/lib/actions/docker"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { toast } from "@/lib/hooks/use-toast"
 
 interface ContainerEnv {
@@ -35,7 +40,7 @@ interface Props {
 export default function ContainerEnvironmentManager({ selectedRepo }: Props) {
   const router = useRouter()
   const [containers, setContainers] = useState<ContainerEnv[]>([])
-  const [copying, setCopying] = useState<string|null>(null)
+  const [copying, setCopying] = useState<string | null>(null)
 
   const refreshContainers = async () => {
     const result = await getRunningContainers()
@@ -72,7 +77,7 @@ export default function ContainerEnvironmentManager({ selectedRepo }: Props) {
           variant: "destructive",
         })
       }
-    } catch (err: any) {
+    } catch (err) {
       toast({ description: String(err), variant: "destructive" })
     } finally {
       setCopying(null)
@@ -131,7 +136,9 @@ export default function ContainerEnvironmentManager({ selectedRepo }: Props) {
                             disabled={!selectedRepo || copying === c.name}
                             onClick={() => handleCopyRepo(c.name)}
                           >
-                            {copying === c.name ? "Copying..." : "Copy to Container"}
+                            {copying === c.name
+                              ? "Copying..."
+                              : "Copy to Container"}
                           </Button>
                         </span>
                       </TooltipTrigger>
@@ -163,4 +170,3 @@ export default function ContainerEnvironmentManager({ selectedRepo }: Props) {
     </Card>
   )
 }
-

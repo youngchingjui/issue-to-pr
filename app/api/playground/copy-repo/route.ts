@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
-import { setupLocalRepository } from "@/lib/utils/utils-server"
+
 import { createContainerizedWorkspace } from "@/lib/utils/container"
+import { setupLocalRepository } from "@/lib/utils/utils-server"
 
 export async function POST(req: NextRequest) {
   try {
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
       hostRepoPath,
       mountPath,
       image: undefined,
-      workflowId: containerName.replace(/^agent-/, "") // try to line up, fallback is fine
+      workflowId: containerName.replace(/^agent-/, ""), // try to line up, fallback is fine
     })
     // Note: This may start a new container if the named one doesn't exist,
     // but ideally we'd just copy to the existing container - for safety we try using docker cp directly:
@@ -46,9 +47,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true })
   } catch (err) {
     return NextResponse.json(
-      { error: typeof err === "string" ? err : (err instanceof Error ? err.message : "Unknown error") },
+      {
+        error:
+          typeof err === "string"
+            ? err
+            : err instanceof Error
+              ? err.message
+              : "Unknown error",
+      },
       { status: 500 }
     )
   }
 }
-
