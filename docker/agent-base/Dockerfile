@@ -6,8 +6,9 @@ FROM node:22-slim
 # Avoid interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install CLI tooling: ripgrep, git, tree, Python 3.11, and pip
+# Install CLI tooling: ripgrep, git, tree, Python 3.11, pip, and curl
 # - Python 3.11 and pip3 are available directly in Debian Bookworm
+# - curl is needed for Poetry installation
 # - Clean package lists after installation to minimize image size
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -17,6 +18,7 @@ RUN apt-get update && \
         python3 \
         python3.11 \
         python3-pip \
+        curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Symlink python3 and pip3 to expected locations (just in case)
