@@ -20,6 +20,7 @@ import AgentWorkflowClient from "@/components/playground/AgentWorkflowClient"
 import DockerodeExecCard from "@/components/playground/DockerodeExecCard"
 import RipgrepSearchCard from "@/components/playground/RipgrepSearchCard"
 import WriteFileCard from "@/components/playground/WriteFileCard"
+import SWRDemoCard from "@/components/playground/SWRDemoCard"
 
 export default async function PlaygroundPage() {
   const session = await auth()
@@ -28,6 +29,7 @@ export default async function PlaygroundPage() {
   return (
     <div className="space-y-8 px-4 py-8 md:container md:mx-auto">
       <AgentWorkflowClient defaultTools={DEFAULT_TOOLS} />
+      <SWRDemoCard />
       <RipgrepSearchCard />
       <DockerodeExecCard />
       <WriteFileCard />
@@ -35,3 +37,4 @@ export default async function PlaygroundPage() {
     </div>
   )
 }
+

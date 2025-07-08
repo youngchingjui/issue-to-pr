@@ -75,7 +75,8 @@
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^11.0.5",
     "zod": "^3.24.2",
-    "zod-to-json-schema": "^3.24.5"
+    "zod-to-json-schema": "^3.24.5",
+    "swr": "^2.2.2"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.16",
@@ -118,3 +119,4 @@
     "rootDir": "."
   }
 }
+
