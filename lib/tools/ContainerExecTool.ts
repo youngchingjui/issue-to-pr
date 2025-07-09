@@ -15,7 +15,7 @@ type ExecParams = z.infer<typeof execSchema>
 
 export const createContainerExecTool = (containerName: string) =>
   createTool({
-    name: "container_exec",
+    name: "exec_in_container",
     description:
       "Run a shell command inside the docker container that hosts the worktree. Returns stdout and stderr.",
     schema: execSchema,
