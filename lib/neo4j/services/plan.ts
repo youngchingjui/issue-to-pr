@@ -4,7 +4,8 @@ import { n4j } from "@/lib/neo4j/client"
 import { toAppIssue } from "@/lib/neo4j/repositories/issue"
 import {
   createPlanImplementsIssue,
-  createPlanVersion as dbCreatePlanVersion,
+  createPlanVersion,
+  getLatestPlanForWorkflow,
   getPlanWithDetails as dbGetPlanWithDetails,
   labelEventAsPlan,
   listPlansForIssue as dbListPlansForIssue,
@@ -129,7 +130,9 @@ export async function getPlanStatusForIssues({
   }
 }
 
-// --- New: Plan version Server Action ---
+/**
+ * @deprecated Use upsertPlanVersion instead. This function will be removed in a future version.
+ */
 export async function createPlanVersionServer({
   planId,
   workflowId,
@@ -139,16 +142,69 @@ export async function createPlanVersionServer({
   workflowId?: string
   content: string
 }): Promise<Plan> {
+  console.warn(
+    "createPlanVersionServer is deprecated. Use upsertPlanVersion instead."
+  )
+  return upsertPlanVersion({ planId, workflowId, content })
+}
+
+/**
+ * Creates a new version of a plan. Exactly one of planId or workflowId must be provided.
+ * If planId is provided, creates a new version of that specific plan.
+ * If workflowId is provided, finds the latest plan for that workflow and creates a new version.
+ */
+export async function upsertPlanVersion({
+  planId,
+  workflowId,
+  content,
+  editMessage,
+}: {
+  planId?: string
+  workflowId?: string
+  content: string
+  editMessage?: string
+}): Promise<Plan> {
+  if (!planId && !workflowId) {
+    throw new Error("Either planId or workflowId is required")
+  }
+  if (planId && workflowId) {
+    throw new Error("Cannot provide both planId and workflowId")
+  }
+
   const session = await n4j.getSession()
   try {
-    return await session.executeWrite(async (tx: ManagedTransaction) => {
-      const plan = await dbCreatePlanVersion(tx, {
-        planId,
-        workflowId,
+    return await session.executeWrite(async (tx) => {
+      let prevPlanId: string
+
+      if (planId) {
+        // Use the provided planId directly
+        prevPlanId = planId
+      } else {
+        // Find the latest plan for the workflow
+        const latestPlan = await getLatestPlanForWorkflow(tx, workflowId!)
+        if (!latestPlan) {
+          throw new Error(`No existing plan found for workflow ${workflowId}`)
+        }
+        prevPlanId = latestPlan.properties.id
+      }
+
+      const newPlanNode = await createPlanVersion(
+        tx,
+        prevPlanId,
         content,
-      })
-      // Convert Neo4j Integer/DateTime fields to plain JS types before returning
-      return toAppPlan(plan)
+        editMessage
+      )
+
+      // Convert the Neo4j node properties to a Plan object
+      const planProperties = newPlanNode.properties
+      return {
+        id: planProperties.id,
+        content: planProperties.content,
+        status: planProperties.status,
+        version: planProperties.version.toNumber(),
+        editMessage: planProperties.editMessage || undefined,
+        createdAt: planProperties.createdAt.toStandardDate(),
+      }
     })
   } finally {
     await session.close()

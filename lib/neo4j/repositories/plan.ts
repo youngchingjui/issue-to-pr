@@ -151,87 +151,47 @@ export async function listPlanStatusForIssues(
   return status
 }
 
-// --- New function: createPlanVersion ---
+// --- New function: getLatestPlanForWorkflow ---
+export async function getLatestPlanForWorkflow(
+  tx: ManagedTransaction,
+  workflowId: string
+) {
+  const res = await tx.run(
+    `
+    MATCH (w:WorkflowRun {id:$workflowId})-[:STARTS_WITH|NEXT*]->(p:Plan)
+    RETURN p ORDER BY p.version DESC LIMIT 1
+    `,
+    { workflowId }
+  )
+  return res.records[0]?.get("p")
+}
+
+// --- Keep existing createPlanVersion function with different name for backwards compatibility ---
 export async function createPlanVersion(
   tx: ManagedTransaction,
-  {
-    planId,
-    workflowId,
-    content,
-  }: { planId?: string; workflowId?: string; content: string }
-): Promise<Plan> {
-  // Only one of planId or workflowId must be provided
-  if (!!planId === !!workflowId) {
-    throw new Error("Provide exactly one of planId or workflowId")
-  }
-  // 1. Find the previous/latest plan
-  let prevPlan: Node<Integer, Plan> | undefined
-  let version = 1
-  if (planId) {
-    // Find Plan by planId
-    const prevRes = await tx.run<{ p: Node<Integer, Plan, "Plan"> }>(
-      `MATCH (p:Plan {id: $planId}) RETURN p`,
-      { planId }
-    )
-    prevPlan = prevRes.records[0]?.get("p")
-    if (!prevPlan) throw new Error("Could not find Plan with id " + planId)
-    version = prevPlan.properties.version.toNumber() + 1
-  } else {
-    // Find latest Plan for workflowId (by highest version)
-    const prevRes = await tx.run<{ p: Node<Integer, Plan, "Plan"> }>(
-      `MATCH (w:WorkflowRun {id: $workflowId})<-[:BASED_ON_ISSUE]-(i:Issue)<-[:IMPLEMENTS]-(p:Plan)
-       RETURN p ORDER BY p.version DESC LIMIT 1`,
-      { workflowId }
-    )
-    prevPlan = prevRes.records[0]?.get("p")
-    if (!prevPlan) {
-      // No plan yet for this workflow
-      version = 1
-    } else {
-      version = prevPlan.properties.version.toNumber() + 1
-    }
-  }
-  // 2. Create new Plan node
-  const newPlanId = crypto.randomUUID()
-  const now = new Date().toISOString()
-  const createRes = await tx.run<{ p: Node<Integer, Plan, "Plan"> }>(
-    `CREATE (p:Plan {id: $newPlanId, content: $content, status: 'draft', version: $version, createdAt: datetime($now)}) RETURN p`,
-    { newPlanId, content, version: int(version), now }
+  prevPlanId: string,
+  content: string,
+  editMessage?: string
+) {
+  const res = await tx.run(
+    `
+    MATCH (prev:Plan {id:$prevPlanId})
+    WITH prev
+    CREATE (next:Plan {
+      id: randomUUID(),
+      content:$content,
+      status:'draft',
+      version: prev.version + 1,
+      editMessage:$editMessage,
+      createdAt: datetime()
+    })
+    MERGE (prev)-[:NEXT_VERSION]->(next)
+    OPTIONAL MATCH (prev)-[:IMPLEMENTS]->(i)
+    FOREACH (_ IN CASE WHEN i IS NULL THEN [] ELSE [1] END |
+      MERGE (next)-[:IMPLEMENTS]->(i))
+    RETURN next
+    `,
+    { prevPlanId, content, editMessage }
   )
-  const newPlan = createRes.records[0]?.get("p") as Node<Integer, Plan>
-  if (!newPlan) throw new Error("Failed to create new plan node")
-  // 3. Link to previous Plan via NEXT_VERSION (if any)
-  if (prevPlan) {
-    await tx.run(
-      `MATCH (prev:Plan {id: $prevId}), (next:Plan {id: $nextId})
-       CREATE (prev)-[:NEXT_VERSION]->(next)`,
-      { prevId: prevPlan.properties.id, nextId: newPlanId }
-    )
-  }
-  // 4. Optionally, copy IMPLMENTS/other relationships
-  if (planId && prevPlan) {
-    // If planId given, connect new plan to same Issue as prevPlan
-    await tx.run(
-      `MATCH (prev:Plan {id: $prevId})-[:IMPLEMENTS]->(i:Issue), (next:Plan {id: $nextId})
-       CREATE (next)-[:IMPLEMENTS]->(i)`,
-      { prevId: planId, nextId: newPlanId }
-    )
-  } else if (workflowId && prevPlan) {
-    // For workflowId, inherit IMPLMENTS if prevPlan exists
-    await tx.run(
-      `MATCH (prev:Plan {id: $prevId})-[:IMPLEMENTS]->(i:Issue), (next:Plan {id: $nextId})
-       CREATE (next)-[:IMPLEMENTS]->(i)`,
-      { prevId: prevPlan.properties.id, nextId: newPlanId }
-    )
-  } else if (workflowId && !prevPlan) {
-    // First plan for workflow; connect to underlying Issue
-    await tx.run(
-      `MATCH (w:WorkflowRun {id: $workflowId})<-[:BASED_ON_ISSUE]-(i:Issue), (next:Plan {id: $nextId})
-       CREATE (next)-[:IMPLEMENTS]->(i)`,
-      { workflowId, nextId: newPlanId }
-    )
-  }
-
-  // 5. Return new plan (properties, not node)
-  return planSchema.parse(newPlan.properties)
+  return res.records[0].get("next")
 }
