@@ -1,4 +1,5 @@
 import { int, ManagedTransaction } from "neo4j-driver"
+
 import { n4j } from "@/lib/neo4j/client"
 import { toAppIssue } from "@/lib/neo4j/repositories/issue"
 import {
@@ -141,10 +142,15 @@ export async function createPlanVersionServer({
   const session = await n4j.getSession()
   try {
     return await session.executeWrite(async (tx: ManagedTransaction) => {
-      return await dbCreatePlanVersion(tx, { planId, workflowId, content })
+      const plan = await dbCreatePlanVersion(tx, {
+        planId,
+        workflowId,
+        content,
+      })
+      // Convert Neo4j Integer/DateTime fields to plain JS types before returning
+      return toAppPlan(plan)
     })
   } finally {
     await session.close()
   }
 }
-

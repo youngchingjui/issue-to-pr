@@ -231,8 +231,7 @@ export async function createPlanVersion(
       { workflowId, nextId: newPlanId }
     )
   }
-  
+
   // 5. Return new plan (properties, not node)
   return planSchema.parse(newPlan.properties)
 }
-

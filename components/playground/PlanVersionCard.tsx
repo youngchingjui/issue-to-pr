@@ -1,11 +1,13 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
+
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Plan } from "@/lib/types"
 
 // Will be imported dynamically by page for Server Action
 const createPlanVersionServer =
@@ -17,7 +19,7 @@ export default function PlanVersionCard() {
   const [mode, setMode] = useState<"plan" | "workflow">("plan")
   const [id, setId] = useState("")
   const [content, setContent] = useState("")
-  const [result, setResult] = useState<any>(null)
+  const [result, setResult] = useState<Plan | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -40,12 +42,14 @@ export default function PlanVersionCard() {
         const action =
           typeof window === "undefined"
             ? createPlanVersionServer
-            : (await import("@/lib/neo4j/services/plan")).createPlanVersionServer
-        if (!action) throw new Error("Server action not available in client context.")
+            : (await import("@/lib/neo4j/services/plan"))
+                .createPlanVersionServer
+        if (!action)
+          throw new Error("Server action not available in client context.")
         const res = await action(args)
         setResult(res)
-      } catch (e: any) {
-        setError(e?.message || "Unexpected error")
+      } catch (e) {
+        setError(String(e) || "Unexpected error")
       }
     })
   }
@@ -82,7 +86,9 @@ export default function PlanVersionCard() {
             </Label>
           </div>
           <div>
-            <Label htmlFor="id">{mode === "plan" ? "Plan ID" : "Workflow ID"}</Label>
+            <Label htmlFor="id">
+              {mode === "plan" ? "Plan ID" : "Workflow ID"}
+            </Label>
             <Input
               name="id"
               id="id"
@@ -108,12 +114,11 @@ export default function PlanVersionCard() {
             {isPending ? "Creating…" : "Create Version"}
           </Button>
         </form>
-        {error && (
-          <div className="text-red-500 py-2">Error: {error}</div>
-        )}
+        {error && <div className="text-red-500 py-2">Error: {error}</div>}
         {result && (
           <div className="mt-4 p-2 rounded bg-green-50 border text-green-800 text-sm">
-            New version created:<br />
+            New version created:
+            <br />
             <pre>{JSON.stringify(result, null, 2)}</pre>
           </div>
         )}
@@ -121,4 +126,3 @@ export default function PlanVersionCard() {
     </Card>
   )
 }
-
