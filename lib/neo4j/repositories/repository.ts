@@ -2,6 +2,7 @@ import { Integer, ManagedTransaction, Node } from "neo4j-driver"
 
 import { Labels } from "@/lib/neo4j/labels"
 import { RepoSettings, repoSettingsSchema } from "@/lib/types/db/neo4j"
+import { numberToNeo4jInt } from "@/lib/neo4j/type-helpers"
 
 // Get repository settings, with fallback for missing node or missing settings
 export async function getRepositorySettings(
@@ -32,7 +33,6 @@ export async function setRepositorySettings(
   settings: Omit<RepoSettings, "lastUpdated">
 ): Promise<void> {
   // Exclude lastUpdated (if present) so we can pass the rest directly
-
   await tx.run(
     `
     MERGE (r:${Labels.Repository} {fullName: $repoFullName})-[:HAS_SETTINGS]->(s:${Labels.Settings})
@@ -42,3 +42,4 @@ export async function setRepositorySettings(
     { repoFullName, settings }
   )
 }
+

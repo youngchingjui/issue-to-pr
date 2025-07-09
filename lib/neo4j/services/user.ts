@@ -5,11 +5,12 @@ import { n4j } from "@/lib/neo4j/client"
 import * as userRepo from "@/lib/neo4j/repositories/user"
 import { Settings as AppSettings } from "@/lib/types"
 import { UserSettings as DbUserSettings } from "@/lib/types/db/neo4j"
+import { neo4jDateTimeToDate } from "@/lib/neo4j/type-helpers"
 
 export const toAppUserSettings = (db: DbUserSettings): AppSettings => {
   return {
     ...db,
-    lastUpdated: db.lastUpdated.toStandardDate(),
+    lastUpdated: neo4jDateTimeToDate(db.lastUpdated),
   }
 }
 
@@ -128,3 +129,4 @@ export async function getUserRoles(username: string): Promise<string[]> {
     await session.close()
   }
 }
+

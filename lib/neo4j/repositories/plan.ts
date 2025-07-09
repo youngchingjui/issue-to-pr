@@ -12,6 +12,11 @@ import {
   WorkflowRun,
   workflowRunSchema,
 } from "@/lib/types/db/neo4j"
+import {
+  numberToNeo4jInt,
+  neo4jIntToNumber,
+  neo4jDateTimeToDate
+} from "@/lib/neo4j/type-helpers"
 
 // Retrieve Event node by id
 export async function getEventById(
@@ -32,7 +37,7 @@ export async function listPlansForIssue(
     MATCH (p:Plan)-[:IMPLEMENTS]->(i:Issue {number: $issueNumber, repoFullName: $repoFullName})
     RETURN p
     `,
-    { repoFullName, issueNumber }
+    { repoFullName, issueNumber: numberToNeo4jInt(issueNumber) }
   )
 
   return result.records.map((record) => {
@@ -47,7 +52,7 @@ export async function labelEventAsPlan(
   {
     eventId,
     status = "draft",
-    version = int(1),
+    version = numberToNeo4jInt(1),
   }: { eventId: string; status?: string; version?: Integer }
 ): Promise<LLMResponseWithPlan> {
   const result = await tx.run<{
@@ -97,8 +102,8 @@ export async function createPlanImplementsIssue(
 export const toAppPlan = (dbPlan: Plan): AppPlan => {
   return {
     ...dbPlan,
-    version: dbPlan.version.toNumber(),
-    createdAt: dbPlan.createdAt.toStandardDate(),
+    version: neo4jIntToNumber(dbPlan.version),
+    createdAt: neo4jDateTimeToDate(dbPlan.createdAt),
   }
 }
 
@@ -143,10 +148,12 @@ export async function listPlanStatusForIssues(
     OPTIONAL MATCH (p:Plan)-[:IMPLEMENTS]->(i)
     RETURN i.number AS number, count(p) > 0 AS hasPlan
   `
-  const result = await tx.run(cypher, { repoFullName, issueNumbers })
+  const convertedIssues = issueNumbers.map(numberToNeo4jInt)
+  const result = await tx.run(cypher, { repoFullName, issueNumbers: convertedIssues })
   const status: Record<number, boolean> = {}
   for (const record of result.records) {
-    status[record.get("number")] = record.get("hasPlan")
+    status[neo4jIntToNumber(record.get("number"))!] = record.get("hasPlan")
   }
   return status
 }
+

@@ -2,6 +2,7 @@ import { Integer, ManagedTransaction, Node } from "neo4j-driver"
 
 import { Labels } from "@/lib/neo4j/labels"
 import { UserSettings, userSettingsSchema } from "@/lib/types/db/neo4j"
+import { numberToNeo4jInt } from "@/lib/neo4j/type-helpers"
 
 export async function getUserSettings(
   tx: ManagedTransaction,
@@ -102,3 +103,4 @@ export async function getUserRoles(
   )
   return res.records[0]?.get("roles") ?? []
 }
+

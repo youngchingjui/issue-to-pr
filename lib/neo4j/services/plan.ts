@@ -12,6 +12,11 @@ import {
 } from "@/lib/neo4j/repositories/plan"
 import { toAppWorkflowRun } from "@/lib/neo4j/repositories/workflowRun"
 import { Issue, LLMResponseWithPlan, Plan, WorkflowRun } from "@/lib/types"
+import {
+  numberToNeo4jInt,
+  neo4jIntToNumber,
+  neo4jDateTimeToDate
+} from "@/lib/neo4j/type-helpers"
 
 export async function listPlansForIssue({
   repoFullName,
@@ -58,13 +63,13 @@ export async function tagMessageAsPlan({
         const planNode = await labelEventAsPlan(tx, {
           eventId,
           status: "draft",
-          version: int(1),
+          version: numberToNeo4jInt(1),
         })
 
         // Create relationship
         await createPlanImplementsIssue(tx, {
           eventId,
-          issueNumber: int(issueNumber),
+          issueNumber: numberToNeo4jInt(issueNumber),
           repoFullName,
         })
 
@@ -76,14 +81,14 @@ export async function tagMessageAsPlan({
       plan: {
         id: result.id,
         status: result.status,
-        version: result.version.toNumber(),
+        version: neo4jIntToNumber(result.version),
         editMessage: result.editMessage,
       },
       workflowId,
       id: result.id,
       content: result.content,
       type: "llmResponseWithPlan",
-      createdAt: result.createdAt.toStandardDate(),
+      createdAt: neo4jDateTimeToDate(result.createdAt),
     }
   } finally {
     await session.close()
@@ -127,3 +132,4 @@ export async function getPlanStatusForIssues({
     await session.close()
   }
 }
+

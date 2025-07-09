@@ -5,12 +5,13 @@ import * as repoRepo from "@/lib/neo4j/repositories/repository"
 import { RepoSettings as AppRepoSettings } from "@/lib/types"
 import { RepoSettings as DbRepoSettings } from "@/lib/types/db/neo4j"
 import { RepoFullName } from "@/lib/types/github"
+import { neo4jDateTimeToDate } from "@/lib/neo4j/type-helpers"
 
 // Convert Neo4j temporal types -> JS primitives
 export const toAppRepoSettings = (db: DbRepoSettings): AppRepoSettings => {
   return {
     ...db,
-    lastUpdated: db.lastUpdated.toStandardDate(),
+    lastUpdated: neo4jDateTimeToDate(db.lastUpdated),
   }
 }
 
@@ -43,3 +44,4 @@ export async function setRepositorySettings(
     await session.close()
   }
 }
+
