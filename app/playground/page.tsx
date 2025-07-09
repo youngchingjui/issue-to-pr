@@ -21,6 +21,9 @@ import DockerodeExecCard from "@/components/playground/DockerodeExecCard"
 import RipgrepSearchCard from "@/components/playground/RipgrepSearchCard"
 import SWRDemoCard from "@/components/playground/SWRDemoCard"
 import WriteFileCard from "@/components/playground/WriteFileCard"
+import dynamic from "next/dynamic"
+
+const PlanVersionCard = dynamic(() => import("@/components/playground/PlanVersionCard"), { ssr: false })
 
 export default async function PlaygroundPage() {
   const session = await auth()
@@ -33,7 +36,9 @@ export default async function PlaygroundPage() {
       <RipgrepSearchCard />
       <DockerodeExecCard />
       <WriteFileCard />
+      <PlanVersionCard />
       {token ? <OAuthTokenCard token={token} /> : null}
     </div>
   )
 }
+

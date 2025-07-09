@@ -1,9 +1,9 @@
 import { int, ManagedTransaction } from "neo4j-driver"
-
 import { n4j } from "@/lib/neo4j/client"
 import { toAppIssue } from "@/lib/neo4j/repositories/issue"
 import {
   createPlanImplementsIssue,
+  createPlanVersion as dbCreatePlanVersion,
   getPlanWithDetails as dbGetPlanWithDetails,
   labelEventAsPlan,
   listPlansForIssue as dbListPlansForIssue,
@@ -127,3 +127,24 @@ export async function getPlanStatusForIssues({
     await session.close()
   }
 }
+
+// --- New: Plan version Server Action ---
+export async function createPlanVersionServer({
+  planId,
+  workflowId,
+  content,
+}: {
+  planId?: string
+  workflowId?: string
+  content: string
+}): Promise<Plan> {
+  const session = await n4j.getSession()
+  try {
+    return await session.executeWrite(async (tx: ManagedTransaction) => {
+      return await dbCreatePlanVersion(tx, { planId, workflowId, content })
+    })
+  } finally {
+    await session.close()
+  }
+}
+
