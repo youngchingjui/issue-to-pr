@@ -21,6 +21,8 @@ import DockerodeExecCard from "@/components/playground/DockerodeExecCard"
 import RipgrepSearchCard from "@/components/playground/RipgrepSearchCard"
 import SWRDemoCard from "@/components/playground/SWRDemoCard"
 import WriteFileCard from "@/components/playground/WriteFileCard"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
 
 export default async function PlaygroundPage() {
   const session = await auth()
@@ -34,6 +36,13 @@ export default async function PlaygroundPage() {
       <DockerodeExecCard />
       <WriteFileCard />
       {token ? <OAuthTokenCard token={token} /> : null}
+      <div>
+        <Link href="/playground/evals">
+          <Button variant="outline" size="sm">
+            LLM Evaluations
+          </Button>
+        </Link>
+      </div>
     </div>
   )
 }
