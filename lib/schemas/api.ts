@@ -78,4 +78,3 @@ export const ResolveRequestSchema = z.object({
   installCommand: z.string().optional(),
   planId: z.string().optional(),
 })
-

@@ -41,7 +41,12 @@ export async function LLMResponseEvent({ event, issue }: Props) {
               </Button>
             </Link>
             <PostToGitHubButton content={event.content} issue={issue} />
-            <ResolveIssueButton planId={event.plan.id} issueNumber={issue.number} repoFullName={issue.repoFullName} createPR={true} />
+            <ResolveIssueButton
+              planId={event.plan.id}
+              issueNumber={issue.number}
+              repoFullName={issue.repoFullName}
+              createPR={true}
+            />
           </>
         )}
         <CopyMarkdownButton content={event.content} />
@@ -61,4 +66,3 @@ export async function LLMResponseEvent({ event, issue }: Props) {
     </CollapsibleContent>
   )
 }
-

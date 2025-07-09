@@ -18,7 +18,12 @@ interface Props {
   createPR?: boolean
 }
 
-export function ResolveIssueButton({ planId, issueNumber, repoFullName, createPR = true }: Props) {
+export function ResolveIssueButton({
+  planId,
+  issueNumber,
+  repoFullName,
+  createPR = true,
+}: Props) {
   const [isLoading, setIsLoading] = useState(false)
 
   const handleResolve = async () => {
@@ -36,7 +41,9 @@ export function ResolveIssueButton({ planId, issueNumber, repoFullName, createPR
       })
       const result = await response.json()
       if (!response.ok) {
-        throw new Error(result.error || "Failed to launch resolveIssue workflow.")
+        throw new Error(
+          result.error || "Failed to launch resolveIssue workflow."
+        )
       }
       toast({
         title: "Workflow Launched",
@@ -66,16 +73,16 @@ export function ResolveIssueButton({ planId, issueNumber, repoFullName, createPR
             disabled={isLoading}
             aria-label="Launch resolveIssue workflow"
           >
-            {isLoading ? "Launching..." : "Create PR from Plan"}
+            {isLoading ? "Launching..." : "Create PR"}
           </Button>
         </TooltipTrigger>
         <TooltipContent side="bottom">
           <span>
-            Launch resolveIssue workflow using the selected plan. This executes your implementation plan.
+            Launch resolveIssue workflow using the selected plan. This executes
+            your implementation plan.
           </span>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
   )
 }
-
