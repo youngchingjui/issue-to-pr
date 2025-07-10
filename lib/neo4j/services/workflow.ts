@@ -2,10 +2,10 @@ import { int } from "neo4j-driver"
 
 import { n4j } from "@/lib/neo4j/client"
 import {
+  getEventsForWorkflowRun,
+  getMessagesForWorkflowRun,
   toAppEvent,
   toAppMessageEvent,
-  getMessagesForWorkflowRun,
-  getEventsForWorkflowRun,
 } from "@/lib/neo4j/repositories/event"
 import { toAppIssue } from "@/lib/neo4j/repositories/issue"
 import {
