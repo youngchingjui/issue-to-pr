@@ -8,6 +8,7 @@ import {
   labelEventAsPlan,
   listPlansForIssue as dbListPlansForIssue,
   listPlanStatusForIssues as dbListPlanStatusForIssues,
+  listLatestPlanIdsForIssues as dbListLatestPlanIdsForIssues,
   toAppPlan,
 } from "@/lib/neo4j/repositories/plan"
 import { toAppWorkflowRun } from "@/lib/neo4j/repositories/workflowRun"
@@ -122,6 +123,25 @@ export async function getPlanStatusForIssues({
   try {
     return await session.executeRead(async (tx: ManagedTransaction) => {
       return await dbListPlanStatusForIssues(tx, { repoFullName, issueNumbers })
+    })
+  } finally {
+    await session.close()
+  }
+}
+
+// Batch latest plan IDs for multiple issues (service level)
+export async function getLatestPlanIdsForIssues({
+  repoFullName,
+  issueNumbers,
+}: {
+  repoFullName: string
+  issueNumbers: number[]
+}): Promise<Record<number, string | null>> {
+  if (!issueNumbers.length) return {}
+  const session = await n4j.getSession()
+  try {
+    return await session.executeRead(async (tx: ManagedTransaction) => {
+      return await dbListLatestPlanIdsForIssues(tx, { repoFullName, issueNumbers })
     })
   } finally {
     await session.close()
