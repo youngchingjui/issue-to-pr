@@ -10,7 +10,7 @@ export interface Props {
   event: ToolCallResult
 }
 
-export async function ToolCallResultEvent({ event }: Props) {
+export function ToolCallResultEvent({ event }: Props) {
   const headerContent = (
     <div className="flex items-center justify-between w-full">
       <div className="flex items-center gap-2">

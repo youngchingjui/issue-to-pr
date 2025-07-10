@@ -10,7 +10,7 @@ export interface Props {
   event: UserMessage | ReviewComment
 }
 
-export async function UserMessageEvent({ event }: Props) {
+export function UserMessageEvent({ event }: Props) {
   const headerContent = (
     <>
       <div className="text-xs font-medium text-muted-foreground">

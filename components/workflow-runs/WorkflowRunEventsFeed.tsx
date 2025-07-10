@@ -61,7 +61,6 @@ export default function WorkflowRunEventsFeed({
   const { data } = useSWR(`/api/workflow-runs/${workflowId}/events`, fetcher, {
     refreshInterval: 1000,
     fallbackData: initialEvents,
-    keepPreviousData: true,
   })
 
   if (!data) return null
