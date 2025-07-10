@@ -1,4 +1,4 @@
-"use server"
+"use client"
 
 import { ExternalLink } from "lucide-react"
 import Link from "next/link"
@@ -20,7 +20,7 @@ interface Props {
   issue?: Issue
 }
 
-export async function LLMResponseEvent({ event, issue }: Props) {
+export function LLMResponseEvent({ event, issue }: Props) {
   const headerContent = (
     <div className="flex items-center justify-between w-full">
       <div className="flex items-center gap-2">

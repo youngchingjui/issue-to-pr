@@ -308,16 +308,19 @@ export async function toAppEvent(
   workflowId: string
 ): Promise<appAnyEvent> {
   if (dbEvent.type === "llmResponse" && isLLMResponseWithPlan(dbEvent)) {
+    // Destructure to exclude plan-specific properties from the spread
+    const { version, status, editMessage, createdAt, ...restDbEvent } = dbEvent
+
     return {
-      ...dbEvent,
-      createdAt: dbEvent.createdAt.toStandardDate(),
+      ...restDbEvent,
+      createdAt: createdAt.toStandardDate(),
       type: "llmResponseWithPlan",
       workflowId,
       plan: {
         id: dbEvent.id,
-        status: dbEvent.status,
-        version: dbEvent.version.toNumber(),
-        editMessage: dbEvent.editMessage,
+        status: status,
+        version: version.toNumber(),
+        editMessage: editMessage,
       },
     }
   }
