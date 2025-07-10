@@ -1,8 +1,12 @@
 import { int } from "neo4j-driver"
 
 import { n4j } from "@/lib/neo4j/client"
-import { toAppEvent, toAppMessageEvent } from "@/lib/neo4j/repositories/event"
-import { getMessagesForWorkflowRun } from "@/lib/neo4j/repositories/event"
+import {
+  toAppEvent,
+  toAppMessageEvent,
+  getMessagesForWorkflowRun,
+  getEventsForWorkflowRun,
+} from "@/lib/neo4j/repositories/event"
 import { toAppIssue } from "@/lib/neo4j/repositories/issue"
 import {
   create,
@@ -159,6 +163,20 @@ export async function getWorkflowRunMessages(
     return await Promise.all(
       dbEvents.map((e) => toAppMessageEvent(e, workflowRunId))
     )
+  } finally {
+    await session.close()
+  }
+}
+
+export async function getWorkflowRunEvents(
+  workflowRunId: string
+): Promise<AnyEvent[]> {
+  const session = await n4j.getSession()
+  try {
+    const dbEvents = await session.executeRead(async (tx) => {
+      return await getEventsForWorkflowRun(tx, workflowRunId)
+    })
+    return await Promise.all(dbEvents.map((e) => toAppEvent(e, workflowRunId)))
   } finally {
     await session.close()
   }

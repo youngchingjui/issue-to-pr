@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 
-import { getWorkflowRunMessages } from "@/lib/neo4j/services/workflow"
+import { getWorkflowRunEvents } from "@/lib/neo4j/services/workflow"
 
 export const dynamic = "force-dynamic"
 
@@ -9,7 +9,7 @@ export async function GET(
   { params }: { params: { workflowId: string } }
 ) {
   try {
-    const events = await getWorkflowRunMessages(params.workflowId)
+    const events = await getWorkflowRunEvents(params.workflowId)
     return NextResponse.json({ events })
   } catch (err) {
     console.error("Error fetching workflow events:", err)
