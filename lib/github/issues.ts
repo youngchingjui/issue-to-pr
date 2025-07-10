@@ -1,8 +1,11 @@
 "use server"
 
 import getOctokit from "@/lib/github"
-import { getPRLinkedIssuesMap } from "@/lib/github/pullRequests"
-import { getPlanStatusForIssues } from "@/lib/neo4j/services/plan"
+import { getIssueToPullRequestMap } from "@/lib/github/pullRequests"
+import {
+  getLatestPlanIdsForIssues,
+  getPlanStatusForIssues,
+} from "@/lib/neo4j/services/plan"
 import {
   GetIssueResult,
   GitHubIssue,
@@ -167,6 +170,8 @@ export async function updateIssueComment({
 export type IssueWithStatus = GitHubIssue & {
   hasPlan: boolean
   hasPR: boolean
+  planId?: string | null
+  prNumber?: number
 }
 
 /**
@@ -187,15 +192,21 @@ export async function getIssueListWithStatus({
     repoFullName,
     issueNumbers,
   })
+  const issuePlanIds = await getLatestPlanIdsForIssues({
+    repoFullName,
+    issueNumbers,
+  })
 
   // 3. Get PRs from GitHub using GraphQL, and find for each issue if it has a PR referencing it.
-  const issuePRStatus = await getPRLinkedIssuesMap(repoFullName)
+  const issuePRMap = await getIssueToPullRequestMap(repoFullName)
 
   // 4. Compose the final list
   const withStatus: IssueWithStatus[] = issues.map((issue) => ({
     ...issue,
     hasPlan: issuePlanStatus[issue.number] || false,
-    hasPR: issuePRStatus[issue.number] || false,
+    hasPR: Boolean(issuePRMap[issue.number]),
+    planId: issuePlanIds[issue.number] || null,
+    prNumber: issuePRMap[issue.number],
   }))
 
   return withStatus

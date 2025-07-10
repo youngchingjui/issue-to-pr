@@ -150,3 +150,28 @@ export async function listPlanStatusForIssues(
   }
   return status
 }
+
+// Batch latest plan ID for multiple issues
+export async function listLatestPlanIdsForIssues(
+  tx: ManagedTransaction,
+  {
+    repoFullName,
+    issueNumbers,
+  }: { repoFullName: string; issueNumbers: number[] }
+): Promise<Record<number, string | null>> {
+  if (!issueNumbers.length) return {}
+  const cypher = `
+    MATCH (i:Issue)
+    WHERE i.repoFullName = $repoFullName AND i.number IN $issueNumbers
+    OPTIONAL MATCH (p:Plan)-[:IMPLEMENTS]->(i)
+    WITH i.number AS number, p
+    ORDER BY p.createdAt DESC
+    RETURN number, head(collect(p.id)) AS planId
+  `
+  const result = await tx.run(cypher, { repoFullName, issueNumbers })
+  const planIds: Record<number, string | null> = {}
+  for (const record of result.records) {
+    planIds[record.get("number")] = record.get("planId") || null
+  }
+  return planIds
+}

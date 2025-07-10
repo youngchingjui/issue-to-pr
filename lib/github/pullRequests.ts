@@ -409,6 +409,57 @@ export async function getPRLinkedIssuesMap(
   return issuePRStatus
 }
 
+export async function getIssueToPullRequestMap(
+  repoFullName: string
+): Promise<Record<number, number>> {
+  const [owner, repo] = repoFullName.split("/")
+  const graphqlWithAuth = await getGraphQLClient()
+  if (!graphqlWithAuth) throw new Error("Could not initialize GraphQL client")
+
+  let hasNextPage = true
+  let endCursor: string | null = null
+  const issuePRMap: Record<number, number> = {}
+
+  while (hasNextPage) {
+    const query = `
+      query($owner: String!, $repo: String!, $after: String) {
+        repository(owner: $owner, name: $repo) {
+          pullRequests(first: 50, after: $after, states: [OPEN, MERGED, CLOSED]) {
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+            nodes {
+              number
+              closingIssuesReferences(first: 10) {
+                nodes {
+                  number
+                }
+              }
+            }
+          }
+        }
+      }
+    `
+    const variables = { owner, repo, after: endCursor }
+    const response = (await graphqlWithAuth(
+      query,
+      variables
+    )) as PRLinkedIssuesGraphQLResponse
+    const prNodes = response.repository.pullRequests.nodes
+    for (const pr of prNodes) {
+      for (const issue of pr.closingIssuesReferences.nodes) {
+        if (!issuePRMap[issue.number]) {
+          issuePRMap[issue.number] = pr.number
+        }
+      }
+    }
+    hasNextPage = response.repository.pullRequests.pageInfo.hasNextPage
+    endCursor = response.repository.pullRequests.pageInfo.endCursor
+  }
+  return issuePRMap
+}
+
 /**
  * Returns the list of issue numbers that are linked (via closing keywords) to a given pull request.
  */
