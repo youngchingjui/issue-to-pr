@@ -1,4 +1,4 @@
-"use server"
+"use client"
 
 import { Code2 } from "lucide-react"
 
@@ -9,7 +9,7 @@ export interface Props {
   event: ToolCall
 }
 
-export async function ToolCallEvent({ event }: Props) {
+export function ToolCallEvent({ event }: Props) {
   const args = JSON.parse(event.args)
 
   return (

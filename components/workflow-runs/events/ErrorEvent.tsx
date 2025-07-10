@@ -1,3 +1,5 @@
+"use client"
+
 import { XCircle } from "lucide-react"
 
 import { CollapsibleContent } from "@/components/ui/collapsible-content"
