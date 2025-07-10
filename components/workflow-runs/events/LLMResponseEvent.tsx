@@ -1,4 +1,4 @@
-"use server"
+"use client"
 
 import { ExternalLink } from "lucide-react"
 import Link from "next/link"

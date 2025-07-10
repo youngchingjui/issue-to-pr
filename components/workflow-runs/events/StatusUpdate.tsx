@@ -1,4 +1,4 @@
-"use server"
+"use client"
 
 import { CheckCircle2 } from "lucide-react"
 
