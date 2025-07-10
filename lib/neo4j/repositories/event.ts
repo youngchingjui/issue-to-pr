@@ -303,6 +303,23 @@ export async function getMessagesForWorkflowRun(
   )
 }
 
+export async function getEventsForWorkflowRun(
+  tx: ManagedTransaction,
+  workflowRunId: string
+): Promise<AnyEvent[]> {
+  const result = await tx.run<{ e: Node<Integer, AnyEvent, "Event"> }>(
+    `
+    MATCH (w:WorkflowRun {id: $workflowRunId})-[:STARTS_WITH|NEXT*]->(e:Event)
+    RETURN e
+    ORDER BY e.createdAt ASC
+    `,
+    { workflowRunId }
+  )
+  return result.records.map((record) =>
+    anyEventSchema.parse(record.get("e").properties)
+  )
+}
+
 export async function toAppEvent(
   dbEvent: AnyEvent,
   workflowId: string
