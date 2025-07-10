@@ -2,7 +2,6 @@
 
 import useSWR from "swr"
 
-import { AnyEvent, Issue } from "@/lib/types"
 import {
   ErrorEvent,
   LLMResponseEvent,
@@ -12,6 +11,7 @@ import {
   ToolCallResultEvent,
   UserMessageEvent,
 } from "@/components/workflow-runs/events"
+import { AnyEvent, Issue } from "@/lib/types"
 
 interface Props {
   workflowId: string
