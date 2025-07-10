@@ -13,6 +13,9 @@ export async function GET(
     return NextResponse.json({ events })
   } catch (err) {
     console.error("Error fetching workflow events:", err)
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 })
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    )
   }
 }

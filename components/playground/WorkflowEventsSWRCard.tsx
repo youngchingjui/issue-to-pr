@@ -22,7 +22,7 @@ export default function WorkflowEventsSWRCard() {
     workflowId ? `/api/workflow-runs/${workflowId}/events` : null,
     fetcher,
     {
-      refreshInterval: workflowId ? 2000 : 0,
+      refreshInterval: workflowId ? 1000 : 0,
       keepPreviousData: true,
     }
   )
