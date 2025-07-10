@@ -6,6 +6,7 @@ export const Labels = {
   Event: "Event",
   Message: "Message",
   Plan: "Plan",
+  Task: "Task",
   WorkflowRun: "WorkflowRun",
 } as const
 
