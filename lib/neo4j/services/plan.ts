@@ -6,9 +6,9 @@ import {
   createPlanImplementsIssue,
   getPlanWithDetails as dbGetPlanWithDetails,
   labelEventAsPlan,
+  listLatestPlanIdsForIssues as dbListLatestPlanIdsForIssues,
   listPlansForIssue as dbListPlansForIssue,
   listPlanStatusForIssues as dbListPlanStatusForIssues,
-  listLatestPlanIdsForIssues as dbListLatestPlanIdsForIssues,
   toAppPlan,
 } from "@/lib/neo4j/repositories/plan"
 import { toAppWorkflowRun } from "@/lib/neo4j/repositories/workflowRun"
@@ -141,7 +141,10 @@ export async function getLatestPlanIdsForIssues({
   const session = await n4j.getSession()
   try {
     return await session.executeRead(async (tx: ManagedTransaction) => {
-      return await dbListLatestPlanIdsForIssues(tx, { repoFullName, issueNumbers })
+      return await dbListLatestPlanIdsForIssues(tx, {
+        repoFullName,
+        issueNumbers,
+      })
     })
   } finally {
     await session.close()

@@ -10,7 +10,10 @@ import {
 import type { IssueWithStatus } from "@/lib/github/issues"
 
 interface Props {
-  issue: Pick<IssueWithStatus, "hasPlan" | "hasPR" | "planId" | "prNumber" | "number">
+  issue: Pick<
+    IssueWithStatus,
+    "hasPlan" | "hasPR" | "planId" | "prNumber" | "number"
+  >
   repoFullName: string
 }
 

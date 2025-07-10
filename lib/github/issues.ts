@@ -3,8 +3,8 @@
 import getOctokit from "@/lib/github"
 import { getIssueToPullRequestMap } from "@/lib/github/pullRequests"
 import {
-  getPlanStatusForIssues,
   getLatestPlanIdsForIssues,
+  getPlanStatusForIssues,
 } from "@/lib/neo4j/services/plan"
 import {
   GetIssueResult,
