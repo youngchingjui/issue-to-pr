@@ -96,7 +96,7 @@ export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
         </div>
       </TableCell>
       <TableCell className="text-center align-middle w-12">
-        <StatusIndicators issue={issue} />
+        <StatusIndicators issue={issue} repoFullName={repoFullName} />
       </TableCell>
       <TableCell className="text-right">
         <DropdownMenu>

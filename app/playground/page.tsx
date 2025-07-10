@@ -20,7 +20,10 @@ import AgentWorkflowClient from "@/components/playground/AgentWorkflowClient"
 import DockerodeExecCard from "@/components/playground/DockerodeExecCard"
 import RipgrepSearchCard from "@/components/playground/RipgrepSearchCard"
 import SWRDemoCard from "@/components/playground/SWRDemoCard"
+import WorkflowEventsSWRCard from "@/components/playground/WorkflowEventsSWRCard"
 import WriteFileCard from "@/components/playground/WriteFileCard"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
 
 export default async function PlaygroundPage() {
   const session = await auth()
@@ -30,10 +33,18 @@ export default async function PlaygroundPage() {
     <div className="space-y-8 px-4 py-8 md:container md:mx-auto">
       <AgentWorkflowClient defaultTools={DEFAULT_TOOLS} />
       <SWRDemoCard />
+      <WorkflowEventsSWRCard />
       <RipgrepSearchCard />
       <DockerodeExecCard />
       <WriteFileCard />
       {token ? <OAuthTokenCard token={token} /> : null}
+      <div>
+        <Link href="/playground/evals">
+          <Button variant="outline" size="sm">
+            LLM Evaluations
+          </Button>
+        </Link>
+      </div>
     </div>
   )
 }
