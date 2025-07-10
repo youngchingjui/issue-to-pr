@@ -64,6 +64,18 @@ export const planMetaSchema = planSchema.omit({
   createdAt: true,
 })
 
+// Tasks stored locally per repo
+export const taskSchema = z.object({
+  id: z.string(),
+  repoFullName: z.string(),
+  createdBy: z.string(),
+  createdAt: z.date(),
+  title: z.string().optional(),
+  body: z.string().optional(),
+  syncedToGithub: z.boolean(),
+  githubIssueNumber: z.number().optional(),
+})
+
 // Events
 const eventTypes = z.enum([
   "error",
@@ -288,6 +300,7 @@ export type StatusEvent = z.infer<typeof statusEventSchema>
 export type SystemPrompt = z.infer<typeof systemPromptSchema>
 export type ToolCall = z.infer<typeof toolCallSchema>
 export type ToolCallResult = z.infer<typeof toolCallResultSchema>
+export type Task = z.infer<typeof taskSchema>
 export type UserMessage = z.infer<typeof userMessageSchema>
 export type WorkflowRun = z.infer<typeof workflowRunSchema>
 export type WorkflowRunState = z.infer<typeof workflowRunStateSchema>

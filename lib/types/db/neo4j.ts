@@ -6,6 +6,7 @@ import {
   issueSchema as appIssueSchema,
   llmResponseSchema as appLLMResponseSchema,
   planSchema as appPlanSchema,
+  taskSchema as appTaskSchema,
   repoSettingsSchema as appRepoSettingsSchema,
   reviewCommentSchema as appReviewCommentSchema,
   settingsSchema as appSettingsSchema,
@@ -53,6 +54,13 @@ export const planSchema = appPlanSchema.merge(
   z.object({
     version: z.instanceof(Integer),
     createdAt: z.instanceof(DateTime),
+  })
+)
+
+export const taskSchema = appTaskSchema.merge(
+  z.object({
+    createdAt: z.instanceof(DateTime),
+    githubIssueNumber: z.instanceof(Integer).optional(),
   })
 )
 
@@ -139,6 +147,7 @@ export type LLMResponse = z.infer<typeof llmResponseSchema>
 export type LLMResponseWithPlan = z.infer<typeof llmResponseWithPlanSchema>
 export type MessageEvent = z.infer<typeof messageEventSchema>
 export type Plan = z.infer<typeof planSchema>
+export type Task = z.infer<typeof taskSchema>
 export type ReviewComment = z.infer<typeof reviewCommentSchema>
 export type StatusEvent = z.infer<typeof statusEventSchema>
 export type SystemPrompt = z.infer<typeof systemPromptSchema>
