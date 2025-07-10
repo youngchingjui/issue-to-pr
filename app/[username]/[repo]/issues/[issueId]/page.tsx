@@ -8,6 +8,7 @@ import IssueWorkflowRuns from "@/components/issues/IssueWorkflowRuns"
 import TableSkeleton from "@/components/layout/TableSkeleton"
 import { Button } from "@/components/ui/button"
 import { getIssue } from "@/lib/github/issues"
+import { listWorkflowRuns } from "@/lib/neo4j/services/workflow"
 
 interface Props {
   params: {
@@ -26,6 +27,7 @@ export default async function IssueDetailsPage({ params }: Props) {
     fullName: repoFullName,
     issueNumber,
   })
+  const runs = await listWorkflowRuns({ repoFullName, issueNumber })
 
   if (result.type === "not_found") {
     return (
@@ -123,6 +125,7 @@ export default async function IssueDetailsPage({ params }: Props) {
           <IssueWorkflowRuns
             repoFullName={repoFullName}
             issueNumber={issueNumber}
+            initialRuns={runs}
           />
         </Suspense>
       </div>
