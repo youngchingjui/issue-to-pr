@@ -58,8 +58,26 @@ export default function WorkflowRunEventsFeed({
   initialEvents,
   issue,
 }: Props) {
+  // Check if workflow has reached a terminal state
+  const isWorkflowComplete = (events: AnyEvent[]) => {
+    const latestWorkflowStateEvent = [...events]
+      .reverse()
+      .find((event) => event.type === "workflowState")
+
+    if (!latestWorkflowStateEvent) return false
+
+    // WorkflowStateEvent has a 'state' property
+    if (latestWorkflowStateEvent.type === "workflowState") {
+      const state = latestWorkflowStateEvent.state
+      return state === "completed" || state === "error"
+    }
+
+    return false
+  }
+
   const { data } = useSWR(`/api/workflow-runs/${workflowId}/events`, fetcher, {
-    refreshInterval: 1000,
+    refreshInterval: (data) =>
+      isWorkflowComplete(data || initialEvents) ? 0 : 500,
     fallbackData: initialEvents,
   })
 
