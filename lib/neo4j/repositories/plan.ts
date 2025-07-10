@@ -150,3 +150,48 @@ export async function listPlanStatusForIssues(
   }
   return status
 }
+
+// --- New function: getLatestPlanForWorkflow ---
+export async function getLatestPlanForWorkflow(
+  tx: ManagedTransaction,
+  workflowId: string
+) {
+  const res = await tx.run(
+    `
+    MATCH (w:WorkflowRun {id:$workflowId})-[:STARTS_WITH|NEXT*]->(p:Plan)
+    RETURN p ORDER BY p.version DESC LIMIT 1
+    `,
+    { workflowId }
+  )
+  return res.records[0]?.get("p")
+}
+
+// --- Keep existing createPlanVersion function with different name for backwards compatibility ---
+export async function createPlanVersion(
+  tx: ManagedTransaction,
+  prevPlanId: string,
+  content: string,
+  editMessage?: string
+) {
+  const res = await tx.run(
+    `
+    MATCH (prev:Plan {id:$prevPlanId})
+    WITH prev
+    CREATE (next:Plan {
+      id: randomUUID(),
+      content:$content,
+      status:'draft',
+      version: prev.version + 1,
+      editMessage:$editMessage,
+      createdAt: datetime()
+    })
+    MERGE (prev)-[:NEXT_VERSION]->(next)
+    OPTIONAL MATCH (prev)-[:IMPLEMENTS]->(i)
+    FOREACH (_ IN CASE WHEN i IS NULL THEN [] ELSE [1] END |
+      MERGE (next)-[:IMPLEMENTS]->(i))
+    RETURN next
+    `,
+    { prevPlanId, content, editMessage }
+  )
+  return res.records[0].get("next")
+}
