@@ -4,14 +4,12 @@ import { n4j } from "@/lib/neo4j/client"
 import * as repoRepo from "@/lib/neo4j/repositories/repository"
 import { RepoSettings as AppRepoSettings } from "@/lib/types"
 import { RepoSettings as DbRepoSettings } from "@/lib/types/db/neo4j"
+import { neo4jToJs } from "@/lib/neo4j/convert"
 import { RepoFullName } from "@/lib/types/github"
 
 // Convert Neo4j temporal types -> JS primitives
 export const toAppRepoSettings = (db: DbRepoSettings): AppRepoSettings => {
-  return {
-    ...db,
-    lastUpdated: db.lastUpdated.toStandardDate(),
-  }
+  return neo4jToJs(db) as AppRepoSettings
 }
 
 export async function getRepositorySettings(

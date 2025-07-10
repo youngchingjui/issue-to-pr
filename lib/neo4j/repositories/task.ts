@@ -1,6 +1,7 @@
 import { Integer, ManagedTransaction, Node } from "neo4j-driver"
 
 import { Task, taskSchema } from "@/lib/types/db/neo4j"
+import { neo4jToJs } from "@/lib/neo4j/convert"
 
 export async function create(
   tx: ManagedTransaction,
@@ -78,9 +79,5 @@ export async function remove(
 }
 
 export const toAppTask = (db: Task): import("@/lib/types").Task => {
-  return {
-    ...db,
-    createdAt: db.createdAt.toStandardDate(),
-    githubIssueNumber: db.githubIssueNumber?.toNumber(),
-  }
+  return neo4jToJs(db) as import("@/lib/types").Task
 }
