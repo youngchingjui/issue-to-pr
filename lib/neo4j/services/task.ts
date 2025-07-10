@@ -1,5 +1,6 @@
 "use server"
 
+import { Integer } from "neo4j-driver"
 import { v4 as uuidv4 } from "uuid"
 
 import { n4j } from "@/lib/neo4j/client"
@@ -91,7 +92,7 @@ export async function updateTask({
         syncedToGithub,
         githubIssueNumber:
           githubIssueNumber !== undefined && githubIssueNumber !== null
-            ? (githubIssueNumber as any)
+            ? new Integer(githubIssueNumber)
             : null,
       })
     )
