@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 
 import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
 import { AlignmentCheckRequestSchema } from "@/lib/types/api/schemas"
-import { alignmentCheck } from "@/lib/workflows"
+import { alignmentCheck } from "@/lib/workflows/alignmentCheck"
 
 export const dynamic = "force-dynamic"
 

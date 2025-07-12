@@ -1,4 +1,4 @@
-import { GoalIdentifierAgent } from "@/lib/agents"
+import { GoalIdentifierAgent } from "@/lib/agents/GoalIdentifierAgent"
 import { getRepoFromString } from "@/lib/github/content"
 import {
   getPullRequest,

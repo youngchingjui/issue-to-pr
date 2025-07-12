@@ -3,7 +3,7 @@
 import { XCircle } from "lucide-react"
 
 import { CollapsibleContent } from "@/components/ui/collapsible-content"
-import { EventTime } from "@/components/workflow-runs/events"
+import { EventTime } from "@/components/workflow-runs/events/EventTime"
 import { ErrorEvent as ErrorEventType } from "@/lib/types"
 
 interface Props {
