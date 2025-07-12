@@ -3,7 +3,7 @@
 import ReactMarkdown from "react-markdown"
 
 import { CollapsibleContent } from "@/components/ui/collapsible-content"
-import { EventTime } from "@/components/workflow-runs/events"
+import { EventTime } from "@/components/workflow-runs/events/EventTime"
 import { ReviewComment, UserMessage } from "@/lib/types"
 
 export interface Props {

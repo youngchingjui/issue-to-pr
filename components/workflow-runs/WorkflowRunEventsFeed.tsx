@@ -2,15 +2,13 @@
 
 import useSWR from "swr"
 
-import {
-  ErrorEvent,
-  LLMResponseEvent,
-  StatusUpdate,
-  SystemPromptEvent,
-  ToolCallEvent,
-  ToolCallResultEvent,
-  UserMessageEvent,
-} from "@/components/workflow-runs/events"
+import { ErrorEvent } from "@/components/workflow-runs/events/ErrorEvent"
+import { LLMResponseEvent } from "@/components/workflow-runs/events/LLMResponseEvent"
+import { StatusUpdate } from "@/components/workflow-runs/events/StatusUpdate"
+import { SystemPromptEvent } from "@/components/workflow-runs/events/SystemPromptEvent"
+import { ToolCallEvent } from "@/components/workflow-runs/events/ToolCallEvent"
+import { ToolCallResultEvent } from "@/components/workflow-runs/events/ToolCallResultEvent"
+import { UserMessageEvent } from "@/components/workflow-runs/events/UserMessageEvent"
 import { AnyEvent, Issue } from "@/lib/types"
 
 interface Props {
