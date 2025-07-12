@@ -3,7 +3,7 @@
 import { ArrowDownLeft } from "lucide-react"
 
 import { CollapsibleContent } from "@/components/ui/collapsible-content"
-import { EventTime } from "@/components/workflow-runs/events"
+import { EventTime } from "@/components/workflow-runs/events/EventTime"
 import { ToolCallResult } from "@/lib/types"
 
 export interface Props {

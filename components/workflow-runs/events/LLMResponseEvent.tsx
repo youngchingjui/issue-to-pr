@@ -10,7 +10,7 @@ import { PostToGitHubButton } from "@/components/issues/actions/PostToGitHubButt
 import { ResolveIssueButton } from "@/components/issues/actions/ResolveIssueButton"
 import { Button } from "@/components/ui/button"
 import { CollapsibleContent } from "@/components/ui/collapsible-content"
-import { EventTime } from "@/components/workflow-runs/events"
+import { EventTime } from "@/components/workflow-runs/events/EventTime"
 import { CopyMarkdownButton } from "@/components/workflow-runs/events/CopyMarkdownButton"
 import { Issue, LLMResponse, LLMResponseWithPlan } from "@/lib/types"
 
