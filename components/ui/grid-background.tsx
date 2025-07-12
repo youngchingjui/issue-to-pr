@@ -9,8 +9,8 @@ const GridBackground = ({ children, className = "" }: GridBackgroundProps) => {
   const gridStyle = {
     backgroundSize: `32px 32px`,
     backgroundImage: `
-      linear-gradient(to right, hsl(var(--border) / 0.15) 1px, transparent 1px),
-      linear-gradient(to bottom, hsl(var(--border) / 0.15) 1px, transparent 1px)
+      linear-gradient(to right, oklch(var(--border) / 0.15) 1px, transparent 1px),
+      linear-gradient(to bottom, oklch(var(--border) / 0.15) 1px, transparent 1px)
     `,
     opacity: 0.5,
   }
