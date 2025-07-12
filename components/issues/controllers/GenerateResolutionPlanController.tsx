@@ -55,16 +55,24 @@ export default function GenerateResolutionPlanController({
       const { jobId } = await response.json()
       const eventSource = new EventSource(`/api/sse?jobId=${jobId}`)
 
+      let completed = false
+      const timeoutId = setTimeout(() => {
+        if (!completed) {
+          eventSource.close()
+          onComplete()
+        }
+      }, 5000)
+
       eventSource.onmessage = (event) => {
         const status = SSEUtils.decodeStatus(event.data)
 
-        if (status === "Stream finished") {
-          eventSource.close()
-          onComplete()
-        } else if (
+        if (
+          status === "Stream finished" ||
           status.startsWith("Completed") ||
           status.startsWith("Failed")
         ) {
+          completed = true
+          clearTimeout(timeoutId)
           eventSource.close()
           onComplete()
         }
@@ -72,6 +80,8 @@ export default function GenerateResolutionPlanController({
 
       eventSource.onerror = (event) => {
         console.error("SSE connection failed:", event)
+        completed = true
+        clearTimeout(timeoutId)
         eventSource.close()
         onError()
       }
