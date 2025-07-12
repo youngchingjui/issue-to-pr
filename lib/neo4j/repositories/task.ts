@@ -76,11 +76,3 @@ export async function remove(
 ): Promise<void> {
   await tx.run(`MATCH (t:Task {id: $id}) DETACH DELETE t`, { id })
 }
-
-export const toAppTask = (db: Task): import("@/lib/types").Task => {
-  return {
-    ...db,
-    createdAt: db.createdAt.toStandardDate(),
-    githubIssueNumber: db.githubIssueNumber?.toNumber(),
-  }
-}
