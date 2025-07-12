@@ -4,13 +4,7 @@ import { n4j } from "@/lib/neo4j/client"
 import { neo4jToJs } from "@/lib/neo4j/convert"
 import * as repoRepo from "@/lib/neo4j/repositories/repository"
 import { RepoSettings as AppRepoSettings } from "@/lib/types"
-import { RepoSettings as DbRepoSettings } from "@/lib/types/db/neo4j"
 import { RepoFullName } from "@/lib/types/github"
-
-// Convert Neo4j temporal types -> JS primitives
-export const toAppRepoSettings = (db: DbRepoSettings): AppRepoSettings => {
-  return neo4jToJs(db) as AppRepoSettings
-}
 
 export async function getRepositorySettings(
   repoFullName: RepoFullName
@@ -21,7 +15,7 @@ export async function getRepositorySettings(
       repoRepo.getRepositorySettings(tx, repoFullName.fullName)
     )
     if (!db) return null
-    return toAppRepoSettings(db)
+    return neo4jToJs(db)
   } finally {
     await session.close()
   }

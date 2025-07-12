@@ -1,6 +1,5 @@
 import { Integer, ManagedTransaction, Node } from "neo4j-driver"
 
-import { neo4jToJs } from "@/lib/neo4j/convert"
 import { Task, taskSchema } from "@/lib/types/db/neo4j"
 
 export async function create(
@@ -76,8 +75,4 @@ export async function remove(
   id: string
 ): Promise<void> {
   await tx.run(`MATCH (t:Task {id: $id}) DETACH DELETE t`, { id })
-}
-
-export const toAppTask = (db: Task): import("@/lib/types").Task => {
-  return neo4jToJs(db) as import("@/lib/types").Task
 }
