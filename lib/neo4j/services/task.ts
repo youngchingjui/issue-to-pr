@@ -4,10 +4,9 @@ import { Integer } from "neo4j-driver"
 import { v4 as uuidv4 } from "uuid"
 
 import { n4j } from "@/lib/neo4j/client"
+import { neo4jToJs } from "@/lib/neo4j/convert"
 import * as repo from "@/lib/neo4j/repositories/task"
 import { Task as AppTask } from "@/lib/types"
-
-export const toAppTask = repo.toAppTask
 
 export async function createTask({
   id = uuidv4(),
@@ -34,7 +33,7 @@ export async function createTask({
         syncedToGithub: false,
       })
     )
-    return toAppTask(db)
+    return neo4jToJs(db)
   } finally {
     await session.close()
   }
@@ -44,7 +43,7 @@ export async function getTask(id: string): Promise<AppTask | null> {
   const session = await n4j.getSession()
   try {
     const db = await session.executeRead((tx) => repo.get(tx, id))
-    return db ? toAppTask(db) : null
+    return db ? neo4jToJs(db) : null
   } finally {
     await session.close()
   }
@@ -58,7 +57,7 @@ export async function listTasksForRepo(
     const db = await session.executeRead((tx) =>
       repo.listForRepo(tx, repoFullName)
     )
-    return db.map(toAppTask)
+    return db.map(neo4jToJs)
   } finally {
     await session.close()
   }
@@ -96,7 +95,7 @@ export async function updateTask({
             : null,
       })
     )
-    return toAppTask(db)
+    return neo4jToJs(db)
   } finally {
     await session.close()
   }

@@ -2,7 +2,7 @@
 
 import { CheckCircle2 } from "lucide-react"
 
-import { EventTime } from "@/components/workflow-runs/events"
+import { EventTime } from "@/components/workflow-runs/events/EventTime"
 import { StatusEvent, WorkflowStateEvent } from "@/lib/types"
 
 interface Props {

@@ -7,7 +7,7 @@ import { ChatCompletionMessageParam } from "openai/resources/chat/completions"
 import { ZodType } from "zod"
 
 import messages from "@/__tests__/mocks/ChatCompletionMessageParam2.json"
-import { TestAgent } from "@/lib/agents"
+import { TestAgent } from "@/lib/agents/testAgent"
 import { createBranchTool } from "@/lib/tools/Branch"
 import { createCommitTool } from "@/lib/tools/Commit"
 import { createFileCheckTool } from "@/lib/tools/FileCheckTool"

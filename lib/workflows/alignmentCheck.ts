@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from "uuid"
 
-import { AlignmentAgent } from "@/lib/agents"
+import { AlignmentAgent } from "@/lib/agents/alignmentAgent"
 import { PostAlignmentAssessmentAgent } from "@/lib/agents/PostAlignmentAssessmentAgent"
 import { getIssue } from "@/lib/github/issues"
 import {
