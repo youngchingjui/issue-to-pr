@@ -1,7 +1,7 @@
 import { spawn } from "child_process"
 import { z } from "zod"
 
-import { execInContainer } from "@/lib/docker"
+import { execInContainerWithDockerode } from "@/lib/docker"
 import { createTool } from "@/lib/tools/helper"
 import { asRepoEnvironment, RepoEnvironment, Tool } from "@/lib/types"
 
@@ -226,7 +226,7 @@ async function fnHandler(
     })
 
     try {
-      const { stdout, stderr, exitCode } = await execInContainer({
+      const { stdout, stderr, exitCode } = await execInContainerWithDockerode({
         name: env.name,
         command,
       })
