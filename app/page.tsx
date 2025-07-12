@@ -8,8 +8,20 @@ import PlanningFeature from "@/components/landing-page/PlanningFeature"
 import Pricing from "@/components/landing-page/Pricing"
 import Steps from "@/components/landing-page/Steps"
 import GridBackground from "@/components/ui/grid-background"
+import { auth } from "@/auth"
+import IssueDashboard from "@/components/home/IssueDashboard"
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const session = await auth()
+
+  if (session?.user) {
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        <IssueDashboard />
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <main>
