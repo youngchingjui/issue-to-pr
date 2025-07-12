@@ -13,7 +13,7 @@ export default async function Hero() {
       <motion.div
         animate={{
           background: [
-            "radial-gradient(circle, transparent 20%, hsl(var(--background)), transparent 70%), linear-gradient(-100deg, transparent 20%, hsl(var(--background)), transparent 70%)",
+            "radial-gradient(circle, transparent 20%, oklch(var(--background)), transparent 70%), linear-gradient(-100deg, transparent 20%, oklch(var(--background)), transparent 70%)",
           ],
           transition: {
             duration: 3,
