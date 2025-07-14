@@ -229,6 +229,7 @@ async function fnHandler(
       const { stdout, stderr, exitCode } = await execInContainerWithDockerode({
         name: env.name,
         command,
+        cwd: env.mount || undefined,
       })
 
       // Handle ripgrep exit codes
