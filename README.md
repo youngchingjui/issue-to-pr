@@ -107,3 +107,8 @@ For more detailed testing information, see [**tests**/README.md](./__tests__/REA
 ## Contributing
 
 Please read our [Contributing Guide](docs/guides/contributing.md) for details on our code of conduct and development process.
+
+## Server Actions
+
+We keep server functions alongside other helpers under `lib/`. Any file can become a server action simply by including the `"use server"` directive at the top. There is no separate `actions` directory—functions defined in `lib` can be imported directly in client components and invoked as server actions. Workflow buttons should call these helpers and handle their own loading state; since workflows are long‑running, they execute in the background without additional context providers.
+
