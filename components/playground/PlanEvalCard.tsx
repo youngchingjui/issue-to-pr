@@ -1,10 +1,14 @@
 "use client"
 
 import { useState, useTransition } from "react"
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
-import { PlanEvaluationSchema, PlanEvaluationResult } from "@/lib/types/evaluation"
+import {
+  PlanEvaluationResult,
+  PlanEvaluationSchema,
+} from "@/lib/types/evaluation"
 
 export default function PlanEvalCard() {
   const [plan, setPlan] = useState("")
@@ -57,9 +61,12 @@ export default function PlanEvalCard() {
         {result && (
           <div className="space-y-1 text-sm">
             <div>{result.noTypeCasting ? "✅" : "❌"}&nbsp;No Type Casting</div>
-            <div>{result.noAnyTypes ? "✅" : "❌"}&nbsp;No <code>any</code> Types</div>
             <div>
-              {result.noSingleItemHelper ? "✅" : "❌"}&nbsp;No One-off Conversion Helper
+              {result.noAnyTypes ? "✅" : "❌"}&nbsp;No <code>any</code> Types
+            </div>
+            <div>
+              {result.noSingleItemHelper ? "✅" : "❌"}&nbsp;No One-off
+              Conversion Helper
             </div>
           </div>
         )}

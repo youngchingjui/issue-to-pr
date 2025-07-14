@@ -18,7 +18,9 @@ Return only a JSON object matching this TypeScript interface:
 }
 If unsure about a criterion, return false for that field.`
 
-export async function evaluatePlan(plan: string): Promise<PlanEvaluationResult> {
+export async function evaluatePlan(
+  plan: string
+): Promise<PlanEvaluationResult> {
   const apiKey = await getUserOpenAIApiKey()
   if (!apiKey) {
     throw new Error("Missing OpenAI API key")
