@@ -1,4 +1,5 @@
 import Link from "next/link"
+import PlanEvalCard from "@/components/playground/PlanEvalCard"
 import { Button } from "@/components/ui/button"
 
 export default function EvalsPage() {
@@ -14,6 +15,7 @@ export default function EvalsPage() {
         Evaluations will score each workflow run on custom questions and return
         structured results.
       </p>
+      <PlanEvalCard />
       <Link href="/playground">
         <Button variant="secondary" size="sm">
           Back to Playground
