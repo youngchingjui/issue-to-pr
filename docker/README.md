@@ -32,18 +32,13 @@ These variables are used both by the application and by Docker Compose to config
 
 ## Usage
 
-The main `docker-compose.yml` file includes all service-specific configurations from the `compose/` directory. To start all services:
+To start all services (Neo4j and Redis):
 
 ```bash
 ./scripts/start-services.sh
 ```
 
-This script will:
-
-1. Load the appropriate environment variables
-2. Start all Docker services
-3. Wait for Neo4j to be ready
-4. Start Redis if not running
+This will start Neo4j and Redis with healthchecks to ensure they're ready.
 
 ## Services
 
@@ -52,6 +47,11 @@ This script will:
 - Port: 7474 (HTTP), 7687 (Bolt)
 - Credentials: Configured via environment variables
 - Data persistence: Volumes mounted for data, logs, imports, and plugins
+
+### Redis
+
+- Port: 6379
+- Persistence: redis_data volume
 
 ### Adding New Services
 
