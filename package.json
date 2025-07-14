@@ -6,7 +6,7 @@
   "scripts": {
     "predev": "./scripts/start-services.sh && pnpm i",
     "dev": "next dev",
-    "prestart": "./scripts/start-services.sh",
+    "prestart": "NODE_ENV=production ./scripts/start-services.sh",
     "start": "next start",
     "build": "next build",
     "analyze": "ANALYZE=true next build",

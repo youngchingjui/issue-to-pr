@@ -35,7 +35,7 @@ Before you begin, ensure you have the following installed:
   - Efficient disk space usage through content-addressable storage
   - Strict dependency management preventing phantom dependencies
   - Dramatically improved CI/CD build times
-- Redis server
+- Docker (for running Neo4j and Redis via Compose)
 
 For detailed setup instructions, see our [Getting Started Guide](docs/setup/getting-started.md).
 
@@ -55,6 +55,11 @@ AUTH_GITHUB_SECRET=your_github_client_secret
 ```bash
 # Install dependencies
 pnpm install
+
+# Start Neo4j and Redis
+./scripts/start-services.sh
+# Use NODE_ENV=production or ENV_FILE to select a different env file
+# ENV_FILE=.env.production.local ./scripts/start-services.sh
 
 # Start development server
 pnpm dev

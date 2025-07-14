@@ -16,7 +16,7 @@ docker/
 
 The application uses environment variables from `.env.local` (development) or `.env.production.local` (production). These files should never be committed to the repository.
 
-The `scripts/start-services.sh` script automatically loads the appropriate environment file based on the `NODE_ENV`:
+Specify the environment file when starting services:
 
 - Development: `.env.local`
 - Production: `.env.production.local`
@@ -28,22 +28,30 @@ The `scripts/start-services.sh` script automatically loads the appropriate envir
 - `NEO4J_USER`: Neo4j database username
 - `NEO4J_PASSWORD`: Neo4j database password
 
+#### Redis
+
+- `REDIS_URL`: Connection string for the Redis container (e.g. `redis://localhost:6379`)
+
 These variables are used both by the application and by Docker Compose to configure the Neo4j container.
 
 ## Usage
 
-The main `docker-compose.yml` file includes all service-specific configurations from the `compose/` directory. To start all services:
+The main `docker-compose.yml` file includes all service-specific configurations from the `compose/` directory.
+
+To start all services, run the helper script from the repository root:
 
 ```bash
 ./scripts/start-services.sh
 ```
 
-This script will:
+Set `NODE_ENV=production` or provide an `ENV_FILE` variable to use a different
+environment file:
 
-1. Load the appropriate environment variables
-2. Start all Docker services
-3. Wait for Neo4j to be ready
-4. Start Redis if not running
+```bash
+NODE_ENV=production ./scripts/start-services.sh
+# or
+ENV_FILE=.env.production.local ./scripts/start-services.sh
+```
 
 ## Services
 

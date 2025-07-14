@@ -13,29 +13,9 @@ Before you begin, ensure you have:
 
 - Node.js (version 14 or later)
 - pnpm (required)
-- Redis server
+- Docker
 - GitHub account
 - OpenAI API key
-
-### Redis Installation
-
-#### macOS
-
-```bash
-brew update
-brew install redis
-```
-
-#### Ubuntu
-
-```bash
-sudo apt update
-sudo apt install redis-server
-```
-
-#### Windows
-
-Use WSL or download from [Microsoft's Redis](https://github.com/microsoftarchive/redis/releases)
 
 ## Installation
 
@@ -60,7 +40,7 @@ pnpm install
 
 ## Configuration
 
-1. Create `.env.local` file:
+1. Create `.env.local` file (or `.env.production.local` for production):
 
 ```env
 # GitHub OAuth
@@ -97,10 +77,17 @@ OPENAI_API_KEY=your_openai_key
 
 ## Development
 
-1. Start Redis server:
+1. Start Neo4j and Redis:
 
 ```bash
-redis-server
+./scripts/start-services.sh
+```
+
+Use `NODE_ENV=production` or specify `ENV_FILE` to select a different
+environment file:
+
+```bash
+NODE_ENV=production ./scripts/start-services.sh
 ```
 
 2. Start development server:
