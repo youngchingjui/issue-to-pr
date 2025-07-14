@@ -12,7 +12,8 @@ export default async function IssueDashboard() {
       <div className="container mx-auto py-10">
         <h1 className="text-2xl font-bold mb-6">Your Issues</h1>
         <div className="text-destructive">
-          You have no accessible repositories. Please add or connect a GitHub account with repositories.
+          You have no accessible repositories. Please add or connect a GitHub
+          account with repositories.
         </div>
       </div>
     )

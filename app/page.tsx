@@ -1,3 +1,5 @@
+import { auth } from "@/auth"
+import IssueDashboard from "@/components/home/IssueDashboard"
 import AgentArchitecture from "@/components/landing-page/AgentArchitecture"
 import ComparisonToIDEAgents from "@/components/landing-page/ComparisonToIDEAgents"
 import Features from "@/components/landing-page/Features"
@@ -8,8 +10,6 @@ import PlanningFeature from "@/components/landing-page/PlanningFeature"
 import Pricing from "@/components/landing-page/Pricing"
 import Steps from "@/components/landing-page/Steps"
 import GridBackground from "@/components/ui/grid-background"
-import { auth } from "@/auth"
-import IssueDashboard from "@/components/home/IssueDashboard"
 
 export default async function LandingPage() {
   const session = await auth()
