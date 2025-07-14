@@ -2,12 +2,12 @@
 
 import { ChatCompletionMessageParam } from "openai/resources/chat/completions"
 
-import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
 import { TestAgent } from "@/lib/agents/testAgent"
 import {
   createPlan753EvaluationTool,
   Plan753EvaluationResult,
 } from "@/lib/evals/plan-753"
+import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
 
 const SYSTEM_PROMPT = `You are an output evaluation agent. Your job is to inspect a coding implementation plan and determine if it avoids several common problems.\n\nReturn an evaluation using the provided tool. If unsure about a criterion, return false for that field.`
 
@@ -34,7 +34,9 @@ export async function evaluatePlan(
 
   const { messages: finalMessages } = await agent.runWithFunctions()
 
-  const toolMessage = [...finalMessages].reverse().find((m) => m.role === "tool")
+  const toolMessage = [...finalMessages]
+    .reverse()
+    .find((m) => m.role === "tool")
   if (!toolMessage || typeof toolMessage.content !== "string") {
     throw new Error("No tool call result received from OpenAI")
   }
