@@ -15,11 +15,7 @@ export default async function LandingPage() {
   const session = await auth()
 
   if (session?.user) {
-    return (
-      <div className="min-h-screen bg-background text-foreground">
-        <IssueDashboard />
-      </div>
-    )
+    return <IssueDashboard />
   }
 
   return (
