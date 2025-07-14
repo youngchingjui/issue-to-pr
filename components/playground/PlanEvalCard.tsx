@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import {
-  PlanEvaluationResult,
-  PlanEvaluationSchema,
-} from "@/lib/types/evaluation"
+  plan753EvaluationSchema as PlanEvaluationSchema,
+  Plan753EvaluationResult as PlanEvaluationResult,
+} from "@/lib/evals/plan-753"
 
 export default function PlanEvalCard() {
   const [plan, setPlan] = useState("")
