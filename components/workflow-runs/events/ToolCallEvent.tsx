@@ -2,7 +2,7 @@
 
 import { Code2 } from "lucide-react"
 
-import { EventTime } from "@/components/workflow-runs/events"
+import { EventTime } from "@/components/workflow-runs/events/EventTime"
 import { ToolCall } from "@/lib/types"
 
 export interface Props {
