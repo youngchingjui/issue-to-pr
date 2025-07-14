@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/tooltip"
 import { toast } from "@/lib/hooks/use-toast"
 import { CommentRequestSchema } from "@/lib/schemas/api"
-import { SSEUtils } from "@/lib/utils/utils-common"
 
 interface Props {
   issueNumber: number
@@ -52,44 +51,11 @@ export default function GenerateResolutionPlanController({
         throw new Error("Failed to start resolution plan generation")
       }
 
-      const { jobId } = await response.json()
-      const eventSource = new EventSource(`/api/sse?jobId=${jobId}`)
-
-      let completed = false
-      const timeoutId = setTimeout(() => {
-        if (!completed) {
-          eventSource.close()
-          onComplete()
-        }
-      }, 5000)
-
-      eventSource.onmessage = (event) => {
-        const status = SSEUtils.decodeStatus(event.data)
-
-        if (
-          status === "Stream finished" ||
-          status.startsWith("Completed") ||
-          status.startsWith("Failed")
-        ) {
-          completed = true
-          clearTimeout(timeoutId)
-          eventSource.close()
-          onComplete()
-        }
-      }
-
-      eventSource.onerror = (event) => {
-        console.error("SSE connection failed:", event)
-        completed = true
-        clearTimeout(timeoutId)
-        eventSource.close()
-        onError()
-      }
-
       toast({
         title: "Resolution Plan Generation Started",
         description: "Analyzing the issue and generating a plan...",
       })
+      onComplete()
     } catch (error) {
       toast({
         title: "Resolution Plan Generation Failed",
