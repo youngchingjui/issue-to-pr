@@ -68,6 +68,10 @@ export default function PlanEvalCard() {
               {result.noSingleItemHelper ? "✅" : "❌"}&nbsp;No One-off
               Conversion Helper
             </div>
+            <div>
+              {result.noUnnecessaryDestructuring ? "✅" : "❌"}&nbsp;No
+              Unnecessary Destructuring
+            </div>
           </div>
         )}
         {error && <div className="text-destructive text-sm">{error}</div>}
