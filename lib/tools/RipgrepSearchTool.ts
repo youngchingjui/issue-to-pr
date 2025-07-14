@@ -1,9 +1,10 @@
 import { spawn } from "child_process"
 import { z } from "zod"
 
-import { execInContainer } from "@/lib/docker"
+import { execInContainerWithDockerode } from "@/lib/docker"
 import { createTool } from "@/lib/tools/helper"
 import { asRepoEnvironment, RepoEnvironment, Tool } from "@/lib/types"
+import { shellEscape } from "@/lib/utils/cli"
 
 /**
  * Execute ripgrep using spawn to avoid shell escaping issues
@@ -158,8 +159,10 @@ function buildRipgrepCommand({
   if (hidden) command += " --hidden"
   if (follow) command += " -L"
 
-  // Finally append the (quoted) search pattern
-  command += ` '${query}'`
+  // Finally append the (safely escaped) search pattern. `shellEscape` wraps the
+  // pattern in single-quotes and handles any embedded quotes so the resulting
+  // string is safe to pass through `sh -c`.
+  command += ` ${shellEscape(query)}`
 
   return command
 }
@@ -226,9 +229,10 @@ async function fnHandler(
     })
 
     try {
-      const { stdout, stderr, exitCode } = await execInContainer({
+      const { stdout, stderr, exitCode } = await execInContainerWithDockerode({
         name: env.name,
         command,
+        cwd: env.mount || undefined,
       })
 
       // Handle ripgrep exit codes
