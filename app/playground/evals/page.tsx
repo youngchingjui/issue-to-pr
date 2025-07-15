@@ -16,12 +16,12 @@ export default function EvalsPage() {
         Evaluations will score each workflow run on custom questions and return
         structured results.
       </p>
-      <PlanEvalCard />
       <Link href="/playground">
         <Button variant="secondary" size="sm">
           Back to Playground
         </Button>
       </Link>
+      <PlanEvalCard />
     </div>
   )
 }
