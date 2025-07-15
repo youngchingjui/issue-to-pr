@@ -1,4 +1,6 @@
 import Link from "next/link"
+
+import PlanEvalCard from "@/components/playground/PlanEvalCard"
 import { Button } from "@/components/ui/button"
 
 export default function EvalsPage() {
@@ -19,6 +21,7 @@ export default function EvalsPage() {
           Back to Playground
         </Button>
       </Link>
+      <PlanEvalCard />
     </div>
   )
 }
