@@ -191,6 +191,7 @@ export const resolveIssue = async ({
     // Initialize the persistent coder agent
     const coder = new CoderAgent({
       apiKey,
+      model: "o3",
       createPR: Boolean(
         createPR && userPermissions?.canPush && userPermissions?.canCreatePR
       ),
