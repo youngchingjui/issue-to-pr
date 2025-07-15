@@ -20,18 +20,24 @@ import {
 } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
 import { Plan753EvaluationResult as PlanEvaluationResult } from "@/lib/evals/evalTool"
-import { evaluatePlan, PlanEvaluationResultFull } from "@/lib/evals/evaluatePlan"
+import {
+  evaluatePlan,
+  PlanEvaluationResultFull,
+} from "@/lib/evals/evaluatePlan"
 
 // Extend the base evaluation result with optional metadata that only exists in the
 // playground UI (error placeholder + LLM markdown content). These fields are not
 // part of the original schema returned by the EvalAgent but are useful for
 // multi-run display purposes.
-type PlanEvaluationResultWithMeta = PlanEvaluationResult & {
+type PlanEvaluationResultWithMeta = Partial<PlanEvaluationResult> & {
   /** Present when an individual run fails — used to render the error state */
-  __multiRunError?: string
+  error?: string
   /** Raw markdown / explanation returned by the LLM (if captured separately) */
   content?: string
 }
+
+// Add default score flags just after PlanEvaluationResultWithMeta type definition
+const DEFAULT_SCORE_FLAGS: Partial<PlanEvaluationResult> = {}
 
 function LoadingSpinner() {
   return (
@@ -83,86 +89,104 @@ export default function PlanEvalCard() {
   const [openPopoverIdx, setOpenPopoverIdx] = useState<number | null>(null)
 
   // utility to extract assistant message's content field from the new API (PlanEvaluationResultFull)
-  function extractContentFromMsg(msg: any): string | undefined {
+  function extractContentFromMsg(msg): string | undefined {
     if (!msg) return undefined
     if (typeof msg.content === "string") return msg.content
     if (Array.isArray(msg.content)) {
       // OpenAI-style content (could be string[] or ContentPart[])
-      return msg.content.map((c) => (typeof c === "string" ? c : c.text ?? "")).join(" ")
+      return msg.content
+        .map((c) => (typeof c === "string" ? c : (c.text ?? "")))
+        .join(" ")
     }
     return undefined
   }
 
   // This will accept either old (object) or new (envelope with result/message) format
-  async function callEvaluatePlan(plan: string): Promise<PlanEvaluationResultWithMeta> {
+  async function callEvaluatePlan(
+    plan: string
+  ): Promise<PlanEvaluationResultWithMeta> {
     const data = await evaluatePlan(plan)
-    // Backwards support: if it looks envelope-style
-    if (data && typeof data === "object" && "result" in data && "message" in data) {
+
+    // New envelope style: { result?: PlanEvaluationResult, message: ChatMessage }
+    if (data && typeof data === "object" && "message" in data) {
+      const baseResult =
+        "result" in data && data.result ? data.result : undefined
+
       return {
-        ...data.result,
-        content: extractContentFromMsg(data.message),
+        ...DEFAULT_SCORE_FLAGS,
+        ...(baseResult ?? {}),
+        content: extractContentFromMsg(
+          (data as PlanEvaluationResultFull).message
+        ),
       }
-    } else {
-      // Old return: just the result
-      return data as PlanEvaluationResultWithMeta
+    }
+
+    // Legacy style: API already returned the result object directly
+    return {
+      ...DEFAULT_SCORE_FLAGS,
+      ...(data as PlanEvaluationResult),
     }
   }
 
-  const handleRun = async () => {
+  // Unified runner – executes the evaluation `count` times
+  async function runEvaluations(count: number) {
+    // Reset state
     setError(null)
-    setMultiResults([])
     setMultiError(null)
-    startTransition(async () => {
-      try {
-        const data = await callEvaluatePlan(plan)
-        setResult(data)
-      } catch (e: unknown) {
-        setResult(null)
-        setError(String(e))
-      }
-    })
-  }
-
-  // Handler for multi-run (5 evals)
-  const handleRunFive = async () => {
-    setMultiError(null)
-    setError(null)
     setResult(null)
     setMultiResults([])
     setOpenPopoverIdx(null)
-    setMultiLoading(true)
-    try {
-      const requests = Array.from({ length: 5 }).map(() => callEvaluatePlan(plan))
-      const res = await Promise.allSettled(requests)
-      const results: PlanEvaluationResultWithMeta[] = []
-      let gotAtLeastOne = false
-      let firstError: string | null = null
-      res.forEach((r) => {
-        if (r.status === "fulfilled") {
-          results.push(r.value)
-          gotAtLeastOne = true
-        } else {
-          // Insert a placeholder error result (so column is still rendered)
-          results.push({
-            noTypeAssertions: false,
-            noAnyTypes: false,
-            noSingleItemHelper: false,
-            noUnnecessaryDestructuring: false,
-            __multiRunError: r.reason ? String(r.reason) : "Unknown error",
-          })
-          if (!firstError)
-            firstError = r.reason ? String(r.reason) : "Unknown error"
+
+    if (count === 1) {
+      // Use React transition to keep UI responsive for single run
+      startTransition(async () => {
+        try {
+          const singleResult = await callEvaluatePlan(plan)
+          setResult(singleResult)
+        } catch (e: unknown) {
+          setError(String(e))
         }
       })
+      return
+    }
+
+    // Multi-run path
+    setMultiLoading(true)
+    try {
+      const requests = Array.from({ length: count }).map(() =>
+        callEvaluatePlan(plan)
+      )
+      const res = await Promise.allSettled(requests)
+
+      const results: PlanEvaluationResultWithMeta[] = res.map((r) => {
+        if (r.status === "fulfilled") {
+          return r.value
+        }
+        return {
+          error: r.reason ? String(r.reason) : "Unknown error",
+        }
+      })
+
       setMultiResults(results)
-      setMultiError(!gotAtLeastOne ? firstError : null)
+      const hadSuccess = res.some((r) => r.status === "fulfilled")
+      if (!hadSuccess) {
+        const firstErr = res[0] as PromiseRejectedResult
+        setMultiError(
+          firstErr.reason ? String(firstErr.reason) : "Unknown error"
+        )
+      }
     } catch (err) {
-      setMultiResults([])
       setMultiError(String(err))
     } finally {
       setMultiLoading(false)
     }
   }
+
+  // Single run handler
+  const handleRun = () => runEvaluations(1)
+
+  // Five-run handler (kept for now – could be replaced by a numeric input later)
+  const handleRunFive = () => runEvaluations(5)
 
   const scoreFields = [
     {
@@ -237,13 +261,14 @@ export default function PlanEvalCard() {
                         key={idx}
                         className="font-semibold text-center px-2 py-1 text-lg"
                       >
-                        {r.__multiRunError ? (
-                          <span className="text-destructive">Error</span>
-                        ) : r[field.key as keyof PlanEvaluationResult] ? (
-                          "✅"
-                        ) : (
-                          "❌"
-                        )}
+                        {r.error
+                          ? "–"
+                          : r[field.key as keyof PlanEvaluationResult] === true
+                            ? "✅"
+                            : r[field.key as keyof PlanEvaluationResult] ===
+                                false
+                              ? "❌"
+                              : "–"}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -252,9 +277,9 @@ export default function PlanEvalCard() {
                 <TableRow>
                   {multiResults.map((r, idx) => (
                     <TableCell key={idx} className="px-2 py-1 text-center">
-                      {r.__multiRunError ? (
+                      {r.error ? (
                         <span className="text-destructive text-xs">
-                          {r.__multiRunError}
+                          {r.error}
                         </span>
                       ) : (
                         <Popover
@@ -325,4 +350,3 @@ export default function PlanEvalCard() {
     </Card>
   )
 }
-
