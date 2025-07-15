@@ -5,10 +5,8 @@ import { useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  Plan753EvaluationResult as PlanEvaluationResult,
-  plan753EvaluationSchema as PlanEvaluationSchema,
-} from "@/lib/evals/plan-753"
+import { evaluatePlan } from "@/lib/actions/evaluatePlan"
+import { Plan753EvaluationResult as PlanEvaluationResult } from "@/lib/evals/plan-753"
 
 export default function PlanEvalCard() {
   const [plan, setPlan] = useState("")
@@ -20,21 +18,8 @@ export default function PlanEvalCard() {
     setError(null)
     startTransition(async () => {
       try {
-        const res = await fetch("/api/playground/evals", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ plan }),
-        })
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}))
-          throw new Error(data.error || "Request failed")
-        }
-        const data = await res.json()
-        const parsed = PlanEvaluationSchema.safeParse(data.result)
-        if (!parsed.success) {
-          throw new Error("Invalid response from server")
-        }
-        setResult(parsed.data)
+        const data = await evaluatePlan(plan)
+        setResult(data)
       } catch (e: unknown) {
         setResult(null)
         setError(String(e))
