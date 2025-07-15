@@ -1,10 +1,12 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState } from "react"
 
 import MarkdownRenderer from "@/components/blog/MarkdownRenderer"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Popover,
   PopoverContent,
@@ -20,18 +22,24 @@ import {
 } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
 import { Plan753EvaluationResult as PlanEvaluationResult } from "@/lib/evals/evalTool"
-import { evaluatePlan } from "@/lib/evals/evaluatePlan"
+import {
+  evaluatePlan,
+  PlanEvaluationResultFull,
+} from "@/lib/evals/evaluatePlan"
 
 // Extend the base evaluation result with optional metadata that only exists in the
 // playground UI (error placeholder + LLM markdown content). These fields are not
 // part of the original schema returned by the EvalAgent but are useful for
 // multi-run display purposes.
-type PlanEvaluationResultWithMeta = PlanEvaluationResult & {
+type PlanEvaluationResultWithMeta = Partial<PlanEvaluationResult> & {
   /** Present when an individual run fails — used to render the error state */
-  __multiRunError?: string
+  error?: string
   /** Raw markdown / explanation returned by the LLM (if captured separately) */
   content?: string
 }
+
+// Add default score flags just after PlanEvaluationResultWithMeta type definition
+const DEFAULT_SCORE_FLAGS: Partial<PlanEvaluationResult> = {}
 
 function LoadingSpinner() {
   return (
@@ -68,75 +76,105 @@ function LoadingSpinner() {
 
 export default function PlanEvalCard() {
   const [plan, setPlan] = useState("")
-  const [result, setResult] = useState<PlanEvaluationResultWithMeta | null>(
-    null
-  )
+  const [runCount, setRunCount] = useState(2)
+  const [results, setResults] = useState<PlanEvaluationResultWithMeta[]>([])
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [isPending, startTransition] = useTransition()
-
-  // New: For multi-run
-  const [multiResults, setMultiResults] = useState<
-    PlanEvaluationResultWithMeta[]
-  >([])
-  const [multiLoading, setMultiLoading] = useState(false)
-  const [multiError, setMultiError] = useState<string | null>(null)
   const [openPopoverIdx, setOpenPopoverIdx] = useState<number | null>(null)
 
-  const handleRun = async () => {
-    setError(null)
-    setMultiResults([])
-    setMultiError(null)
-    startTransition(async () => {
-      try {
-        const data = await evaluatePlan(plan)
-        setResult(data)
-      } catch (e: unknown) {
-        setResult(null)
-        setError(String(e))
-      }
-    })
+  // utility to extract assistant message's content field from the new API (PlanEvaluationResultFull)
+  function extractContentFromMsg(msg): string | undefined {
+    if (!msg) return undefined
+    if (typeof msg.content === "string") return msg.content
+    if (Array.isArray(msg.content)) {
+      // OpenAI-style content (could be string[] or ContentPart[])
+      return msg.content
+        .map((c) => (typeof c === "string" ? c : (c.text ?? "")))
+        .join(" ")
+    }
+    return undefined
   }
 
-  // Handler for multi-run (5 evals)
-  const handleRunFive = async () => {
-    setMultiError(null)
-    setError(null)
-    setResult(null)
-    setMultiResults([])
-    setOpenPopoverIdx(null)
-    setMultiLoading(true)
-    try {
-      const requests = Array.from({ length: 5 }).map(() => evaluatePlan(plan))
-      const res = await Promise.allSettled(requests)
-      const results: PlanEvaluationResultWithMeta[] = []
-      let gotAtLeastOne = false
-      let firstError: string | null = null
-      res.forEach((r) => {
-        if (r.status === "fulfilled") {
-          results.push(r.value)
-          gotAtLeastOne = true
-        } else {
-          // Insert a placeholder error result (so column is still rendered)
-          results.push({
-            noTypeAssertions: false,
-            noAnyTypes: false,
-            noSingleItemHelper: false,
-            noUnnecessaryDestructuring: false,
-            __multiRunError: r.reason ? String(r.reason) : "Unknown error",
-          })
-          if (!firstError)
-            firstError = r.reason ? String(r.reason) : "Unknown error"
-        }
-      })
-      setMultiResults(results)
-      setMultiError(!gotAtLeastOne ? firstError : null)
-    } catch (err) {
-      setMultiResults([])
-      setMultiError(String(err))
-    } finally {
-      setMultiLoading(false)
+  // Helper function to transform evaluatePlan result to PlanEvaluationResultWithMeta
+  function transformEvaluationResult(
+    data: PlanEvaluationResultFull
+  ): PlanEvaluationResultWithMeta {
+    // New envelope style: { result?: PlanEvaluationResult, message: ChatMessage }
+    if (data && typeof data === "object" && "message" in data) {
+      const baseResult =
+        "result" in data && data.result ? data.result : undefined
+
+      return {
+        ...DEFAULT_SCORE_FLAGS,
+        ...(baseResult ?? {}),
+        content: extractContentFromMsg(data.message),
+      }
+    }
+
+    // Legacy style: API already returned the result object directly
+    return {
+      ...DEFAULT_SCORE_FLAGS,
+      ...(data as PlanEvaluationResult),
     }
   }
+
+  // Run evaluations the specified number of times
+  async function runEvaluations(count: number) {
+    // Reset state
+    setError(null)
+    setResults([])
+    setOpenPopoverIdx(null)
+    setLoading(true)
+
+    // Pre-seed the results array so the table renders immediately
+    setResults(
+      Array.from({ length: count }, () => ({}) as PlanEvaluationResultWithMeta)
+    )
+
+    try {
+      // Kick off all evaluations concurrently - call evaluatePlan directly for better performance
+      const parallelPromises = Array.from({ length: count }).map(
+        async (_, idx) => {
+          try {
+            const data = await evaluatePlan(plan)
+            const res = transformEvaluationResult(data)
+            // Update the specific index as soon as its promise resolves
+            setResults((prev) => {
+              const next = [...prev]
+              next[idx] = res
+              return next
+            })
+            return true // success flag
+          } catch (err) {
+            // Capture individual failure immediately
+            setResults((prev) => {
+              const next = [...prev]
+              next[idx] = { error: String(err) }
+              return next
+            })
+            return false // failure flag
+          }
+        }
+      )
+
+      // Wait for all evaluations to complete
+      const completionFlags = await Promise.all(parallelPromises)
+
+      // If every evaluation failed, surface a generic error message
+      const hadSuccess = completionFlags.some((flag) => flag)
+      if (!hadSuccess) {
+        setError("All evaluation runs failed. See individual errors above.")
+      }
+    } catch (err) {
+      // Catch any unexpected aggregate error
+      setError(String(err))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Single run handler that uses the runCount state
+  const handleRun = () => runEvaluations(runCount)
 
   const scoreFields = [
     {
@@ -157,9 +195,6 @@ export default function PlanEvalCard() {
     },
   ]
 
-  // Evaluation content/extras — only available in LLM response, not score;
-  // here, assume all fields are returned to us, though in real code we might have to fetch them from events.
-
   return (
     <Card>
       <CardHeader>
@@ -171,34 +206,41 @@ export default function PlanEvalCard() {
           onChange={(e) => setPlan(e.target.value)}
           placeholder="Paste plan here..."
           rows={10}
-          disabled={isPending || multiLoading}
+          disabled={loading}
         />
+        <div className="space-y-2">
+          <Label htmlFor="run-count">Number of runs</Label>
+          <Input
+            id="run-count"
+            type="number"
+            min="1"
+            max="10"
+            value={runCount}
+            onChange={(e) => {
+              const value = Math.max(
+                1,
+                Math.min(10, parseInt(e.target.value) || 1)
+              )
+              setRunCount(value)
+            }}
+            disabled={loading}
+            className="w-32"
+          />
+        </div>
         <div className="flex gap-2">
-          <Button
-            onClick={handleRun}
-            disabled={isPending || multiLoading || !plan.trim()}
-          >
-            {isPending ? "Evaluating..." : "Run Evaluation"}
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={handleRunFive}
-            disabled={isPending || multiLoading || !plan.trim()}
-          >
-            {multiLoading ? "Running..." : "Run 5 Times"}
+          <Button onClick={handleRun} disabled={loading || !plan.trim()}>
+            {loading ? "Running..." : `Run ${runCount} Times`}
           </Button>
         </div>
-        {multiLoading && <LoadingSpinner />}
-        {multiError && (
-          <div className="text-destructive text-sm">{multiError}</div>
-        )}
-        {/* Multi-run results table */}
-        {multiResults.length > 1 && (
+        {loading && <LoadingSpinner />}
+        {error && <div className="text-destructive text-sm">{error}</div>}
+        {/* Results table */}
+        {results.length > 0 && (
           <div className="overflow-x-auto mt-2">
             <Table>
               <TableHeader>
                 <TableRow>
-                  {multiResults.map((_, i) => (
+                  {results.map((_, i) => (
                     <TableHead key={i}>{`Run ${i + 1}`}</TableHead>
                   ))}
                 </TableRow>
@@ -206,29 +248,30 @@ export default function PlanEvalCard() {
               <TableBody>
                 {scoreFields.map((field) => (
                   <TableRow key={field.key}>
-                    {multiResults.map((r, idx) => (
+                    {results.map((r, idx) => (
                       <TableCell
                         key={idx}
                         className="font-semibold text-center px-2 py-1 text-lg"
                       >
-                        {r.__multiRunError ? (
-                          <span className="text-destructive">Error</span>
-                        ) : r[field.key as keyof PlanEvaluationResult] ? (
-                          "✅"
-                        ) : (
-                          "❌"
-                        )}
+                        {r.error
+                          ? "–"
+                          : r[field.key as keyof PlanEvaluationResult] === true
+                            ? "✅"
+                            : r[field.key as keyof PlanEvaluationResult] ===
+                                false
+                              ? "❌"
+                              : "–"}
                       </TableCell>
                     ))}
                   </TableRow>
                 ))}
                 {/* Popover content/markdown row trigger */}
                 <TableRow>
-                  {multiResults.map((r, idx) => (
+                  {results.map((r, idx) => (
                     <TableCell key={idx} className="px-2 py-1 text-center">
-                      {r.__multiRunError ? (
+                      {r.error ? (
                         <span className="text-destructive text-xs">
-                          {r.__multiRunError}
+                          {r.error}
                         </span>
                       ) : (
                         <Popover
@@ -265,26 +308,6 @@ export default function PlanEvalCard() {
             </Table>
           </div>
         )}
-        {/* Single-run fallback (original UI) */}
-        {!multiResults.length && result && (
-          <div className="space-y-1 text-sm mt-2">
-            <div>
-              {result.noTypeAssertions ? "✅" : "❌"}&nbsp;No Type Assertions
-            </div>
-            <div>
-              {result.noAnyTypes ? "✅" : "❌"}&nbsp;No <code>any</code> Types
-            </div>
-            <div>
-              {result.noSingleItemHelper ? "✅" : "❌"}&nbsp;No One-off
-              Conversion Helper
-            </div>
-            <div>
-              {result.noUnnecessaryDestructuring ? "✅" : "❌"}&nbsp;No
-              Unnecessary Destructuring
-            </div>
-          </div>
-        )}
-        {error && <div className="text-destructive text-sm">{error}</div>}
       </CardContent>
     </Card>
   )
