@@ -1,12 +1,8 @@
 import { int } from "neo4j-driver"
 
 import { n4j } from "@/lib/neo4j/client"
-import {
-  getEventsForWorkflowRun,
-  getMessagesForWorkflowRun,
-  toAppEvent,
-  toAppMessageEvent,
-} from "@/lib/neo4j/repositories/event"
+import { toAppEvent, toAppMessageEvent } from "@/lib/neo4j/repositories/event"
+import { getMessagesForWorkflowRun } from "@/lib/neo4j/repositories/event"
 import { toAppIssue } from "@/lib/neo4j/repositories/issue"
 import {
   create,
@@ -91,15 +87,10 @@ export async function initializeWorkflowRun({
   }
 }
 
-/**
- * Now returns workflows with optional 'issue' field & proper type
- */
 export async function listWorkflowRuns(issue?: {
   repoFullName: string
   issueNumber: number
-}): Promise<
-  (AppWorkflowRun & { state: WorkflowRunState; issue?: AppIssue })[]
-> {
+}): Promise<(AppWorkflowRun & { state: WorkflowRunState, issueNumber?: number, repoFullName?: string })[]> {
   const session = await n4j.getSession()
   try {
     const result = await session.executeRead(async (tx) => {
@@ -117,7 +108,8 @@ export async function listWorkflowRuns(issue?: {
       .map((run) => ({
         ...toAppWorkflowRun(run),
         state: run.state,
-        issue: run.issue,
+        ...(run.issueNumber !== undefined ? { issueNumber: typeof run.issueNumber === "object" && typeof run.issueNumber.toNumber === "function" ? run.issueNumber.toNumber() : run.issueNumber } : {}),
+        ...(run.repoFullName !== undefined ? { repoFullName: run.repoFullName } : {}),
       }))
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
   } finally {
@@ -168,16 +160,3 @@ export async function getWorkflowRunMessages(
   }
 }
 
-export async function getWorkflowRunEvents(
-  workflowRunId: string
-): Promise<AnyEvent[]> {
-  const session = await n4j.getSession()
-  try {
-    const dbEvents = await session.executeRead(async (tx) => {
-      return await getEventsForWorkflowRun(tx, workflowRunId)
-    })
-    return await Promise.all(dbEvents.map((e) => toAppEvent(e, workflowRunId)))
-  } finally {
-    await session.close()
-  }
-}
