@@ -22,6 +22,17 @@ import { Textarea } from "@/components/ui/textarea"
 import { Plan753EvaluationResult as PlanEvaluationResult } from "@/lib/evals/evalTool"
 import { evaluatePlan } from "@/lib/evals/evaluatePlan"
 
+// Extend the base evaluation result with optional metadata that only exists in the
+// playground UI (error placeholder + LLM markdown content). These fields are not
+// part of the original schema returned by the EvalAgent but are useful for
+// multi-run display purposes.
+type PlanEvaluationResultWithMeta = PlanEvaluationResult & {
+  /** Present when an individual run fails — used to render the error state */
+  __multiRunError?: string
+  /** Raw markdown / explanation returned by the LLM (if captured separately) */
+  content?: string
+}
+
 function LoadingSpinner() {
   return (
     <div
@@ -57,12 +68,16 @@ function LoadingSpinner() {
 
 export default function PlanEvalCard() {
   const [plan, setPlan] = useState("")
-  const [result, setResult] = useState<PlanEvaluationResult | null>(null)
+  const [result, setResult] = useState<PlanEvaluationResultWithMeta | null>(
+    null
+  )
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   // New: For multi-run
-  const [multiResults, setMultiResults] = useState<PlanEvaluationResult[]>([])
+  const [multiResults, setMultiResults] = useState<
+    PlanEvaluationResultWithMeta[]
+  >([])
   const [multiLoading, setMultiLoading] = useState(false)
   const [multiError, setMultiError] = useState<string | null>(null)
   const [openPopoverIdx, setOpenPopoverIdx] = useState<number | null>(null)
@@ -93,7 +108,7 @@ export default function PlanEvalCard() {
     try {
       const requests = Array.from({ length: 5 }).map(() => evaluatePlan(plan))
       const res = await Promise.allSettled(requests)
-      const results: PlanEvaluationResult[] = []
+      const results: PlanEvaluationResultWithMeta[] = []
       let gotAtLeastOne = false
       let firstError: string | null = null
       res.forEach((r) => {
@@ -108,7 +123,7 @@ export default function PlanEvalCard() {
             noSingleItemHelper: false,
             noUnnecessaryDestructuring: false,
             __multiRunError: r.reason ? String(r.reason) : "Unknown error",
-          } as any)
+          })
           if (!firstError)
             firstError = r.reason ? String(r.reason) : "Unknown error"
         }
