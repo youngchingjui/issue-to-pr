@@ -200,7 +200,7 @@ export default async function commentOnIssue(
     })
 
     // Create and initialize the thinker agent
-    const thinker = new ThinkerAgent({ apiKey })
+    const thinker = new ThinkerAgent({ apiKey, model: "gpt-4o" })
 
     await thinker.addJobId(jobId) // Set jobId before any messages are added
 
@@ -352,3 +352,4 @@ export default async function commentOnIssue(
     }
   }
 }
+

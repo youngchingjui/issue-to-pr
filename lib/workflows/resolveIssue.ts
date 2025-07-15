@@ -191,6 +191,7 @@ export const resolveIssue = async ({
     // Initialize the persistent coder agent
     const coder = new CoderAgent({
       apiKey,
+      model: "gpt-4o",
       createPR: Boolean(
         createPR && userPermissions?.canPush && userPermissions?.canCreatePR
       ),
@@ -351,3 +352,4 @@ export const resolveIssue = async ({
     }
   }
 }
+
