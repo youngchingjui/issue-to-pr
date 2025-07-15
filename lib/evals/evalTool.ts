@@ -4,10 +4,10 @@ import { createTool } from "@/lib/tools/helper"
 
 export const plan753EvaluationSchema = z
   .object({
-    noTypeCasting: z
+    noTypeAssertions: z
       .boolean()
       .describe(
-        "true if the plan does not use TypeScript type casting like 'as SomeType'"
+        "true if the plan does not use TypeScript type assertions (e.g., 'as SomeType' or '<SomeType>value')."
       ),
     noAnyTypes: z
       .boolean()

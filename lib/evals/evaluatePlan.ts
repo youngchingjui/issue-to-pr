@@ -11,7 +11,14 @@ import {
 import { langfuse } from "@/lib/langfuse"
 import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
 
-const SYSTEM_PROMPT = `You are an output evaluation agent. Your job is to inspect a coding implementation plan and determine if it avoids several common problems.\n\nReturn an evaluation using the provided tool.`
+const SYSTEM_PROMPT = `
+You are an output evaluation agent. 
+Your job is to inspect a coding implementation plan and determine if it avoids several common problems.
+First, write a long-form assessment based on the criteria provided in the tool.
+You must be very strict in your assessment, and don't pass any of your own biased value judgements. 
+If the plan includes any of the elements in the schema, then you must directly say so.
+
+Then, use the tool to output your final assessment scores.`
 
 const planEvaluationTool = createPlanEvaluationTool()
 

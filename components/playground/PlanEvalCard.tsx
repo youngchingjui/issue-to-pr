@@ -45,7 +45,9 @@ export default function PlanEvalCard() {
         </Button>
         {result && (
           <div className="space-y-1 text-sm">
-            <div>{result.noTypeCasting ? "✅" : "❌"}&nbsp;No Type Casting</div>
+            <div>
+              {result.noTypeAssertions ? "✅" : "❌"}&nbsp;No Type Assertions
+            </div>
             <div>
               {result.noAnyTypes ? "✅" : "❌"}&nbsp;No <code>any</code> Types
             </div>
