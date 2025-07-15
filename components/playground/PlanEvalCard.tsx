@@ -80,7 +80,6 @@ export default function PlanEvalCard() {
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  // New: For multi-run
   const [multiResults, setMultiResults] = useState<
     PlanEvaluationResultWithMeta[]
   >([])
