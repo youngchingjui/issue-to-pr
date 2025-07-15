@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
 import { Plan753EvaluationResult as PlanEvaluationResult } from "@/lib/evals/evalTool"
-import { evaluatePlan } from "@/lib/evals/evaluatePlan"
+import { evaluatePlan, PlanEvaluationResultFull } from "@/lib/evals/evaluatePlan"
 
 // Extend the base evaluation result with optional metadata that only exists in the
 // playground UI (error placeholder + LLM markdown content). These fields are not
@@ -82,13 +82,39 @@ export default function PlanEvalCard() {
   const [multiError, setMultiError] = useState<string | null>(null)
   const [openPopoverIdx, setOpenPopoverIdx] = useState<number | null>(null)
 
+  // utility to extract assistant message's content field from the new API (PlanEvaluationResultFull)
+  function extractContentFromMsg(msg: any): string | undefined {
+    if (!msg) return undefined
+    if (typeof msg.content === "string") return msg.content
+    if (Array.isArray(msg.content)) {
+      // OpenAI-style content (could be string[] or ContentPart[])
+      return msg.content.map((c) => (typeof c === "string" ? c : c.text ?? "")).join(" ")
+    }
+    return undefined
+  }
+
+  // This will accept either old (object) or new (envelope with result/message) format
+  async function callEvaluatePlan(plan: string): Promise<PlanEvaluationResultWithMeta> {
+    const data = await evaluatePlan(plan)
+    // Backwards support: if it looks envelope-style
+    if (data && typeof data === "object" && "result" in data && "message" in data) {
+      return {
+        ...data.result,
+        content: extractContentFromMsg(data.message),
+      }
+    } else {
+      // Old return: just the result
+      return data as PlanEvaluationResultWithMeta
+    }
+  }
+
   const handleRun = async () => {
     setError(null)
     setMultiResults([])
     setMultiError(null)
     startTransition(async () => {
       try {
-        const data = await evaluatePlan(plan)
+        const data = await callEvaluatePlan(plan)
         setResult(data)
       } catch (e: unknown) {
         setResult(null)
@@ -106,7 +132,7 @@ export default function PlanEvalCard() {
     setOpenPopoverIdx(null)
     setMultiLoading(true)
     try {
-      const requests = Array.from({ length: 5 }).map(() => evaluatePlan(plan))
+      const requests = Array.from({ length: 5 }).map(() => callEvaluatePlan(plan))
       const res = await Promise.allSettled(requests)
       const results: PlanEvaluationResultWithMeta[] = []
       let gotAtLeastOne = false
@@ -282,6 +308,16 @@ export default function PlanEvalCard() {
               {result.noUnnecessaryDestructuring ? "✅" : "❌"}&nbsp;No
               Unnecessary Destructuring
             </div>
+            <div className="mt-2">
+              <h4 className="mb-1 font-bold text-md">LLM Content</h4>
+              {typeof result.content === "string" && result.content.trim() ? (
+                <MarkdownRenderer content={result.content} />
+              ) : (
+                <span className="text-muted-foreground text-sm italic">
+                  No markdown/content from LLM.
+                </span>
+              )}
+            </div>
           </div>
         )}
         {error && <div className="text-destructive text-sm">{error}</div>}
@@ -289,3 +325,4 @@ export default function PlanEvalCard() {
     </Card>
   )
 }
+
