@@ -101,12 +101,10 @@ export default function PlanEvalCard() {
     return undefined
   }
 
-  // This will accept either old (object) or new (envelope with result/message) format
-  async function callEvaluatePlan(
-    plan: string
-  ): Promise<PlanEvaluationResultWithMeta> {
-    const data = await evaluatePlan(plan)
-
+  // Helper function to transform evaluatePlan result to PlanEvaluationResultWithMeta
+  function transformEvaluationResult(
+    data: PlanEvaluationResultFull
+  ): PlanEvaluationResultWithMeta {
     // New envelope style: { result?: PlanEvaluationResult, message: ChatMessage }
     if (data && typeof data === "object" && "message" in data) {
       const baseResult =
@@ -115,9 +113,7 @@ export default function PlanEvalCard() {
       return {
         ...DEFAULT_SCORE_FLAGS,
         ...(baseResult ?? {}),
-        content: extractContentFromMsg(
-          (data as PlanEvaluationResultFull).message
-        ),
+        content: extractContentFromMsg(data.message),
       }
     }
 
@@ -141,7 +137,8 @@ export default function PlanEvalCard() {
       // Use React transition to keep UI responsive for single run
       startTransition(async () => {
         try {
-          const singleResult = await callEvaluatePlan(plan)
+          const data = await evaluatePlan(plan)
+          const singleResult = transformEvaluationResult(data)
           setResult(singleResult)
         } catch (e: unknown) {
           setError(String(e))
@@ -150,32 +147,52 @@ export default function PlanEvalCard() {
       return
     }
 
-    // Multi-run path
+    // Multi-run path (parallel execution with progressive updates)
     setMultiLoading(true)
+
+    // Pre-seed the results array so the table renders immediately
+    setMultiResults(
+      Array.from({ length: count }, () => ({}) as PlanEvaluationResultWithMeta)
+    )
+
     try {
-      const requests = Array.from({ length: count }).map(() =>
-        callEvaluatePlan(plan)
+      // Kick off all evaluations concurrently - call evaluatePlan directly for better performance
+      const parallelPromises = Array.from({ length: count }).map(
+        async (_, idx) => {
+          try {
+            const data = await evaluatePlan(plan)
+            const res = transformEvaluationResult(data)
+            // Update the specific index as soon as its promise resolves
+            setMultiResults((prev) => {
+              const next = [...prev]
+              next[idx] = res
+              return next
+            })
+            return true // success flag
+          } catch (err) {
+            // Capture individual failure immediately
+            setMultiResults((prev) => {
+              const next = [...prev]
+              next[idx] = { error: String(err) }
+              return next
+            })
+            return false // failure flag
+          }
+        }
       )
-      const res = await Promise.allSettled(requests)
 
-      const results: PlanEvaluationResultWithMeta[] = res.map((r) => {
-        if (r.status === "fulfilled") {
-          return r.value
-        }
-        return {
-          error: r.reason ? String(r.reason) : "Unknown error",
-        }
-      })
+      // Wait for all evaluations to complete
+      const completionFlags = await Promise.all(parallelPromises)
 
-      setMultiResults(results)
-      const hadSuccess = res.some((r) => r.status === "fulfilled")
+      // If every evaluation failed, surface a generic error message
+      const hadSuccess = completionFlags.some((flag) => flag)
       if (!hadSuccess) {
-        const firstErr = res[0] as PromiseRejectedResult
         setMultiError(
-          firstErr.reason ? String(firstErr.reason) : "Unknown error"
+          "All evaluation runs failed. See individual errors above."
         )
       }
     } catch (err) {
+      // Catch any unexpected aggregate error
       setMultiError(String(err))
     } finally {
       setMultiLoading(false)
