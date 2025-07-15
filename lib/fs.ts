@@ -86,3 +86,15 @@ export async function writeFile(fullPath: string, content: string) {
   // Write the file
   await fs.writeFile(fullPath, content, "utf-8")
 }
+
+export async function deleteFile(fullPath: string) {
+  const stats = await fs.stat(fullPath).catch(() => null);
+  if (!stats) {
+    throw new Error(`File not found: ${fullPath}`);
+  }
+  if (stats.isDirectory()) {
+    throw new Error(`Refusing to delete directory: ${fullPath}`);
+  }
+  await fs.unlink(fullPath);
+}
+
