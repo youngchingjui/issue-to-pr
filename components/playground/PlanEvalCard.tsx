@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState } from "react"
 
 import MarkdownRenderer from "@/components/blog/MarkdownRenderer"
 import { Button } from "@/components/ui/button"
@@ -74,17 +74,9 @@ function LoadingSpinner() {
 
 export default function PlanEvalCard() {
   const [plan, setPlan] = useState("")
-  const [result, setResult] = useState<PlanEvaluationResultWithMeta | null>(
-    null
-  )
+  const [results, setResults] = useState<PlanEvaluationResultWithMeta[]>([])
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [isPending, startTransition] = useTransition()
-
-  const [multiResults, setMultiResults] = useState<
-    PlanEvaluationResultWithMeta[]
-  >([])
-  const [multiLoading, setMultiLoading] = useState(false)
-  const [multiError, setMultiError] = useState<string | null>(null)
   const [openPopoverIdx, setOpenPopoverIdx] = useState<number | null>(null)
 
   // utility to extract assistant message's content field from the new API (PlanEvaluationResultFull)
@@ -123,34 +115,16 @@ export default function PlanEvalCard() {
     }
   }
 
-  // Unified runner – executes the evaluation `count` times
+  // Run evaluations the specified number of times
   async function runEvaluations(count: number) {
     // Reset state
     setError(null)
-    setMultiError(null)
-    setResult(null)
-    setMultiResults([])
+    setResults([])
     setOpenPopoverIdx(null)
-
-    if (count === 1) {
-      // Use React transition to keep UI responsive for single run
-      startTransition(async () => {
-        try {
-          const data = await evaluatePlan(plan)
-          const singleResult = transformEvaluationResult(data)
-          setResult(singleResult)
-        } catch (e: unknown) {
-          setError(String(e))
-        }
-      })
-      return
-    }
-
-    // Multi-run path (parallel execution with progressive updates)
-    setMultiLoading(true)
+    setLoading(true)
 
     // Pre-seed the results array so the table renders immediately
-    setMultiResults(
+    setResults(
       Array.from({ length: count }, () => ({}) as PlanEvaluationResultWithMeta)
     )
 
@@ -162,7 +136,7 @@ export default function PlanEvalCard() {
             const data = await evaluatePlan(plan)
             const res = transformEvaluationResult(data)
             // Update the specific index as soon as its promise resolves
-            setMultiResults((prev) => {
+            setResults((prev) => {
               const next = [...prev]
               next[idx] = res
               return next
@@ -170,7 +144,7 @@ export default function PlanEvalCard() {
             return true // success flag
           } catch (err) {
             // Capture individual failure immediately
-            setMultiResults((prev) => {
+            setResults((prev) => {
               const next = [...prev]
               next[idx] = { error: String(err) }
               return next
@@ -186,22 +160,20 @@ export default function PlanEvalCard() {
       // If every evaluation failed, surface a generic error message
       const hadSuccess = completionFlags.some((flag) => flag)
       if (!hadSuccess) {
-        setMultiError(
-          "All evaluation runs failed. See individual errors above."
-        )
+        setError("All evaluation runs failed. See individual errors above.")
       }
     } catch (err) {
       // Catch any unexpected aggregate error
-      setMultiError(String(err))
+      setError(String(err))
     } finally {
-      setMultiLoading(false)
+      setLoading(false)
     }
   }
 
-  // Single run handler
-  const handleRun = () => runEvaluations(1)
+  // Run 2 times handler
+  const handleRunTwo = () => runEvaluations(2)
 
-  // Five-run handler (kept for now – could be replaced by a numeric input later)
+  // Run 5 times handler
   const handleRunFive = () => runEvaluations(5)
 
   const scoreFields = [
@@ -223,9 +195,6 @@ export default function PlanEvalCard() {
     },
   ]
 
-  // Evaluation content/extras — only available in LLM response, not score;
-  // here, assume all fields are returned to us, though in real code we might have to fetch them from events.
-
   return (
     <Card>
       <CardHeader>
@@ -237,34 +206,29 @@ export default function PlanEvalCard() {
           onChange={(e) => setPlan(e.target.value)}
           placeholder="Paste plan here..."
           rows={10}
-          disabled={isPending || multiLoading}
+          disabled={loading}
         />
         <div className="flex gap-2">
-          <Button
-            onClick={handleRun}
-            disabled={isPending || multiLoading || !plan.trim()}
-          >
-            {isPending ? "Evaluating..." : "Run Evaluation"}
+          <Button onClick={handleRunTwo} disabled={loading || !plan.trim()}>
+            {loading ? "Running..." : "Run 2 Times"}
           </Button>
           <Button
             variant="secondary"
             onClick={handleRunFive}
-            disabled={isPending || multiLoading || !plan.trim()}
+            disabled={loading || !plan.trim()}
           >
-            {multiLoading ? "Running..." : "Run 5 Times"}
+            {loading ? "Running..." : "Run 5 Times"}
           </Button>
         </div>
-        {multiLoading && <LoadingSpinner />}
-        {multiError && (
-          <div className="text-destructive text-sm">{multiError}</div>
-        )}
-        {/* Multi-run results table */}
-        {multiResults.length > 1 && (
+        {loading && <LoadingSpinner />}
+        {error && <div className="text-destructive text-sm">{error}</div>}
+        {/* Results table */}
+        {results.length > 0 && (
           <div className="overflow-x-auto mt-2">
             <Table>
               <TableHeader>
                 <TableRow>
-                  {multiResults.map((_, i) => (
+                  {results.map((_, i) => (
                     <TableHead key={i}>{`Run ${i + 1}`}</TableHead>
                   ))}
                 </TableRow>
@@ -272,7 +236,7 @@ export default function PlanEvalCard() {
               <TableBody>
                 {scoreFields.map((field) => (
                   <TableRow key={field.key}>
-                    {multiResults.map((r, idx) => (
+                    {results.map((r, idx) => (
                       <TableCell
                         key={idx}
                         className="font-semibold text-center px-2 py-1 text-lg"
@@ -291,7 +255,7 @@ export default function PlanEvalCard() {
                 ))}
                 {/* Popover content/markdown row trigger */}
                 <TableRow>
-                  {multiResults.map((r, idx) => (
+                  {results.map((r, idx) => (
                     <TableCell key={idx} className="px-2 py-1 text-center">
                       {r.error ? (
                         <span className="text-destructive text-xs">
@@ -332,36 +296,6 @@ export default function PlanEvalCard() {
             </Table>
           </div>
         )}
-        {/* Single-run fallback (original UI) */}
-        {!multiResults.length && result && (
-          <div className="space-y-1 text-sm mt-2">
-            <div>
-              {result.noTypeAssertions ? "✅" : "❌"}&nbsp;No Type Assertions
-            </div>
-            <div>
-              {result.noAnyTypes ? "✅" : "❌"}&nbsp;No <code>any</code> Types
-            </div>
-            <div>
-              {result.noSingleItemHelper ? "✅" : "❌"}&nbsp;No One-off
-              Conversion Helper
-            </div>
-            <div>
-              {result.noUnnecessaryDestructuring ? "✅" : "❌"}&nbsp;No
-              Unnecessary Destructuring
-            </div>
-            <div className="mt-2">
-              <h4 className="mb-1 font-bold text-md">LLM Content</h4>
-              {typeof result.content === "string" && result.content.trim() ? (
-                <MarkdownRenderer content={result.content} />
-              ) : (
-                <span className="text-muted-foreground text-sm italic">
-                  No markdown/content from LLM.
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-        {error && <div className="text-destructive text-sm">{error}</div>}
       </CardContent>
     </Card>
   )
