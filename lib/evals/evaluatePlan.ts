@@ -12,7 +12,7 @@ import { langfuse } from "@/lib/langfuse"
 import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
 
 export interface PlanEvaluationResultFull {
-  result: PlanEvaluationResult // the parsed grade/score etc.
+  result?: PlanEvaluationResult // the parsed grade/score etc.
   message: ChatCompletionMessageParam // the full response (content, tool_calls, ...)
 }
 
@@ -74,10 +74,9 @@ export async function evaluatePlan(
   }
 
   if (!response.tool_calls) {
-    throw new Error("No tool call result received from OpenAI")
+    return { message: response }
   }
 
-  // We should only get 1 tool call, let's discard the rest
   const toolCall = response.tool_calls[0]
   const toolArgs = plan753EvaluationSchema.parse(
     JSON.parse(toolCall.function.arguments)
@@ -92,4 +91,3 @@ export async function evaluatePlan(
     message: response,
   }
 }
-
