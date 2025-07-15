@@ -5,6 +5,8 @@ import { useState } from "react"
 import MarkdownRenderer from "@/components/blog/MarkdownRenderer"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Popover,
   PopoverContent,
@@ -74,6 +76,7 @@ function LoadingSpinner() {
 
 export default function PlanEvalCard() {
   const [plan, setPlan] = useState("")
+  const [runCount, setRunCount] = useState(2)
   const [results, setResults] = useState<PlanEvaluationResultWithMeta[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -170,11 +173,8 @@ export default function PlanEvalCard() {
     }
   }
 
-  // Run 2 times handler
-  const handleRunTwo = () => runEvaluations(2)
-
-  // Run 5 times handler
-  const handleRunFive = () => runEvaluations(5)
+  // Single run handler that uses the runCount state
+  const handleRun = () => runEvaluations(runCount)
 
   const scoreFields = [
     {
@@ -208,16 +208,28 @@ export default function PlanEvalCard() {
           rows={10}
           disabled={loading}
         />
+        <div className="space-y-2">
+          <Label htmlFor="run-count">Number of runs</Label>
+          <Input
+            id="run-count"
+            type="number"
+            min="1"
+            max="10"
+            value={runCount}
+            onChange={(e) => {
+              const value = Math.max(
+                1,
+                Math.min(10, parseInt(e.target.value) || 1)
+              )
+              setRunCount(value)
+            }}
+            disabled={loading}
+            className="w-32"
+          />
+        </div>
         <div className="flex gap-2">
-          <Button onClick={handleRunTwo} disabled={loading || !plan.trim()}>
-            {loading ? "Running..." : "Run 2 Times"}
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={handleRunFive}
-            disabled={loading || !plan.trim()}
-          >
-            {loading ? "Running..." : "Run 5 Times"}
+          <Button onClick={handleRun} disabled={loading || !plan.trim()}>
+            {loading ? "Running..." : `Run ${runCount} Times`}
           </Button>
         </div>
         {loading && <LoadingSpinner />}
