@@ -16,9 +16,8 @@ export async function getChatCompletion({
     { role: "user", content: userPrompt },
   ]
   const res = await openai.chat.completions.create({
-    model: "gpt-4o",
+    model: "o3",
     messages,
   })
   return res.choices[0]?.message?.content || ""
 }
-
