@@ -4,16 +4,16 @@ import { ChatCompletionMessageParam } from "openai/resources/chat/completions"
 
 import { EvalAgent } from "@/lib/agents/EvalAgent"
 import {
-  createPlan753EvaluationTool,
-  Plan753EvaluationResult,
+  createPlan753EvaluationTool as createPlanEvaluationTool,
+  Plan753EvaluationResult as PlanEvaluationResult,
   plan753EvaluationSchema,
-} from "@/lib/evals/plan-753"
+} from "@/lib/evals/evalTool"
 import { langfuse } from "@/lib/langfuse"
 import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
 
 const SYSTEM_PROMPT = `You are an output evaluation agent. Your job is to inspect a coding implementation plan and determine if it avoids several common problems.\n\nReturn an evaluation using the provided tool.`
 
-const planEvaluationTool = createPlan753EvaluationTool()
+const planEvaluationTool = createPlanEvaluationTool()
 
 export async function evaluatePlan(
   plan: string,
@@ -22,7 +22,7 @@ export async function evaluatePlan(
     issueNumber?: number
     type?: string
   }
-): Promise<Plan753EvaluationResult> {
+): Promise<PlanEvaluationResult> {
   const apiKey = await getUserOpenAIApiKey()
   if (!apiKey) {
     throw new Error("Missing OpenAI API key")

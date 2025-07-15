@@ -5,8 +5,8 @@ import { useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
-import { evaluatePlan } from "@/lib/actions/evaluatePlan"
-import { Plan753EvaluationResult as PlanEvaluationResult } from "@/lib/evals/plan-753"
+import { Plan753EvaluationResult as PlanEvaluationResult } from "@/lib/evals/evalTool"
+import { evaluatePlan } from "@/lib/evals/evaluatePlan"
 
 export default function PlanEvalCard() {
   const [plan, setPlan] = useState("")
