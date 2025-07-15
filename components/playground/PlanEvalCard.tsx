@@ -1,11 +1,15 @@
 "use client"
 
 import { useState, useTransition } from "react"
+
+import MarkdownRenderer from "@/components/blog/MarkdownRenderer"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Textarea } from "@/components/ui/textarea"
-import { Plan753EvaluationResult as PlanEvaluationResult } from "@/lib/evals/evalTool"
-import { evaluatePlan } from "@/lib/evals/evaluatePlan"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import {
   Table,
   TableBody,
@@ -14,13 +18,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
-import MarkdownRenderer from "@/components/blog/MarkdownRenderer"
+import { Textarea } from "@/components/ui/textarea"
+import { Plan753EvaluationResult as PlanEvaluationResult } from "@/lib/evals/evalTool"
+import { evaluatePlan } from "@/lib/evals/evaluatePlan"
 
 function LoadingSpinner() {
   return (
-    <div className="flex items-center gap-2 mt-4 mb-2" role="status" aria-label="Loading">
-      <svg className="animate-spin h-5 w-5 text-muted-foreground mr-2" viewBox="0 0 24 24">
+    <div
+      className="flex items-center gap-2 mt-4 mb-2"
+      role="status"
+      aria-label="Loading"
+    >
+      <svg
+        className="animate-spin h-5 w-5 text-muted-foreground mr-2"
+        viewBox="0 0 24 24"
+      >
         <circle
           className="opacity-25"
           cx="12"
@@ -36,7 +48,9 @@ function LoadingSpinner() {
           d="M4 12a8 8 0 018-8v8H4z"
         />
       </svg>
-      <span className="text-muted-foreground text-sm">Running evaluations...</span>
+      <span className="text-muted-foreground text-sm">
+        Running evaluations...
+      </span>
     </div>
   )
 }
@@ -95,7 +109,8 @@ export default function PlanEvalCard() {
             noUnnecessaryDestructuring: false,
             __multiRunError: r.reason ? String(r.reason) : "Unknown error",
           } as any)
-          if (!firstError) firstError = r.reason ? String(r.reason) : "Unknown error"
+          if (!firstError)
+            firstError = r.reason ? String(r.reason) : "Unknown error"
         }
       })
       setMultiResults(results)
@@ -159,7 +174,9 @@ export default function PlanEvalCard() {
           </Button>
         </div>
         {multiLoading && <LoadingSpinner />}
-        {multiError && <div className="text-destructive text-sm">{multiError}</div>}
+        {multiError && (
+          <div className="text-destructive text-sm">{multiError}</div>
+        )}
         {/* Multi-run results table */}
         {multiResults.length > 1 && (
           <div className="overflow-x-auto mt-2">
@@ -179,9 +196,13 @@ export default function PlanEvalCard() {
                         key={idx}
                         className="font-semibold text-center px-2 py-1 text-lg"
                       >
-                        {r.__multiRunError
-                          ? <span className="text-destructive">Error</span>
-                          : (r[field.key as keyof PlanEvaluationResult] ? "✅" : "❌")}
+                        {r.__multiRunError ? (
+                          <span className="text-destructive">Error</span>
+                        ) : r[field.key as keyof PlanEvaluationResult] ? (
+                          "✅"
+                        ) : (
+                          "❌"
+                        )}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -191,11 +212,15 @@ export default function PlanEvalCard() {
                   {multiResults.map((r, idx) => (
                     <TableCell key={idx} className="px-2 py-1 text-center">
                       {r.__multiRunError ? (
-                        <span className="text-destructive text-xs">{r.__multiRunError}</span>
+                        <span className="text-destructive text-xs">
+                          {r.__multiRunError}
+                        </span>
                       ) : (
                         <Popover
                           open={openPopoverIdx === idx}
-                          onOpenChange={(open) => setOpenPopoverIdx(open ? idx : null)}
+                          onOpenChange={(open) =>
+                            setOpenPopoverIdx(open ? idx : null)
+                          }
                         >
                           <PopoverTrigger asChild>
                             <Button variant="outline" size="sm">
@@ -204,11 +229,16 @@ export default function PlanEvalCard() {
                           </PopoverTrigger>
                           <PopoverContent className="min-w-[340px] max-w-[400px] p-4">
                             {/* Render all fields but prioritize markdown if present */}
-                            <h4 className="mb-2 font-bold text-md">LLM Content</h4>
-                            {typeof r.content === "string" && r.content.trim() ? (
+                            <h4 className="mb-2 font-bold text-md">
+                              LLM Content
+                            </h4>
+                            {typeof r.content === "string" &&
+                            r.content.trim() ? (
                               <MarkdownRenderer content={r.content} />
                             ) : (
-                              <span className="text-muted-foreground text-sm italic">No markdown/content from LLM.</span>
+                              <span className="text-muted-foreground text-sm italic">
+                                No markdown/content from LLM.
+                              </span>
                             )}
                           </PopoverContent>
                         </Popover>
@@ -244,4 +274,3 @@ export default function PlanEvalCard() {
     </Card>
   )
 }
-
