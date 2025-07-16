@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { workflowTypeEnum } from "./index"
+import { workflowTypeEnum } from "@/lib/types"
 
 // Base Event Schema
 /**

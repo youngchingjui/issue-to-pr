@@ -61,7 +61,6 @@ export type PullRequest = {
 
 // Workflow Management Types
 
-
 export type WorkflowRun = {
   id: string
   workflowType: WorkflowType
