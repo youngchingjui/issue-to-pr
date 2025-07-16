@@ -30,6 +30,7 @@ Lookup configuration files to better understand the codebase requirements and st
 ## Additional guidelines
 - DO NOT provide information that you have not confirmed yet with the existing codebase or information you've looked up
 - DO NOT make any file edits - this workflow is for planning only
+- DO output the implementation plan in Markdown format
 `
 
 export class ThinkerAgent extends Agent {
