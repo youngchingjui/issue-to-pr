@@ -97,7 +97,7 @@ The tool supports both literal (fixed-string) and regex search modes. By default
 - mode: "literal" (default, safer) — uses ripgrep's -F flag, interprets search as a fixed string, safe for special characters like ?, *, [, ]
 - mode: "regex" — disables -F, allows regex pattern searches, may return ripgrep errors if regex is malformed.`
 
-const searchParameters = z.object({
+export const searchParameters = z.object({
   query: z
     .string()
     .describe(
@@ -129,19 +129,19 @@ const searchParameters = z.object({
     .number()
     .int()
     .positive()
-    .optional()
     .describe(
       "Maximum number of characters to return per page. Defaults to 4000."
-    ),
+    )
+    .default(4000),
   page: z
     .number()
     .int()
     .min(1)
-    .optional()
-    .describe("Page number of results to return, starting at 1."),
+    .describe("Page number of results to return, starting at 1.")
+    .default(1),
 })
 
-type RipgrepSearchParameters = z.infer<typeof searchParameters>
+export type RipgrepSearchParameters = z.infer<typeof searchParameters>
 
 /**
  * Helper to construct the ripgrep command string based on the supplied flags.
@@ -223,8 +223,8 @@ async function fnHandler(
         return `Ripgrep search failed: Unexpected ripgrep exit code: ${exitCode}. stderr: ${stderr}`
       }
 
-      const perPage = maxChars ?? 4000
-      const currentPage = page ?? 1
+      const perPage = maxChars
+      const currentPage = page
       const start = (currentPage - 1) * perPage
       const end = start + perPage
       const output = stdout || ""
@@ -282,8 +282,8 @@ async function fnHandler(
         return `Ripgrep search failed: Unexpected ripgrep exit code: ${exitCode}. stderr: ${stderr}`
       }
 
-      const perPage = maxChars ?? 4000
-      const currentPage = page ?? 1
+      const perPage = maxChars
+      const currentPage = page
       const start = (currentPage - 1) * perPage
       const end = start + perPage
       const output = stdout || ""
