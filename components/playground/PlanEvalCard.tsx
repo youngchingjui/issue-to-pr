@@ -1,5 +1,6 @@
 "use client"
 
+import { ChatCompletionMessageParam } from "openai/resources"
 import { useState } from "react"
 
 import MarkdownRenderer from "@/components/blog/MarkdownRenderer"
@@ -84,8 +85,9 @@ export default function PlanEvalCard() {
   const [openPopoverIdx, setOpenPopoverIdx] = useState<number | null>(null)
 
   // utility to extract assistant message's content field from the new API (PlanEvaluationResultFull)
-  function extractContentFromMsg(msg): string | undefined {
-    if (!msg) return undefined
+  function extractContentFromMsg(
+    msg: ChatCompletionMessageParam
+  ): string | undefined {
     if (typeof msg.content === "string") return msg.content
     if (Array.isArray(msg.content)) {
       // OpenAI-style content (could be string[] or ContentPart[])
@@ -268,6 +270,7 @@ export default function PlanEvalCard() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Criteria</TableHead>
                   {results.map((_, i) => (
                     <TableHead key={i}>{`Run ${i + 1}`}</TableHead>
                   ))}
@@ -276,6 +279,9 @@ export default function PlanEvalCard() {
               <TableBody>
                 {scoreFields.map((field) => (
                   <TableRow key={field.key}>
+                    <TableCell className="font-semibold text-left px-2 py-1">
+                      {field.label}
+                    </TableCell>
                     {results.map((r, idx) => (
                       <TableCell
                         key={idx}
@@ -295,6 +301,7 @@ export default function PlanEvalCard() {
                 ))}
                 {/* Popover content/markdown row trigger */}
                 <TableRow>
+                  <TableCell />
                   {results.map((r, idx) => (
                     <TableCell key={idx} className="px-2 py-1 text-center">
                       {r.error ? (
@@ -318,8 +325,7 @@ export default function PlanEvalCard() {
                             <h4 className="mb-2 font-bold text-md">
                               LLM Content
                             </h4>
-                            {typeof r.content === "string" &&
-                            r.content.trim() ? (
+                            {r.content?.trim() ? (
                               <MarkdownRenderer content={r.content} />
                             ) : (
                               <span className="text-muted-foreground text-sm italic">
