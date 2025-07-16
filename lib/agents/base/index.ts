@@ -91,13 +91,16 @@ export class Agent {
     this.untrackedMessages = [] // Clear the queue
   }
 
-  async setSystemPrompt(prompt: string) {
-    // Find and remove old system messages from Neo4j if we have a jobId
+  async setSystemPrompt(
+    prompt: string,
+    role: "system" | "developer" = "system"
+  ) {
+    // Find and remove old prompt messages (system or developer) from Neo4j if we have a jobId
     if (this.jobId) {
-      const oldSystemMessages = this.messages.filter(
-        (message) => message.role === "system"
+      const oldPromptMessages = this.messages.filter(
+        (message) => message.role === "system" || message.role === "developer"
       )
-      for (const message of oldSystemMessages) {
+      for (const message of oldPromptMessages) {
         if (message.id) {
           await deleteEvent(message.id)
         }
@@ -105,9 +108,11 @@ export class Agent {
     }
 
     // Update messages array
-    this.messages = this.messages.filter((message) => message.role !== "system")
+    this.messages = this.messages.filter(
+      (message) => message.role !== "system" && message.role !== "developer"
+    )
     const systemMessage: EnhancedMessage = {
-      role: "system",
+      role,
       content: prompt,
     }
     this.messages.unshift(systemMessage)
@@ -118,6 +123,12 @@ export class Agent {
     } else {
       this.untrackedMessages.push(systemMessage)
     }
+  }
+
+  // Alias for setSystemPrompt – provides the same behavior under a developer-centric name
+  async setDeveloperPrompt(prompt: string) {
+    // Simply delegate to setSystemPrompt so we keep a single implementation.
+    return this.setSystemPrompt(prompt, "developer")
   }
 
   async addMessage(message: ChatCompletionMessageParam) {
@@ -174,13 +185,15 @@ export class Agent {
       throw new Error("Missing tools, please attach required tools first")
     }
 
-    // Ensure we have at least one user message after system prompt before generating response
-    const hasSystemPrompt = this.messages.some((m) => m.role === "system")
+    // Ensure we have at least one user message after a prompt (system or developer) before generating response
+    const hasPrompt = this.messages.some(
+      (m) => m.role === "system" || m.role === "developer"
+    )
     const hasUserMessage = this.messages.some((m) => m.role === "user")
 
-    if (!hasSystemPrompt || !hasUserMessage) {
+    if (!hasPrompt || !hasUserMessage) {
       throw new Error(
-        "Cannot generate response: Need both system prompt and at least one user message"
+        "Cannot generate response: Need both an initial prompt (system or developer) and at least one user message"
       )
     }
 
@@ -299,13 +312,15 @@ export class Agent {
   > {
     const startTime = new Date()
 
-    // Ensure we have at least one user message after system prompt before generating response
-    const hasSystemPrompt = this.messages.some((m) => m.role === "system")
+    // Ensure we have at least one user message after a prompt (system or developer) before generating response
+    const hasPrompt = this.messages.some(
+      (m) => m.role === "system" || m.role === "developer"
+    )
     const hasUserMessage = this.messages.some((m) => m.role === "user")
 
-    if (!hasSystemPrompt || !hasUserMessage) {
+    if (!hasPrompt || !hasUserMessage) {
       throw new Error(
-        "Cannot generate response: Need both system prompt and at least one user message"
+        "Cannot generate response: Need both an initial prompt (system or developer) and at least one user message"
       )
     }
 
