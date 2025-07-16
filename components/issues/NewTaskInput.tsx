@@ -1,6 +1,7 @@
 "use client"
 
 import { HelpCircle } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { useState, useTransition } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -26,6 +27,7 @@ export default function NewTaskInput({ repoFullName }: Props) {
   const [description, setDescription] = useState("")
   const [loading, setLoading] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -62,6 +64,8 @@ export default function NewTaskInput({ repoFullName }: Props) {
           })
           setTitle("")
           setDescription("")
+          // Refresh the data so the new issue appears in the list immediately
+          router.refresh()
         } else {
           toast({
             title: "Error creating task",
@@ -82,7 +86,10 @@ export default function NewTaskInput({ repoFullName }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mb-6 grid gap-4 border-muted pb-6">
+    <form
+      onSubmit={handleSubmit}
+      className="mb-6 grid gap-4 border-b border-muted pb-6"
+    >
       <div className="grid gap-2">
         <Label htmlFor="title">Title</Label>
         <Input

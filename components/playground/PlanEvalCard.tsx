@@ -1,5 +1,6 @@
 "use client"
 
+import { ChatCompletionMessageParam } from "openai/resources"
 import { useState } from "react"
 
 import MarkdownRenderer from "@/components/blog/MarkdownRenderer"
@@ -23,9 +24,10 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { Plan753EvaluationResult as PlanEvaluationResult } from "@/lib/evals/evalTool"
 import {
-  evaluatePlan,
-  PlanEvaluationResultFull,
-} from "@/lib/evals/evaluatePlan"
+  EvaluatePlanRequestSchema,
+  EvaluatePlanResponse,
+  EvaluatePlanResponseSchema,
+} from "@/lib/types/api/schemas"
 
 // Extend the base evaluation result with optional metadata that only exists in the
 // playground UI (error placeholder + LLM markdown content). These fields are not
@@ -83,8 +85,9 @@ export default function PlanEvalCard() {
   const [openPopoverIdx, setOpenPopoverIdx] = useState<number | null>(null)
 
   // utility to extract assistant message's content field from the new API (PlanEvaluationResultFull)
-  function extractContentFromMsg(msg): string | undefined {
-    if (!msg) return undefined
+  function extractContentFromMsg(
+    msg: ChatCompletionMessageParam
+  ): string | undefined {
     if (typeof msg.content === "string") return msg.content
     if (Array.isArray(msg.content)) {
       // OpenAI-style content (could be string[] or ContentPart[])
@@ -96,13 +99,10 @@ export default function PlanEvalCard() {
   }
 
   // Helper function to transform evaluatePlan result to PlanEvaluationResultWithMeta
-  function transformEvaluationResult(
-    data: PlanEvaluationResultFull
-  ): PlanEvaluationResultWithMeta {
+  function transformEvaluationResult(data: EvaluatePlanResponse) {
     // New envelope style: { result?: PlanEvaluationResult, message: ChatMessage }
-    if (data && typeof data === "object" && "message" in data) {
-      const baseResult =
-        "result" in data && data.result ? data.result : undefined
+    if (data.message) {
+      const baseResult = data.result ?? undefined
 
       return {
         ...DEFAULT_SCORE_FLAGS,
@@ -120,33 +120,66 @@ export default function PlanEvalCard() {
 
   // Run evaluations the specified number of times
   async function runEvaluations(count: number) {
-    // Reset state
+    // Validate request body once using safeParse
+    const validation = EvaluatePlanRequestSchema.safeParse({ plan })
+
+    if (!validation.success) {
+      setError(
+        validation.error.issues.map((i) => i.message).join("; ") ||
+          "Invalid input"
+      )
+      return
+    }
+
+    const requestBody = validation.data
+
+    // Reset state for a fresh run
     setError(null)
     setResults([])
     setOpenPopoverIdx(null)
     setLoading(true)
 
-    // Pre-seed the results array so the table renders immediately
-    setResults(
-      Array.from({ length: count }, () => ({}) as PlanEvaluationResultWithMeta)
-    )
+    // Pre-seed the results so the table renders immediately
+    setResults(Array.from({ length: count }, () => ({})))
 
     try {
-      // Kick off all evaluations concurrently - call evaluatePlan directly for better performance
+      // Kick off all evaluations concurrently via the API route so they can execute in parallel
       const parallelPromises = Array.from({ length: count }).map(
         async (_, idx) => {
           try {
-            const data = await evaluatePlan(plan)
+            const response = await fetch("/api/playground/evals", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(requestBody),
+            })
+
+            if (!response.ok) {
+              throw new Error(
+                `HTTP ${response.status}: ${await response.text()}`
+              )
+            }
+
+            const rawJson = await response.json()
+
+            // Validate response with Zod schema
+            const parsed = EvaluatePlanResponseSchema.safeParse(rawJson)
+
+            if (!parsed.success) {
+              throw new Error("Invalid response format from API route")
+            }
+
+            const data = parsed.data
             const res = transformEvaluationResult(data)
-            // Update the specific index as soon as its promise resolves
+
+            // Update results as soon as this run finishes
             setResults((prev) => {
               const next = [...prev]
               next[idx] = res
               return next
             })
-            return true // success flag
+
+            return true // success for this run
           } catch (err) {
-            // Capture individual failure immediately
             setResults((prev) => {
               const next = [...prev]
               next[idx] = { error: String(err) }
@@ -160,13 +193,10 @@ export default function PlanEvalCard() {
       // Wait for all evaluations to complete
       const completionFlags = await Promise.all(parallelPromises)
 
-      // If every evaluation failed, surface a generic error message
-      const hadSuccess = completionFlags.some((flag) => flag)
-      if (!hadSuccess) {
+      if (!completionFlags.some((flag) => flag)) {
         setError("All evaluation runs failed. See individual errors above.")
       }
     } catch (err) {
-      // Catch any unexpected aggregate error
       setError(String(err))
     } finally {
       setLoading(false)
@@ -240,6 +270,7 @@ export default function PlanEvalCard() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Criteria</TableHead>
                   {results.map((_, i) => (
                     <TableHead key={i}>{`Run ${i + 1}`}</TableHead>
                   ))}
@@ -248,6 +279,9 @@ export default function PlanEvalCard() {
               <TableBody>
                 {scoreFields.map((field) => (
                   <TableRow key={field.key}>
+                    <TableCell className="font-semibold text-left px-2 py-1">
+                      {field.label}
+                    </TableCell>
                     {results.map((r, idx) => (
                       <TableCell
                         key={idx}
@@ -267,6 +301,7 @@ export default function PlanEvalCard() {
                 ))}
                 {/* Popover content/markdown row trigger */}
                 <TableRow>
+                  <TableCell />
                   {results.map((r, idx) => (
                     <TableCell key={idx} className="px-2 py-1 text-center">
                       {r.error ? (
@@ -290,8 +325,7 @@ export default function PlanEvalCard() {
                             <h4 className="mb-2 font-bold text-md">
                               LLM Content
                             </h4>
-                            {typeof r.content === "string" &&
-                            r.content.trim() ? (
+                            {r.content?.trim() ? (
                               <MarkdownRenderer content={r.content} />
                             ) : (
                               <span className="text-muted-foreground text-sm italic">
