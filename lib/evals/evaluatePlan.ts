@@ -34,7 +34,7 @@ export async function evaluatePlan(
     issueNumber?: number
     type?: string
   }
-): Promise<PlanEvaluationResultFull> {
+) {
   const apiKey = await getUserOpenAIApiKey()
   if (!apiKey) {
     throw new Error("Missing OpenAI API key")
