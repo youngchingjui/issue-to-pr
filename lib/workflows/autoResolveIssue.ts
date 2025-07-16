@@ -11,6 +11,7 @@ import {
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
 import { createBranchTool } from "@/lib/tools/Branch"
 import { createCommitTool } from "@/lib/tools/Commit"
+import { createContainerExecTool } from "@/lib/tools/ContainerExecTool"
 import { createCreatePRTool } from "@/lib/tools/CreatePRTool"
 import { createFileCheckTool } from "@/lib/tools/FileCheckTool"
 import { createGetFileContentTool } from "@/lib/tools/GetFileContent"
@@ -18,7 +19,6 @@ import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
 import { createSetupRepoTool } from "@/lib/tools/SetupRepoTool"
 import { createSyncBranchTool } from "@/lib/tools/SyncBranchTool"
 import { createWriteFileContentTool } from "@/lib/tools/WriteFileContent"
-import { createContainerExecTool } from "@/lib/tools/ContainerExecTool"
 import { RepoEnvironment } from "@/lib/types"
 import {
   GitHubIssue,
