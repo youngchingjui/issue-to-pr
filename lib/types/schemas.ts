@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { WorkflowType } from "./neo4j"
+import { workflowTypeEnum } from "@/lib/types"
 
 // Base Event Schema
 /**
@@ -96,13 +96,7 @@ export const anyEventSchema = z.discriminatedUnion("type", [
  */
 export const workflowRunSchema = z.object({
   id: z.string(),
-  workflowType: z.enum([
-    "commentOnIssue",
-    "resolveIssue",
-    "autoResolveIssue",
-    "identifyPRGoal",
-    "reviewPullRequest",
-  ] as const satisfies readonly WorkflowType[]),
+  workflowType: workflowTypeEnum,
   created_at: z.date(),
 })
 

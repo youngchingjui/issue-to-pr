@@ -1,4 +1,4 @@
-import { LLMResponse as LLMResponseNew } from "@/lib/types"
+import { LLMResponse as LLMResponseNew, WorkflowType } from "@/lib/types"
 
 // Core Entity Types
 // TODO: Use zod to create schemas, then export types from schemas
@@ -60,13 +60,6 @@ export type PullRequest = {
 }
 
 // Workflow Management Types
-
-export type WorkflowType =
-  | "commentOnIssue"
-  | "resolveIssue"
-  | "autoResolveIssue"
-  | "identifyPRGoal"
-  | "reviewPullRequest"
 
 export type WorkflowRun = {
   id: string
