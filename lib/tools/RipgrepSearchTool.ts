@@ -32,7 +32,7 @@ function executeRipgrep({
       "--max-filesize",
       "200K",
       "-C",
-      "3",
+      "1",
       "--heading",
       "-n",
     ]
@@ -91,7 +91,7 @@ function executeRipgrep({
 }
 
 const name = "ripgrep_search"
-const description = `Searches for code in the local file system using ripgrep. Returns snippets of code containing the search term with 3 lines of context before and after each match. Note: These are just snippets - to fully understand the code's context, you should use a file reading tool to examine the complete file contents.
+const description = `Searches for code in the local file system using ripgrep. Returns snippets of code containing the search term with 1 line of context before and after each match. Results are paginated by character count to avoid excessively long responses. Note: These are just snippets - to fully understand the code's context, you should use a file reading tool to examine the complete file contents.
 
 The tool supports both literal (fixed-string) and regex search modes. By default, search queries are treated as literal strings (no regex interpretation, safer). To enable regex matching, specify mode: "regex" in the parameters.
 - mode: "literal" (default, safer) — uses ripgrep's -F flag, interprets search as a fixed string, safe for special characters like ?, *, [, ]
@@ -125,6 +125,20 @@ const searchParameters = z.object({
     .enum(["literal", "regex"])
     .optional()
     .describe("Search mode: 'literal' (default, safer) or 'regex'"),
+  maxChars: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe(
+      "Maximum number of characters to return per page. Defaults to 4000."
+    ),
+  page: z
+    .number()
+    .int()
+    .min(1)
+    .optional()
+    .describe("Page number of results to return, starting at 1."),
 })
 
 type RipgrepSearchParameters = z.infer<typeof searchParameters>
@@ -149,7 +163,7 @@ function buildRipgrepCommand({
   // Assemble the base ripgrep command. All option flags MUST appear before the
   // search pattern; otherwise, ripgrep will treat them as PATH arguments and
   // the command can hang or yield unexpected results.
-  let command = `rg --line-number --max-filesize 200K -C 3 --heading -n`
+  let command = `rg --line-number --max-filesize 200K -C 1 --heading -n`
 
   if (mode === "literal") {
     command += " -F" // use literal/fixed-string mode
@@ -171,7 +185,7 @@ async function fnHandler(
   env: RepoEnvironment,
   params: RipgrepSearchParameters
 ): Promise<string> {
-  const { query, ignoreCase, hidden, follow, mode } = params
+  const { query, ignoreCase, hidden, follow, mode, maxChars, page } = params
 
   // Set default values if parameters are null
   const flags = {
@@ -209,7 +223,19 @@ async function fnHandler(
         return `Ripgrep search failed: Unexpected ripgrep exit code: ${exitCode}. stderr: ${stderr}`
       }
 
-      return stdout || "No matching results found."
+      const perPage = maxChars ?? 4000
+      const currentPage = page ?? 1
+      const start = (currentPage - 1) * perPage
+      const end = start + perPage
+      const output = stdout || ""
+      if (start >= output.length) {
+        return ""
+      }
+      let slice = output.slice(start, end)
+      if (end < output.length) {
+        slice += `\n[...truncated. Use page ${currentPage + 1} to continue.]`
+      }
+      return slice || "No matching results found."
     } catch (error) {
       if (String(error).includes("Command timed out")) {
         return "Ripgrep search failed: Command timed out"
@@ -256,7 +282,19 @@ async function fnHandler(
         return `Ripgrep search failed: Unexpected ripgrep exit code: ${exitCode}. stderr: ${stderr}`
       }
 
-      return stdout
+      const perPage = maxChars ?? 4000
+      const currentPage = page ?? 1
+      const start = (currentPage - 1) * perPage
+      const end = start + perPage
+      const output = stdout || ""
+      if (start >= output.length) {
+        return ""
+      }
+      let slice = output.slice(start, end)
+      if (end < output.length) {
+        slice += `\n[...truncated. Use page ${currentPage + 1} to continue.]`
+      }
+      return slice || "No matching results found."
     } catch (error) {
       return `Ripgrep search failed: ${String(error)}`
     }

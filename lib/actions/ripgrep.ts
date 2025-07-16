@@ -10,6 +10,8 @@ export async function runRipgrepSearch({
   hidden,
   follow,
   mode,
+  maxChars,
+  page,
 }: {
   env: RepoEnvironment | string
   query: string
@@ -17,8 +19,18 @@ export async function runRipgrepSearch({
   hidden?: boolean
   follow?: boolean
   mode?: "literal" | "regex"
+  maxChars?: number
+  page?: number
 }): Promise<string> {
   const environment = asRepoEnvironment(env)
   const tool = createRipgrepSearchTool(environment)
-  return await tool.handler({ query, ignoreCase, hidden, follow, mode })
+  return await tool.handler({
+    query,
+    ignoreCase,
+    hidden,
+    follow,
+    mode,
+    maxChars,
+    page,
+  })
 }
