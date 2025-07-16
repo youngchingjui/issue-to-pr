@@ -1,3 +1,4 @@
+import AutoResolveIssueController from "@/components/issues/controllers/AutoResolveIssueController"
 import CreatePRController from "@/components/issues/controllers/CreatePRController"
 import GenerateResolutionPlanController from "@/components/issues/controllers/GenerateResolutionPlanController"
 import { Button } from "@/components/ui/button"
@@ -22,6 +23,15 @@ export default function IssueActions({
   onWorkflowError,
 }: IssueActionsProps) {
   const repoFullName = getRepoFullNameFromIssue(issue)
+  const { execute: executeAutoResolve } = AutoResolveIssueController({
+    issueNumber: issue.number,
+    repoFullName,
+    onStart: () => {
+      onWorkflowStart("Auto Resolving...")
+    },
+    onComplete: onWorkflowComplete,
+    onError: onWorkflowError,
+  })
   const { execute: executePlan, ToggleControl: PlanToggleControl } =
     GenerateResolutionPlanController({
       issueNumber: issue.number,
@@ -78,6 +88,20 @@ export default function IssueActions({
               </Button>
               <PRToggleControl />
             </div>
+          </div>
+        </div>
+
+        <div className="border rounded-lg p-4 bg-muted/5">
+          <div className="flex flex-col gap-3">
+            <Button
+              onClick={executeAutoResolve}
+              disabled={isLoading}
+              variant="default"
+            >
+              {activeWorkflow === "Auto Resolving..."
+                ? "Running..."
+                : "Auto Resolve Issue"}
+            </Button>
           </div>
         </div>
       </div>
