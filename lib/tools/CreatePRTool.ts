@@ -77,7 +77,7 @@ export const createCreatePRTool = (
   createTool({
     name: "create_pull_request",
     description:
-      "Creates a pull request from an existing remote branch and automatically adds the label 'AI generated'. The branch must already exist on GitHub and contain the changes you want to include in the PR.",
+      "Creates a pull request from an existing remote branch and automatically adds the label 'AI generated'. The branch must already exist on GitHub and contain the changes you want to include in the PR. Do NOT append the related issue # to close - this will automatically be added by the tool.",
     schema: createPRParameters,
     handler: (params: CreatePRParams) =>
       fnHandler(repository, issueNumber, params),

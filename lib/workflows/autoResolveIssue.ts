@@ -1,3 +1,5 @@
+import { v4 as uuidv4 } from "uuid"
+
 import PlanAndCodeAgent from "@/lib/agents/PlanAndCodeAgent"
 import { getAuthToken } from "@/lib/github"
 import { getIssueComments } from "@/lib/github/issues"
@@ -9,21 +11,10 @@ import {
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
-import { createBranchTool } from "@/lib/tools/Branch"
-import { createCommitTool } from "@/lib/tools/Commit"
-import { createContainerExecTool } from "@/lib/tools/ContainerExecTool"
-import { createCreatePRTool } from "@/lib/tools/CreatePRTool"
-import { createFileCheckTool } from "@/lib/tools/FileCheckTool"
-import { createGetFileContentTool } from "@/lib/tools/GetFileContent"
-import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
-import { createSetupRepoTool } from "@/lib/tools/SetupRepoTool"
-import { createSyncBranchTool } from "@/lib/tools/SyncBranchTool"
-import { createWriteFileContentTool } from "@/lib/tools/WriteFileContent"
 import { RepoEnvironment } from "@/lib/types"
 import {
   GitHubIssue,
   GitHubRepository,
-  repoFullNameSchema,
   RepoPermissions,
 } from "@/lib/types/github"
 import {
@@ -32,11 +23,13 @@ import {
 } from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 
-interface AutoResolveParams {
+import { getUserOpenAIApiKey } from "../neo4j/services/user"
+
+interface Params {
   issue: GitHubIssue
   repository: GitHubRepository
-  apiKey: string
-  jobId: string
+  apiKey?: string
+  jobId?: string
 }
 
 export const autoResolveIssue = async ({
@@ -44,8 +37,18 @@ export const autoResolveIssue = async ({
   repository,
   apiKey,
   jobId,
-}: AutoResolveParams) => {
-  const workflowId = jobId
+}: Params) => {
+  if (!apiKey) {
+    const apiKeyFromSettings = await getUserOpenAIApiKey()
+
+    if (!apiKeyFromSettings) {
+      throw new Error("No API key provided and no user settings found")
+    }
+
+    apiKey = apiKeyFromSettings
+  }
+
+  const workflowId = jobId ?? uuidv4()
   let userPermissions: RepoPermissions | null = null
   let containerCleanup: (() => Promise<void>) | null = null
 
@@ -91,41 +94,16 @@ export const autoResolveIssue = async ({
     const trace = langfuse.trace({ name: "autoResolve" })
     const span = trace.span({ name: "agent" })
 
-    const agent = new PlanAndCodeAgent({ apiKey, model: "o3" })
+    const agent = new PlanAndCodeAgent({
+      apiKey,
+      env,
+      defaultBranch: repository.default_branch,
+      issueNumber: issue.number,
+      repository,
+      sessionToken,
+    })
     await agent.addJobId(workflowId)
     agent.addSpan({ span, generationName: "autoResolveIssue" })
-
-    // Tools from Thinker and Coder agents
-    const setupRepoTool = createSetupRepoTool(env)
-    const getFileContentTool = createGetFileContentTool(env)
-    const searchCodeTool = createRipgrepSearchTool(env)
-    const writeFileTool = createWriteFileContentTool(env)
-    const branchTool = createBranchTool(env)
-    const commitTool = createCommitTool(env, repository.default_branch)
-    const fileCheckTool = createFileCheckTool(env)
-    const containerExecTool = createContainerExecTool(containerName)
-
-    agent.addTool(setupRepoTool)
-    agent.addTool(getFileContentTool)
-    agent.addTool(searchCodeTool)
-    agent.addTool(writeFileTool)
-    agent.addTool(branchTool)
-    agent.addTool(commitTool)
-    agent.addTool(fileCheckTool)
-    agent.addTool(containerExecTool)
-
-    let syncBranchTool
-    let createPRTool
-    if (sessionToken) {
-      syncBranchTool = createSyncBranchTool(
-        repoFullNameSchema.parse(repository.full_name),
-        env,
-        sessionToken
-      )
-      createPRTool = createCreatePRTool(repository, issue.number)
-      agent.addTool(syncBranchTool)
-      agent.addTool(createPRTool)
-    }
 
     const tree = await createContainerizedDirectoryTree(containerName)
     const comments = await getIssueComments({
