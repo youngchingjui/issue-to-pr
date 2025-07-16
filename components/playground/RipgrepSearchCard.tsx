@@ -44,11 +44,13 @@ export default function RipgrepSearchCard() {
 
     const output = await runRipgrepSearch({
       env,
-      query,
-      ignoreCase,
-      hidden,
-      follow,
-      mode,
+      searchParams: {
+        query,
+        ignoreCase,
+        hidden,
+        follow,
+        mode,
+      },
     })
     setResult(output)
     setIsRunning(false)
