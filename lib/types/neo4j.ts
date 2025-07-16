@@ -64,6 +64,7 @@ export type PullRequest = {
 export type WorkflowType =
   | "commentOnIssue"
   | "resolveIssue"
+  | "autoResolveIssue"
   | "identifyPRGoal"
   | "reviewPullRequest"
 
