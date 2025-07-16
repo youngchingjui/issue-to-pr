@@ -99,6 +99,7 @@ export const workflowRunSchema = z.object({
   workflowType: z.enum([
     "commentOnIssue",
     "resolveIssue",
+    "autoResolveIssue",
     "identifyPRGoal",
     "reviewPullRequest",
   ] as const satisfies readonly WorkflowType[]),
