@@ -41,7 +41,9 @@ export default function AutoResolveIssueController({
       toast({
         title: "Workflow Failed",
         description:
-          error instanceof Error ? error.message : "An unexpected error occurred",
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred",
         variant: "destructive",
       })
       onError()
