@@ -27,7 +27,7 @@ export default function RipgrepSearchCard() {
   const [hidden, setHidden] = useState(false)
   const [follow, setFollow] = useState(false)
   const [mode, setMode] = useState<"literal" | "regex">("literal")
-  const [maxChars, setMaxChars] = useState(4000)
+  const [maxChars, setMaxChars] = useState(10000)
   const [page, setPage] = useState(1)
   const [result, setResult] = useState<string | null>(null)
   const [isRunning, setIsRunning] = useState(false)

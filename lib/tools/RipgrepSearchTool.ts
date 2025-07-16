@@ -130,9 +130,9 @@ export const searchParameters = z.object({
     .int()
     .positive()
     .describe(
-      "Maximum number of characters to return per page. Defaults to 4000."
+      "Maximum number of characters to return per page. Defaults to 10000."
     )
-    .default(4000),
+    .default(10000),
   page: z
     .number()
     .int()
