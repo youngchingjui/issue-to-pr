@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { execInContainer } from "@/lib/docker"
+import { execInContainerWithDockerode } from "@/lib/docker"
 import { createTool } from "@/lib/tools/helper"
 
 const execSchema = z.object({
@@ -15,15 +15,15 @@ type ExecParams = z.infer<typeof execSchema>
 
 export const createContainerExecTool = (containerName: string) =>
   createTool({
-    name: "container_exec",
+    name: "exec_in_container",
     description:
       "Run a shell command inside the docker container that hosts the worktree. Returns stdout and stderr.",
     schema: execSchema,
     handler: async (params: ExecParams) => {
-      const { stdout, stderr } = await execInContainer({
+      const { stdout, stderr, exitCode } = await execInContainerWithDockerode({
         name: containerName,
         command: params.command,
       })
-      return JSON.stringify({ stdout, stderr })
+      return JSON.stringify({ stdout, stderr, exitCode })
     },
   })

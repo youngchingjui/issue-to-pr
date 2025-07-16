@@ -69,6 +69,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - AI-Powered Code Generation
 - Automated PR Creation
 - Pull Request Review
+- Context-based patch application via createApplyPatchTool ([docs/components/README.md#patch-format-and-createapplypatchtool](docs/components/README.md#patch-format-and-createapplypatchtool))
 
 For detailed feature documentation, see our [User Guide](docs/guides/user-guide.md).
 

@@ -14,6 +14,8 @@ const DEFAULT_TOOLS = [
   "write_file",
 ]
 
+import Link from "next/link"
+
 import { auth } from "@/auth"
 import OAuthTokenCard from "@/components/auth/OAuthTokenCard"
 import AgentWorkflowClient from "@/components/playground/AgentWorkflowClient"
@@ -22,7 +24,6 @@ import RipgrepSearchCard from "@/components/playground/RipgrepSearchCard"
 import SWRDemoCard from "@/components/playground/SWRDemoCard"
 import WorkflowEventsSWRCard from "@/components/playground/WorkflowEventsSWRCard"
 import WriteFileCard from "@/components/playground/WriteFileCard"
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
 export default async function PlaygroundPage() {
