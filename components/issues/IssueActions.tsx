@@ -1,3 +1,6 @@
+import { useState } from "react"
+
+import BranchSelector from "@/components/common/BranchSelector"
 import CreatePRController from "@/components/issues/controllers/CreatePRController"
 import GenerateResolutionPlanController from "@/components/issues/controllers/GenerateResolutionPlanController"
 import { Button } from "@/components/ui/button"
@@ -22,6 +25,10 @@ export default function IssueActions({
   onWorkflowError,
 }: IssueActionsProps) {
   const repoFullName = getRepoFullNameFromIssue(issue)
+
+  // Branch selector state – default to "main"
+  const [selectedRef, setSelectedRef] = useState("main")
+
   const { execute: executePlan, ToggleControl: PlanToggleControl } =
     GenerateResolutionPlanController({
       issueNumber: issue.number,
@@ -46,10 +53,14 @@ export default function IssueActions({
 
   return (
     <div className="flex flex-col gap-6 mt-4">
+      {/* Shared branch / tag / commit selector */}
+      <BranchSelector value={selectedRef} onChange={setSelectedRef} />
+
       <div className="grid gap-6">
+        {/* Generate Plan */}
         <div className="border rounded-lg p-4 bg-muted/5">
           <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
               <Button
                 onClick={executePlan}
                 disabled={isLoading}
@@ -64,9 +75,10 @@ export default function IssueActions({
           </div>
         </div>
 
+        {/* Fix Issue & Create PR */}
         <div className="border rounded-lg p-4 bg-muted/5">
           <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
               <Button
                 onClick={executePR}
                 disabled={isLoading}
@@ -84,3 +96,4 @@ export default function IssueActions({
     </div>
   )
 }
+
