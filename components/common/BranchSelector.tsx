@@ -24,7 +24,10 @@ const mockBranches = [
   "fix/typo",
 ]
 
-export default function BranchSelector({ value, onChange }: BranchSelectorProps) {
+export default function BranchSelector({
+  value,
+  onChange,
+}: BranchSelectorProps) {
   return (
     <div className="flex flex-col gap-2">
       <Label htmlFor="branch-selector" className="text-sm">
@@ -45,4 +48,3 @@ export default function BranchSelector({ value, onChange }: BranchSelectorProps)
     </div>
   )
 }
-
