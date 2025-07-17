@@ -46,3 +46,15 @@ export const EvaluatePlanResponseSchema = z.object({
   message: ChatCompletionMessageParamSchema.optional(),
 })
 export type EvaluatePlanResponse = z.infer<typeof EvaluatePlanResponseSchema>
+
+// POST /api/playground/issue-title request body
+export const IssueTitleRequestSchema = z.object({
+  description: z.string().trim().min(1),
+})
+export type IssueTitleRequest = z.infer<typeof IssueTitleRequestSchema>
+
+// POST /api/playground/issue-title response
+export const IssueTitleResponseSchema = z.object({
+  title: z.string().trim().min(1),
+})
+export type IssueTitleResponse = z.infer<typeof IssueTitleResponseSchema>
