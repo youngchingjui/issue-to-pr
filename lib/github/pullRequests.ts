@@ -50,31 +50,104 @@ export async function createPullRequest({
   body: string
   issueNumber?: number
 }) {
-  const octokit = await getOctokit()
-  if (!octokit) {
-    throw new Error("No octokit found")
-  }
-
   const [owner, repo] = repoFullName.split("/")
   if (!owner || !repo) {
     throw new Error("Invalid repository format. Expected 'owner/repo'")
   }
 
-  let fullBody = body
-  if (issueNumber !== undefined) {
-    fullBody += `\n\nCloses #${issueNumber}`
+  // Initialise authenticated GraphQL client
+  const graphqlWithAuth = await getGraphQLClient()
+  if (!graphqlWithAuth) {
+    throw new Error("Could not initialize GraphQL client")
   }
 
-  const pullRequest = await octokit.rest.pulls.create({
-    owner,
-    repo,
-    title,
-    body: fullBody,
-    head: branch,
-    base: "main",
-  })
+  try {
+    // 1. Fetch repository ID
+    const repoIdQuery = `
+      query ($owner: String!, $name: String!) {
+        repository(owner: $owner, name: $name) {
+          id
+        }
+      }
+    `
 
-  return pullRequest
+    interface RepoIdResponse {
+      repository: { id: string }
+    }
+
+    const repoIdResp = await graphqlWithAuth<RepoIdResponse>(repoIdQuery, {
+      owner,
+      name: repo,
+    })
+
+    const repositoryId = repoIdResp.repository.id
+    if (!repositoryId) {
+      throw new Error("Unable to retrieve repository ID for GraphQL mutation")
+    }
+
+    // 2. Prepare body with closing keyword when issueNumber provided
+    let fullBody = body
+    if (typeof issueNumber === "number") {
+      fullBody += `\n\nCloses #${issueNumber}`
+    }
+
+    // 3. Create Pull Request via GraphQL mutation
+    const prMutation = `
+      mutation ($input: CreatePullRequestInput!) {
+        createPullRequest(input: $input) {
+          pullRequest {
+            number
+            url
+            title
+            body
+          }
+        }
+      }
+    `
+
+    interface CreatePRMutationResponse {
+      createPullRequest: {
+        pullRequest: {
+          number: number
+          url: string
+          title: string
+          body: string
+        }
+      }
+    }
+
+    const variables = {
+      input: {
+        repositoryId,
+        baseRefName: "main",
+        headRefName: branch,
+        title,
+        body: fullBody,
+        draft: false,
+      },
+    }
+
+    const prResp = await graphqlWithAuth<CreatePRMutationResponse>(
+      prMutation,
+      variables
+    )
+
+    const pull = prResp.createPullRequest.pullRequest
+
+    // Normalise shape to match Octokit REST response expectation
+    return {
+      data: {
+        number: pull.number,
+        url: pull.url,
+        title: pull.title,
+        body: pull.body,
+      },
+    }
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unknown GraphQL error"
+    throw new Error(`Failed to create pull request via GraphQL: ${message}`)
+  }
 }
 
 export async function getPullRequestDiff({
@@ -505,3 +578,4 @@ export async function getLinkedIssuesForPR({
     response.repository?.pullRequest?.closingIssuesReferences?.nodes || []
   return nodes.map((n) => n.number)
 }
+
