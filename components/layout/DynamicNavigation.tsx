@@ -154,6 +154,9 @@ export default function DynamicNavigation({
             <Link href="/issues">Issues</Link>
           </Button>
           <Button variant="ghost" size="sm" asChild className="flex items-center">
+            <Link href="/kanban">Kanban</Link>
+          </Button>
+          <Button variant="ghost" size="sm" asChild className="flex items-center">
             <Link href="/contribute">Contribute</Link>
           </Button>
           <Button variant="ghost" size="sm" asChild className="flex items-center">
@@ -174,6 +177,7 @@ export default function DynamicNavigation({
               <Link href="/workflow-runs">Workflows</Link>
               <Link href="/playground">Playground</Link>
               <Link href="/issues">Issues</Link>
+              <Link href="/kanban">Kanban</Link>
               <Link href="/contribute">Contribute</Link>
               <Link href="/settings">Settings</Link>
             </nav>
@@ -221,3 +225,4 @@ export default function DynamicNavigation({
     </>
   )
 }
+
