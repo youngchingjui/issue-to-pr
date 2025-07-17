@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from "uuid"
 import { getRepoFromString } from "@/lib/github/content"
 import { getIssue } from "@/lib/github/issues"
 import { updateJobStatus } from "@/lib/redis-old"
-import commentOnIssue from "@/lib/workflows/commentOnIssue"
+import autoResolveIssue from "@/lib/workflows/autoResolveIssue"
 import { resolveIssue } from "@/lib/workflows/resolveIssue"
 
 const POST_TO_GITHUB_SETTING = true // TODO: Set setting in database
@@ -102,58 +102,36 @@ export const routeWebhookHandler = async ({
       const jobId = uuidv4()
       await updateJobStatus(
         jobId,
-        "Received webhook event for new issue. Starting commentOnIssue workflow."
+        'Received "opened" issue webhook. Starting autoResolveIssue workflow.'
       )
 
       const issueNumber = payload["issue"]["number"]
       const repoFullName = payload["repository"]["full_name"]
       const apiKey = process.env.OPENAI_API_KEY // TODO: Prefer GitHub App session token, if available
-      const postToGithub = POST_TO_GITHUB_SETTING
-      const createPR = CREATE_PR_SETTING
 
-      // Start the plan and resolve workflow as a background job (fire-and-forget)
+      // Fire-and-forget auto-resolve
       ;(async () => {
         try {
-          // 1. Get full repository details and issue
           const fullRepo = await getRepoFromString(repoFullName)
-
-          // 2. commentOnIssue: Generate plan and capture planId
-          const commentResult = await commentOnIssue(
-            issueNumber,
-            fullRepo,
-            apiKey,
-            jobId,
-            postToGithub
-          )
-          if (!commentResult || !commentResult.planId) {
-            console.error(
-              "PlanAndResolve: No planId returned from commentOnIssue. Aborting resolveIssue."
-            )
-            return
-          }
-          // 3. Reload issue data for resolve
-          const issue = await getIssue({
+          const issueResult = await getIssue({
             fullName: repoFullName,
             issueNumber,
           })
 
-          if (issue.type !== "success") {
-            console.error("Failed to get issue:", issue)
+          if (issueResult.type !== "success") {
+            console.error("Failed to get issue:", issueResult)
             return
           }
 
-          // 4. resolveIssue: Use planId just created
-          await resolveIssue({
-            issue: issue.issue,
+          await autoResolveIssue({
+            issue: issueResult.issue,
             repository: fullRepo,
             apiKey,
-            jobId: uuidv4(),
-            createPR,
-            planId: commentResult.planId,
+            jobId,
           })
         } catch (e) {
           console.error(
-            "Failed to run plan and resolve workflow from webhook:",
+            "Failed to run autoResolveIssue workflow from webhook:",
             e
           )
         }
@@ -165,3 +143,4 @@ export const routeWebhookHandler = async ({
     console.log(`${event} event received on ${repository}`)
   }
 }
+
