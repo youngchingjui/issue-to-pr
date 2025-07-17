@@ -29,7 +29,7 @@ export default function IssueActions({
 }: IssueActionsProps) {
   const repoFullName = getRepoFullNameFromIssue(issue)
 
-  // Branch selector state – default to "main"
+  // Branch selector state – default to "main" (will be updated by selector when data loads)
   const [selectedRef, setSelectedRef] = useState("main")
 
   const { execute: executeAutoResolve } = AutoResolveIssueController({
@@ -66,8 +66,12 @@ export default function IssueActions({
 
   return (
     <div className="flex flex-col gap-6 mt-4">
-      {/* Shared branch / tag / commit selector */}
-      <BranchSelector value={selectedRef} onChange={setSelectedRef} />
+      {/* Branch / tag / commit selector */}
+      <BranchSelector
+        repoFullName={repoFullName}
+        value={selectedRef}
+        onChange={setSelectedRef}
+      />
 
       <div className="grid gap-6">
         {/* Generate Plan */}
@@ -123,3 +127,4 @@ export default function IssueActions({
     </div>
   )
 }
+
