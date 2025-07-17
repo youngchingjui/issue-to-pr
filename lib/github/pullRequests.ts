@@ -37,6 +37,26 @@ export async function getPullRequestOnBranch({
   return null
 }
 
+// ------------------------------
+// GraphQL types
+// ------------------------------
+interface RepositoryIdResponse {
+  repository: {
+    id: string
+  }
+}
+
+interface CreatePRGraphQLResponse {
+  createPullRequest: {
+    pullRequest: {
+      number: number
+      url: string
+      title: string
+      body: string | null
+    }
+  }
+}
+
 export async function createPullRequest({
   repoFullName,
   branch,
@@ -50,31 +70,74 @@ export async function createPullRequest({
   body: string
   issueNumber?: number
 }) {
-  const octokit = await getOctokit()
-  if (!octokit) {
-    throw new Error("No octokit found")
-  }
-
   const [owner, repo] = repoFullName.split("/")
   if (!owner || !repo) {
     throw new Error("Invalid repository format. Expected 'owner/repo'")
   }
 
+  const graphqlWithAuth = await getGraphQLClient()
+  if (!graphqlWithAuth) {
+    throw new Error("Could not initialize GraphQL client")
+  }
+
+  // 1. Retrieve repository ID (required for mutation input)
+  const repoIdQuery = `
+    query ($owner: String!, $name: String!) {
+      repository(owner: $owner, name: $name) {
+        id
+      }
+    }
+  `
+  const repoIdResult = await graphqlWithAuth<RepositoryIdResponse>(repoIdQuery, {
+    owner,
+    name: repo,
+  })
+  const repositoryId = repoIdResult.repository.id
+
+  if (!repositoryId) throw new Error("Failed to retrieve repository ID")
+
+  // 2. Prepare body (append closing keyword if issueNumber provided)
   let fullBody = body
-  if (issueNumber !== undefined) {
+  if (typeof issueNumber === "number") {
     fullBody += `\n\nCloses #${issueNumber}`
   }
 
-  const pullRequest = await octokit.rest.pulls.create({
-    owner,
-    repo,
-    title,
-    body: fullBody,
-    head: branch,
-    base: "main",
-  })
+  // 3. Execute createPullRequest mutation
+  const createPRMutation = `
+    mutation ($input: CreatePullRequestInput!) {
+      createPullRequest(input: $input) {
+        pullRequest {
+          number
+          url
+          title
+          body
+        }
+      }
+    }
+  `
 
-  return pullRequest
+  const variables = {
+    input: {
+      repositoryId,
+      baseRefName: "main",
+      headRefName: branch,
+      title,
+      body: fullBody,
+      draft: false,
+    },
+  }
+
+  const response = await graphqlWithAuth<CreatePRGraphQLResponse>(
+    createPRMutation,
+    variables
+  )
+
+  const pr = response.createPullRequest.pullRequest
+
+  // 4. Return in a REST-like shape expected by callers (pr.data.*)
+  return {
+    data: pr,
+  }
 }
 
 export async function getPullRequestDiff({
@@ -505,3 +568,4 @@ export async function getLinkedIssuesForPR({
     response.repository?.pullRequest?.closingIssuesReferences?.nodes || []
   return nodes.map((n) => n.number)
 }
+
