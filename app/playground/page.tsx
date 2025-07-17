@@ -19,6 +19,7 @@ import Link from "next/link"
 import { auth } from "@/auth"
 import OAuthTokenCard from "@/components/auth/OAuthTokenCard"
 import AgentWorkflowClient from "@/components/playground/AgentWorkflowClient"
+import ApplyPatchCard from "@/components/playground/ApplyPatchCard"
 import DockerodeExecCard from "@/components/playground/DockerodeExecCard"
 import IssueTitleCard from "@/components/playground/IssueTitleCard"
 import RipgrepSearchCard from "@/components/playground/RipgrepSearchCard"
@@ -36,6 +37,7 @@ export default async function PlaygroundPage() {
       <RipgrepSearchCard />
       <DockerodeExecCard />
       <WriteFileCard />
+      <ApplyPatchCard />
       {token ? <OAuthTokenCard token={token} /> : null}
       <div>
         <Link href="/playground/evals">
