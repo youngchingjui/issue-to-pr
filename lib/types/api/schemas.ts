@@ -58,4 +58,3 @@ export const IssueTitleResponseSchema = z.object({
   title: z.string().trim().min(1),
 })
 export type IssueTitleResponse = z.infer<typeof IssueTitleResponseSchema>
-
