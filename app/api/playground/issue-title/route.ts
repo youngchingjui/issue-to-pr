@@ -2,16 +2,28 @@ import { NextRequest, NextResponse } from "next/server"
 
 import IssueTitleAgent from "@/lib/agents/IssueTitleAgent"
 import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
+import {
+  IssueTitleRequestSchema,
+  IssueTitleResponseSchema,
+} from "@/lib/types/api/schemas"
 
 export async function POST(req: NextRequest) {
   try {
-    const { description } = (await req.json()) as { description?: string }
-    if (!description || typeof description !== "string" || !description.trim()) {
+    const body = await req.json()
+
+    // Validate request body using zod schema
+    const validationResult = IssueTitleRequestSchema.safeParse(body)
+    if (!validationResult.success) {
       return NextResponse.json(
-        { error: "description is required" },
+        {
+          error: "Invalid request body",
+          details: validationResult.error.errors,
+        },
         { status: 400 }
       )
     }
+
+    const { description } = validationResult.data
 
     const apiKey = await getUserOpenAIApiKey()
     if (!apiKey) {
@@ -33,7 +45,18 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    return NextResponse.json({ title: response.content.trim() })
+    // Prepare and validate response using zod schema
+    const responseData = { title: response.content.trim() }
+    const responseValidation = IssueTitleResponseSchema.safeParse(responseData)
+
+    if (!responseValidation.success) {
+      return NextResponse.json(
+        { error: "Invalid response format" },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json(responseValidation.data)
   } catch (err) {
     return NextResponse.json(
       {
@@ -48,4 +71,3 @@ export async function POST(req: NextRequest) {
     )
   }
 }
-
