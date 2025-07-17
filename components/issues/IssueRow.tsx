@@ -6,6 +6,7 @@ import Link from "next/link"
 import { useState } from "react"
 import React from "react"
 
+import AutoResolveIssueController from "@/components/issues/controllers/AutoResolveIssueController"
 import CreatePRController from "@/components/issues/controllers/CreatePRController"
 import GenerateResolutionPlanController from "@/components/issues/controllers/GenerateResolutionPlanController"
 import StatusIndicators from "@/components/issues/StatusIndicators"
@@ -34,6 +35,23 @@ export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
     onStart: () => {
       setIsLoading(true)
       setActiveWorkflow("Creating PR...")
+    },
+    onComplete: () => {
+      setIsLoading(false)
+      setActiveWorkflow(null)
+    },
+    onError: () => {
+      setIsLoading(false)
+      setActiveWorkflow(null)
+    },
+  })
+
+  const { execute: autoResolveIssue } = AutoResolveIssueController({
+    issueNumber: issue.number,
+    repoFullName,
+    onStart: () => {
+      setIsLoading(true)
+      setActiveWorkflow("Auto Resolving...")
     },
     onComplete: () => {
       setIsLoading(false)
@@ -101,7 +119,7 @@ export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
       <TableCell className="text-right">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" disabled={isLoading}>
+            <Button variant="ghost" size="sm" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -130,6 +148,14 @@ export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
                 <div>Fix Issue and Create PR</div>
                 <div className="text-xs text-muted-foreground">
                   Automatically fix and create a pull request
+                </div>
+              </div>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={autoResolveIssue}>
+              <div>
+                <div>Auto Resolve Issue</div>
+                <div className="text-xs text-muted-foreground">
+                  Run the autoResolveIssue workflow
                 </div>
               </div>
             </DropdownMenuItem>

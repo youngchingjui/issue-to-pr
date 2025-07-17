@@ -27,10 +27,12 @@ export default function RipgrepSearchCard() {
   const [hidden, setHidden] = useState(false)
   const [follow, setFollow] = useState(false)
   const [mode, setMode] = useState<"literal" | "regex">("literal")
+  const [maxChars, setMaxChars] = useState(10000)
+  const [page, setPage] = useState(1)
   const [result, setResult] = useState<string | null>(null)
   const [isRunning, setIsRunning] = useState(false)
 
-  const handleSubmit = async () => {
+  const runSearch = async (pageNum: number) => {
     if (!query.trim()) return
     setIsRunning(true)
     const env: RepoEnvironment =
@@ -44,14 +46,36 @@ export default function RipgrepSearchCard() {
 
     const output = await runRipgrepSearch({
       env,
-      query,
-      ignoreCase,
-      hidden,
-      follow,
-      mode,
+      searchParams: {
+        query,
+        ignoreCase,
+        hidden,
+        follow,
+        mode,
+        maxChars,
+        page: pageNum,
+      },
     })
     setResult(output)
     setIsRunning(false)
+  }
+
+  const handleSubmit = async () => {
+    await runSearch(1)
+    setPage(1)
+  }
+
+  const handleNextPage = async () => {
+    const next = page + 1
+    await runSearch(next)
+    setPage(next)
+  }
+
+  const handlePrevPage = async () => {
+    if (page === 1) return
+    const prev = page - 1
+    await runSearch(prev)
+    setPage(prev)
   }
 
   return (
@@ -146,11 +170,54 @@ export default function RipgrepSearchCard() {
             </SelectContent>
           </Select>
         </div>
+        <div className="flex gap-4">
+          <div>
+            <p className="mb-2 text-sm font-medium">Max Chars/Page</p>
+            <Input
+              type="number"
+              min={100}
+              value={maxChars}
+              onChange={(e) => setMaxChars(Number(e.target.value))}
+              className="w-32"
+            />
+          </div>
+          <div>
+            <p className="mb-2 text-sm font-medium">Page</p>
+            <Input
+              type="number"
+              min={1}
+              value={page}
+              onChange={(e) => setPage(Number(e.target.value))}
+              className="w-20"
+            />
+          </div>
+        </div>
         <Button onClick={handleSubmit} disabled={isRunning}>
           {isRunning ? "Searching..." : "Search"}
         </Button>
         {result && (
-          <Textarea value={result} readOnly rows={10} className="mt-4" />
+          <>
+            <Textarea value={result} readOnly rows={10} className="mt-4" />
+            <div className="flex items-center gap-2 mt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePrevPage}
+                disabled={isRunning || page === 1}
+              >
+                Prev
+              </Button>
+              <span className="text-sm">Page {page}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleNextPage}
+                disabled={isRunning}
+              >
+                Next
+              </Button>
+            </div>
+          </>
         )}
       </CardContent>
     </Card>

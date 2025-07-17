@@ -1,3 +1,6 @@
+import fs from "fs"
+import path from "path"
+
 import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
 
 describe("RipgrepSearchTool", () => {
@@ -40,5 +43,56 @@ describe("RipgrepSearchTool", () => {
     const result = await tool.handler({ query: "", mode: "literal" })
     expect(typeof result).toBe("string")
     expect(result).toMatch(/search failed:/i)
+  })
+
+  describe("very long output handling", () => {
+    const tmpDir = fs.mkdtempSync(path.join(process.cwd(), "tmp-rg-long-"))
+
+    beforeAll(() => {
+      fs.writeFileSync(path.join(tmpDir, "long.txt"), "a\n".repeat(10000))
+    })
+
+    afterAll(() => {
+      fs.rmSync(tmpDir, { recursive: true, force: true })
+    })
+
+    const longTool = createRipgrepSearchTool(tmpDir)
+
+    it(
+      "paginates results when output exceeds maxChars",
+      async () => {
+        const result = await longTool.handler({
+          query: "a",
+          maxChars: 200,
+          page: 1,
+        })
+
+        expect(typeof result).toBe("string")
+        expect(result.length).toBeGreaterThan(0)
+        expect(result).toMatch(/\[...truncated/) // indicates pagination
+      },
+      30000
+    )
+
+    it(
+      "returns different content for the next page",
+      async () => {
+        const page1 = await longTool.handler({
+          query: "a",
+          maxChars: 200,
+          page: 1,
+        })
+        const page2 = await longTool.handler({
+          query: "a",
+          maxChars: 200,
+          page: 2,
+        })
+
+        expect(typeof page2).toBe("string")
+        expect(page2).not.toBe("")
+        expect(page1).not.toEqual(page2)
+      },
+      30000
+    )
   })
 })

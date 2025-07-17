@@ -56,6 +56,7 @@ export type WorkflowType =
   | "Creating PR..."
   | "Reviewing PR..."
   | "Identifying Goal..."
+  | "Auto Resolving..."
 
 // Extended types for our application
 export type GitHubItem = GitHubIssue & {
