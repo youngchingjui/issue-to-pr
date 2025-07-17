@@ -12,7 +12,7 @@ const SYSTEM_PROMPT = `You are an expert technical writer tasked with crafting c
 You will be given ONLY the body/description of an issue.  Your job is to derive a short, descriptive title that summarises the core problem or request so that maintainers can understand it at a glance.
 
 Guidelines:
-- Keep the title under 12 words when possible.
+- Keep the title under 10 words when possible.
 - Focus on the *what* and, if important, the *where* (e.g. “Fix crash in user login flow”).
 - Do NOT include backticks, quotes or trailing punctuation.
 - Use imperative, present-tense phrasing (e.g. “Add”, “Fix”, “Support”).
@@ -21,12 +21,11 @@ Guidelines:
 Return ONLY the title text with no additional commentary.`
 
 export class IssueTitleAgent extends Agent {
-  constructor({ ...rest }: AgentConstructorParams) {
-    super(rest)
+  constructor(params: AgentConstructorParams) {
+    super({ model: "gpt-4.1", ...params })
 
     this.setSystemPrompt(SYSTEM_PROMPT)
   }
 }
 
 export default IssueTitleAgent
-
