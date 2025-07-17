@@ -20,6 +20,7 @@ import { auth } from "@/auth"
 import OAuthTokenCard from "@/components/auth/OAuthTokenCard"
 import AgentWorkflowClient from "@/components/playground/AgentWorkflowClient"
 import DockerodeExecCard from "@/components/playground/DockerodeExecCard"
+import IssueTitleCard from "@/components/playground/IssueTitleCard"
 import RipgrepSearchCard from "@/components/playground/RipgrepSearchCard"
 import WriteFileCard from "@/components/playground/WriteFileCard"
 import { Button } from "@/components/ui/button"
@@ -31,6 +32,7 @@ export default async function PlaygroundPage() {
   return (
     <div className="space-y-8 px-4 py-8 md:container md:mx-auto">
       <AgentWorkflowClient defaultTools={DEFAULT_TOOLS} />
+      <IssueTitleCard />
       <RipgrepSearchCard />
       <DockerodeExecCard />
       <WriteFileCard />
