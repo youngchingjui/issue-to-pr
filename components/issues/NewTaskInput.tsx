@@ -1,6 +1,6 @@
 "use client"
 
-import { HelpCircle } from "lucide-react"
+import { HelpCircle, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState, useTransition } from "react"
 
@@ -26,19 +26,13 @@ export default function NewTaskInput({ repoFullName }: Props) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [loading, setLoading] = useState(false)
+  const [generatingTitle, setGeneratingTitle] = useState(false)
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!title.trim()) {
-      toast({
-        title: "Title required",
-        description: "Please enter a title for your task.",
-        variant: "destructive",
-      })
-      return
-    }
+
     if (!description.trim()) {
       toast({
         title: "Description required",
@@ -47,8 +41,36 @@ export default function NewTaskInput({ repoFullName }: Props) {
       })
       return
     }
+
+    let taskTitle = title.trim()
+
+    // Auto-generate title if none provided
+    if (!taskTitle) {
+      try {
+        setGeneratingTitle(true)
+        const res = await fetch("/api/playground/issue-title", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ description }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || "Failed to generate title")
+        taskTitle = (data.title as string).trim()
+        if (!taskTitle) throw new Error("Received empty title from agent")
+      } catch (err: unknown) {
+        toast({
+          title: "Error generating title",
+          description: String(err),
+          variant: "destructive",
+        })
+        setGeneratingTitle(false)
+        return
+      } finally {
+        setGeneratingTitle(false)
+      }
+    }
+
     setLoading(true)
-    const taskTitle = title.trim()
     try {
       startTransition(async () => {
         const res = await createIssue({
@@ -85,20 +107,22 @@ export default function NewTaskInput({ repoFullName }: Props) {
     }
   }
 
+  const isSubmitting = loading || generatingTitle || isPending
+
   return (
     <form
       onSubmit={handleSubmit}
       className="mb-6 grid gap-4 border-b border-muted pb-6"
     >
       <div className="grid gap-2">
-        <Label htmlFor="title">Title</Label>
+        <Label htmlFor="title">Title (optional)</Label>
         <Input
           id="title"
           type="text"
-          placeholder="Title"
+          placeholder="Leave blank to auto-generate"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          disabled={loading || isPending}
+          disabled={isSubmitting}
         />
       </div>
       <div className="grid gap-2">
@@ -108,13 +132,24 @@ export default function NewTaskInput({ repoFullName }: Props) {
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Describe a task"
           required
-          disabled={loading || isPending}
+          disabled={isSubmitting}
           rows={3}
         />
       </div>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <Button type="submit" disabled={loading || isPending}>
-          {loading || isPending ? "Creating..." : "Create Github Issue"}
+        <Button type="submit" disabled={isSubmitting}>
+          {generatingTitle ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating
+              issue title...
+            </>
+          ) : loading || isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...
+            </>
+          ) : (
+            "Create Github Issue"
+          )}
         </Button>
         <TooltipProvider>
           <Tooltip>
@@ -133,3 +168,4 @@ export default function NewTaskInput({ repoFullName }: Props) {
     </form>
   )
 }
+
