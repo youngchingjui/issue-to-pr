@@ -6,12 +6,11 @@ import { getRepoFromString } from "@/lib/github/content"
 import { getIssue } from "@/lib/github/issues"
 import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
 import { ResolveRequestSchema } from "@/lib/schemas/api"
-import { resolveIssue } from "@/lib/workflows/resolveIssue"
+import { addWorkflowJob } from "@/lib/services/workflow-queue"
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-
     const {
       issueNumber,
       repoFullName,
@@ -27,41 +26,29 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       )
     }
-
-    // Generate a unique job ID
+    // Unique job ID
     const jobId = uuidv4()
-
-    // Start the resolve workflow as a background job
-    ;(async () => {
-      try {
-        // Get full repository details and issue
-        const fullRepo = await getRepoFromString(repoFullName)
-        const issue = await getIssue({
-          fullName: repoFullName,
-          issueNumber,
-        })
-
-        if (issue.type !== "success") {
-          throw new Error(JSON.stringify(issue))
-        }
-
-        await resolveIssue({
-          issue: issue.issue,
-          repository: fullRepo,
-          apiKey,
-          jobId,
-          createPR,
-          planId,
-          ...(environment && { environment }),
-          ...(installCommand && { installCommand }),
-        })
-      } catch (error) {
-        // Save error status
-        console.error(String(error))
-      }
-    })()
-
-    // Return the job ID immediately
+    // Retrieve full repo & issue synchronously (best for resumability)
+    const fullRepo = await getRepoFromString(repoFullName)
+    const issueResult = await getIssue({ fullName: repoFullName, issueNumber })
+    if (issueResult.type !== "success") {
+      return NextResponse.json(
+        { error: `Issue not found: ${issueResult.type}` },
+        { status: 404 }
+      )
+    }
+    // Prepare serializable job params
+    const jobParams = {
+      issue: issueResult.issue,
+      repository: fullRepo,
+      apiKey,
+      jobId,
+      createPR,
+      planId,
+      environment,
+      installCommand,
+    }
+    await addWorkflowJob("resolveIssue", jobParams, { jobId })
     return NextResponse.json({ jobId })
   } catch (error) {
     console.error("Error processing request:", error)
@@ -80,3 +67,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
