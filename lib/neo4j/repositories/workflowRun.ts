@@ -224,3 +224,4 @@ export const toAppWorkflowRun = (dbRun: WorkflowRun): AppWorkflowRun => {
     createdAt: dbRun.createdAt.toStandardDate(),
   }
 }
+
