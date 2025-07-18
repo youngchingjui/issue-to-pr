@@ -88,10 +88,13 @@ export async function createPullRequest({
       }
     }
   `
-  const repoIdResult = await graphqlWithAuth<RepositoryIdResponse>(repoIdQuery, {
-    owner,
-    name: repo,
-  })
+  const repoIdResult = await graphqlWithAuth<RepositoryIdResponse>(
+    repoIdQuery,
+    {
+      owner,
+      name: repo,
+    }
+  )
   const repositoryId = repoIdResult.repository.id
 
   if (!repositoryId) throw new Error("Failed to retrieve repository ID")
@@ -568,4 +571,3 @@ export async function getLinkedIssuesForPR({
     response.repository?.pullRequest?.closingIssuesReferences?.nodes || []
   return nodes.map((n) => n.number)
 }
-
