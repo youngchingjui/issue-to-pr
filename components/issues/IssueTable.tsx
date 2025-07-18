@@ -11,8 +11,6 @@ export default async function IssueTable({ repoFullName }: Props) {
   try {
     const issues = await getIssueListWithStatus({
       repoFullName: repoFullName.fullName,
-      // Limit the payload to the first 25 issues to improve load performance
-      // Additional pages can be fetched on-demand via pagination (future enhancement)
       per_page: 25,
     })
 
@@ -43,4 +41,3 @@ export default async function IssueTable({ repoFullName }: Props) {
     )
   }
 }
-
