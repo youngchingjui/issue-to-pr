@@ -19,6 +19,8 @@ import {
 import { AgentConstructorParams, Tool } from "@/lib/types"
 import { EnhancedMessage } from "@/lib/types/chat"
 
+import { runResponsesLoop } from "./runWithResponses"
+
 interface RunResponse {
   jobId?: string
   startTime: Date
@@ -176,6 +178,20 @@ export class Agent {
       }
     }
     return true
+  }
+
+  async runWithResponsesLoop({ instructions, userInput }: { instructions: string; userInput: string }) {
+    if (!this.llm) {
+      throw new Error("LLM not initialized, please add an API key first")
+    }
+
+    return runResponsesLoop({
+      openai: this.llm,
+      model: this.model,
+      instructions,
+      userInput,
+      tools: this.tools,
+    })
   }
 
   async runWithFunctions(): Promise<RunResponse> {
@@ -352,3 +368,6 @@ export class Agent {
     }
   }
 }
+
+export { runResponsesLoop }
+
