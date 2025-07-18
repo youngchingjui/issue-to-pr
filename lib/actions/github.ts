@@ -2,11 +2,8 @@
 
 import { getLocalRepoDir } from "@/lib/fs"
 import { checkIfGitExists } from "@/lib/git"
-import {
-  listBranchInfo,
-  getDefaultBranch,
-} from "@/lib/github/repos"
 import { getIssueList } from "@/lib/github/issues"
+import { listBranchInfo } from "@/lib/github/repos"
 import { listUserRepositoriesGraphQL } from "@/lib/github/users"
 import { GitHubIssue, RepoSelectorItem } from "@/lib/types/github"
 
@@ -25,12 +22,6 @@ export async function getRepositoryBranches(
   return info.slice(start, end).map((b) => b.name)
 }
 
-export async function getRepositoryDefaultBranch(
-  repoFullName: string
-): Promise<string> {
-  return await getDefaultBranch(repoFullName)
-}
-
 export async function getRepositoryIssues(
   repoFullName: string
 ): Promise<GitHubIssue[]> {
@@ -45,4 +36,3 @@ export async function checkLocalRepoExists(repoFullName: string): Promise<{
   const exists = await checkIfGitExists(dir)
   return { exists, path: dir }
 }
-

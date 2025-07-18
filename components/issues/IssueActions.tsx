@@ -1,9 +1,7 @@
 import { useState } from "react"
 
 import BranchSelector from "@/components/common/BranchSelector"
-
 import AutoResolveIssueController from "@/components/issues/controllers/AutoResolveIssueController"
-
 import CreatePRController from "@/components/issues/controllers/CreatePRController"
 import GenerateResolutionPlanController from "@/components/issues/controllers/GenerateResolutionPlanController"
 import { Button } from "@/components/ui/button"
@@ -45,7 +43,7 @@ export default function IssueActions({
   const { execute: executePlan, ToggleControl: PlanToggleControl } =
     GenerateResolutionPlanController({
       issueNumber: issue.number,
-      repoFullName,
+      repoFullName: repoFullName.fullName,
       onStart: () => {
         onWorkflowStart("Generating Plan...")
       },
@@ -56,7 +54,7 @@ export default function IssueActions({
   const { execute: executePR, ToggleControl: PRToggleControl } =
     CreatePRController({
       issueNumber: issue.number,
-      repoFullName,
+      repoFullName: repoFullName.fullName,
       onStart: () => {
         onWorkflowStart("Creating PR...")
       },
@@ -66,7 +64,6 @@ export default function IssueActions({
 
   return (
     <div className="flex flex-col gap-6 mt-4">
-      {/* Branch / tag / commit selector */}
       <BranchSelector
         repoFullName={repoFullName}
         value={selectedRef}
@@ -127,4 +124,3 @@ export default function IssueActions({
     </div>
   )
 }
-

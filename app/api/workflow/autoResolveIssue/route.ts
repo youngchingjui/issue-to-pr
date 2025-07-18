@@ -26,9 +26,9 @@ export async function POST(request: NextRequest) {
 
     ;(async () => {
       try {
-        const repo = await getRepoFromString(repoFullName)
+        const repo = await getRepoFromString(repoFullName.fullName)
         const issueResult = await getIssue({
-          fullName: repoFullName,
+          fullName: repoFullName.fullName,
           issueNumber,
         })
 
