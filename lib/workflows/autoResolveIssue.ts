@@ -51,6 +51,7 @@ export const autoResolveIssue = async ({
   const workflowId = jobId ?? uuidv4()
   let userPermissions: RepoPermissions | null = null
   let containerCleanup: (() => Promise<void>) | null = null
+  let workflowSucceeded = false
 
   try {
     await initializeWorkflowRun({
@@ -143,6 +144,7 @@ export const autoResolveIssue = async ({
 
     await createWorkflowStateEvent({ workflowId, state: "completed" })
 
+    workflowSucceeded = true
     return result
   } catch (error) {
     await createErrorEvent({ workflowId, content: String(error) })
@@ -153,10 +155,11 @@ export const autoResolveIssue = async ({
     })
     throw error
   } finally {
-    if (containerCleanup) {
+    if (!workflowSucceeded && containerCleanup) {
       await containerCleanup()
     }
   }
 }
 
 export default autoResolveIssue
+
