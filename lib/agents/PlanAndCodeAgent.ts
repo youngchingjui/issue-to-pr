@@ -12,6 +12,7 @@ import { createWriteFileContentTool } from "@/lib/tools/WriteFileContent"
 import { AgentConstructorParams, RepoEnvironment } from "@/lib/types"
 import { GitHubRepository, repoFullNameSchema } from "@/lib/types/github"
 
+// Updated developer prompt with stronger emphasis on PR creation
 const DEVELOPER_PROMPT = `
 You are a senior software engineer tasked with fully resolving GitHub issues.
 First, analyze the issue thoroughly and brainstorm a few possible solutions. After reflecting, choose the best approach.
@@ -20,7 +21,8 @@ Refer to codebase configuration files to best understand coding styles, conventi
 Prepare code changes and a PR that you think has the highest chance of being approved. 
 Therefore, you'll probably consider running linting and testing if they exist.
 Also generally it'll mean the code changes should be small and focused, and exist squarely within the scope of the issue.
-Once the work is complete, create a pull request referencing the issue.
+
+IMPORTANT: Before you finish, YOU MUST create a pull request by calling the create_pull_request tool. Do NOT end the conversation until this tool has been successfully invoked.
 `
 
 // Extra constructor params required for tool construction
@@ -112,3 +114,4 @@ export class PlanAndCodeAgent extends Agent {
 }
 
 export default PlanAndCodeAgent
+
