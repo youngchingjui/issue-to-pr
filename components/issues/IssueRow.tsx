@@ -85,15 +85,15 @@ export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
   const localIssueUrl = `/${username}/${repo}/issues/${issue.number}`
 
   return (
-    <TableRow>
-      <TableCell className="py-4">
+    <TableRow className="sm:table-row flex flex-col sm:flex-row w-full">
+      <TableCell className="py-4 flex-1">
         <div className="flex flex-col gap-1">
-          <div className="font-medium text-base">
+          <div className="font-medium text-base break-words">
             <Link href={localIssueUrl} className="hover:underline">
               {issue.title}
             </Link>
           </div>
-          <div className="text-sm text-muted-foreground flex items-center gap-2">
+          <div className="text-sm text-muted-foreground flex flex-wrap items-center gap-2">
             <span>#{issue.number}</span>
             {issue.user?.login && (
               <>
@@ -113,13 +113,18 @@ export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
           </div>
         </div>
       </TableCell>
-      <TableCell className="text-center align-middle w-12">
+      <TableCell className="text-center align-middle w-full sm:w-12 mb-2 sm:mb-0">
         <StatusIndicators issue={issue} repoFullName={repoFullName} />
       </TableCell>
       <TableCell className="text-right">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" disabled={isLoading}>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={isLoading}
+              className="w-full sm:w-auto justify-between sm:justify-start"
+            >
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
