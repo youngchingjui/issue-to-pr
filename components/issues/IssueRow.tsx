@@ -86,7 +86,6 @@ export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
 
   return (
     <TableRow className="sm:table-row flex flex-col sm:flex-row w-full">
-      {/* Title and meta */}
       <TableCell className="py-4 flex-1">
         <div className="flex flex-col gap-1">
           <div className="font-medium text-base break-words">
@@ -114,13 +113,9 @@ export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
           </div>
         </div>
       </TableCell>
-
-      {/* Status indicator */}
       <TableCell className="text-center align-middle w-full sm:w-12 mb-2 sm:mb-0">
         <StatusIndicators issue={issue} repoFullName={repoFullName} />
       </TableCell>
-
-      {/* Workflow dropdown */}
       <TableCell className="text-right">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -175,4 +170,3 @@ export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
     </TableRow>
   )
 }
-

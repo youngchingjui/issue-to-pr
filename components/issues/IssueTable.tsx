@@ -20,11 +20,6 @@ export default async function IssueTable({ repoFullName }: Props) {
 
     return (
       <div className="rounded-md border">
-        {/*
-          Use a fixed table layout so that on small screens the table will
-          respect the container width and wrap the cell contents instead of
-          forcing the user to horizontally scroll.
-        */}
         <Table className="table-fixed sm:table-auto">
           <TableBody>
             {issues.map((issue) => (
@@ -46,4 +41,3 @@ export default async function IssueTable({ repoFullName }: Props) {
     )
   }
 }
-
