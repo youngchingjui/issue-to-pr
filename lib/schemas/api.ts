@@ -2,6 +2,8 @@
 
 import { z } from "zod"
 
+import { repoFullNameSchema } from "@/lib/types/github"
+
 export const GitHubURLSchema = z
   .string({
     required_error: "Please enter a URL",
@@ -81,5 +83,5 @@ export const ResolveRequestSchema = z.object({
 
 export const AutoResolveIssueRequestSchema = z.object({
   issueNumber: z.number(),
-  repoFullName: z.string().min(1),
+  repoFullName: repoFullNameSchema,
 })

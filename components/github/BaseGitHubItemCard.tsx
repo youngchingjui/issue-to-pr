@@ -13,11 +13,11 @@ export default function BaseGitHubItemCard({ item, children }: Props) {
   // Get repository full name using the utility function
   const repoFullName = getRepoFullNameFromIssue(item)
 
-  // Construct the issue URL
+  // Construct the issue or pull request URL using the string version of the full name
   const issueUrl =
     item.type === "issue"
-      ? `/${repoFullName}/issues/${item.number}`
-      : `/${repoFullName}/pulls/${item.number}`
+      ? `/${repoFullName.fullName}/issues/${item.number}`
+      : `/${repoFullName.fullName}/pulls/${item.number}`
 
   return (
     <Card>

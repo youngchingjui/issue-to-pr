@@ -5,7 +5,7 @@ import { EventEmitter } from "events"
 import { twMerge } from "tailwind-merge"
 
 import { GitHubURLSchema } from "@/lib/schemas/api"
-import { GitHubIssue } from "@/lib/types/github"
+import { GitHubIssue, RepoFullName } from "@/lib/types/github"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -57,13 +57,21 @@ export const SSEUtils = {
  * @param issue The GitHub issue object
  * @returns The full repository name in the format "owner/repo", or undefined if repository info is missing
  */
-export function getRepoFullNameFromIssue(issue: GitHubIssue): string {
+export function getRepoFullNameFromIssue(issue: GitHubIssue): RepoFullName {
   if (issue.repository?.full_name) {
-    return issue.repository.full_name
+    return {
+      owner: issue.repository.owner.login,
+      repo: issue.repository.name,
+      fullName: issue.repository.full_name,
+    }
   } else {
     try {
       const { fullName } = GitHubURLSchema.parse(issue.repository_url)
-      return fullName
+      return {
+        owner: fullName.split("/")[0],
+        repo: fullName.split("/")[1],
+        fullName,
+      }
     } catch (e) {
       console.error(
         "An unexpected error occured when parsing the repository URL",

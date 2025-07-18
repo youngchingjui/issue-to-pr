@@ -3,7 +3,7 @@
 import { getLocalRepoDir } from "@/lib/fs"
 import { checkIfGitExists } from "@/lib/git"
 import { getIssueList } from "@/lib/github/issues"
-import { listBranches } from "@/lib/github/repos"
+import { listBranchInfo } from "@/lib/github/repos"
 import { listUserRepositoriesGraphQL } from "@/lib/github/users"
 import { GitHubIssue, RepoSelectorItem } from "@/lib/types/github"
 
@@ -12,9 +12,14 @@ export async function getUserRepositories(): Promise<RepoSelectorItem[]> {
 }
 
 export async function getRepositoryBranches(
-  repoFullName: string
+  repoFullName: string,
+  limit = 25,
+  page = 1
 ): Promise<string[]> {
-  return await listBranches(repoFullName)
+  const start = (page - 1) * limit
+  const end = start + limit
+  const info = await listBranchInfo(repoFullName, 100) // GitHub limit
+  return info.slice(start, end).map((b) => b.name)
 }
 
 export async function getRepositoryIssues(

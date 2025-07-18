@@ -26,7 +26,7 @@ export default async function IssueTable({ repoFullName }: Props) {
               <IssueRow
                 key={issue.id}
                 issue={issue}
-                repoFullName={repoFullName.fullName}
+                repoFullName={repoFullName}
               />
             ))}
           </TableBody>

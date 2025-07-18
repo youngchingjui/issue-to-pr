@@ -1,9 +1,7 @@
 import { useState } from "react"
 
 import BranchSelector from "@/components/common/BranchSelector"
-
 import AutoResolveIssueController from "@/components/issues/controllers/AutoResolveIssueController"
-
 import CreatePRController from "@/components/issues/controllers/CreatePRController"
 import GenerateResolutionPlanController from "@/components/issues/controllers/GenerateResolutionPlanController"
 import { Button } from "@/components/ui/button"
@@ -29,7 +27,7 @@ export default function IssueActions({
 }: IssueActionsProps) {
   const repoFullName = getRepoFullNameFromIssue(issue)
 
-  // Branch selector state – default to "main"
+  // Branch selector state – default to "main" (will be updated by selector when data loads)
   const [selectedRef, setSelectedRef] = useState("main")
 
   const { execute: executeAutoResolve } = AutoResolveIssueController({
@@ -45,7 +43,7 @@ export default function IssueActions({
   const { execute: executePlan, ToggleControl: PlanToggleControl } =
     GenerateResolutionPlanController({
       issueNumber: issue.number,
-      repoFullName,
+      repoFullName: repoFullName.fullName,
       onStart: () => {
         onWorkflowStart("Generating Plan...")
       },
@@ -56,7 +54,7 @@ export default function IssueActions({
   const { execute: executePR, ToggleControl: PRToggleControl } =
     CreatePRController({
       issueNumber: issue.number,
-      repoFullName,
+      repoFullName: repoFullName.fullName,
       onStart: () => {
         onWorkflowStart("Creating PR...")
       },
@@ -66,8 +64,11 @@ export default function IssueActions({
 
   return (
     <div className="flex flex-col gap-6 mt-4">
-      {/* Shared branch / tag / commit selector */}
-      <BranchSelector value={selectedRef} onChange={setSelectedRef} />
+      <BranchSelector
+        repoFullName={repoFullName}
+        value={selectedRef}
+        onChange={setSelectedRef}
+      />
 
       <div className="grid gap-6">
         {/* Generate Plan */}

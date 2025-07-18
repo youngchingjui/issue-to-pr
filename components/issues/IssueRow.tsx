@@ -19,10 +19,11 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { TableCell, TableRow } from "@/components/ui/table"
 import type { IssueWithStatus } from "@/lib/github/issues"
+import { RepoFullName } from "@/lib/types/github"
 
 interface IssueRowProps {
   issue: IssueWithStatus
-  repoFullName: string
+  repoFullName: RepoFullName
 }
 
 export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
@@ -31,7 +32,7 @@ export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
 
   const createPRController = CreatePRController({
     issueNumber: issue.number,
-    repoFullName,
+    repoFullName: repoFullName.fullName,
     onStart: () => {
       setIsLoading(true)
       setActiveWorkflow("Creating PR...")
@@ -65,7 +66,7 @@ export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
 
   const { execute: generateResolutionPlan } = GenerateResolutionPlanController({
     issueNumber: issue.number,
-    repoFullName,
+    repoFullName: repoFullName.fullName,
     onStart: () => {
       setIsLoading(true)
       setActiveWorkflow("Generating Plan...")
@@ -80,9 +81,7 @@ export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
     },
   })
 
-  // Extract username and repo from repoFullName
-  const [username, repo] = repoFullName.split("/")
-  const localIssueUrl = `/${username}/${repo}/issues/${issue.number}`
+  const localIssueUrl = `/${repoFullName.owner}/${repoFullName.repo}/issues/${issue.number}`
 
   return (
     <TableRow className="sm:table-row flex flex-col sm:flex-row w-full">
@@ -114,7 +113,7 @@ export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
         </div>
       </TableCell>
       <TableCell className="text-center align-middle w-full sm:w-12 mb-2 sm:mb-0">
-        <StatusIndicators issue={issue} repoFullName={repoFullName} />
+        <StatusIndicators issue={issue} repoFullName={repoFullName.fullName} />
       </TableCell>
       <TableCell className="text-right">
         <DropdownMenu>

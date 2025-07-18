@@ -27,7 +27,7 @@ export default function PRActions({
       <Button
         onClick={() => {
           const controller = ReviewPRController({
-            repoFullName,
+            repoFullName: repoFullName.fullName,
             pullNumber: pr.number,
             onStart: () => {
               onWorkflowStart("Reviewing PR...")
@@ -46,7 +46,7 @@ export default function PRActions({
       <Button
         onClick={() => {
           const controller = IdentifyPRGoalController({
-            repoFullName,
+            repoFullName: repoFullName.fullName,
             pullNumber: pr.number,
             onStart: () => {
               onWorkflowStart("Identifying Goal...")
