@@ -11,7 +11,7 @@ export default async function IssueTable({ repoFullName }: Props) {
   try {
     const issues = await getIssueListWithStatus({
       repoFullName: repoFullName.fullName,
-      per_page: 100,
+      per_page: 25,
     })
 
     if (issues.length === 0) {
