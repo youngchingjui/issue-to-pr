@@ -22,7 +22,7 @@ export default async function IssueTable({ repoFullName }: Props) {
 
     return (
       <div className="rounded-md border">
-        <Table>
+        <Table className="table-fixed sm:table-auto">
           <TableBody>
             {issues.map((issue) => (
               <IssueRow
