@@ -46,6 +46,7 @@ export default async function commentOnIssue(
 
   let latestEvent: appBaseEvent | null = null
   let containerCleanup: (() => Promise<void>) | null = null
+  let workflowSucceeded = false
 
   try {
     await initializeWorkflowRun({
@@ -302,6 +303,7 @@ export default async function commentOnIssue(
       state: "completed",
     })
 
+    workflowSucceeded = true
     // Return the comment plus planId for downstream consumption
     return {
       status: "complete",
@@ -346,9 +348,9 @@ export default async function commentOnIssue(
 
     throw githubError // Re-throw the error to be handled by the caller
   } finally {
-    // Always cleanup the containerized environment
-    if (containerCleanup) {
+    if (!workflowSucceeded && containerCleanup) {
       await containerCleanup()
     }
   }
 }
+

@@ -68,6 +68,7 @@ export const resolveIssue = async ({
 
   const repoFullName = repoFullNameSchema.parse(repository.full_name)
   let containerCleanup: (() => Promise<void>) | null = null
+  let workflowSucceeded = false
   try {
     const repoSettings: RepoSettings | null =
       await getRepositorySettings(repoFullName)
@@ -325,6 +326,7 @@ export const resolveIssue = async ({
       state: "completed",
     })
 
+    workflowSucceeded = true
     return coderResult
   } catch (error) {
     // Emit error event
@@ -347,8 +349,9 @@ export const resolveIssue = async ({
     */
     throw error
   } finally {
-    if (containerCleanup) {
+    if (!workflowSucceeded && containerCleanup) {
       await containerCleanup()
     }
   }
 }
+
