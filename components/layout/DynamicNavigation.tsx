@@ -144,19 +144,52 @@ export default function DynamicNavigation({
         {showBreadcrumbs && <Nav />}
 
         <nav className="hidden sm:flex items-center space-x-4 ml-auto">
-          <Button variant="ghost" size="sm" asChild className="flex items-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="flex items-center"
+          >
             <Link href="/workflow-runs">Workflows</Link>
           </Button>
-          <Button variant="ghost" size="sm" asChild className="flex items-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="flex items-center"
+          >
             <Link href="/playground">Playground</Link>
           </Button>
-          <Button variant="ghost" size="sm" asChild className="flex items-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="flex items-center"
+          >
             <Link href="/issues">Issues</Link>
           </Button>
-          <Button variant="ghost" size="sm" asChild className="flex items-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="flex items-center"
+          >
+            <Link href="/kanban">Kanban</Link>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="flex items-center"
+          >
             <Link href="/contribute">Contribute</Link>
           </Button>
-          <Button variant="ghost" size="sm" asChild className="flex items-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="flex items-center"
+          >
             <Link href="/settings">Settings</Link>
           </Button>
           <SignOutButton />
@@ -174,6 +207,7 @@ export default function DynamicNavigation({
               <Link href="/workflow-runs">Workflows</Link>
               <Link href="/playground">Playground</Link>
               <Link href="/issues">Issues</Link>
+              <Link href="/kanban">Kanban</Link>
               <Link href="/contribute">Contribute</Link>
               <Link href="/settings">Settings</Link>
             </nav>
