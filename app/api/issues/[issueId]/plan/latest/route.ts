@@ -30,7 +30,9 @@ export async function GET(
     return NextResponse.json({ planId: plans[0].id })
   } catch (err) {
     console.error("Error fetching latest plan id:", err)
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 })
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    )
   }
 }
-

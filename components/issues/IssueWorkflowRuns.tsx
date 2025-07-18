@@ -59,7 +59,7 @@ export default function IssueWorkflowRuns({
         const json = await res.json()
         setLatestPlanId(json.planId)
       } catch (err) {
-        /* noop */
+        console.error("Error fetching latest plan id:", err)
       }
     }
     loadPlan()
@@ -75,7 +75,9 @@ export default function IssueWorkflowRuns({
         if (!res.ok) return
         const json = await res.json()
         setPrNumber(json.prNumber)
-      } catch (_) {}
+      } catch (err) {
+        console.error("Error fetching PR number:", err)
+      }
     }
     loadPR()
   }, [repoFullName, issueNumber])
@@ -147,8 +149,8 @@ export default function IssueWorkflowRuns({
                         run.state === "completed"
                           ? "default"
                           : run.state === "error"
-                          ? "destructive"
-                          : "secondary"
+                            ? "destructive"
+                            : "secondary"
                       }
                     >
                       {run.state}
@@ -194,4 +196,3 @@ export default function IssueWorkflowRuns({
     </Card>
   )
 }
-

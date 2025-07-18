@@ -19,10 +19,7 @@ export async function GET(
     }
     const issueNumber = parseInt(params.issueId)
     if (Number.isNaN(issueNumber)) {
-      return NextResponse.json(
-        { error: "Invalid issue id" },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: "Invalid issue id" }, { status: 400 })
     }
 
     const map = await getIssueToPullRequestMap(repo)
@@ -30,7 +27,9 @@ export async function GET(
     return NextResponse.json({ prNumber })
   } catch (err) {
     console.error("Error fetching PR for issue:", err)
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 })
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    )
   }
 }
-
