@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 // Types
@@ -28,16 +29,12 @@ const createMockData = (): Column[] => [
   {
     id: "in-progress",
     title: "In Progress",
-    issues: [
-      { id: "3", title: "Implement drag & drop" },
-    ],
+    issues: [{ id: "3", title: "Implement drag & drop" }],
   },
   {
     id: "done",
     title: "Done",
-    issues: [
-      { id: "4", title: "Write docs" },
-    ],
+    issues: [{ id: "4", title: "Write docs" }],
   },
 ]
 
@@ -127,4 +124,3 @@ export default function KanbanBoard() {
     </div>
   )
 }
-
