@@ -8,7 +8,6 @@ import { createGetFileContentTool } from "@/lib/tools/GetFileContent"
 import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
 import { createSetupRepoTool } from "@/lib/tools/SetupRepoTool"
 import { createSyncBranchTool } from "@/lib/tools/SyncBranchTool"
-import { createWriteFileContentTool } from "@/lib/tools/WriteFileContent"
 import { AgentConstructorParams, RepoEnvironment } from "@/lib/types"
 import { GitHubRepository, repoFullNameSchema } from "@/lib/types/github"
 
@@ -17,6 +16,9 @@ const DEVELOPER_PROMPT = `
 You are a senior software engineer tasked with fully resolving GitHub issues.
 First, analyze the issue thoroughly and brainstorm a few possible solutions. After reflecting, choose the best approach.
 Then implement the necessary code changes using your available tools.
+You'll be operating in a new containerized environment where a copy of the codebase exists at /.
+You can use the various tools given to you to operate freely within the environment.
+You'll likely need to first setup or build the code repository before you can use additional packages, like linting packages.
 Refer to codebase configuration files to best understand coding styles, conventions, code structure and organization.
 Prepare code changes and a PR that you think has the highest chance of being approved. 
 Therefore, you'll probably consider running linting and testing if they exist.
@@ -81,7 +83,7 @@ export class PlanAndCodeAgent extends Agent {
     this.addTool(createSetupRepoTool(env))
     this.addTool(createGetFileContentTool(env))
     this.addTool(createRipgrepSearchTool(env))
-    this.addTool(createWriteFileContentTool(env))
+    // this.addTool(createWriteFileContentTool(env))
     this.addTool(createBranchTool(env))
     this.addTool(createCommitTool(env, defaultBranch))
     this.addTool(createFileCheckTool(env))
