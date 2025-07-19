@@ -8,6 +8,7 @@ export interface Tool<Schema extends ZodType, Output> {
     name: string
     parameters: Record<string, unknown>
     description: string
+    type: "function"
   }
   schema: Schema
   handler: (params: z.infer<Schema>) => Promise<Output> | Output

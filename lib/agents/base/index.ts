@@ -5,6 +5,10 @@ import {
   ChatCompletionCreateParamsNonStreaming,
   ChatCompletionMessageParam,
 } from "openai/resources/chat/completions"
+import {
+  ResponseCreateParamsNonStreaming,
+  ResponseInput,
+} from "openai/resources/responses/responses"
 import { ZodType } from "zod"
 
 import {
@@ -18,6 +22,10 @@ import {
 } from "@/lib/neo4j/services/event"
 import { AgentConstructorParams, Tool } from "@/lib/types"
 import { EnhancedMessage } from "@/lib/types/chat"
+import {
+  convertMessagesToResponseInput,
+  convertToolToFunctionTool,
+} from "@/lib/utils/chat"
 
 interface RunResponse {
   jobId?: string
@@ -48,7 +56,7 @@ export class Agent {
   }
 
   private async trackMessage(
-    message: ChatCompletionMessageParam
+    message: ChatCompletionMessageParam | ResponseInput
   ): Promise<string | undefined> {
     if (!this.jobId) return
 
@@ -131,7 +139,7 @@ export class Agent {
     return this.setSystemPrompt(prompt, "developer")
   }
 
-  async addMessage(message: ChatCompletionMessageParam) {
+  async addMessage(message: ChatCompletionMessageParam | ResponseInput) {
     const enhancedMessage: EnhancedMessage = {
       ...message,
       timestamp: new Date(),
@@ -349,6 +357,174 @@ export class Agent {
       endTime: new Date(),
       messages: this.messages,
       response: response.choices[0].message,
+    }
+  }
+
+  /**
+   * Run the agent using OpenAI's Responses API (instead of Chat Completions).
+   */
+  async runWithFunctionsResponseAPI(): Promise<RunResponse> {
+    const startTime = new Date()
+    const hasTools = this.checkTools()
+    if (!hasTools) {
+      throw new Error("Missing tools, please attach required tools first")
+    }
+
+    // Ensure we have at least one user message before generating response
+    const hasUserMessage = this.messages.some((m) => m.role === "user")
+
+    if (!hasUserMessage) {
+      throw new Error(
+        "Cannot generate response: Need at least one user message"
+      )
+    }
+
+    if (!this.llm) {
+      throw new Error("LLM not initialized, please add an API key first")
+    }
+
+    // Convert all messages and tools to Responses API input format
+    // This preserves the full conversation context including multiple user messages
+    const input: ResponseInput = convertMessagesToResponseInput(this.messages)
+    const tools = this.tools.map(convertToolToFunctionTool)
+
+    const params: ResponseCreateParamsNonStreaming = {
+      model: this.model,
+      input,
+      tools,
+      store: true,
+      reasoning: {
+        summary: "auto",
+      },
+    }
+
+    const response = await this.llm.responses.create(params)
+    console.log(
+      `[DEBUG] Responses API response:`,
+      JSON.stringify(response.output, null, 2)
+    )
+
+    // Process the response output
+    let hasFunctionCalls = false
+
+    for (const item of response.output) {
+      if (item.type === "reasoning") {
+        // Log reasoning summaries to console
+        if (item.summary && item.summary.length > 0) {
+          console.log("🧠 [REASONING SUMMARY]:")
+          item.summary.forEach((summaryItem, index) => {
+            if ("text" in summaryItem) {
+              console.log(`   ${index + 1}. ${summaryItem.text}`)
+            }
+          })
+          console.log("") // Add spacing
+        } else {
+          console.log(
+            "🧠 [REASONING]: Internal reasoning performed (summary not available)"
+          )
+        }
+      } else if (item.type === "message" && item.role === "assistant") {
+        // Add the assistant's message
+        const assistantMessage = {
+          role: "assistant" as const,
+          content: item.content
+            .map((c) => ("text" in c ? c.text : ""))
+            .filter(Boolean)
+            .join("\n"),
+        }
+        await this.addMessage(assistantMessage)
+      } else if (item.type === "function_call") {
+        hasFunctionCalls = true
+
+        // Find the corresponding tool
+        const tool = this.tools.find((t) => t.function.name === item.name)
+
+        if (tool) {
+          // Track tool call event
+          if (this.jobId) {
+            await createToolCallEvent({
+              workflowId: this.jobId,
+              toolName: item.name,
+              toolCallId: item.call_id,
+              args: item.arguments,
+            })
+          }
+
+          const parsedArgs = JSON.parse(item.arguments)
+          // Validate tool arguments
+          const validationResult = tool.schema.safeParse(parsedArgs)
+          if (!validationResult.success) {
+            const errorContent = `Validation failed for tool ${item.name}: ${validationResult.error.message}`
+            console.error(errorContent)
+
+            // Track error event
+            if (this.jobId) {
+              await createToolCallResultEvent({
+                workflowId: this.jobId,
+                toolCallId: item.call_id,
+                toolName: item.name,
+                content: errorContent,
+              })
+            }
+
+            // Add error message as tool response
+            await this.addMessage({
+              role: "tool",
+              content: errorContent,
+              tool_call_id: item.call_id,
+            })
+            continue
+          }
+
+          // Execute the tool
+          const toolResponse = await tool.handler(validationResult.data)
+
+          let toolResponseString: string
+          if (typeof toolResponse !== "string") {
+            toolResponseString = JSON.stringify(toolResponse)
+          } else {
+            toolResponseString = toolResponse
+          }
+
+          // Track tool result event
+          if (this.jobId) {
+            await createToolCallResultEvent({
+              workflowId: this.jobId,
+              toolCallId: item.call_id,
+              toolName: item.name,
+              content: toolResponseString,
+            })
+          }
+
+          // Add tool response to messages
+          await this.addMessage({
+            role: "function_call_output",
+            output: toolResponseString,
+            call_id: item.call_id,
+          })
+        } else {
+          console.error(`Tool ${item.name} not found`)
+          // Track error event
+          if (this.jobId) {
+            await createErrorEvent({
+              workflowId: this.jobId,
+              content: `Tool ${item.name} not found`,
+            })
+          }
+        }
+      }
+    }
+
+    // If there were function calls, recursively call to get the next response
+    if (hasFunctionCalls) {
+      return await this.runWithFunctionsResponseAPI()
+    } else {
+      return {
+        jobId: this.jobId,
+        startTime,
+        endTime: new Date(),
+        messages: this.messages,
+      }
     }
   }
 }

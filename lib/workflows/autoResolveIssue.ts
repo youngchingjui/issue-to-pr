@@ -139,7 +139,7 @@ export const autoResolveIssue = async ({
 
     await createStatusEvent({ workflowId, content: "Running agent" })
 
-    const result = await agent.runWithFunctions()
+    const result = await agent.runWithFunctionsResponseAPI()
 
     await createWorkflowStateEvent({ workflowId, state: "completed" })
 
