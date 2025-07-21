@@ -1,8 +1,22 @@
-import { getGraphQLClient } from "@/lib/github"
+"use server"
 
-export interface BranchByCommitDate {
+import { getGraphQLClient } from "@/lib/github"
+import { RepoFullName } from "@/lib/types/github"
+
+interface BranchByCommitDate {
   name: string
   committedDate: string
+}
+
+type GraphQLResponse = {
+  repository: {
+    refs: {
+      nodes: Array<{
+        name: string
+        target: { committedDate: string | null }
+      }>
+    }
+  }
 }
 
 /**
@@ -14,13 +28,10 @@ export interface BranchByCommitDate {
  * @returns A list of branches sorted by commit date (most recent first).
  */
 export async function listBranchesSortedByCommitDate(
-  repoFullName: string,
+  repoFullName: RepoFullName,
   limit = 20
 ): Promise<BranchByCommitDate[]> {
-  const [owner, repo] = repoFullName.split("/")
-  if (!owner || !repo) {
-    throw new Error("Invalid repository format. Expected 'owner/repo'")
-  }
+  const { owner, repo } = repoFullName
 
   const graphql = await getGraphQLClient()
   if (!graphql) {
@@ -37,7 +48,14 @@ export async function listBranchesSortedByCommitDate(
   const query = `
     query ($owner: String!, $repo: String!, $limit: Int!) {
       repository(owner: $owner, name: $repo) {
-        refs(refPrefix: "refs/heads/", first: $limit, orderBy: { field: TAG_COMMIT_DATE, direction: DESC }) {
+        refs(
+          refPrefix: "refs/heads/", 
+          first: $limit, 
+          orderBy: { 
+            field: TAG_COMMIT_DATE, 
+            direction: DESC 
+          }
+        ) {
           nodes {
             name
             target {
@@ -51,32 +69,24 @@ export async function listBranchesSortedByCommitDate(
     }
   `
 
-  type GraphQLResponse = {
-    repository: {
-      refs: {
-        nodes: Array<{
-          name: string
-          target: { committedDate: string | null }
-        }>
-      }
-    }
-  }
-
-  const response = (await graphql<GraphQLResponse>(query, {
+  const response = await graphql<GraphQLResponse>(query, {
     owner,
     repo,
     limit,
-  })) as GraphQLResponse
+  })
 
   const branches: BranchByCommitDate[] = response.repository.refs.nodes
     .filter((n) => n.target?.committedDate)
-    .map((n) => ({ name: n.name, committedDate: n.target.committedDate as string }))
+    .map((n) => ({
+      name: n.name,
+      committedDate: n.target.committedDate as string,
+    }))
 
   // Ensure correct sorting just in case the API doesn't respect the order
   branches.sort(
-    (a, b) => new Date(b.committedDate).getTime() - new Date(a.committedDate).getTime()
+    (a, b) =>
+      new Date(b.committedDate).getTime() - new Date(a.committedDate).getTime()
   )
 
   return branches
 }
-
