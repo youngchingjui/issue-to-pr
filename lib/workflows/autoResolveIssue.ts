@@ -50,7 +50,6 @@ export const autoResolveIssue = async ({
 
   const workflowId = jobId ?? uuidv4()
   let userPermissions: RepoPermissions | null = null
-  let containerCleanup: (() => Promise<void>) | null = null
 
   try {
     await initializeWorkflowRun({
@@ -75,13 +74,12 @@ export const autoResolveIssue = async ({
       workingBranch: repository.default_branch,
     })
 
-    const { containerName, cleanup } = await createContainerizedWorkspace({
+    const { containerName } = await createContainerizedWorkspace({
       repoFullName: repository.full_name,
       branch: repository.default_branch,
       workflowId,
       hostRepoPath,
     })
-    containerCleanup = cleanup
 
     const env: RepoEnvironment = { kind: "container", name: containerName }
 
@@ -155,10 +153,6 @@ export const autoResolveIssue = async ({
       content: String(error),
     })
     throw error
-  } finally {
-    if (containerCleanup) {
-      await containerCleanup()
-    }
   }
 }
 
