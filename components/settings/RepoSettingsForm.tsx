@@ -98,7 +98,8 @@ export default function RepoSettingsForm({
         />
       </div>
       <div className="mb-4 space-y-2">
-        <p className="font-medium">Issue Automation (UI only)</p>
+        <p className="font-medium">Issue Automation</p>
+        {/* commentOnIssue toggle (disabled for now) */}
         <div className="flex items-center justify-between">
           <Label
             htmlFor="auto-run-comment"
@@ -115,6 +116,7 @@ export default function RepoSettingsForm({
             disabled
           />
         </div>
+        {/* post comment (disabled) */}
         <div className="flex items-center justify-between">
           <Label
             htmlFor="post-issue-comment"
@@ -131,6 +133,24 @@ export default function RepoSettingsForm({
             disabled
           />
         </div>
+        {/* autoResolveIssue toggle – new */}
+        <div className="flex items-center justify-between">
+          <Label
+            htmlFor="auto-run-auto-resolve"
+            className="text-sm text-muted-foreground"
+          >
+            Auto-run autoResolveIssue (on new issues)
+          </Label>
+          <Switch
+            id="auto-run-auto-resolve"
+            checked={settings.autoRunAutoResolveIssue ?? false}
+            onCheckedChange={(val) =>
+              handleChange("autoRunAutoResolveIssue", val)
+            }
+            disabled={loading}
+          />
+        </div>
+        {/* legacy resolveIssue toggle (disabled) */}
         <div className="flex items-center justify-between">
           <Label
             htmlFor="auto-run-resolve"
@@ -145,6 +165,7 @@ export default function RepoSettingsForm({
             disabled
           />
         </div>
+        {/* create PR toggle (disabled) */}
         <div className="flex items-center justify-between">
           <Label htmlFor="post-pr" className="text-sm text-muted-foreground">
             Create PR on GitHub
@@ -156,9 +177,6 @@ export default function RepoSettingsForm({
             disabled
           />
         </div>
-        <p className="text-xs text-muted-foreground">
-          Workflow automation settings are coming soon.
-        </p>
       </div>
       {errMsg && <div className="mb-2 text-red-600">{errMsg}</div>}
       {successMsg && <div className="mb-2 text-green-700">{successMsg}</div>}
@@ -174,3 +192,4 @@ export default function RepoSettingsForm({
     </form>
   )
 }
+

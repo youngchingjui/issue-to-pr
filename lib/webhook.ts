@@ -3,6 +3,8 @@ import { v4 as uuidv4 } from "uuid"
 import { getRepoFromString } from "@/lib/github/content"
 import { getIssue } from "@/lib/github/issues"
 import { updateJobStatus } from "@/lib/redis-old"
+import { getRepositorySettings } from "@/lib/neo4j/services/repository"
+import { repoFullNameSchema } from "@/lib/types/github"
 import autoResolveIssue from "@/lib/workflows/autoResolveIssue"
 import { resolveIssue } from "@/lib/workflows/resolveIssue"
 
@@ -32,7 +34,7 @@ export const routeWebhookHandler = async ({
   payload,
 }: {
   event: string
-  payload: object
+  payload: Record<string, any>
 }) => {
   if (!Object.values(GitHubEvent).includes(event as GitHubEvent)) {
     console.error("Invalid event type:", event)
@@ -98,6 +100,28 @@ export const routeWebhookHandler = async ({
         throw new Error("OPENAI_API_KEY is not set")
       }
 
+      const repoFullNameStr = payload["repository"]["full_name"] as string
+      const repoFullName = repoFullNameSchema.parse(repoFullNameStr)
+
+      // Check repository settings to see if autoResolveIssue is enabled
+      let settingsAllowed = true
+      try {
+        const settings = await getRepositorySettings(repoFullName)
+        // Default behavior: if setting undefined, treat as true (backwards compatibility)
+        if (settings && settings.autoRunAutoResolveIssue === false) {
+          settingsAllowed = false
+        }
+      } catch (e) {
+        console.error("Failed to fetch repository settings:", e)
+      }
+
+      if (!settingsAllowed) {
+        console.log(
+          `autoResolveIssue disabled for repository ${repoFullName.fullName}. Skipping.`
+        )
+        return
+      }
+
       // Generate a unique job ID
       const jobId = uuidv4()
       await updateJobStatus(
@@ -106,15 +130,14 @@ export const routeWebhookHandler = async ({
       )
 
       const issueNumber = payload["issue"]["number"]
-      const repoFullName = payload["repository"]["full_name"]
       const apiKey = process.env.OPENAI_API_KEY // TODO: Prefer GitHub App session token, if available
 
       // Fire-and-forget auto-resolve
       ;(async () => {
         try {
-          const fullRepo = await getRepoFromString(repoFullName)
+          const fullRepo = await getRepoFromString(repoFullNameStr)
           const issueResult = await getIssue({
-            fullName: repoFullName,
+            fullName: repoFullNameStr,
             issueNumber,
           })
 
@@ -143,3 +166,4 @@ export const routeWebhookHandler = async ({
     console.log(`${event} event received on ${repository}`)
   }
 }
+

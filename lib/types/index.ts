@@ -252,6 +252,13 @@ export const repoSettingsSchema = z.object({
     .boolean()
     .optional()
     .describe("Create a pull request on GitHub after resolveIssue completes"),
+  // NEW: control autoResolveIssue webhook behavior
+  autoRunAutoResolveIssue: z
+    .boolean()
+    .optional()
+    .describe(
+      "Automatically run the autoResolveIssue workflow (triggered by webhook) when a new issue is opened"
+    ),
   lastUpdated: z.date().optional(),
 })
 export type RepoSettings = z.infer<typeof repoSettingsSchema>
@@ -308,3 +315,4 @@ export type WorkflowRun = z.infer<typeof workflowRunSchema>
 export type WorkflowRunState = z.infer<typeof workflowRunStateSchema>
 export type WorkflowStateEvent = z.infer<typeof workflowStateEventSchema>
 export type WorkflowType = z.infer<typeof workflowTypeEnum>
+
