@@ -10,7 +10,7 @@ import {
 } from "lucide-react"
 import * as motion from "motion/react-client"
 import Link from "next/link"
-import { useParams, usePathname, useSearchParams } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 
 import SignOutButton from "@/components/common/SignOutButton"
 import { Button } from "@/components/ui/button"
@@ -34,7 +34,6 @@ export default function DynamicNavigation({
 }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const { repo } = useParams() as { repo: string | null }
 
   // Get the redirect URL from search params, fallback to current pathname
   const redirectPath = searchParams.get("redirect") || pathname
@@ -251,4 +250,3 @@ export default function DynamicNavigation({
     </>
   )
 }
-
