@@ -1,17 +1,17 @@
 "use client"
 
-import { useEffect, useState, useTransition } from "react"
+import { useState, useTransition } from "react"
 
-import {
-  addRoleAction,
-  getUserRolesAction,
-  removeRoleAction,
-} from "@/lib/actions/userRoles"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
+import {
+  addRoleToUser,
+  getUserRoles,
+  removeRoleFromUser,
+} from "@/lib/neo4j/services/user"
 
 export default function UserRolesCard() {
   const [username, setUsername] = useState("")
@@ -20,50 +20,51 @@ export default function UserRolesCard() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  // Fetch roles when username changes and not empty
-  useEffect(() => {
-    if (!username.trim()) {
-      setRoles([])
+  const handleLookupSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const trimmedUsername = username.trim()
+    setRoles([]) // Always clear roles before lookup
+    setErrorMsg(null)
+    if (!trimmedUsername) {
       return
     }
     startTransition(async () => {
-      const res = await getUserRolesAction(username.trim())
-      if (res.status === "ok") {
-        setRoles(res.roles)
+      try {
+        const roles = await getUserRoles(trimmedUsername)
+        setRoles(roles)
         setErrorMsg(null)
-      } else {
-        setRoles([])
-        setErrorMsg(res.message)
+      } catch (err) {
+        setErrorMsg(String(err))
       }
     })
-  }, [username])
+  }
 
-  const handleAddRole = () => {
+  const handleAddRoleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
     if (!newRole.trim()) return
     startTransition(async () => {
-      const res = await addRoleAction({ username, role: newRole.trim() })
-      if (res.status === "ok") {
-        setRoles(res.roles)
+      try {
+        const roles = await addRoleToUser(username, newRole.trim())
+        setRoles(roles)
         setNewRole("")
         setErrorMsg(null)
-      } else {
-        setErrorMsg(res.message)
+      } catch (err) {
+        setErrorMsg(String(err))
       }
     })
   }
 
   const handleRemoveRole = (role: string) => {
     startTransition(async () => {
-      const res = await removeRoleAction({ username, role })
-      if (res.status === "ok") {
-        setRoles(res.roles)
+      try {
+        const roles = await removeRoleFromUser(username, role)
+        setRoles(roles)
         setErrorMsg(null)
-      } else {
-        setErrorMsg(res.message)
+      } catch (err) {
+        setErrorMsg(String(err))
       }
     })
   }
-
   return (
     <Card className="max-w-2xl w-full mx-auto mb-4 bg-white/70 border border-dashed border-slate-300 shadow-sm">
       <CardHeader>
@@ -72,17 +73,31 @@ export default function UserRolesCard() {
       <CardContent>
         <div className="space-y-4">
           <div>
-            <Label htmlFor="usernameInput" className="text-sm font-medium text-muted-foreground">
+            <Label
+              htmlFor="githubName"
+              className="text-sm font-medium text-muted-foreground"
+            >
               GitHub Username
             </Label>
-            <Input
-              id="usernameInput"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="octocat"
-              disabled={isPending}
-              className="mt-1"
-            />
+            <form
+              className="flex items-center space-x-2 mt-1"
+              onSubmit={handleLookupSubmit}
+            >
+              <Input
+                id="githubName"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="octocat"
+                disabled={isPending}
+              />
+              <Button
+                type="submit"
+                disabled={isPending || !username.trim()}
+                variant="outline"
+              >
+                Lookup
+              </Button>
+            </form>
           </div>
 
           {roles.length > 0 && (
@@ -104,9 +119,15 @@ export default function UserRolesCard() {
           )}
 
           {username.trim() && (
-            <div className="flex items-end space-x-2">
+            <form
+              className="flex items-end space-x-2"
+              onSubmit={handleAddRoleSubmit}
+            >
               <div className="flex-1">
-                <Label htmlFor="roleInput" className="text-sm font-medium text-muted-foreground">
+                <Label
+                  htmlFor="roleInput"
+                  className="text-sm font-medium text-muted-foreground"
+                >
                   Add Role
                 </Label>
                 <Input
@@ -118,10 +139,10 @@ export default function UserRolesCard() {
                   className="mt-1"
                 />
               </div>
-              <Button type="button" onClick={handleAddRole} disabled={isPending || !newRole.trim()}>
+              <Button type="submit" disabled={isPending || !newRole.trim()}>
                 Add
               </Button>
-            </div>
+            </form>
           )}
 
           {errorMsg && (
@@ -134,4 +155,3 @@ export default function UserRolesCard() {
     </Card>
   )
 }
-
