@@ -90,7 +90,7 @@ export const autoResolveIssue = async ({
     }
 
     const trace = langfuse.trace({ name: "autoResolve" })
-    const span = trace.span({ name: "agent" })
+    const span = trace.span({ name: "PlanAndCodeAgent" })
 
     const agent = new PlanAndCodeAgent({
       apiKey,
@@ -99,8 +99,8 @@ export const autoResolveIssue = async ({
       issueNumber: issue.number,
       repository,
       sessionToken,
+      jobId: workflowId,
     })
-    await agent.addJobId(workflowId)
     agent.addSpan({ span, generationName: "autoResolveIssue" })
 
     const tree = await createContainerizedDirectoryTree(containerName)
@@ -109,13 +109,14 @@ export const autoResolveIssue = async ({
       issueNumber: issue.number,
     })
 
-    await agent.addMessage({
+    await agent.addInput({
       role: "user",
       content: `Github issue title: ${issue.title}\nGithub issue description: ${issue.body}`,
+      type: "message",
     })
 
     if (comments && comments.length > 0) {
-      await agent.addMessage({
+      await agent.addInput({
         role: "user",
         content: `Github issue comments:\n${comments
           .map(
@@ -125,13 +126,15 @@ export const autoResolveIssue = async ({
               ).toLocaleString()}\n- **Comment**: ${c.body}`
           )
           .join("\n")}`,
+        type: "message",
       })
     }
 
     if (tree && tree.length > 0) {
-      await agent.addMessage({
+      await agent.addInput({
         role: "user",
         content: `Here is the codebase's tree directory:\n${tree.join("\n")}`,
+        type: "message",
       })
     }
 
