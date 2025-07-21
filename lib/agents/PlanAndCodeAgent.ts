@@ -1,4 +1,4 @@
-import { Agent } from "@/lib/agents/base"
+import { ResponsesAPIAgent } from "@/lib/agents/base"
 import { createBranchTool } from "@/lib/tools/Branch"
 import { createCommitTool } from "@/lib/tools/Commit"
 import { createContainerExecTool } from "@/lib/tools/ContainerExecTool"
@@ -12,7 +12,6 @@ import { createWriteFileContentTool } from "@/lib/tools/WriteFileContent"
 import { AgentConstructorParams, RepoEnvironment } from "@/lib/types"
 import { GitHubRepository, repoFullNameSchema } from "@/lib/types/github"
 
-// Updated developer prompt with stronger emphasis on PR creation
 const DEVELOPER_PROMPT = `
 You are a senior software engineer tasked with fully resolving GitHub issues.
 First, analyze the issue thoroughly and brainstorm a few possible solutions. After reflecting, choose the best approach.
@@ -52,9 +51,10 @@ export interface PlanAndCodeAgentParams extends AgentConstructorParams {
    * omitted, remote-writing tools will not be attached.
    */
   sessionToken?: string
+  jobId?: string
 }
 
-export class PlanAndCodeAgent extends Agent {
+export class PlanAndCodeAgent extends ResponsesAPIAgent {
   constructor(params: PlanAndCodeAgentParams) {
     const {
       env,
@@ -62,11 +62,16 @@ export class PlanAndCodeAgent extends Agent {
       repository,
       issueNumber,
       sessionToken,
+      jobId,
       ...base
     } = params
 
     // Initialise base Agent (model defaults to "o3" if not overridden)
     super({ model: "o3", ...base })
+
+    if (jobId) {
+      this.jobId = jobId
+    }
 
     // Attach developer-focused system prompt
     this.setDeveloperPrompt(DEVELOPER_PROMPT).catch((error) => {
@@ -74,10 +79,9 @@ export class PlanAndCodeAgent extends Agent {
     })
 
     /*
-     * ------------------------------------------------------------
      * Attach core workspace tools – always useful regardless of the
      * specific workflow.
-     * ---------------------------------------------------------- */
+     */
     this.addTool(createSetupRepoTool(env))
     this.addTool(createGetFileContentTool(env))
     this.addTool(createRipgrepSearchTool(env))
@@ -92,10 +96,9 @@ export class PlanAndCodeAgent extends Agent {
     }
 
     /*
-     * ------------------------------------------------------------
      * Remote-interaction tools (optional) – only attach when we have
      * sufficient information and permissions.
-     * ---------------------------------------------------------- */
+     */
     if (sessionToken && repository) {
       try {
         const repoFullName = repoFullNameSchema.parse(repository.full_name)
