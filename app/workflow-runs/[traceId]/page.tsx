@@ -3,11 +3,41 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 
 import BaseGitHubItemCard from "@/components/github/BaseGitHubItemCard"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import WorkflowRunEventsFeed from "@/components/workflow-runs/WorkflowRunEventsFeed"
 import { getIssue } from "@/lib/github/issues"
+import { getContainerStatus } from "@/lib/docker"
 import { getWorkflowRunWithDetails } from "@/lib/neo4j/services/workflow"
 import { GetIssueResult } from "@/lib/types/github"
+
+/**
+ * Generate the Docker container name for a given workflow/trace ID. Keep the
+ * logic in sync with the name generation used in createContainerizedWorktree
+ * and createContainerizedWorkspace utilities.
+ */
+function containerNameForTrace(traceId: string): string {
+  return `agent-${traceId}`.replace(/[^a-zA-Z0-9_.-]/g, "-")
+}
+
+/**
+ * Map a Docker status string to a badge variant for quick visual cues.
+ */
+function badgeVariantForStatus(status: string): "default" | "secondary" | "outline" | "destructive" {
+  switch (status) {
+    case "running":
+      return "default"
+    case "exited":
+    case "created":
+    case "paused":
+    case "dead":
+      return "secondary"
+    case "not_found":
+      return "outline"
+    default:
+      return "secondary"
+  }
+}
 
 export default async function WorkflowRunDetailPage({
   params,
@@ -41,6 +71,10 @@ export default async function WorkflowRunDetailPage({
     )
   }
 
+  // Determine container status (best-effort; failures fall back to "not_found")
+  const containerName = containerNameForTrace(traceId)
+  const containerStatus = await getContainerStatus(containerName)
+
   return (
     <main className="container mx-auto p-4">
       <div className="flex flex-col gap-6 max-w-4xl mx-auto">
@@ -56,8 +90,12 @@ export default async function WorkflowRunDetailPage({
 
         {/* Page Header */}
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold">
+          <h1 className="text-2xl font-bold flex items-center gap-3 flex-wrap">
             {issue?.title || `Workflow Run: ${traceId}`}
+            {/* Container status badge */}
+            <Badge variant={badgeVariantForStatus(containerStatus)}>
+              Container: {containerStatus}
+            </Badge>
           </h1>
           {workflow.type && (
             <p className="text-sm text-muted-foreground">
@@ -96,3 +134,4 @@ export default async function WorkflowRunDetailPage({
     </main>
   )
 }
+
