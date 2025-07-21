@@ -16,6 +16,12 @@ import {
   workflowRunStateSchema,
 } from "@/lib/types/db/neo4j"
 
+// ---- Constants -------------------------------------------------------------
+// One hour in milliseconds – after this period a running workflow is
+// considered to have timed-out.
+const WORKFLOW_TIMEOUT_MS = 60 * 60 * 1000 // 1 hour
+
+// ----------------------------------------------------------------------------
 export async function create(
   tx: ManagedTransaction,
   workflowRun: Omit<WorkflowRun, "createdAt">
@@ -46,6 +52,22 @@ export async function get(
   return raw ? workflowRunSchema.parse(raw) : null
 }
 
+// ---- Helpers ---------------------------------------------------------------
+/**
+ * Derive the effective state for a workflow run, automatically converting a
+ * long-running "running" state into "timedOut" when it exceeds the timeout
+ * threshold.
+ */
+function deriveState(state: WorkflowRunState, createdAt: Date): WorkflowRunState {
+  if (state === "running") {
+    const ageMs = Date.now() - createdAt.getTime()
+    if (ageMs > WORKFLOW_TIMEOUT_MS) {
+      return "timedOut"
+    }
+  }
+  return state
+}
+
 // Modified: Now includes the issue as an extra field per workflow run
 export async function listAll(
   tx: ManagedTransaction
@@ -67,7 +89,10 @@ export async function listAll(
 
   return result.records.map((record) => {
     const run = workflowRunSchema.parse(record.get("w").properties)
-    const state = workflowRunStateSchema.safeParse(record.get("state"))
+    const stateParse = workflowRunStateSchema.safeParse(record.get("state"))
+    const rawState: WorkflowRunState = stateParse.success ? stateParse.data : "completed"
+    const derivedState = deriveState(rawState, run.createdAt.toStandardDate())
+
     const issueNode = record.get("i")
     const issueVal =
       issueNode && issueNode.properties
@@ -75,7 +100,7 @@ export async function listAll(
         : undefined
     return {
       ...run,
-      state: state.success ? state.data : "completed",
+      state: derivedState,
       issue: issueVal,
     }
   })
@@ -102,7 +127,10 @@ export async function listForIssue(
 
   return result.records.map((record) => {
     const run = workflowRunSchema.parse(record.get("w").properties)
-    const state = workflowRunStateSchema.safeParse(record.get("state"))
+    const stateParse = workflowRunStateSchema.safeParse(record.get("state"))
+    const rawState: WorkflowRunState = stateParse.success ? stateParse.data : "completed"
+    const derivedState = deriveState(rawState, run.createdAt.toStandardDate())
+
     const issueNode = record.get("i")
     const issueVal =
       issueNode && issueNode.properties
@@ -110,7 +138,7 @@ export async function listForIssue(
         : undefined
     return {
       ...run,
-      state: state.success ? state.data : "completed",
+      state: derivedState,
       issue: issueVal,
     }
   })
@@ -224,3 +252,4 @@ export const toAppWorkflowRun = (dbRun: WorkflowRun): AppWorkflowRun => {
     createdAt: dbRun.createdAt.toStandardDate(),
   }
 }
+

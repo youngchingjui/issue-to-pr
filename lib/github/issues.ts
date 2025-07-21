@@ -15,6 +15,7 @@ import {
   RepoFullName,
 } from "@/lib/types/github"
 
+// ------------------------------ GitHub Issue Helpers ------------------------
 export async function createIssue({
   repoFullName,
   title,
@@ -53,7 +54,7 @@ export async function getIssue({
       issue_number: issueNumber,
     })
     return { type: "success", issue: issue.data }
-  } catch (error) {
+  } catch (error: any) {
     if (!error) {
       return { type: "other_error", error: "Unknown error" }
     }
@@ -207,9 +208,8 @@ export async function getIssueListWithStatus({
           repoFullName,
           issueNumber: issue.number,
         })
-        hasActiveWorkflow = runs.some(
-          (r) => r.state !== "completed" && r.state !== "error"
-        )
+        // Only consider a workflow "active" if it is still running (ignore timedOut)
+        hasActiveWorkflow = runs.some((r) => r.state === "running")
       } catch (err) {
         console.error(`Issue listing workflow runs: ${String(err)}`)
       }
@@ -227,3 +227,4 @@ export async function getIssueListWithStatus({
 
   return withStatus
 }
+

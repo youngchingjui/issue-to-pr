@@ -82,9 +82,9 @@ export default function IssueWorkflowRuns({
     loadPR()
   }, [repoFullName, issueNumber])
 
-  // Determine if we should poll based on run states
-  const shouldPoll = (runs: WorkflowRun[]) =>
-    runs.some((r) => r.state !== "completed" && r.state !== "error")
+  // Determine if we should poll based on run states – only keep polling while
+  // at least one run is still genuinely running.
+  const shouldPoll = (runs: WorkflowRun[]) => runs.some((r) => r.state === "running")
 
   const { data } = useSWR(
     `/api/workflow-runs?repo=${encodeURIComponent(repoFullName)}&issue=${issueNumber}`,
@@ -149,8 +149,10 @@ export default function IssueWorkflowRuns({
                         run.state === "completed"
                           ? "default"
                           : run.state === "error"
-                            ? "destructive"
-                            : "secondary"
+                          ? "destructive"
+                          : run.state === "timedOut"
+                          ? "outline"
+                          : "secondary"
                       }
                     >
                       {run.state}
@@ -196,3 +198,4 @@ export default function IssueWorkflowRuns({
     </Card>
   )
 }
+
