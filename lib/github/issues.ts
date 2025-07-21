@@ -6,6 +6,7 @@ import {
   getLatestPlanIdsForIssues,
   getPlanStatusForIssues,
 } from "@/lib/neo4j/services/plan"
+import { listWorkflowRuns } from "@/lib/neo4j/services/workflow"
 import {
   GetIssueResult,
   GitHubIssue,
@@ -57,10 +58,10 @@ export async function getIssue({
       return { type: "other_error", error: "Unknown error" }
     }
     if (typeof error === "object" && "status" in error) {
-      if (error.status === 404) {
+      if ((error as { status: number }).status === 404) {
         return { type: "not_found" }
       }
-      if (error.status === 403) {
+      if ((error as { status: number }).status === 403) {
         return { type: "forbidden" }
       }
     }
@@ -101,7 +102,7 @@ export async function getIssueComments({
   const octokit = await getOctokit()
   const [owner, repo] = repoFullName.split("/")
   if (!owner || !repo) {
-    throw new Error("Invalid repository format. Expected '\''owner/repo'\''")
+    throw new Error("Invalid repository format. Expected 'owner/repo'")
   }
   if (!octokit) {
     throw new Error("No octokit found")
@@ -165,17 +166,18 @@ export async function updateIssueComment({
 }
 
 /**
- * Aggregates GitHub issues with Neo4j plan and PR status
+ * Aggregates GitHub issues with Neo4j plan, PR, and workflow status
  */
 export type IssueWithStatus = GitHubIssue & {
   hasPlan: boolean
   hasPR: boolean
+  hasActiveWorkflow: boolean
   planId?: string | null
   prNumber?: number
 }
 
 /**
- * For a repo, get list of issues with hasPlan and hasPR badges.
+ * For a repo, get list of issues with hasPlan, hasPR, and active workflow badges.
  */
 export async function getIssueListWithStatus({
   repoFullName,
@@ -188,26 +190,41 @@ export async function getIssueListWithStatus({
 
   // 2. Query Neo4j for plans using the service layer
   const issueNumbers = issues.map((issue) => issue.number)
-  const issuePlanStatus = await getPlanStatusForIssues({
-    repoFullName,
-    issueNumbers,
-  })
-  const issuePlanIds = await getLatestPlanIdsForIssues({
-    repoFullName,
-    issueNumbers,
-  })
+  const [issuePlanStatus, issuePlanIds] = await Promise.all([
+    getPlanStatusForIssues({ repoFullName, issueNumbers }),
+    getLatestPlanIdsForIssues({ repoFullName, issueNumbers }),
+  ])
 
   // 3. Get PRs from GitHub using GraphQL, and find for each issue if it has a PR referencing it.
   const issuePRMap = await getIssueToPullRequestMap(repoFullName)
 
-  // 4. Compose the final list
-  const withStatus: IssueWithStatus[] = issues.map((issue) => ({
-    ...issue,
-    hasPlan: issuePlanStatus[issue.number] || false,
-    hasPR: Boolean(issuePRMap[issue.number]),
-    planId: issuePlanIds[issue.number] || null,
-    prNumber: issuePRMap[issue.number],
-  }))
+  // 4. Determine active workflows for each issue (simple sequential for now)
+  const withStatus: IssueWithStatus[] = await Promise.all(
+    issues.map(async (issue) => {
+      let hasActiveWorkflow = false
+      try {
+        const runs = await listWorkflowRuns({
+          repoFullName,
+          issueNumber: issue.number,
+        })
+        hasActiveWorkflow = runs.some(
+          (r) => r.state !== "completed" && r.state !== "error"
+        )
+      } catch (err) {
+        // ignore errors fetching workflow runs
+      }
+
+      return {
+        ...issue,
+        hasPlan: issuePlanStatus[issue.number] || false,
+        hasPR: Boolean(issuePRMap[issue.number]),
+        hasActiveWorkflow,
+        planId: issuePlanIds[issue.number] || null,
+        prNumber: issuePRMap[issue.number],
+      }
+    })
+  )
 
   return withStatus
 }
+
