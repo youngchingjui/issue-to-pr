@@ -58,10 +58,10 @@ export async function getIssue({
       return { type: "other_error", error: "Unknown error" }
     }
     if (typeof error === "object" && "status" in error) {
-      if ((error as { status: number }).status === 404) {
+      if (error.status === 404) {
         return { type: "not_found" }
       }
-      if ((error as { status: number }).status === 403) {
+      if (error.status === 403) {
         return { type: "forbidden" }
       }
     }
@@ -211,7 +211,7 @@ export async function getIssueListWithStatus({
           (r) => r.state !== "completed" && r.state !== "error"
         )
       } catch (err) {
-        // ignore errors fetching workflow runs
+        console.error(`Issue listing workflow runs: ${String(err)}`)
       }
 
       return {
@@ -227,4 +227,3 @@ export async function getIssueListWithStatus({
 
   return withStatus
 }
-
