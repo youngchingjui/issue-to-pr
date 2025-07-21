@@ -6,8 +6,8 @@ import BaseGitHubItemCard from "@/components/github/BaseGitHubItemCard"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import WorkflowRunEventsFeed from "@/components/workflow-runs/WorkflowRunEventsFeed"
-import { getIssue } from "@/lib/github/issues"
 import { getContainerStatus } from "@/lib/docker"
+import { getIssue } from "@/lib/github/issues"
 import { getWorkflowRunWithDetails } from "@/lib/neo4j/services/workflow"
 import { GetIssueResult } from "@/lib/types/github"
 
@@ -23,7 +23,9 @@ function containerNameForTrace(traceId: string): string {
 /**
  * Map a Docker status string to a badge variant for quick visual cues.
  */
-function badgeVariantForStatus(status: string): "default" | "secondary" | "outline" | "destructive" {
+function badgeVariantForStatus(
+  status: string
+): "default" | "secondary" | "outline" | "destructive" {
   switch (status) {
     case "running":
       return "default"
@@ -92,7 +94,6 @@ export default async function WorkflowRunDetailPage({
         <div className="space-y-2">
           <h1 className="text-2xl font-bold flex items-center gap-3 flex-wrap">
             {issue?.title || `Workflow Run: ${traceId}`}
-            {/* Container status badge */}
             <Badge variant={badgeVariantForStatus(containerStatus)}>
               Container: {containerStatus}
             </Badge>
@@ -134,4 +135,3 @@ export default async function WorkflowRunDetailPage({
     </main>
   )
 }
-

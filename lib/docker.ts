@@ -312,11 +312,11 @@ export async function writeFileInContainer(
 
   if (makeDirs) {
     // Create parent directories if needed
-    command += `mkdir -p \"$(dirname \"${fullPath}\")\" && `
+    command += `mkdir -p "$(dirname "${fullPath}")" && `
   }
 
   // Use heredoc to safely write contents (avoids escaping issues)
-  command += `cat > \"${fullPath}\" << 'WRITE_FILE_EOF'\n${contents}\nWRITE_FILE_EOF`
+  command += `cat > "${fullPath}" << 'WRITE_FILE_EOF'\n${contents}\nWRITE_FILE_EOF`
 
   // Execute the command
   try {
@@ -341,8 +341,6 @@ export async function writeFileInContainer(
   }
 }
 
-// ------------------ NEW UTILITY: getContainerStatus ------------------
-
 /**
  * Retrieve a Docker container's status string via `docker inspect`.
  *
@@ -350,16 +348,13 @@ export async function writeFileInContainer(
  * "removing", "exited", "dead". If the container cannot be found, the
  * function returns "not_found".
  */
-export async function getContainerStatus(
-  name: string
-): Promise<string> {
+export async function getContainerStatus(name: string): Promise<string> {
   try {
-    const { stdout } = await execPromise(
-      `docker inspect -f '{{.State.Status}}' ${name}`
-    )
-    return stdout.trim() || "unknown"
+    const docker = new Docker({ socketPath: "/var/run/docker.sock" })
+    const container = docker.getContainer(name)
+    const data = await container.inspect()
+    return data.State?.Status || "unknown"
   } catch {
     return "not_found"
   }
 }
-
