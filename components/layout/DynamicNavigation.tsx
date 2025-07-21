@@ -10,10 +10,9 @@ import {
 } from "lucide-react"
 import * as motion from "motion/react-client"
 import Link from "next/link"
-import { useParams, usePathname, useSearchParams } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 
 import SignOutButton from "@/components/common/SignOutButton"
-import Nav from "@/components/layout/Breadcrumb"
 import { Button } from "@/components/ui/button"
 import NavButton from "@/components/ui/nav-button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -35,14 +34,12 @@ export default function DynamicNavigation({
 }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const { repo } = useParams() as { repo: string | null }
 
   // Get the redirect URL from search params, fallback to current pathname
   const redirectPath = searchParams.get("redirect") || pathname
 
   const isLandingPage = pathname === "/"
   const isBlogsPage = pathname === "/blogs"
-  const showBreadcrumbs = repo !== null && repo !== undefined
 
   if (isLandingPage || isBlogsPage) {
     return (
@@ -140,9 +137,7 @@ export default function DynamicNavigation({
   if (isAuthenticated) {
     return (
       <>
-        {/* Breadcrumbs - only show in deep pages */}
-        {showBreadcrumbs && <Nav />}
-
+        {/* Standard navigation for authenticated users */}
         <nav className="hidden sm:flex items-center space-x-4 ml-auto">
           <Button
             variant="ghost"
