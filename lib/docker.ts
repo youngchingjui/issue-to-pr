@@ -340,3 +340,21 @@ export async function writeFileInContainer(
     }
   }
 }
+
+/**
+ * Retrieve a Docker container's status string via `docker inspect`.
+ *
+ * Possible statuses include: "created", "running", "paused", "restarting",
+ * "removing", "exited", "dead". If the container cannot be found, the
+ * function returns "not_found".
+ */
+export async function getContainerStatus(name: string): Promise<string> {
+  try {
+    const docker = new Docker({ socketPath: "/var/run/docker.sock" })
+    const container = docker.getContainer(name)
+    const data = await container.inspect()
+    return data.State?.Status || "unknown"
+  } catch {
+    return "not_found"
+  }
+}
