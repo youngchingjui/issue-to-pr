@@ -17,6 +17,7 @@ export default function UserRolesCard() {
   const [username, setUsername] = useState("")
   const [newRole, setNewRole] = useState("")
   const [roles, setRoles] = useState<string[]>([])
+  const [userFound, setUserFound] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -24,6 +25,8 @@ export default function UserRolesCard() {
     e.preventDefault()
     const trimmedUsername = username.trim()
     setRoles([]) // Always clear roles before lookup
+    setUserFound(false) // Hide add role form until lookup completes
+    setNewRole("") // Reset add role field on lookup
     setErrorMsg(null)
     if (!trimmedUsername) {
       return
@@ -32,8 +35,11 @@ export default function UserRolesCard() {
       try {
         const roles = await getUserRoles(trimmedUsername)
         setRoles(roles)
+        setUserFound(true)
         setErrorMsg(null)
       } catch (err) {
+        setRoles([])
+        setUserFound(false)
         setErrorMsg(String(err))
       }
     })
@@ -118,7 +124,7 @@ export default function UserRolesCard() {
             </div>
           )}
 
-          {username.trim() && (
+          {userFound && (
             <form
               className="flex items-end space-x-2"
               onSubmit={handleAddRoleSubmit}
