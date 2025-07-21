@@ -1,4 +1,4 @@
-import { GitPullRequest, NotebookPen } from "lucide-react"
+import { GitPullRequest, Loader2, NotebookPen } from "lucide-react"
 import Link from "next/link"
 
 import {
@@ -12,7 +12,12 @@ import type { IssueWithStatus } from "@/lib/github/issues"
 interface Props {
   issue: Pick<
     IssueWithStatus,
-    "hasPlan" | "hasPR" | "planId" | "prNumber" | "number"
+    | "hasActiveWorkflow"
+    | "hasPlan"
+    | "hasPR"
+    | "planId"
+    | "prNumber"
+    | "number"
   >
   repoFullName: string
 }
@@ -21,6 +26,20 @@ export default function StatusIndicators({ issue, repoFullName }: Props) {
   return (
     <TooltipProvider delayDuration={200}>
       <div className="flex flex-row gap-2">
+        {/* Active Workflow Spinner Slot */}
+        <div style={{ width: 24, display: "flex", justifyContent: "center" }}>
+          {issue.hasActiveWorkflow ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Loader2
+                  className="inline align-text-bottom mr-0.5 animate-spin text-purple-600"
+                  size={18}
+                />
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Workflow running</TooltipContent>
+            </Tooltip>
+          ) : null}
+        </div>
         {/* Plan Icon Slot */}
         <div style={{ width: 24, display: "flex", justifyContent: "center" }}>
           {issue.hasPlan && issue.planId ? (
@@ -65,3 +84,4 @@ export default function StatusIndicators({ issue, repoFullName }: Props) {
     </TooltipProvider>
   )
 }
+
