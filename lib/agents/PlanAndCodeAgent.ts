@@ -9,6 +9,7 @@ import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
 import { createSetupRepoTool } from "@/lib/tools/SetupRepoTool"
 import { createSyncBranchTool } from "@/lib/tools/SyncBranchTool"
 import { createWriteFileContentTool } from "@/lib/tools/WriteFileContent"
+import { createWebSearchTool } from "@/lib/tools/WebSearchTool"
 import { AgentConstructorParams, RepoEnvironment } from "@/lib/types"
 import { GitHubRepository, repoFullNameSchema } from "@/lib/types/github"
 
@@ -90,6 +91,9 @@ export class PlanAndCodeAgent extends ResponsesAPIAgent {
     this.addTool(createCommitTool(env, defaultBranch))
     this.addTool(createFileCheckTool(env))
 
+    // 🔍 New: OpenAI Web Search tool – enables live internet queries
+    this.addTool(createWebSearchTool())
+
     // Container-specific utility
     if (env.kind === "container") {
       this.addTool(createContainerExecTool(env.name))
@@ -117,3 +121,4 @@ export class PlanAndCodeAgent extends ResponsesAPIAgent {
 }
 
 export default PlanAndCodeAgent
+
