@@ -156,8 +156,13 @@ export const toolCallResultSchema = baseEventSchema.extend({
   content: z.string(),
 })
 
-// TODO: Change 'running' to 'inProgress'
-export const workflowRunStateSchema = z.enum(["running", "completed", "error"])
+// Added "timedOut" to represent runs that exceeded the maximum allowed duration.
+export const workflowRunStateSchema = z.enum([
+  "running",
+  "completed",
+  "error",
+  "timedOut",
+])
 
 export const workflowStateEventSchema = baseEventSchema.extend({
   type: z.literal("workflowState"),
@@ -317,3 +322,4 @@ export type WorkflowRun = z.infer<typeof workflowRunSchema>
 export type WorkflowRunState = z.infer<typeof workflowRunStateSchema>
 export type WorkflowStateEvent = z.infer<typeof workflowStateEventSchema>
 export type WorkflowType = z.infer<typeof workflowTypeEnum>
+
