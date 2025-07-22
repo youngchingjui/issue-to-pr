@@ -12,7 +12,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { createIssue } from "@/lib/github/issues"
 import { toast } from "@/lib/hooks/use-toast"
 import { IssueTitleResponseSchema } from "@/lib/types/api/schemas"
 import { RepoFullName } from "@/lib/types/github"
@@ -73,24 +72,28 @@ export default function NewTaskInput({ repoFullName }: Props) {
     setLoading(true)
     try {
       startTransition(async () => {
-        const res = await createIssue({
-          repoFullName,
-          title: taskTitle,
-          body: description,
+        const res = await fetch("/api/tasks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            repoFullName: repoFullName.fullName,
+            title: taskTitle,
+            body: description,
+          }),
         })
-        if (res.status === 201) {
+        const data = await res.json()
+        if (res.ok && data?.success) {
           toast({
-            title: "Task synced to GitHub",
+            title: "Task created",
             description: `Created: ${taskTitle}`,
             variant: "default",
           })
           setDescription("")
-          // Refresh the data so the new issue appears in the list immediately
           router.refresh()
         } else {
           toast({
             title: "Error creating task",
-            description: res.status || "Failed to create GitHub issue.",
+            description: data?.error || "Failed to create task.",
             variant: "destructive",
           })
         }
@@ -128,7 +131,7 @@ export default function NewTaskInput({ repoFullName }: Props) {
         <Button type="submit" disabled={isSubmitting}>
           {generatingTitle ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating issue
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating
               title...
             </>
           ) : loading || isPending ? (
@@ -136,7 +139,7 @@ export default function NewTaskInput({ repoFullName }: Props) {
               <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...
             </>
           ) : (
-            "Create Github Issue"
+            "Create Task"
           )}
         </Button>
         <TooltipProvider>
@@ -147,8 +150,8 @@ export default function NewTaskInput({ repoFullName }: Props) {
               </span>
             </TooltipTrigger>
             <TooltipContent>
-              Creates an Issue on Github. If the Issue To PR Github App is
-              installed, a Plan will automatically be generated for your Issue.
+              Creates a local task stored in Neo4j. You can later sync it to
+              GitHub if needed.
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
