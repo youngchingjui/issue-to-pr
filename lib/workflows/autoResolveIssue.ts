@@ -142,6 +142,16 @@ export const autoResolveIssue = async ({
 
     const result = await agent.runWithFunctions()
 
+    // Manually create a Langfuse generation capturing the final input/output so that
+    // it shows up correctly in the trace UI (observeOpenAI currently does not
+    // instrument the Responses API used by PlanAndCodeAgent).
+    span.generation({
+      name: "autoResolve.final",
+      input: "(omitted – see previous messages)",
+      output: JSON.stringify(result),
+      model: agent.model,
+    }).end()
+
     await createWorkflowStateEvent({ workflowId, state: "completed" })
 
     return result
@@ -157,3 +167,4 @@ export const autoResolveIssue = async ({
 }
 
 export default autoResolveIssue
+
