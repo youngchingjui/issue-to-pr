@@ -1,9 +1,24 @@
 import Link from "next/link"
+import { redirect } from "next/navigation"
 
+import { auth } from "@/auth"
+import { getGithubUser } from "@/lib/github/users"
+import { getUserRoles } from "@/lib/neo4j/services/user"
 import PlanEvalCard from "@/components/playground/PlanEvalCard"
 import { Button } from "@/components/ui/button"
 
-export default function EvalsPage() {
+export default async function EvalsPage() {
+  const session = await auth()
+  if (!session?.user) {
+    redirect("/")
+  }
+
+  const githubUser = await getGithubUser()
+  const roles = githubUser ? await getUserRoles(githubUser.login).catch(() => []) : []
+  if (!roles.includes("admin")) {
+    redirect("/")
+  }
+
   return (
     <div className="container mx-auto py-8 space-y-4">
       <div>
@@ -25,3 +40,4 @@ export default function EvalsPage() {
     </div>
   )
 }
+

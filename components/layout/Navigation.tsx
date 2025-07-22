@@ -4,6 +4,7 @@ import Link from "next/link"
 
 import { auth } from "@/auth"
 import { getGithubUser } from "@/lib/github/users"
+import { getUserRoles } from "@/lib/neo4j/services/user"
 
 import DynamicNavigation from "./DynamicNavigation"
 
@@ -12,6 +13,18 @@ export default async function Navigation() {
 
   // Only try to get GitHub user if we have a session
   const githubUser = session?.user ? await getGithubUser() : null
+
+  // Determine if the current user is an admin (has the "admin" role)
+  let isAdmin = false
+  if (githubUser) {
+    try {
+      const roles = await getUserRoles(githubUser.login)
+      isAdmin = roles.includes("admin")
+    } catch {
+      // Swallow errors (e.g. user not found in DB) and treat as non-admin
+      isAdmin = false
+    }
+  }
 
   return (
     <motion.header
@@ -43,9 +56,11 @@ export default async function Navigation() {
           <DynamicNavigation
             username={githubUser?.login ?? session?.user?.name ?? null}
             isAuthenticated={!!session?.user}
+            isAdmin={isAdmin}
           />
         </div>
       </div>
     </motion.header>
   )
 }
+
