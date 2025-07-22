@@ -40,7 +40,7 @@ export async function checkIfLocalBranchExists(
     exec(command, { cwd }, (error, stdout, stderr) => {
       // grep returns exit code 1 when no matches are found
       // but other error codes indicate real errors
-      if (error && error.code !== 1) {
+      if (error && (error as any).code !== 1) {
         return reject(new Error(error.message))
       }
       if (stderr) {
@@ -249,6 +249,13 @@ export async function ensureValidRepo(
     await cleanupRepo(dir)
     await cloneRepo(cloneUrl, dir)
   }
+}
+
+export async function setRemoteOrigin(
+  dir: string,
+  remoteUrl: string
+): Promise<void> {
+  await executeGitCommand(`git remote set-url origin "${remoteUrl}"`, dir)
 }
 
 export async function stageFile(
