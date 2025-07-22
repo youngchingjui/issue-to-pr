@@ -55,13 +55,13 @@ This directory contains the data access and business logic layers for Neo4j.
 
 ## Summary Table
 
-| Layer      | File Location             | Type Example      | Notes                                      |
-| ---------- | ------------------------- | ----------------- | ------------------------------------------ |
-| App-level  | `lib/types/index.ts`      | `Plan`, `Task`    | Uses JS/TS types, main app data structures |
-| DB-level   | `lib/types/db/neo4j.ts`   | `Plan`, `Task`    | Uses Neo4j types, extends app-level types  |
-| Repository | `lib/neo4j/repositories/` | `create`, `get`   | Uses db-level types for tx functions       |
-| Service    | `lib/neo4j/services/`     | `toAppPlan`, etc. | Converts db-level to app-level types       |
-| Conversion | `lib/neo4j/convert.ts`    | `neo4jToJs`, etc. | Handles type conversion logic              |
+| Layer      | File Location             | Type Example      | Notes                                                           |
+| ---------- | ------------------------- | ----------------- | --------------------------------------------------------------- |
+| App-level  | `lib/types/index.ts`      | `Plan`, `Task`    | Uses JS/TS types, main app data structures                      |
+| DB-level   | `lib/types/db/neo4j.ts`   | `Plan`, `Task`    | Uses Neo4j types, extends app-level types                       |
+| Repository | `lib/neo4j/repositories/` | `create`, `get`   | Uses db-level types for tx functions                            |
+| Service    | `lib/neo4j/services/`     |                   | Ensures data from neo4j is converted to application-level types |
+| Conversion | `lib/neo4j/convert.ts`    | `neo4jToJs`, etc. | Handles type conversion logic                                   |
 
 ## Rule of thumb
 
