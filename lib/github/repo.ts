@@ -5,7 +5,7 @@ import { RepoFullName } from "@/lib/types/github"
 
 interface BranchByCommitDate {
   name: string
-  committedDate: string
+  committedDate: Date
 }
 
 type GraphQLResponse = {
@@ -13,8 +13,12 @@ type GraphQLResponse = {
     refs: {
       nodes: Array<{
         name: string
-        target: { committedDate: string | null }
+        target: { committedDate: Date }
       }>
+      pageInfo: {
+        hasNextPage: boolean
+        endCursor: string | null
+      }
     }
   }
 }
@@ -29,7 +33,7 @@ type GraphQLResponse = {
  */
 export async function listBranchesSortedByCommitDate(
   repoFullName: RepoFullName,
-  limit = 20
+  limit?: number // Optional: if provided, return only up to this many branches, else return all
 ): Promise<BranchByCommitDate[]> {
   const { owner, repo } = repoFullName
 
@@ -38,23 +42,13 @@ export async function listBranchesSortedByCommitDate(
     throw new Error("No authenticated GraphQL client available")
   }
 
-  /*
-    We leverage the `refs` connection with the `TAG_COMMIT_DATE` field for ordering.
-    Although the documentation labels this field for tags, GitHub applies the same
-    ordering logic (by target commit date) for branch refs as well.
-    In the unlikely event the API doesn't honour the ordering we still perform a
-    client-side sort as a safety net.
-  */
   const query = `
-    query ($owner: String!, $repo: String!, $limit: Int!) {
+    query ($owner: String!, $repo: String!, $pageSize: Int!, $after: String) {
       repository(owner: $owner, name: $repo) {
         refs(
-          refPrefix: "refs/heads/", 
-          first: $limit, 
-          orderBy: { 
-            field: TAG_COMMIT_DATE, 
-            direction: DESC 
-          }
+          refPrefix: \"refs/heads/\",
+          first: $pageSize,
+          after: $after
         ) {
           nodes {
             name
@@ -64,29 +58,54 @@ export async function listBranchesSortedByCommitDate(
               }
             }
           }
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
         }
       }
     }
   `
 
-  const response = await graphql<GraphQLResponse>(query, {
-    owner,
-    repo,
-    limit,
-  })
+  const allBranches: BranchByCommitDate[] = []
+  let hasNextPage = true
+  let after: string | null = null
+  const pageSize = 100 // GitHub GraphQL max page size
 
-  const branches: BranchByCommitDate[] = response.repository.refs.nodes
-    .filter((n) => n.target?.committedDate)
-    .map((n) => ({
-      name: n.name,
-      committedDate: n.target.committedDate as string,
-    }))
+  while (hasNextPage) {
+    const response = await graphql<GraphQLResponse>(query, {
+      owner,
+      repo,
+      pageSize,
+      after,
+    })
+
+    const nodes = response.repository.refs.nodes
+    for (const n of nodes) {
+      if (n.target?.committedDate) {
+        allBranches.push({
+          name: n.name,
+          committedDate: n.target.committedDate,
+        })
+      }
+    }
+
+    hasNextPage = response.repository.refs.pageInfo.hasNextPage
+    after = response.repository.refs.pageInfo.endCursor
+
+    if (limit && allBranches.length >= limit) {
+      break
+    }
+  }
 
   // Ensure correct sorting just in case the API doesn't respect the order
-  branches.sort(
+  allBranches.sort(
     (a, b) =>
       new Date(b.committedDate).getTime() - new Date(a.committedDate).getTime()
   )
 
-  return branches
+  if (limit) {
+    return allBranches.slice(0, limit)
+  }
+  return allBranches
 }
