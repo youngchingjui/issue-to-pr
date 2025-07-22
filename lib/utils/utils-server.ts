@@ -139,7 +139,6 @@ export async function setupLocalRepository({
         )
         await cleanupRepo(baseDir)
         await cloneRepo(cloneUrl, baseDir)
-        // After re-clone, remote is already correct.
       }
     }
 
@@ -151,4 +150,3 @@ export async function setupLocalRepository({
     throw error
   }
 }
-

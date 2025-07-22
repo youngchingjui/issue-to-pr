@@ -40,7 +40,7 @@ export async function checkIfLocalBranchExists(
     exec(command, { cwd }, (error, stdout, stderr) => {
       // grep returns exit code 1 when no matches are found
       // but other error codes indicate real errors
-      if (error && (error as any).code !== 1) {
+      if (error && error.code !== 1) {
         return reject(new Error(error.message))
       }
       if (stderr) {
