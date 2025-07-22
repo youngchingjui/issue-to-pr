@@ -1,8 +1,8 @@
 "use client"
 
+import { Loader2, Play, Square, Trash2 } from "lucide-react"
 import { useCallback } from "react"
 import useSWR from "swr"
-import { Loader2, Play, Square, Trash2 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -111,4 +111,3 @@ export default function ContainerManager({ workflowId, initialStatus }: Props) {
     </div>
   )
 }
-

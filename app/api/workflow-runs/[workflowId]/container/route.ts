@@ -1,16 +1,15 @@
+// We use child_process exec for simple docker CLI commands that are not yet
+// wrapped by util functions (start/stop). Keeping the dependency small avoids
+// introducing additional dockerode calls for these one-liners.
+import { exec as hostExec } from "child_process"
 import { NextRequest, NextResponse } from "next/server"
+import util from "util"
 
 import {
   getContainerStatus,
   isContainerRunning,
   stopAndRemoveContainer,
 } from "@/lib/docker"
-
-// We use child_process exec for simple docker CLI commands that are not yet
-// wrapped by util functions (start/stop). Keeping the dependency small avoids
-// introducing additional dockerode calls for these one-liners.
-import { exec as hostExec } from "child_process"
-import util from "util"
 
 const execPromise = util.promisify(hostExec)
 
@@ -66,11 +65,16 @@ export async function POST(
       }
     }
   } catch (err) {
-    console.error(`[ContainerActions] Failed to ${action} ${containerName}:`, err)
-    return NextResponse.json({ error: "Failed to execute action" }, { status: 500 })
+    console.error(
+      `[ContainerActions] Failed to ${action} ${containerName}:`,
+      err
+    )
+    return NextResponse.json(
+      { error: "Failed to execute action" },
+      { status: 500 }
+    )
   }
 
   const status = await getContainerStatus(containerName)
   return NextResponse.json({ status })
 }
-

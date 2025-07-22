@@ -3,8 +3,8 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 
 import BaseGitHubItemCard from "@/components/github/BaseGitHubItemCard"
-import ContainerManager from "@/components/workflow-runs/ContainerManager"
 import { Button } from "@/components/ui/button"
+import ContainerManager from "@/components/workflow-runs/ContainerManager"
 import WorkflowRunEventsFeed from "@/components/workflow-runs/WorkflowRunEventsFeed"
 import { getContainerStatus } from "@/lib/docker"
 import { getIssue } from "@/lib/github/issues"
@@ -81,7 +81,7 @@ export default async function WorkflowRunDetailPage({
           />
           {workflow.type && (
             <p className="text-sm text-muted-foreground">
-              Workflow Type: {" "}
+              Workflow Type:{" "}
               {workflow.type === "commentOnIssue"
                 ? "Comment on Issue"
                 : workflow.type}
@@ -116,4 +116,3 @@ export default async function WorkflowRunDetailPage({
     </main>
   )
 }
-
