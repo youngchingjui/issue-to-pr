@@ -251,6 +251,13 @@ export async function ensureValidRepo(
   }
 }
 
+export async function setRemoteOrigin(
+  dir: string,
+  remoteUrl: string
+): Promise<void> {
+  await executeGitCommand(`git remote set-url origin "${remoteUrl}"`, dir)
+}
+
 export async function stageFile(
   filePath: string,
   cwd: string | undefined = undefined

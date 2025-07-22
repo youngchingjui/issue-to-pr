@@ -2,18 +2,11 @@
 
 import { getGithubUser } from "@/lib/github/users"
 import { n4j } from "@/lib/neo4j/client"
+import { neo4jToJs } from "@/lib/neo4j/convert"
 import * as userRepo from "@/lib/neo4j/repositories/user"
-import { Settings as AppSettings } from "@/lib/types"
-import { UserSettings as DbUserSettings } from "@/lib/types/db/neo4j"
+import { Settings, settingsSchema } from "@/lib/types"
 
-export const toAppUserSettings = (db: DbUserSettings): AppSettings => {
-  return {
-    ...db,
-    lastUpdated: db.lastUpdated.toStandardDate(),
-  }
-}
-
-export async function getUserSettings(): Promise<AppSettings | null> {
+export async function getUserSettings(): Promise<Settings | null> {
   const user = await getGithubUser()
   if (!user) return null
   const session = await n4j.getSession()
@@ -21,7 +14,7 @@ export async function getUserSettings(): Promise<AppSettings | null> {
     const db = await session.executeRead((tx) =>
       userRepo.getUserSettings(tx, user.login)
     )
-    return db ? toAppUserSettings(db) : null
+    return db ? settingsSchema.parse(neo4jToJs(db)) : null
   } finally {
     await session.close()
   }

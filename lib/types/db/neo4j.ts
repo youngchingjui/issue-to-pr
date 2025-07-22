@@ -6,6 +6,7 @@ import {
   issueSchema as appIssueSchema,
   llmResponseSchema as appLLMResponseSchema,
   planSchema as appPlanSchema,
+  reasoningEventSchema as appReasoningEventSchema,
   repoSettingsSchema as appRepoSettingsSchema,
   reviewCommentSchema as appReviewCommentSchema,
   settingsSchema as appSettingsSchema,
@@ -101,6 +102,10 @@ export const llmResponseSchema = appLLMResponseSchema
   .omit({ workflowId: true })
   .merge(z.object({ createdAt: z.instanceof(DateTime) }))
 
+export const reasoningEventSchema = appReasoningEventSchema
+  .omit({ workflowId: true })
+  .merge(z.object({ createdAt: z.instanceof(DateTime) }))
+
 export const llmResponseWithPlanSchema = llmResponseSchema.merge(
   planSchema.omit({ createdAt: true })
 )
@@ -119,6 +124,7 @@ export const reviewCommentSchema = appReviewCommentSchema
 
 export const messageEventSchema = z.union([
   llmResponseWithPlanSchema,
+  reasoningEventSchema,
   z.discriminatedUnion("type", [
     userMessageSchema,
     systemPromptSchema,
@@ -131,6 +137,7 @@ export const messageEventSchema = z.union([
 export const anyEventSchema = z.discriminatedUnion("type", [
   errorEventSchema,
   llmResponseSchema,
+  reasoningEventSchema,
   reviewCommentSchema,
   statusEventSchema,
   systemPromptSchema,
@@ -146,6 +153,7 @@ export type Issue = z.infer<typeof issueSchema>
 export type LLMResponse = z.infer<typeof llmResponseSchema>
 export type LLMResponseWithPlan = z.infer<typeof llmResponseWithPlanSchema>
 export type MessageEvent = z.infer<typeof messageEventSchema>
+export type ReasoningEvent = z.infer<typeof reasoningEventSchema>
 export type Plan = z.infer<typeof planSchema>
 export type Task = z.infer<typeof taskSchema>
 export type ReviewComment = z.infer<typeof reviewCommentSchema>

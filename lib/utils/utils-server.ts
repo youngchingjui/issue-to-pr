@@ -12,6 +12,7 @@ import {
   cleanupRepo,
   cloneRepo,
   ensureValidRepo,
+  setRemoteOrigin,
 } from "@/lib/git"
 import getOctokit from "@/lib/github"
 import { getCloneUrlWithAccessToken } from "@/lib/utils/utils-common"
@@ -46,7 +47,9 @@ export function getInstallationId(): string | null {
  *    through `runWithInstallationId` / `getInstallationId`.
  * 3. Verify that the local repository is healthy via `ensureValidRepo`; if it
  *    is corrupt or missing, attempt a fresh clone.
- * 4. Perform a clean checkout of `workingBranch`, retrying up to three times
+ * 4. Ensure the local repo's "origin" remote uses the authenticated URL so
+ *    subsequent fetches succeed.
+ * 5. Perform a clean checkout of `workingBranch`, retrying up to three times
  *    and re-cloning when necessary.
  *
  * The function is resilient to transient git failures and cleans up the local
@@ -74,7 +77,7 @@ export async function setupLocalRepository({
   try {
     let cloneUrl: string
 
-    // First try user session authentication
+    // 1. Determine an authenticated clone URL
     const session = await auth()
     if (session?.token?.access_token) {
       cloneUrl = getCloneUrlWithAccessToken(
@@ -88,7 +91,6 @@ export async function setupLocalRepository({
         throw new Error("Failed to get authenticated Octokit instance")
       }
 
-      // Get the repository details to get the clone URL
       const [owner, repo] = repoFullName.split("/")
       const { data: repoData } = await octokit.rest.repos.get({
         owner,
@@ -97,7 +99,6 @@ export async function setupLocalRepository({
 
       cloneUrl = repoData.clone_url as string
 
-      // If we have an installation ID, modify the clone URL to use the installation token
       const installationId = getInstallationId()
       if (installationId) {
         const token = (await octokit.auth({
@@ -108,10 +109,18 @@ export async function setupLocalRepository({
       }
     }
 
-    // Check repository state and repair if needed
+    // 2. Ensure repository exists and is healthy
     await ensureValidRepo(baseDir, cloneUrl)
 
-    // Try clean checkout with retries
+    // 3. Always make sure the "origin" remote points to our authenticated URL
+    try {
+      await setRemoteOrigin(baseDir, cloneUrl)
+    } catch (e) {
+      // Not fatal; log and continue. Subsequent operations may still work.
+      console.warn(`[WARNING] Failed to set authenticated remote: ${e}`)
+    }
+
+    // 4. Clean checkout with retries
     let retries = 3
     while (retries > 0) {
       try {
