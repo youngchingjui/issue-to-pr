@@ -7,6 +7,10 @@ import {
   IssueTitleResponseSchema,
 } from "@/lib/types/api/schemas"
 
+// TODO: Since this is a POST request, this can be converted to a server action
+// This will likely be saved somewhere in /lib folder (not /lib/actions)
+// Will need to find a place to store this helper functionality that makes sense
+// in our codebase
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()

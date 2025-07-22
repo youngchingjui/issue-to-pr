@@ -84,6 +84,7 @@ const eventTypes = z.enum([
   "llmResponse",
   "llmResponseWithPlan",
   "message",
+  "reasoning",
   "reviewComment",
   "status",
   "systemPrompt",
@@ -120,6 +121,12 @@ export const llmResponseWithPlanSchema = baseEventSchema.merge(
   })
 )
 
+export const reasoningEventSchema = baseEventSchema.extend({
+  type: z.literal("reasoning"),
+  title: z.string(),
+  content: z.string(),
+})
+
 export const statusEventSchema = baseEventSchema.extend({
   type: z.literal("status"),
   content: z.string(),
@@ -149,8 +156,13 @@ export const toolCallResultSchema = baseEventSchema.extend({
   content: z.string(),
 })
 
-// TODO: Change 'running' to 'inProgress'
-export const workflowRunStateSchema = z.enum(["running", "completed", "error"])
+// Added "timedOut" to represent runs that exceeded the maximum allowed duration.
+export const workflowRunStateSchema = z.enum([
+  "running",
+  "completed",
+  "error",
+  "timedOut",
+])
 
 export const workflowStateEventSchema = baseEventSchema.extend({
   type: z.literal("workflowState"),
@@ -173,6 +185,7 @@ export const messageEventSchema = z.discriminatedUnion("type", [
   systemPromptSchema,
   llmResponseSchema,
   llmResponseWithPlanSchema,
+  reasoningEventSchema,
   toolCallSchema,
   toolCallResultSchema,
 ])
@@ -300,6 +313,7 @@ export type Issue = z.infer<typeof issueSchema>
 export type LLMResponse = z.infer<typeof llmResponseSchema>
 export type LLMResponseWithPlan = z.infer<typeof llmResponseWithPlanSchema>
 export type MessageEvent = z.infer<typeof messageEventSchema>
+export type ReasoningEvent = z.infer<typeof reasoningEventSchema>
 export type Plan = z.infer<typeof planSchema>
 export type PlanMeta = z.infer<typeof planMetaSchema>
 export type ReviewComment = z.infer<typeof reviewCommentSchema>

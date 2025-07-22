@@ -1,6 +1,5 @@
 import { ManagedTransaction } from "neo4j-driver"
 
-import { Issue as AppIssue } from "@/lib/types"
 import { Issue as DbIssue, issueSchema } from "@/lib/types/db/neo4j"
 
 export async function get(
@@ -35,11 +34,4 @@ export async function getOrCreate(
     { number: issue.number, repo: issue.repoFullName }
   )
   return issueSchema.parse(result.records[0].get("i").properties)
-}
-
-export const toAppIssue = (dbIssue: DbIssue): AppIssue => {
-  return {
-    ...dbIssue,
-    number: dbIssue.number.toNumber(),
-  }
 }

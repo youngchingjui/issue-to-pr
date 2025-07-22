@@ -1,15 +1,10 @@
 import { Integer, ManagedTransaction, Node } from "neo4j-driver"
 
 import {
-  AnyEvent as appAnyEvent,
-  MessageEvent as appMessageEvent,
-} from "@/lib/types"
-import {
   AnyEvent,
   anyEventSchema,
   ErrorEvent,
   errorEventSchema,
-  isLLMResponseWithPlan,
   LLMResponse,
   llmResponseSchema,
   MessageEvent,
@@ -318,57 +313,4 @@ export async function getEventsForWorkflowRun(
   return result.records.map((record) =>
     anyEventSchema.parse(record.get("e").properties)
   )
-}
-
-export async function toAppEvent(
-  dbEvent: AnyEvent,
-  workflowId: string
-): Promise<appAnyEvent> {
-  if (dbEvent.type === "llmResponse" && isLLMResponseWithPlan(dbEvent)) {
-    // Destructure to exclude plan-specific properties from the spread
-    const { version, status, editMessage, createdAt, ...restDbEvent } = dbEvent
-
-    return {
-      ...restDbEvent,
-      createdAt: createdAt.toStandardDate(),
-      type: "llmResponseWithPlan",
-      workflowId,
-      plan: {
-        id: dbEvent.id,
-        status: status,
-        version: version.toNumber(),
-        editMessage: editMessage,
-      },
-    }
-  }
-  return {
-    ...dbEvent,
-    createdAt: dbEvent.createdAt.toStandardDate(),
-    workflowId,
-  }
-}
-
-export async function toAppMessageEvent(
-  dbEvent: MessageEvent,
-  workflowId: string
-): Promise<appMessageEvent> {
-  if (dbEvent.type === "llmResponse" && isLLMResponseWithPlan(dbEvent)) {
-    return {
-      ...dbEvent,
-      createdAt: dbEvent.createdAt.toStandardDate(),
-      type: "llmResponseWithPlan",
-      workflowId,
-      plan: {
-        id: dbEvent.id,
-        status: dbEvent.status,
-        version: dbEvent.version.toNumber(),
-        editMessage: dbEvent.editMessage,
-      },
-    }
-  }
-  return {
-    ...dbEvent,
-    createdAt: dbEvent.createdAt.toStandardDate(),
-    workflowId,
-  }
 }

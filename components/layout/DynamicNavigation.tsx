@@ -41,7 +41,10 @@ export default function DynamicNavigation({
   const isLandingPage = pathname === "/"
   const isBlogsPage = pathname === "/blogs"
 
-  if (isLandingPage || isBlogsPage) {
+  // Show the landing page navigation *only* for unauthenticated users.
+  // Once the user is signed in, we want to expose the full authenticated
+  // navigation even when they remain on the landing or blog pages.
+  if (!isAuthenticated && (isLandingPage || isBlogsPage)) {
     return (
       <div className="flex items-center flex-1 ml-6">
         <div className="hidden sm:flex items-center md:gap-0 lg:gap-6">
@@ -56,38 +59,22 @@ export default function DynamicNavigation({
         </div>
 
         <div className="hidden sm:flex ml-auto items-center space-x-4">
-          {!isAuthenticated ? (
-            <form action={signInWithGithub.bind(null, redirectPath)}>
-              <motion.button
-                type="submit"
-                whileHover={{ scale: 1.02, translateY: -2 }}
-                whileTap={{ scale: 0.98 }}
-                className="flex items-center px-3 py-1.5 bg-gradient-to-br from-stone-800 to-stone-700 text-stone-50 rounded-lg shadow-lg hover:shadow-xl hover:from-stone-700 hover:to-stone-600 group text-sm"
-              >
-                <Github
-                  className="mr-1.5 sm:mr-2.5"
-                  size={16}
-                  aria-hidden="true"
-                />
-                <span className="hidden lg:inline">Sign in with GitHub</span>
-                <span className="lg:hidden">Sign in</span>
-              </motion.button>
-            </form>
-          ) : (
-            <div className="flex items-center gap-4">
-              <Link href={`/issues`}>
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="flex items-center px-4 py-2"
-                >
-                  <Github className="mr-2" size={20} />
-                  My Issues
-                </Button>
-              </Link>
-              <SignOutButton />
-            </div>
-          )}
+          <form action={signInWithGithub.bind(null, redirectPath)}>
+            <motion.button
+              type="submit"
+              whileHover={{ scale: 1.02, translateY: -2 }}
+              whileTap={{ scale: 0.98 }}
+              className="flex items-center px-3 py-1.5 bg-gradient-to-br from-stone-800 to-stone-700 text-stone-50 rounded-lg shadow-lg hover:shadow-xl hover:from-stone-700 hover:to-stone-600 group text-sm"
+            >
+              <Github
+                className="mr-1.5 sm:mr-2.5"
+                size={16}
+                aria-hidden="true"
+              />
+              <span className="hidden lg:inline">Sign in with GitHub</span>
+              <span className="lg:hidden">Sign in</span>
+            </motion.button>
+          </form>
         </div>
 
         <Sheet>
@@ -111,22 +98,11 @@ export default function DynamicNavigation({
               ))}
             </nav>
             <div className="mt-6 space-y-2">
-              {!isAuthenticated ? (
-                <form action={signInWithGithub.bind(null, redirectPath)}>
-                  <Button type="submit" className="w-full">
-                    Sign in with GitHub
-                  </Button>
-                </form>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  <Link href={`/issues`}>
-                    <Button variant="outline" className="w-full">
-                      My Issues
-                    </Button>
-                  </Link>
-                  <SignOutButton />
-                </div>
-              )}
+              <form action={signInWithGithub.bind(null, redirectPath)}>
+                <Button type="submit" className="w-full">
+                  Sign in with GitHub
+                </Button>
+              </form>
             </div>
           </SheetContent>
         </Sheet>
@@ -215,7 +191,7 @@ export default function DynamicNavigation({
     )
   }
 
-  // Not authenticated - show sign in button
+  // Not authenticated - show sign in button (non-landing pages)
   return (
     <>
       <nav className="hidden sm:flex items-center space-x-4 ml-auto">
@@ -250,3 +226,4 @@ export default function DynamicNavigation({
     </>
   )
 }
+
