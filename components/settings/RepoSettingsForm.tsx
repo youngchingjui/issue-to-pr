@@ -99,7 +99,6 @@ export default function RepoSettingsForm({
       </div>
       <div className="mb-4 space-y-2">
         <p className="font-medium">Issue Automation</p>
-        {/* commentOnIssue toggle (disabled for now) */}
         <div className="flex items-center justify-between">
           <Label
             htmlFor="auto-run-comment"
@@ -116,7 +115,6 @@ export default function RepoSettingsForm({
             disabled
           />
         </div>
-        {/* post comment (disabled) */}
         <div className="flex items-center justify-between">
           <Label
             htmlFor="post-issue-comment"
@@ -133,7 +131,6 @@ export default function RepoSettingsForm({
             disabled
           />
         </div>
-        {/* autoResolveIssue toggle – new */}
         <div className="flex items-center justify-between">
           <Label
             htmlFor="auto-run-auto-resolve"
@@ -150,7 +147,6 @@ export default function RepoSettingsForm({
             disabled={loading}
           />
         </div>
-        {/* legacy resolveIssue toggle (disabled) */}
         <div className="flex items-center justify-between">
           <Label
             htmlFor="auto-run-resolve"
@@ -165,7 +161,6 @@ export default function RepoSettingsForm({
             disabled
           />
         </div>
-        {/* create PR toggle (disabled) */}
         <div className="flex items-center justify-between">
           <Label htmlFor="post-pr" className="text-sm text-muted-foreground">
             Create PR on GitHub
@@ -192,4 +187,3 @@ export default function RepoSettingsForm({
     </form>
   )
 }
-

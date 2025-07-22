@@ -2,8 +2,8 @@ import { v4 as uuidv4 } from "uuid"
 
 import { getRepoFromString } from "@/lib/github/content"
 import { getIssue } from "@/lib/github/issues"
-import { updateJobStatus } from "@/lib/redis-old"
 import { getRepositorySettings } from "@/lib/neo4j/services/repository"
+import { updateJobStatus } from "@/lib/redis-old"
 import { repoFullNameSchema } from "@/lib/types/github"
 import autoResolveIssue from "@/lib/workflows/autoResolveIssue"
 import { resolveIssue } from "@/lib/workflows/resolveIssue"
@@ -34,7 +34,7 @@ export const routeWebhookHandler = async ({
   payload,
 }: {
   event: string
-  payload: Record<string, any>
+  payload: object
 }) => {
   if (!Object.values(GitHubEvent).includes(event as GitHubEvent)) {
     console.error("Invalid event type:", event)
@@ -166,4 +166,3 @@ export const routeWebhookHandler = async ({
     console.log(`${event} event received on ${repository}`)
   }
 }
-
