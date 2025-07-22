@@ -8,7 +8,6 @@ import {
   toAppEvent,
   toAppMessageEvent,
 } from "@/lib/neo4j/repositories/event"
-import { toAppIssue } from "@/lib/neo4j/repositories/issue"
 import {
   create,
   getWithDetails,
@@ -86,7 +85,9 @@ export async function initializeWorkflowRun({
     // Transform database models to application models outside the transaction
     return {
       run: workflowRunSchema.parse(neo4jToJs(result.run)),
-      ...(result.issue && { issue: toAppIssue(result.issue) }),
+      ...(result.issue && {
+        issue: issueSchema.parse(neo4jToJs(result.issue)),
+      }),
     }
   } finally {
     await session.close()
@@ -166,7 +167,7 @@ export async function getWorkflowRunWithDetails(
     return {
       workflow: workflowRunSchema.parse(neo4jToJs(workflow)),
       events: await Promise.all(events.map((e) => toAppEvent(e, workflow.id))),
-      issue: issue ? toAppIssue(issue) : undefined,
+      issue: issue ? issueSchema.parse(neo4jToJs(issue)) : undefined,
     }
   } finally {
     await session.close()

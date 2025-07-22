@@ -2,7 +2,6 @@ import { int, ManagedTransaction } from "neo4j-driver"
 
 import { n4j } from "@/lib/neo4j/client"
 import { neo4jToJs } from "@/lib/neo4j/convert"
-import { toAppIssue } from "@/lib/neo4j/repositories/issue"
 import {
   createPlanImplementsIssue,
   getPlanWithDetails as dbGetPlanWithDetails,
@@ -13,6 +12,7 @@ import {
 } from "@/lib/neo4j/repositories/plan"
 import {
   Issue,
+  issueSchema,
   LLMResponseWithPlan,
   Plan,
   planSchema,
@@ -110,7 +110,7 @@ export async function getPlanWithDetails(
     return {
       plan: planSchema.parse(neo4jToJs(result.plan)),
       workflow: workflowRunSchema.parse(neo4jToJs(result.workflow)),
-      issue: toAppIssue(result.issue),
+      issue: issueSchema.parse(neo4jToJs(result.issue)),
     }
   } finally {
     await session.close()
