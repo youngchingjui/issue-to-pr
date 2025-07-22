@@ -43,8 +43,11 @@ export default function SpeechToTextCard() {
       recorder.start()
       setMediaRecorder(recorder)
       setIsRecording(true)
-    } catch (err) {
-      toast({ description: "Unable to access microphone." })
+    } catch {
+      toast({
+        description: "Unable to access microphone.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -103,7 +106,11 @@ export default function SpeechToTextCard() {
         </div>
         <div className="flex items-center gap-4">
           {isRecording ? (
-            <Button variant="destructive" onClick={stopRecording} disabled={isTranscribing}>
+            <Button
+              variant="destructive"
+              onClick={stopRecording}
+              disabled={isTranscribing}
+            >
               Stop Recording
             </Button>
           ) : (
@@ -119,4 +126,3 @@ export default function SpeechToTextCard() {
     </Card>
   )
 }
-

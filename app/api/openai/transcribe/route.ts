@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+
 import { openai } from "@/lib/openai"
 
 // Whisper transcription endpoint
@@ -18,7 +19,9 @@ export async function POST(req: NextRequest) {
 
     // Convert the incoming blob to a File object so that the OpenAI SDK can accept it.
     // In Node 18+, File is available globally via undici's fetch implementation.
-    const audioFile = new File([file], "recording.webm", { type: file.type || "audio/webm" })
+    const audioFile = new File([file], "recording.webm", {
+      type: file.type || "audio/webm",
+    })
 
     // Call Whisper
     const transcription = await openai.audio.transcriptions.create({
@@ -32,4 +35,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }
-
