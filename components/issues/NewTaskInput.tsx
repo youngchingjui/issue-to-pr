@@ -1,19 +1,13 @@
 "use client"
 
-import { HelpCircle, Loader2 } from "lucide-react"
+import { Check, Loader2, Mic } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useState, useTransition } from "react"
+import { useCallback, useEffect, useRef, useState, useTransition } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { createIssue } from "@/lib/github/issues"
 import { toast } from "@/lib/hooks/use-toast"
+import { createIssue } from "@/lib/github/issues"
 import { IssueTitleResponseSchema } from "@/lib/types/api/schemas"
 import { RepoFullName } from "@/lib/types/github"
 
@@ -26,8 +20,23 @@ export default function NewTaskInput({ repoFullName }: Props) {
   const [loading, setLoading] = useState(false)
   const [generatingTitle, setGeneratingTitle] = useState(false)
   const [isPending, startTransition] = useTransition()
+
+  // Recording related state
+  const [isRecording, setIsRecording] = useState(false)
+  const [isTranscribing, setIsTranscribing] = useState(false)
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
+  const audioChunks = useRef<Blob[]>([])
+
   const router = useRouter()
 
+  // Cleanup recorder on unmount
+  useEffect(() => {
+    return () => {
+      mediaRecorder?.stream.getTracks().forEach((t) => t.stop())
+    }
+  }, [mediaRecorder])
+
+  /* --------------------------------- Issue Submission -------------------------------- */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -108,17 +117,69 @@ export default function NewTaskInput({ repoFullName }: Props) {
 
   const isSubmitting = loading || generatingTitle || isPending
 
+  /* --------------------------------- Recording helpers -------------------------------- */
+  const startRecording = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      toast({ description: "Your browser does not support audio recording.", variant: "destructive" })
+      return
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const recorder = new MediaRecorder(stream)
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunks.current.push(e.data)
+      }
+      recorder.onstop = handleRecordingStop
+      recorder.start()
+      setMediaRecorder(recorder)
+      setIsRecording(true)
+    } catch {
+      toast({ description: "Unable to access microphone.", variant: "destructive" })
+    }
+  }
+
+  const stopRecording = () => {
+    mediaRecorder?.stop()
+  }
+
+  const handleRecordingStop = useCallback(async () => {
+    setIsRecording(false)
+    const blob = new Blob(audioChunks.current, { type: "audio/webm" })
+    audioChunks.current = []
+
+    const formData = new FormData()
+    formData.append("file", blob, "recording.webm")
+
+    setIsTranscribing(true)
+    try {
+      const res = await fetch("/api/openai/transcribe", {
+        method: "POST",
+        body: formData,
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to transcribe")
+
+      const text: string = data.text || ""
+      if (text) {
+        setDescription((prev) => (prev.trim() ? `${prev}\n${text}` : text))
+      }
+    } catch (err) {
+      toast({ description: String(err), variant: "destructive" })
+    } finally {
+      setIsTranscribing(false)
+    }
+  }, [])
+
+  /* ------------------------------------ JSX ------------------------------------------- */
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="mb-6 grid gap-4 border-b border-muted pb-6"
-    >
+    <form onSubmit={handleSubmit} className="mb-6 grid gap-4 border-b border-muted pb-6">
       <div className="grid gap-2">
         <Textarea
           id="description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Describe a task"
+          placeholder="Describe a task or use the microphone to speak..."
           required
           disabled={isSubmitting}
           rows={3}
@@ -128,8 +189,7 @@ export default function NewTaskInput({ repoFullName }: Props) {
         <Button type="submit" disabled={isSubmitting}>
           {generatingTitle ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating issue
-              title...
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating issue title...
             </>
           ) : loading || isPending ? (
             <>
@@ -139,20 +199,26 @@ export default function NewTaskInput({ repoFullName }: Props) {
             "Create Github Issue"
           )}
         </Button>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span>
-                <HelpCircle className="h-4 w-4 text-muted-foreground/70 cursor-help" />
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>
-              Creates an Issue on Github. If the Issue To PR Github App is
-              installed, a Plan will automatically be generated for your Issue.
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+
+        {/* Microphone Button */}
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={isRecording ? stopRecording : startRecording}
+          disabled={isSubmitting || isTranscribing}
+          className={isRecording ? "animate-pulse" : ""}
+          size="icon"
+        >
+          {isTranscribing ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : isRecording ? (
+            <Check className="h-4 w-4" />
+          ) : (
+            <Mic className="h-4 w-4" />
+          )}
+        </Button>
       </div>
     </form>
   )
 }
+
