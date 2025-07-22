@@ -6,8 +6,8 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { toast } from "@/lib/hooks/use-toast"
 import { createIssue } from "@/lib/github/issues"
+import { toast } from "@/lib/hooks/use-toast"
 import { IssueTitleResponseSchema } from "@/lib/types/api/schemas"
 import { RepoFullName } from "@/lib/types/github"
 
@@ -36,7 +36,6 @@ export default function NewTaskInput({ repoFullName }: Props) {
     }
   }, [mediaRecorder])
 
-  /* --------------------------------- Issue Submission -------------------------------- */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -117,10 +116,12 @@ export default function NewTaskInput({ repoFullName }: Props) {
 
   const isSubmitting = loading || generatingTitle || isPending
 
-  /* --------------------------------- Recording helpers -------------------------------- */
   const startRecording = async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
-      toast({ description: "Your browser does not support audio recording.", variant: "destructive" })
+      toast({
+        description: "Your browser does not support audio recording.",
+        variant: "destructive",
+      })
       return
     }
 
@@ -135,7 +136,10 @@ export default function NewTaskInput({ repoFullName }: Props) {
       setMediaRecorder(recorder)
       setIsRecording(true)
     } catch {
-      toast({ description: "Unable to access microphone.", variant: "destructive" })
+      toast({
+        description: "Unable to access microphone.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -171,9 +175,11 @@ export default function NewTaskInput({ repoFullName }: Props) {
     }
   }, [])
 
-  /* ------------------------------------ JSX ------------------------------------------- */
   return (
-    <form onSubmit={handleSubmit} className="mb-6 grid gap-4 border-b border-muted pb-6">
+    <form
+      onSubmit={handleSubmit}
+      className="mb-6 grid gap-4 border-b border-muted pb-6"
+    >
       <div className="grid gap-2">
         <Textarea
           id="description"
@@ -189,7 +195,8 @@ export default function NewTaskInput({ repoFullName }: Props) {
         <Button type="submit" disabled={isSubmitting}>
           {generatingTitle ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating issue title...
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating issue
+              title...
             </>
           ) : loading || isPending ? (
             <>
@@ -199,8 +206,6 @@ export default function NewTaskInput({ repoFullName }: Props) {
             "Create Github Issue"
           )}
         </Button>
-
-        {/* Microphone Button */}
         <Button
           type="button"
           variant="secondary"
@@ -221,4 +226,3 @@ export default function NewTaskInput({ repoFullName }: Props) {
     </form>
   )
 }
-
