@@ -15,7 +15,6 @@ import {
   RepoFullName,
 } from "@/lib/types/github"
 
-// ------------------------------ GitHub Issue Helpers ------------------------
 export async function createIssue({
   repoFullName,
   title,
@@ -54,7 +53,7 @@ export async function getIssue({
       issue_number: issueNumber,
     })
     return { type: "success", issue: issue.data }
-  } catch (error: any) {
+  } catch (error) {
     if (!error) {
       return { type: "other_error", error: "Unknown error" }
     }
@@ -227,4 +226,3 @@ export async function getIssueListWithStatus({
 
   return withStatus
 }
-
