@@ -84,7 +84,7 @@ const eventTypes = z.enum([
   "llmResponse",
   "llmResponseWithPlan",
   "message",
-  "reasoning", // NEW – reasoning output event
+  "reasoning",
   "reviewComment",
   "status",
   "systemPrompt",
@@ -123,6 +123,7 @@ export const llmResponseWithPlanSchema = baseEventSchema.merge(
 
 export const reasoningEventSchema = baseEventSchema.extend({
   type: z.literal("reasoning"),
+  title: z.string(),
   content: z.string(),
 })
 
@@ -179,7 +180,7 @@ export const messageEventSchema = z.discriminatedUnion("type", [
   systemPromptSchema,
   llmResponseSchema,
   llmResponseWithPlanSchema,
-  reasoningEventSchema, // include reasoning as a Message event
+  reasoningEventSchema,
   toolCallSchema,
   toolCallResultSchema,
 ])
@@ -316,4 +317,3 @@ export type WorkflowRun = z.infer<typeof workflowRunSchema>
 export type WorkflowRunState = z.infer<typeof workflowRunStateSchema>
 export type WorkflowStateEvent = z.infer<typeof workflowStateEventSchema>
 export type WorkflowType = z.infer<typeof workflowTypeEnum>
-

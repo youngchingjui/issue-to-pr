@@ -6,7 +6,7 @@ import {
   issueSchema as appIssueSchema,
   llmResponseSchema as appLLMResponseSchema,
   planSchema as appPlanSchema,
-  reasoningEventSchema as appReasoningEventSchema, // NEW
+  reasoningEventSchema as appReasoningEventSchema,
   repoSettingsSchema as appRepoSettingsSchema,
   reviewCommentSchema as appReviewCommentSchema,
   settingsSchema as appSettingsSchema,
@@ -189,4 +189,3 @@ export const userSettingsSchema = appSettingsSchema.merge(
 )
 
 export type UserSettings = z.infer<typeof userSettingsSchema>
-
