@@ -3,7 +3,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 
 import BaseGitHubItemCard from "@/components/github/BaseGitHubItemCard"
-import { Badge } from "@/components/ui/badge"
+import ContainerManager from "@/components/workflow-runs/ContainerManager"
 import { Button } from "@/components/ui/button"
 import WorkflowRunEventsFeed from "@/components/workflow-runs/WorkflowRunEventsFeed"
 import { getContainerStatus } from "@/lib/docker"
@@ -18,27 +18,6 @@ import { GetIssueResult } from "@/lib/types/github"
  */
 function containerNameForTrace(traceId: string): string {
   return `agent-${traceId}`.replace(/[^a-zA-Z0-9_.-]/g, "-")
-}
-
-/**
- * Map a Docker status string to a badge variant for quick visual cues.
- */
-function badgeVariantForStatus(
-  status: string
-): "default" | "secondary" | "outline" | "destructive" {
-  switch (status) {
-    case "running":
-      return "default"
-    case "exited":
-    case "created":
-    case "paused":
-    case "dead":
-      return "secondary"
-    case "not_found":
-      return "outline"
-    default:
-      return "secondary"
-  }
 }
 
 export default async function WorkflowRunDetailPage({
@@ -94,13 +73,15 @@ export default async function WorkflowRunDetailPage({
         <div className="space-y-2">
           <h1 className="text-2xl font-bold flex items-center gap-3 flex-wrap">
             {issue?.title || `Workflow Run: ${traceId}`}
-            <Badge variant={badgeVariantForStatus(containerStatus)}>
-              Container: {containerStatus}
-            </Badge>
           </h1>
+          {/* Container actions & status */}
+          <ContainerManager
+            workflowId={traceId}
+            initialStatus={containerStatus}
+          />
           {workflow.type && (
             <p className="text-sm text-muted-foreground">
-              Workflow Type:{" "}
+              Workflow Type: {" "}
               {workflow.type === "commentOnIssue"
                 ? "Comment on Issue"
                 : workflow.type}
@@ -135,3 +116,4 @@ export default async function WorkflowRunDetailPage({
     </main>
   )
 }
+
