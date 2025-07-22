@@ -1,6 +1,6 @@
 "use client"
 
-import { Check, Loader2, Mic } from "lucide-react"
+import { Loader2, Mic } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useRef, useState, useTransition } from "react"
 
@@ -212,12 +212,14 @@ export default function NewTaskInput({ repoFullName }: Props) {
           onClick={isRecording ? stopRecording : startRecording}
           disabled={isSubmitting || isTranscribing}
           className={isRecording ? "animate-pulse" : ""}
-          size="icon"
+          size={isRecording ? undefined : "icon"}
         >
           {isTranscribing ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : isRecording ? (
-            <Check className="h-4 w-4" />
+            <>
+              <Mic className="mr-2 h-4 w-4" /> Listening...
+            </>
           ) : (
             <Mic className="h-4 w-4" />
           )}
@@ -226,3 +228,4 @@ export default function NewTaskInput({ repoFullName }: Props) {
     </form>
   )
 }
+
