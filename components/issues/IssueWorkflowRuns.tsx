@@ -40,6 +40,19 @@ const fetcher = async (url: string) => {
   return result
 }
 
+const getBadgeVariant = (state: WorkflowRunState) => {
+  switch (state) {
+    case "completed":
+      return "default"
+    case "error":
+      return "destructive"
+    case "timedOut":
+      return "outline"
+    default:
+      return "secondary"
+  }
+}
+
 export default function IssueWorkflowRuns({
   repoFullName,
   issueNumber,
@@ -48,7 +61,7 @@ export default function IssueWorkflowRuns({
   const [latestPlanId, setLatestPlanId] = useState<string | null>(null)
   const [prNumber, setPrNumber] = useState<number | null>(null)
 
-  // ---- Fetch latest plan id ----
+  // Fetch latest plan id
   useEffect(() => {
     const loadPlan = async () => {
       try {
@@ -65,7 +78,7 @@ export default function IssueWorkflowRuns({
     loadPlan()
   }, [repoFullName, issueNumber])
 
-  // ---- Fetch PR number linked to issue ----
+  // Fetch PR number linked to issue
   useEffect(() => {
     const loadPR = async () => {
       try {
@@ -84,7 +97,8 @@ export default function IssueWorkflowRuns({
 
   // Determine if we should poll based on run states – only keep polling while
   // at least one run is still genuinely running.
-  const shouldPoll = (runs: WorkflowRun[]) => runs.some((r) => r.state === "running")
+  const shouldPoll = (runs: WorkflowRun[]) =>
+    runs.some((r) => r.state === "running")
 
   const { data } = useSWR(
     `/api/workflow-runs?repo=${encodeURIComponent(repoFullName)}&issue=${issueNumber}`,
@@ -144,17 +158,7 @@ export default function IssueWorkflowRuns({
                     </Link>
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      variant={
-                        run.state === "completed"
-                          ? "default"
-                          : run.state === "error"
-                          ? "destructive"
-                          : run.state === "timedOut"
-                          ? "outline"
-                          : "secondary"
-                      }
-                    >
+                    <Badge variant={getBadgeVariant(run.state)}>
                       {run.state}
                     </Badge>
                   </TableCell>
@@ -198,4 +202,3 @@ export default function IssueWorkflowRuns({
     </Card>
   )
 }
-
