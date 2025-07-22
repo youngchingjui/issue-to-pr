@@ -207,9 +207,8 @@ export async function getIssueListWithStatus({
           repoFullName,
           issueNumber: issue.number,
         })
-        hasActiveWorkflow = runs.some(
-          (r) => r.state !== "completed" && r.state !== "error"
-        )
+        // Only consider a workflow "active" if it is still running (ignore timedOut)
+        hasActiveWorkflow = runs.some((r) => r.state === "running")
       } catch (err) {
         console.error(`Issue listing workflow runs: ${String(err)}`)
       }

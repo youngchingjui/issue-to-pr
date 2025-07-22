@@ -1,26 +1,25 @@
 import { int } from "neo4j-driver"
 
 import { n4j } from "@/lib/neo4j/client"
+import { neo4jToJs, toAppEvent, toAppMessageEvent } from "@/lib/neo4j/convert"
 import {
   getEventsForWorkflowRun,
   getMessagesForWorkflowRun,
-  toAppEvent,
-  toAppMessageEvent,
 } from "@/lib/neo4j/repositories/event"
-import { toAppIssue } from "@/lib/neo4j/repositories/issue"
 import {
   create,
   getWithDetails,
   listAll,
   listForIssue,
   mergeIssueLink,
-  toAppWorkflowRun,
 } from "@/lib/neo4j/repositories/workflowRun"
 import {
   AnyEvent,
   Issue as AppIssue,
+  issueSchema,
   MessageEvent,
   WorkflowRun as AppWorkflowRun,
+  workflowRunSchema,
   WorkflowRunState,
   WorkflowType,
 } from "@/lib/types"
@@ -83,16 +82,33 @@ export async function initializeWorkflowRun({
 
     // Transform database models to application models outside the transaction
     return {
-      run: toAppWorkflowRun(result.run),
-      ...(result.issue && { issue: toAppIssue(result.issue) }),
+      run: workflowRunSchema.parse(neo4jToJs(result.run)),
+      ...(result.issue && {
+        issue: issueSchema.parse(neo4jToJs(result.issue)),
+      }),
     }
   } finally {
     await session.close()
   }
 }
 
+const WORKFLOW_TIMEOUT_MS = 60 * 60 * 1000 // 1 hour
+
+function deriveState(
+  state: WorkflowRunState | null,
+  createdAt: Date
+): WorkflowRunState {
+  if (state === "running") {
+    const ageMs = Date.now() - createdAt.getTime()
+    if (ageMs > WORKFLOW_TIMEOUT_MS) {
+      return "timedOut"
+    }
+  }
+  return state ?? "completed"
+}
+
 /**
- * Now returns workflows with optional 'issue' field & proper type
+ * Returns workflows with run state and connected issue (if any)
  */
 export async function listWorkflowRuns(issue?: {
   repoFullName: string
@@ -109,16 +125,20 @@ export async function listWorkflowRuns(issue?: {
           number: int(issue.issueNumber),
         })
       }
-
       return await listAll(tx)
     })
 
     return result
-      .map((run) => ({
-        ...toAppWorkflowRun(run),
-        state: run.state,
-        issue: run.issue,
-      }))
+      .map(({ run, state, issue }) => {
+        const appRun = workflowRunSchema.parse(neo4jToJs(run))
+        const derivedState = deriveState(state, appRun.createdAt)
+        const appIssue = issue ? issueSchema.parse(neo4jToJs(issue)) : undefined
+        return {
+          ...appRun,
+          state: derivedState,
+          issue: appIssue,
+        }
+      })
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
   } finally {
     await session.close()
@@ -143,9 +163,9 @@ export async function getWorkflowRunWithDetails(
       }
     )
     return {
-      workflow: toAppWorkflowRun(workflow),
+      workflow: workflowRunSchema.parse(neo4jToJs(workflow)),
       events: await Promise.all(events.map((e) => toAppEvent(e, workflow.id))),
-      issue: issue ? toAppIssue(issue) : undefined,
+      issue: issue ? issueSchema.parse(neo4jToJs(issue)) : undefined,
     }
   } finally {
     await session.close()
