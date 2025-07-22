@@ -1,7 +1,6 @@
 import { int, Integer, ManagedTransaction, Node } from "neo4j-driver"
 import { z } from "zod"
 
-import { Plan as AppPlan } from "@/lib/types"
 import {
   Issue,
   issueSchema,
@@ -90,15 +89,6 @@ export async function createPlanImplementsIssue(
   return {
     plan: z.union([planSchema, llmResponseWithPlanSchema]).parse(p),
     issue: issueSchema.parse(i),
-  }
-}
-
-// Convert db-level Plan to app-level Plan (currently passthrough, but for future-proofing)
-export const toAppPlan = (dbPlan: Plan): AppPlan => {
-  return {
-    ...dbPlan,
-    version: dbPlan.version.toNumber(),
-    createdAt: dbPlan.createdAt.toStandardDate(),
   }
 }
 

@@ -1,6 +1,7 @@
 import { int, ManagedTransaction } from "neo4j-driver"
 
 import { n4j } from "@/lib/neo4j/client"
+import { neo4jToJs } from "@/lib/neo4j/convert"
 import { toAppIssue } from "@/lib/neo4j/repositories/issue"
 import {
   createPlanImplementsIssue,
@@ -9,10 +10,15 @@ import {
   listLatestPlanIdsForIssues as dbListLatestPlanIdsForIssues,
   listPlansForIssue as dbListPlansForIssue,
   listPlanStatusForIssues as dbListPlanStatusForIssues,
-  toAppPlan,
 } from "@/lib/neo4j/repositories/plan"
-import { toAppWorkflowRun } from "@/lib/neo4j/repositories/workflowRun"
-import { Issue, LLMResponseWithPlan, Plan, WorkflowRun } from "@/lib/types"
+import {
+  Issue,
+  LLMResponseWithPlan,
+  Plan,
+  planSchema,
+  WorkflowRun,
+  workflowRunSchema,
+} from "@/lib/types"
 
 export async function listPlansForIssue({
   repoFullName,
@@ -20,7 +26,7 @@ export async function listPlansForIssue({
 }: {
   repoFullName: string
   issueNumber: number
-}) {
+}): Promise<Plan[]> {
   const session = await n4j.getSession()
 
   try {
@@ -30,7 +36,8 @@ export async function listPlansForIssue({
         issueNumber,
       })
     })
-    return result.map(toAppPlan)
+
+    return result.map(neo4jToJs).map((plan) => planSchema.parse(plan))
   } finally {
     await session.close()
   }
@@ -101,8 +108,8 @@ export async function getPlanWithDetails(
     })
 
     return {
-      plan: toAppPlan(result.plan),
-      workflow: toAppWorkflowRun(result.workflow),
+      plan: planSchema.parse(neo4jToJs(result.plan)),
+      workflow: workflowRunSchema.parse(neo4jToJs(result.workflow)),
       issue: toAppIssue(result.issue),
     }
   } finally {
