@@ -23,6 +23,7 @@ import ApplyPatchCard from "@/components/playground/ApplyPatchCard"
 import DockerodeExecCard from "@/components/playground/DockerodeExecCard"
 import IssueTitleCard from "@/components/playground/IssueTitleCard"
 import RipgrepSearchCard from "@/components/playground/RipgrepSearchCard"
+import SpeechToTextCard from "@/components/playground/SpeechToTextCard"
 import UserRolesCard from "@/components/playground/UserRolesCard"
 import WriteFileCard from "@/components/playground/WriteFileCard"
 import { Button } from "@/components/ui/button"
@@ -35,6 +36,7 @@ export default async function PlaygroundPage() {
     <div className="space-y-8 px-4 py-8 md:container md:mx-auto">
       <AgentWorkflowClient defaultTools={DEFAULT_TOOLS} />
       <IssueTitleCard />
+      <SpeechToTextCard />
       <UserRolesCard />
       <RipgrepSearchCard />
       <DockerodeExecCard />
