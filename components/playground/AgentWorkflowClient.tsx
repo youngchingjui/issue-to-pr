@@ -28,7 +28,7 @@ import {
   getUserRepositories,
 } from "@/lib/actions/github"
 import { getChatCompletion } from "@/lib/actions/openaiChat"
-import { listBranchesSortedByCommitDate } from "@/lib/github/repo"
+import { listBranchesSortedByCommitDate } from "@/lib/github/refs"
 import { toast } from "@/lib/hooks/use-toast"
 import {
   DEFAULT_SYSTEM_PROMPTS,
