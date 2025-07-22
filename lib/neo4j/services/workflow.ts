@@ -1,12 +1,10 @@
 import { int } from "neo4j-driver"
 
 import { n4j } from "@/lib/neo4j/client"
-import { neo4jToJs } from "@/lib/neo4j/convert"
+import { neo4jToJs, toAppEvent, toAppMessageEvent } from "@/lib/neo4j/convert"
 import {
   getEventsForWorkflowRun,
   getMessagesForWorkflowRun,
-  toAppEvent,
-  toAppMessageEvent,
 } from "@/lib/neo4j/repositories/event"
 import {
   create,
