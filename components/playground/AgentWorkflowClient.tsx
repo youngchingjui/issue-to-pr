@@ -24,16 +24,17 @@ import {
 } from "@/components/ui/tooltip"
 import {
   checkLocalRepoExists,
-  getRepositoryBranches,
   getRepositoryIssues,
   getUserRepositories,
 } from "@/lib/actions/github"
 import { getChatCompletion } from "@/lib/actions/openaiChat"
+import { listBranchesSortedByCommitDate } from "@/lib/github/refs"
 import { toast } from "@/lib/hooks/use-toast"
 import {
   DEFAULT_SYSTEM_PROMPTS,
   SystemPromptTemplate,
 } from "@/lib/systemPrompts"
+import { repoFullNameSchema } from "@/lib/types/github"
 import { GitHubIssue, RepoSelectorItem } from "@/lib/types/github"
 
 interface Message {
@@ -101,7 +102,11 @@ export default function AgentWorkflowClient({
     setLoadingRepoData(true)
     const loadData = async () => {
       const [br, is, local] = await Promise.all([
-        getRepositoryBranches(selectedRepo),
+        (
+          await listBranchesSortedByCommitDate(
+            repoFullNameSchema.parse(selectedRepo)
+          )
+        ).map((b) => b.name),
         getRepositoryIssues(selectedRepo),
         checkLocalRepoExists(selectedRepo),
       ])
