@@ -3,6 +3,8 @@ import { Table, TableBody } from "@/components/ui/table"
 import { getIssueListWithStatus } from "@/lib/github/issues"
 import { RepoFullName } from "@/lib/types/github"
 
+export const dynamic = "force-dynamic"
+
 interface Props {
   repoFullName: RepoFullName
 }
