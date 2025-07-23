@@ -1,7 +1,19 @@
 import { Integer, ManagedTransaction, Node } from "neo4j-driver"
 
+import { Labels } from "@/lib/neo4j/labels"
 import { Task, taskSchema } from "@/lib/types/db/neo4j"
 
+/**
+ * Create a new Task node and link it to the User that created it.
+ *
+ * 1. Ensure a `User` node exists (create if missing).
+ * 2. Create the `Task` node.
+ * 3. Create a `(:User)-[:CREATED_TASK]->(:Task)` relationship.
+ *
+ * NOTE: The relationship is additive – the `createdBy` property on the Task
+ *       is still written for backwards-compatibility with any existing
+ *       queries that rely on it.
+ */
 export async function create(
   tx: ManagedTransaction,
   task: Omit<Task, "createdAt" | "githubIssueNumber"> & {
@@ -9,8 +21,19 @@ export async function create(
   }
 ): Promise<Task> {
   const result = await tx.run<{ t: Node<Integer, Task, "Task"> }>(
-    `CREATE (t:Task {id: $id, repoFullName: $repoFullName, createdBy: $createdBy, createdAt: datetime(),
-      title: $title, body: $body, syncedToGithub: $syncedToGithub, githubIssueNumber: $githubIssueNumber}) RETURN t`,
+    `MERGE (u:${Labels.User} {username: $createdBy})
+     CREATE (t:${Labels.Task} {
+       id: $id,
+       repoFullName: $repoFullName,
+       createdBy: $createdBy,
+       createdAt: datetime(),
+       title: $title,
+       body: $body,
+       syncedToGithub: $syncedToGithub,
+       githubIssueNumber: $githubIssueNumber
+     })
+     MERGE (u)-[:CREATED_TASK]->(t)
+     RETURN t`,
     {
       id: task.id,
       repoFullName: task.repoFullName,
@@ -29,7 +52,7 @@ export async function get(
   id: string
 ): Promise<Task | null> {
   const result = await tx.run<{ t: Node<Integer, Task, "Task"> }>(
-    `MATCH (t:Task {id: $id}) RETURN t LIMIT 1`,
+    `MATCH (t:${Labels.Task} {id: $id}) RETURN t LIMIT 1`,
     { id }
   )
   const raw = result.records[0]?.get("t")?.properties
@@ -41,7 +64,7 @@ export async function listForRepo(
   repoFullName: string
 ): Promise<Task[]> {
   const result = await tx.run<{ t: Node<Integer, Task, "Task"> }>(
-    `MATCH (t:Task {repoFullName: $repoFullName}) RETURN t ORDER BY t.createdAt DESC`,
+    `MATCH (t:${Labels.Task} {repoFullName: $repoFullName}) RETURN t ORDER BY t.createdAt DESC`,
     { repoFullName }
   )
   return result.records.map((r) => taskSchema.parse(r.get("t").properties))
@@ -64,7 +87,7 @@ export async function update(
   if ("githubIssueNumber" in updates)
     props.githubIssueNumber = updates.githubIssueNumber
   const result = await tx.run<{ t: Node<Integer, Task, "Task"> }>(
-    `MATCH (t:Task {id: $id}) SET t += $props RETURN t`,
+    `MATCH (t:${Labels.Task} {id: $id}) SET t += $props RETURN t`,
     { id, props }
   )
   return taskSchema.parse(result.records[0].get("t").properties)
@@ -74,5 +97,6 @@ export async function remove(
   tx: ManagedTransaction,
   id: string
 ): Promise<void> {
-  await tx.run(`MATCH (t:Task {id: $id}) DETACH DELETE t`, { id })
+  await tx.run(`MATCH (t:${Labels.Task} {id: $id}) DETACH DELETE t`, { id })
 }
+
