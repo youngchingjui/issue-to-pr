@@ -1,7 +1,7 @@
 "use server"
 
 import getOctokit from "@/lib/github"
-import { getIssueToPullRequestMap } from "@/lib/github/pullRequests"
+import { getIssueToPRInfoMap } from "@/lib/github/pullRequests"
 import {
   getLatestPlanIdsForIssues,
   getPlanStatusForIssues,
@@ -14,6 +14,7 @@ import {
   ListForRepoParams,
   RepoFullName,
 } from "@/lib/types/github"
+import type { PRInfo } from "@/lib/github/pullRequests"
 
 export async function createIssue({
   repoFullName,
@@ -173,7 +174,10 @@ export type IssueWithStatus = GitHubIssue & {
   hasPR: boolean
   hasActiveWorkflow: boolean
   planId?: string | null
+  /** first PR number (for backwards compatibility) */
   prNumber?: number
+  /** Detailed PR info list */
+  pullRequests?: PRInfo[]
 }
 
 /**
@@ -195,8 +199,8 @@ export async function getIssueListWithStatus({
     getLatestPlanIdsForIssues({ repoFullName, issueNumbers }),
   ])
 
-  // 3. Get PRs from GitHub using GraphQL, and find for each issue if it has a PR referencing it.
-  const issuePRMap = await getIssueToPullRequestMap(repoFullName)
+  // 3. Get PR info map
+  const issuePRInfoMap = await getIssueToPRInfoMap(repoFullName)
 
   // 4. Determine active workflows for each issue (simple sequential for now)
   const withStatus: IssueWithStatus[] = await Promise.all(
@@ -213,16 +217,20 @@ export async function getIssueListWithStatus({
         console.error(`Issue listing workflow runs: ${String(err)}`)
       }
 
+      const prInfos = issuePRInfoMap[issue.number] || []
+
       return {
         ...issue,
         hasPlan: issuePlanStatus[issue.number] || false,
-        hasPR: Boolean(issuePRMap[issue.number]),
+        hasPR: prInfos.length > 0,
         hasActiveWorkflow,
         planId: issuePlanIds[issue.number] || null,
-        prNumber: issuePRMap[issue.number],
+        prNumber: prInfos.length > 0 ? prInfos[0].number : undefined,
+        pullRequests: prInfos,
       }
     })
   )
 
   return withStatus
 }
+
