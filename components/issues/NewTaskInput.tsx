@@ -19,6 +19,11 @@ export default function NewTaskInput({ repoFullName }: Props) {
   const [description, setDescription] = useState("")
   const [loading, setLoading] = useState(false)
   const [generatingTitle, setGeneratingTitle] = useState(false)
+  // useTransition is useful for UI updates (e.g. router.refresh).
+  // We should NOT perform remote/network work inside the transition callback
+  // because any thrown error will escape the surrounding try/catch resulting
+  // in an unhandled runtime error. Instead we do the async work first and
+  // then transition the UI update.
   const [isPending, startTransition] = useTransition()
 
   // Recording related state
@@ -80,36 +85,41 @@ export default function NewTaskInput({ repoFullName }: Props) {
 
     setLoading(true)
     try {
-      startTransition(async () => {
-        const res = await createIssue({
-          repoFullName,
-          title: taskTitle,
-          body: description,
-        })
-        if (res.status === 201) {
-          toast({
-            title: "Task synced to GitHub",
-            description: `Created: ${taskTitle}`,
-            variant: "default",
-          })
-          setDescription("")
-          // Refresh the data so the new issue appears in the list immediately
-          router.refresh()
-        } else {
-          toast({
-            title: "Error creating task",
-            description: res.status || "Failed to create GitHub issue.",
-            variant: "destructive",
-          })
-        }
-        setLoading(false)
+      // 1️⃣ Perform the async GitHub call **outside** of startTransition so
+      //     errors are captured by this try/catch.
+      const res = await createIssue({
+        repoFullName,
+        title: taskTitle,
+        body: description,
       })
-    } catch (err: unknown) {
+
+      if (res.status === 201) {
+        toast({
+          title: "Task synced to GitHub",
+          description: `Created: ${taskTitle}`,
+          variant: "default",
+        })
+        setDescription("")
+        // 2️⃣ Then transition any UI updates (like router.refresh) that can be
+        //     deferred without blocking user feedback.
+        startTransition(() => {
+          router.refresh()
+        })
+      } else {
+        toast({
+          title: "Error creating task",
+          description: res.status || "Failed to create GitHub issue.",
+          variant: "destructive",
+        })
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
       toast({
         title: "Error creating task",
-        description: String(err),
+        description: message,
         variant: "destructive",
       })
+    } finally {
       setLoading(false)
     }
   }
