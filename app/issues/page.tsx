@@ -22,7 +22,8 @@ export default async function IssuesPage({
     const firstRepo = repos[0]
     if (!firstRepo) {
       return (
-        <div className="container mx-auto py-10">
+        // Reduce horizontal padding on small screens too
+        <div className="container mx-auto py-10 px-2 sm:px-4">
           <h1 className="text-2xl font-bold mb-6">Your Issues</h1>
           <div className="text-destructive">
             You have no accessible repositories. Please add or connect a GitHub
@@ -42,7 +43,8 @@ export default async function IssuesPage({
 
   const repoFullName = repoFullNameParseResult.data
   return (
-    <main className="container mx-auto py-10 max-w-4xl w-full">
+    // Add smaller horizontal padding on mobile while keeping layout unchanged otherwise
+    <main className="container mx-auto py-10 px-2 sm:px-4 max-w-4xl w-full">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <h1 className="text-2xl font-bold">Your Issues & Workflows</h1>
         <div className="flex items-center gap-3">
@@ -60,3 +62,4 @@ export default async function IssuesPage({
     </main>
   )
 }
+
