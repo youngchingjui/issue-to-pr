@@ -18,8 +18,6 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 
 import { auth } from "@/auth"
-import { getGithubUser } from "@/lib/github/users"
-import { getUserRoles } from "@/lib/neo4j/services/user"
 import OAuthTokenCard from "@/components/auth/OAuthTokenCard"
 import AgentWorkflowClient from "@/components/playground/AgentWorkflowClient"
 import ApplyPatchCard from "@/components/playground/ApplyPatchCard"
@@ -30,6 +28,8 @@ import SpeechToTextCard from "@/components/playground/SpeechToTextCard"
 import UserRolesCard from "@/components/playground/UserRolesCard"
 import WriteFileCard from "@/components/playground/WriteFileCard"
 import { Button } from "@/components/ui/button"
+import { getGithubUser } from "@/lib/github/users"
+import { getUserRoles } from "@/lib/neo4j/services/user"
 
 export default async function PlaygroundPage() {
   const session = await auth()
@@ -38,7 +38,9 @@ export default async function PlaygroundPage() {
   }
 
   const githubUser = await getGithubUser()
-  const roles = githubUser ? await getUserRoles(githubUser.login).catch(() => []) : []
+  const roles = githubUser
+    ? await getUserRoles(githubUser.login).catch(() => [])
+    : []
   const isAdmin = roles.includes("admin")
   if (!isAdmin) {
     redirect("/")
@@ -67,4 +69,3 @@ export default async function PlaygroundPage() {
     </div>
   )
 }
-
