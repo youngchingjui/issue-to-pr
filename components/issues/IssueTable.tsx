@@ -1,7 +1,8 @@
-'use client'
+"use client"
+
+import { RepoFullName } from "@/lib/types/github"
 
 import IssueTableClient from "./IssueTableClient"
-import { RepoFullName } from "@/lib/types/github"
 
 interface Props {
   repoFullName: RepoFullName
@@ -14,4 +15,3 @@ export default function IssueTable(props: Props) {
   // not need to change.
   return <IssueTableClient {...props} />
 }
-

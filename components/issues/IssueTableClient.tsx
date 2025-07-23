@@ -1,13 +1,13 @@
-'use client'
+"use client"
 
 import { useEffect } from "react"
 import useSWR from "swr"
 
 import IssueRow from "@/components/issues/IssueRow"
-import { Table, TableBody } from "@/components/ui/table"
 import TableSkeleton from "@/components/layout/TableSkeleton"
-import { RepoFullName } from "@/lib/types/github"
+import { Table, TableBody } from "@/components/ui/table"
 import type { IssueWithStatus } from "@/lib/github/issues"
+import { RepoFullName } from "@/lib/types/github"
 
 interface Props {
   repoFullName: RepoFullName
@@ -80,4 +80,3 @@ export default function IssueTableClient({
     </div>
   )
 }
-
