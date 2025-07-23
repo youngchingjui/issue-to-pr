@@ -107,9 +107,15 @@ const Pricing = () => {
                     className="flex items-start"
                   >
                     <div className="min-w-[24px] h-6 flex items-center justify-center bg-accent/20 rounded-full mr-3">
-                      <Check size={14} strokeWidth={3} className="text-accent" />
+                      <Check
+                        size={14}
+                        strokeWidth={3}
+                        className="text-accent"
+                      />
                     </div>
-                    <p className="text-sm sm:text-base text-foreground">{feature}</p>
+                    <p className="text-sm sm:text-base text-foreground">
+                      {feature}
+                    </p>
                   </motion.div>
                 ))}
               </div>
@@ -133,4 +139,3 @@ const Pricing = () => {
 }
 
 export default Pricing
-
