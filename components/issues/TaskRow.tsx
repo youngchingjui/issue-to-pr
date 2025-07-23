@@ -2,8 +2,9 @@
 
 import { formatDistanceToNow } from "date-fns"
 import Link from "next/link"
-import { TableCell, TableRow } from "@/components/ui/table"
+
 import { Badge } from "@/components/ui/badge"
+import { TableCell, TableRow } from "@/components/ui/table"
 import type { Task } from "@/lib/types"
 
 interface TaskRowProps {
@@ -29,7 +30,10 @@ export default function TaskRow({ task }: TaskRowProps) {
             <span>{task.createdBy}</span>
             <span>•</span>
             <span>
-              Created {formatDistanceToNow(new Date(task.createdAt), { addSuffix: true })}
+              Created{" "}
+              {formatDistanceToNow(new Date(task.createdAt), {
+                addSuffix: true,
+              })}
             </span>
           </div>
         </div>

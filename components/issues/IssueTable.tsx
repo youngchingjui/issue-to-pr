@@ -10,7 +10,10 @@ interface Props {
 }
 
 type TableItem =
-  | { kind: "issue"; data: Awaited<ReturnType<typeof getIssueListWithStatus>>[number] }
+  | {
+      kind: "issue"
+      data: Awaited<ReturnType<typeof getIssueListWithStatus>>[number]
+    }
   | { kind: "task"; data: Awaited<ReturnType<typeof listTasksForRepo>>[number] }
 
 export default async function IssueTable({ repoFullName }: Props) {
@@ -36,8 +39,14 @@ export default async function IssueTable({ repoFullName }: Props) {
     ]
 
     combined.sort((a, b) => {
-      const aTime = a.kind === "issue" ? new Date(a.data.updated_at).getTime() : new Date(a.data.createdAt).getTime()
-      const bTime = b.kind === "issue" ? new Date(b.data.updated_at).getTime() : new Date(b.data.createdAt).getTime()
+      const aTime =
+        a.kind === "issue"
+          ? new Date(a.data.updated_at).getTime()
+          : new Date(a.data.createdAt).getTime()
+      const bTime =
+        b.kind === "issue"
+          ? new Date(b.data.updated_at).getTime()
+          : new Date(b.data.createdAt).getTime()
       return bTime - aTime // Descending
     })
 
