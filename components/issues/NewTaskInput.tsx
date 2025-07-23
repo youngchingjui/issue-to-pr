@@ -11,6 +11,8 @@ import { toast } from "@/lib/hooks/use-toast"
 import { IssueTitleResponseSchema } from "@/lib/types/api/schemas"
 import { RepoFullName } from "@/lib/types/github"
 
+import { useIssueList } from "./IssueListProvider"
+
 interface Props {
   repoFullName: RepoFullName
 }
@@ -28,6 +30,16 @@ export default function NewTaskInput({ repoFullName }: Props) {
   const audioChunks = useRef<Blob[]>([])
 
   const router = useRouter()
+
+  // Optional: access issue list context to trigger refresh after creating an issue
+  let refreshIssueList: (() => Promise<void>) | null = null
+  try {
+    // This will throw if the provider is not in the component tree – that's OK
+    const issueList = useIssueList()
+    refreshIssueList = issueList.refresh
+  } catch {
+    // No provider – we'll fall back to router.refresh later
+  }
 
   // Cleanup recorder on unmount
   useEffect(() => {
@@ -94,7 +106,11 @@ export default function NewTaskInput({ repoFullName }: Props) {
           })
           setDescription("")
           // Refresh the data so the new issue appears in the list immediately
-          router.refresh()
+          if (refreshIssueList) {
+            await refreshIssueList()
+          } else {
+            router.refresh()
+          }
         } else {
           toast({
             title: "Error creating task",
@@ -195,8 +211,8 @@ export default function NewTaskInput({ repoFullName }: Props) {
         <Button type="submit" disabled={isSubmitting}>
           {generatingTitle ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating issue
-              title...
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating
+              issue title...
             </>
           ) : loading || isPending ? (
             <>
@@ -228,3 +244,4 @@ export default function NewTaskInput({ repoFullName }: Props) {
     </form>
   )
 }
+

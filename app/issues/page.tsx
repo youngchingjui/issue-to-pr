@@ -4,6 +4,7 @@ import { Suspense } from "react"
 import RepoSelector from "@/components/common/RepoSelector"
 import IssueTable from "@/components/issues/IssueTable"
 import NewTaskInput from "@/components/issues/NewTaskInput"
+import { IssueListProvider } from "@/components/issues/IssueListProvider"
 import { listUserRepositoriesGraphQL } from "@/lib/github/users"
 import { repoFullNameSchema } from "@/lib/types/github"
 
@@ -50,13 +51,17 @@ export default async function IssuesPage({
           <RepoSelector selectedRepo={repoFullName.fullName} />
         </div>
       </div>
-      {/* New issue input */}
-      <div className="mb-6">
-        <NewTaskInput repoFullName={repoFullName} />
-      </div>
-      <Suspense fallback={<div>Loading issues...</div>}>
-        <IssueTable repoFullName={repoFullName} />
-      </Suspense>
+
+      <IssueListProvider repoFullName={repoFullName}>
+        {/* New issue input */}
+        <div className="mb-6">
+          <NewTaskInput repoFullName={repoFullName} />
+        </div>
+        <Suspense fallback={<div>Loading issues...</div>}>
+          <IssueTable repoFullName={repoFullName} />
+        </Suspense>
+      </IssueListProvider>
     </main>
   )
 }
+
