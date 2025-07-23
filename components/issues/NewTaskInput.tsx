@@ -112,9 +112,8 @@ export default function NewTaskInput({ repoFullName }: Props) {
           variant: "destructive",
         })
       }
-    } catch (err: any) {
-      // Attempt to use GitHub error message if available
-      const message = err?.message || String(err)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
       toast({
         title: "Error creating task",
         description: message,
@@ -237,4 +236,3 @@ export default function NewTaskInput({ repoFullName }: Props) {
     </form>
   )
 }
-
