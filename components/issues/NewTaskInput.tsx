@@ -1,18 +1,13 @@
 "use client"
 
-import { HelpCircle, Loader2 } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { useState, useTransition } from "react"
+import { Loader2, Mic } from "lucide-react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
+import { getGithubUser } from "@/lib/github/users"
 import { toast } from "@/lib/hooks/use-toast"
+import { createTask } from "@/lib/neo4j/services/task"
 import { IssueTitleResponseSchema } from "@/lib/types/api/schemas"
 import { RepoFullName } from "@/lib/types/github"
 
@@ -24,8 +19,19 @@ export default function NewTaskInput({ repoFullName }: Props) {
   const [description, setDescription] = useState("")
   const [loading, setLoading] = useState(false)
   const [generatingTitle, setGeneratingTitle] = useState(false)
-  const [isPending, startTransition] = useTransition()
-  const router = useRouter()
+
+  // Recording related state
+  const [isRecording, setIsRecording] = useState(false)
+  const [isTranscribing, setIsTranscribing] = useState(false)
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
+  const audioChunks = useRef<Blob[]>([])
+
+  // Cleanup recorder on unmount
+  useEffect(() => {
+    return () => {
+      mediaRecorder?.stream.getTracks().forEach((t) => t.stop())
+    }
+  }, [mediaRecorder])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -71,45 +77,96 @@ export default function NewTaskInput({ repoFullName }: Props) {
 
     setLoading(true)
     try {
-      startTransition(async () => {
-        const res = await fetch("/api/tasks", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            repoFullName: repoFullName.fullName,
-            title: taskTitle,
-            body: description,
-          }),
-        })
-        const data = await res.json()
-        if (res.ok && data?.success) {
-          toast({
-            title: "Task created",
-            description: `Created: ${taskTitle}`,
-            variant: "default",
-          })
-          setDescription("")
-          router.refresh()
-        } else {
-          toast({
-            title: "Error creating task",
-            description: data?.error || "Failed to create task.",
-            variant: "destructive",
-          })
-        }
-        setLoading(false)
+      const user = await getGithubUser()
+      if (!user) {
+        throw new Error("User not found")
+      }
+
+      await createTask({
+        repoFullName,
+        title: taskTitle,
+        body: description,
+        createdBy: user.login,
       })
-    } catch (err: unknown) {
+
+      toast({
+        title: "Task created",
+        description: `Created: ${taskTitle}`,
+        variant: "default",
+      })
+      setDescription("")
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
       toast({
         title: "Error creating task",
-        description: String(err),
+        description: message,
         variant: "destructive",
       })
+    } finally {
       setLoading(false)
     }
   }
 
-  const isSubmitting = loading || generatingTitle || isPending
+  const isSubmitting = loading || generatingTitle
+
+  const startRecording = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      toast({
+        description: "Your browser does not support audio recording.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const recorder = new MediaRecorder(stream)
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunks.current.push(e.data)
+      }
+      recorder.onstop = handleRecordingStop
+      recorder.start()
+      setMediaRecorder(recorder)
+      setIsRecording(true)
+    } catch {
+      toast({
+        description: "Unable to access microphone.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const stopRecording = () => {
+    mediaRecorder?.stop()
+  }
+
+  const handleRecordingStop = useCallback(async () => {
+    setIsRecording(false)
+    const blob = new Blob(audioChunks.current, { type: "audio/webm" })
+    audioChunks.current = []
+
+    const formData = new FormData()
+    formData.append("file", blob, "recording.webm")
+
+    setIsTranscribing(true)
+    try {
+      const res = await fetch("/api/openai/transcribe", {
+        method: "POST",
+        body: formData,
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Failed to transcribe")
+
+      const text: string = data.text || ""
+      if (text) {
+        setDescription((prev) => (prev.trim() ? `${prev}\n${text}` : text))
+      }
+    } catch (err) {
+      toast({ description: String(err), variant: "destructive" })
+    } finally {
+      setIsTranscribing(false)
+    }
+  }, [])
 
   return (
     <form
@@ -121,7 +178,7 @@ export default function NewTaskInput({ repoFullName }: Props) {
           id="description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Describe a task"
+          placeholder="Describe a task or use the microphone to speak..."
           required
           disabled={isSubmitting}
           rows={3}
@@ -134,7 +191,7 @@ export default function NewTaskInput({ repoFullName }: Props) {
               <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating
               title...
             </>
-          ) : loading || isPending ? (
+          ) : loading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...
             </>
@@ -142,19 +199,25 @@ export default function NewTaskInput({ repoFullName }: Props) {
             "Create Task"
           )}
         </Button>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span>
-                <HelpCircle className="h-4 w-4 text-muted-foreground/70 cursor-help" />
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>
-              Creates a local task stored in Neo4j. You can later sync it to
-              GitHub if needed.
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={isRecording ? stopRecording : startRecording}
+          disabled={isSubmitting || isTranscribing}
+          className={isRecording ? "animate-pulse" : ""}
+          size={isRecording ? undefined : "icon"}
+        >
+          {isTranscribing ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : isRecording ? (
+            <>
+              <Mic className="mr-2 h-4 w-4" /> Listening...
+            </>
+          ) : (
+            <Mic className="h-4 w-4" />
+          )}
+        </Button>
       </div>
     </form>
   )

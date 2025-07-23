@@ -15,6 +15,7 @@ const DEFAULT_TOOLS = [
 ]
 
 import Link from "next/link"
+import { redirect } from "next/navigation"
 
 import { auth } from "@/auth"
 import OAuthTokenCard from "@/components/auth/OAuthTokenCard"
@@ -23,18 +24,35 @@ import ApplyPatchCard from "@/components/playground/ApplyPatchCard"
 import DockerodeExecCard from "@/components/playground/DockerodeExecCard"
 import IssueTitleCard from "@/components/playground/IssueTitleCard"
 import RipgrepSearchCard from "@/components/playground/RipgrepSearchCard"
+import SpeechToTextCard from "@/components/playground/SpeechToTextCard"
 import UserRolesCard from "@/components/playground/UserRolesCard"
 import WriteFileCard from "@/components/playground/WriteFileCard"
 import { Button } from "@/components/ui/button"
+import { getGithubUser } from "@/lib/github/users"
+import { getUserRoles } from "@/lib/neo4j/services/user"
 
 export default async function PlaygroundPage() {
   const session = await auth()
+  if (!session?.user) {
+    redirect("/")
+  }
+
+  const githubUser = await getGithubUser()
+  const roles = githubUser
+    ? await getUserRoles(githubUser.login).catch(() => [])
+    : []
+  const isAdmin = roles.includes("admin")
+  if (!isAdmin) {
+    redirect("/")
+  }
+
   const token = session?.token?.access_token as string | undefined
 
   return (
     <div className="space-y-8 px-4 py-8 md:container md:mx-auto">
       <AgentWorkflowClient defaultTools={DEFAULT_TOOLS} />
       <IssueTitleCard />
+      <SpeechToTextCard />
       <UserRolesCard />
       <RipgrepSearchCard />
       <DockerodeExecCard />

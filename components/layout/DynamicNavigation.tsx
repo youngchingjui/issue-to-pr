@@ -26,11 +26,11 @@ const landingNavItems = [
 ]
 
 export default function DynamicNavigation({
-  username,
   isAuthenticated,
+  isAdmin,
 }: {
-  username: string | null
   isAuthenticated: boolean
+  isAdmin: boolean
 }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -123,14 +123,16 @@ export default function DynamicNavigation({
           >
             <Link href="/workflow-runs">Workflows</Link>
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            asChild
-            className="flex items-center"
-          >
-            <Link href="/playground">Playground</Link>
-          </Button>
+          {isAdmin && (
+            <Button
+              variant="ghost"
+              size="sm"
+              asChild
+              className="flex items-center"
+            >
+              <Link href="/playground">Playground</Link>
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"
@@ -176,7 +178,7 @@ export default function DynamicNavigation({
           <SheetContent side="left" className="sm:hidden w-64 p-4">
             <nav className="mt-4 flex flex-col gap-4">
               <Link href="/workflow-runs">Workflows</Link>
-              <Link href="/playground">Playground</Link>
+              {isAdmin && <Link href="/playground">Playground</Link>}
               <Link href="/issues">Issues</Link>
               <Link href="/kanban">Kanban</Link>
               <Link href="/contribute">Contribute</Link>
@@ -226,4 +228,3 @@ export default function DynamicNavigation({
     </>
   )
 }
-
