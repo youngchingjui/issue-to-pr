@@ -2,6 +2,7 @@ import { Suspense } from "react"
 
 import IssueTable from "@/components/issues/IssueTable"
 import NewTaskInput from "@/components/issues/NewTaskInput"
+import { IssueListProvider } from "@/components/issues/IssueListProvider"
 import TableSkeleton from "@/components/layout/TableSkeleton"
 import { repoFullNameSchema } from "@/lib/types/github"
 
@@ -24,10 +25,13 @@ export default async function RepoPage({ params }: Props) {
           {username} / {repo} - Issues
         </h1>
       </div>
-      <NewTaskInput repoFullName={repoFullName} />
-      <Suspense fallback={<TableSkeleton />}>
-        <IssueTable repoFullName={repoFullName} />
-      </Suspense>
+      <IssueListProvider repoFullName={repoFullName}>
+        <NewTaskInput repoFullName={repoFullName} />
+        <Suspense fallback={<TableSkeleton />}>
+          <IssueTable repoFullName={repoFullName} />
+        </Suspense>
+      </IssueListProvider>
     </main>
   )
 }
+

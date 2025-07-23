@@ -1,6 +1,7 @@
 import RepoSelector from "@/components/common/RepoSelector"
 import IssueTable from "@/components/issues/IssueTable"
 import NewTaskInput from "@/components/issues/NewTaskInput"
+import { IssueListProvider } from "@/components/issues/IssueListProvider"
 import { listUserRepositoriesGraphQL } from "@/lib/github/users"
 import { repoFullNameSchema } from "@/lib/types/github"
 
@@ -28,10 +29,13 @@ export default async function IssueDashboard() {
           <RepoSelector selectedRepo={repoFullName.fullName} />
         </div>
       </div>
-      <div className="mb-8">
-        <NewTaskInput repoFullName={repoFullName} />
-      </div>
-      <IssueTable repoFullName={repoFullName} />
+      <IssueListProvider repoFullName={repoFullName}>
+        <div className="mb-8">
+          <NewTaskInput repoFullName={repoFullName} />
+        </div>
+        <IssueTable repoFullName={repoFullName} />
+      </IssueListProvider>
     </main>
   )
 }
+
