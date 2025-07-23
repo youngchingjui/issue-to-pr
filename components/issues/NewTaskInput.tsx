@@ -1,13 +1,13 @@
 "use client"
 
 import { Loader2, Mic } from "lucide-react"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
+import { useCallback, useEffect, useRef, useState, useTransition } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { getGithubUser } from "@/lib/github/users"
+import { createIssue } from "@/lib/github/issues"
 import { toast } from "@/lib/hooks/use-toast"
-import { createTask } from "@/lib/neo4j/services/task"
 import { IssueTitleResponseSchema } from "@/lib/types/api/schemas"
 import { RepoFullName } from "@/lib/types/github"
 
@@ -19,12 +19,20 @@ export default function NewTaskInput({ repoFullName }: Props) {
   const [description, setDescription] = useState("")
   const [loading, setLoading] = useState(false)
   const [generatingTitle, setGeneratingTitle] = useState(false)
+  // useTransition is useful for UI updates (e.g. router.refresh).
+  // We should NOT perform remote/network work inside the transition callback
+  // because any thrown error will escape the surrounding try/catch resulting
+  // in an unhandled runtime error. Instead we do the async work first and
+  // then transition the UI update.
+  const [isPending, startTransition] = useTransition()
 
   // Recording related state
   const [isRecording, setIsRecording] = useState(false)
   const [isTranscribing, setIsTranscribing] = useState(false)
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
   const audioChunks = useRef<Blob[]>([])
+
+  const router = useRouter()
 
   // Cleanup recorder on unmount
   useEffect(() => {
@@ -77,24 +85,33 @@ export default function NewTaskInput({ repoFullName }: Props) {
 
     setLoading(true)
     try {
-      const user = await getGithubUser()
-      if (!user) {
-        throw new Error("User not found")
-      }
-
-      await createTask({
+      // 1️⃣ Perform the async GitHub call **outside** of startTransition so
+      //     errors are captured by this try/catch.
+      const res = await createIssue({
         repoFullName,
         title: taskTitle,
         body: description,
-        createdBy: user.login,
       })
 
-      toast({
-        title: "Task created",
-        description: `Created: ${taskTitle}`,
-        variant: "default",
-      })
-      setDescription("")
+      if (res.status === 201) {
+        toast({
+          title: "Task synced to GitHub",
+          description: `Created: ${taskTitle}`,
+          variant: "default",
+        })
+        setDescription("")
+        // 2️⃣ Then transition any UI updates (like router.refresh) that can be
+        //     deferred without blocking user feedback.
+        startTransition(() => {
+          router.refresh()
+        })
+      } else {
+        toast({
+          title: "Error creating task",
+          description: res.status || "Failed to create GitHub issue.",
+          variant: "destructive",
+        })
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       toast({
@@ -107,7 +124,7 @@ export default function NewTaskInput({ repoFullName }: Props) {
     }
   }
 
-  const isSubmitting = loading || generatingTitle
+  const isSubmitting = loading || generatingTitle || isPending
 
   const startRecording = async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -188,18 +205,17 @@ export default function NewTaskInput({ repoFullName }: Props) {
         <Button type="submit" disabled={isSubmitting}>
           {generatingTitle ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating issue
               title...
             </>
-          ) : loading ? (
+          ) : loading || isPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...
             </>
           ) : (
-            "Create Task"
+            "Create Github Issue"
           )}
         </Button>
-
         <Button
           type="button"
           variant="secondary"

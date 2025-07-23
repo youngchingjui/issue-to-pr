@@ -23,6 +23,7 @@ import AgentWorkflowClient from "@/components/playground/AgentWorkflowClient"
 import ApplyPatchCard from "@/components/playground/ApplyPatchCard"
 import DockerodeExecCard from "@/components/playground/DockerodeExecCard"
 import IssueTitleCard from "@/components/playground/IssueTitleCard"
+import NewLocalTaskInput from "@/components/playground/NewLocalTaskInput"
 import RipgrepSearchCard from "@/components/playground/RipgrepSearchCard"
 import SpeechToTextCard from "@/components/playground/SpeechToTextCard"
 import UserRolesCard from "@/components/playground/UserRolesCard"
@@ -50,6 +51,18 @@ export default async function PlaygroundPage() {
 
   return (
     <div className="space-y-8 px-4 py-8 md:container md:mx-auto">
+      <div>
+        <h2 className="text-lg font-semibold mb-2">
+          Create Local Task (Neo4j)
+        </h2>
+        <NewLocalTaskInput
+          repoFullName={{
+            owner: "issue-to-pr",
+            repo: "test-repo",
+            fullName: "issue-to-pr/test-repo",
+          }}
+        />
+      </div>
       <AgentWorkflowClient defaultTools={DEFAULT_TOOLS} />
       <IssueTitleCard />
       <SpeechToTextCard />
