@@ -26,11 +26,9 @@ const landingNavItems = [
 ]
 
 export default function DynamicNavigation({
-  username,
   isAuthenticated,
   isAdmin,
 }: {
-  username: string | null
   isAuthenticated: boolean
   isAdmin: boolean
 }) {

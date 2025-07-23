@@ -54,7 +54,6 @@ export default async function Navigation() {
 
           {/* Dynamic Navigation based on route */}
           <DynamicNavigation
-            username={githubUser?.login ?? session?.user?.name ?? null}
             isAuthenticated={!!session?.user}
             isAdmin={isAdmin}
           />
@@ -63,4 +62,3 @@ export default async function Navigation() {
     </motion.header>
   )
 }
-
