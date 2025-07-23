@@ -7,6 +7,15 @@ import { n4j } from "@/lib/neo4j/client"
 import { neo4jToJs } from "@/lib/neo4j/convert"
 import * as repo from "@/lib/neo4j/repositories/task"
 import { Task as AppTask } from "@/lib/types"
+import { RepoFullName } from "@/lib/types/github"
+
+type CreateTaskParams = {
+  id?: string
+  repoFullName: RepoFullName
+  title?: string
+  body?: string
+  createdBy: string
+}
 
 export async function createTask({
   id = uuidv4(),
@@ -14,19 +23,13 @@ export async function createTask({
   title,
   body,
   createdBy,
-}: {
-  id?: string
-  repoFullName: string
-  title?: string
-  body?: string
-  createdBy: string
-}): Promise<AppTask> {
+}: CreateTaskParams): Promise<AppTask> {
   const session = await n4j.getSession()
   try {
     const db = await session.executeWrite((tx) =>
       repo.create(tx, {
         id,
-        repoFullName,
+        repoFullName: repoFullName.fullName,
         title,
         body,
         createdBy,
