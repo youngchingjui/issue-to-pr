@@ -408,7 +408,101 @@ export async function addLabelsToPullRequest({
   })
 }
 
-// Minimal type for the GraphQL response
+// ------------------------------
+// New helper: map issues -> pull requests with state/draft
+// ------------------------------
+export interface PRInfo {
+  number: number
+  state: "OPEN" | "CLOSED" | "MERGED"
+  isDraft: boolean
+}
+
+interface PRInfoGraphQLResponse {
+  repository: {
+    pullRequests: {
+      pageInfo: {
+        hasNextPage: boolean
+        endCursor: string | null
+      }
+      nodes: Array<{
+        number: number
+        state: "OPEN" | "CLOSED" | "MERGED"
+        isDraft: boolean
+        closingIssuesReferences: {
+          nodes: Array<{ number: number }>
+        }
+      }>
+    }
+  }
+}
+
+/**
+ * Returns a mapping from issue number -> array of PRInfo objects that reference (close) the issue.
+ */
+export async function getIssueToPRInfoMap(
+  repoFullName: string
+): Promise<Record<number, PRInfo[]>> {
+  const [owner, repo] = repoFullName.split("/")
+  const graphqlWithAuth = await getGraphQLClient()
+  if (!graphqlWithAuth) throw new Error("Could not initialize GraphQL client")
+
+  let hasNextPage = true
+  let endCursor: string | null = null
+  const result: Record<number, PRInfo[]> = {}
+
+  while (hasNextPage) {
+    const query = `
+      query($owner: String!, $repo: String!, $after: String) {
+        repository(owner: $owner, name: $repo) {
+          pullRequests(first: 50, after: $after, states: [OPEN, MERGED, CLOSED]) {
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+            nodes {
+              number
+              state
+              isDraft
+              closingIssuesReferences(first: 10) {
+                nodes {
+                  number
+                }
+              }
+            }
+          }
+        }
+      }
+    `
+    const variables = { owner, repo, after: endCursor }
+    const response = (await graphqlWithAuth(
+      query,
+      variables
+    )) as PRInfoGraphQLResponse
+
+    const prNodes = response.repository.pullRequests.nodes
+    for (const pr of prNodes) {
+      const info: PRInfo = {
+        number: pr.number,
+        state: pr.state,
+        isDraft: pr.isDraft,
+      }
+      for (const issue of pr.closingIssuesReferences.nodes) {
+        if (!result[issue.number]) {
+          result[issue.number] = []
+        }
+        result[issue.number].push(info)
+      }
+    }
+
+    hasNextPage = response.repository.pullRequests.pageInfo.hasNextPage
+    endCursor = response.repository.pullRequests.pageInfo.endCursor
+  }
+  return result
+}
+
+// ------------------------------
+// Existing helper kept for backward compatibility
+// ------------------------------
 interface PRLinkedIssuesGraphQLResponse {
   repository: {
     pullRequests: {
@@ -571,3 +665,4 @@ export async function getLinkedIssuesForPR({
     response.repository?.pullRequest?.closingIssuesReferences?.nodes || []
   return nodes.map((n) => n.number)
 }
+
