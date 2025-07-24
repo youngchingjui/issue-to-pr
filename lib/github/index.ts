@@ -43,82 +43,108 @@ export async function getPrivateKeyFromFile(): Promise<string> {
 }
 
 /**
- * Creates an authenticated Octokit client using one of two authentication methods:
- * 1. User Authentication: Tries to use the user's session token first
- * 2. GitHub App Authentication: Falls back to using GitHub App credentials (private key + app ID)
- *    if user authentication fails
+ * Creates an authenticated Octokit client.
  *
- * Returns either an authenticated Octokit instance or null if both auth methods fail
+ * Preference order (as of 2024-07 after OAuth scope reduction):
+ * 1. GitHub App installation token – if the current async context carries an
+ *    installationId (set via runWithInstallationId).
+ * 2. User OAuth token – only used as a fallback when no installation token is
+ *    available. This allows us to keep the OAuth scope minimal whilst still
+ *    supporting UI features that need to act on behalf of the user (e.g.
+ *    listing their personal repositories).
  */
 export default async function getOctokit(): Promise<ExtendedOctokit | null> {
-  // Try to authenticate using user session
-  const session = await auth()
+  // 1. Try GitHub App authentication first – only possible if we have an installationId
+  const installationId = getInstallationId()
+  if (installationId) {
+    try {
+      const privateKey = await getPrivateKeyFromFile()
+      if (!process.env.GITHUB_APP_ID) {
+        throw new Error("GITHUB_APP_ID is not set")
+      }
 
-  if (session?.token?.access_token) {
-    const baseOctokit = new Octokit({ auth: session.token.access_token })
+      const app = new App({
+        appId: process.env.GITHUB_APP_ID,
+        privateKey,
+      })
 
-    // Enrich with metadata so callers can differentiate
-    const octokit = baseOctokit as ExtendedOctokit
-    octokit.authType = "user"
+      const appOctokit = (await app.getInstallationOctokit(
+        Number(installationId)
+      )) as unknown as Octokit
 
-    return octokit
+      // Retrieve fine-grained installation permissions once so callers can
+      // make authorisation decisions without additional round-trips.
+      const authApp = createAppAuth({
+        appId: process.env.GITHUB_APP_ID,
+        privateKey,
+        installationId: Number(installationId),
+      })
+      const { permissions } = await authApp({ type: "installation" })
+
+      const octokit = appOctokit as ExtendedOctokit
+      octokit.authType = "app"
+      octokit.installationPermissions = permissions as InstallationPermissions
+
+      return octokit
+    } catch (error) {
+      console.error(
+        "[ERROR] Failed to setup GitHub App authentication, falling back to user OAuth:",
+        error
+      )
+      // fall through to OAuth fallback
+    }
   }
 
-  // Fallback to GitHub App authentication
+  // 2. Fallback to user OAuth session
   try {
-    const privateKey = await getPrivateKeyFromFile()
-
-    if (!process.env.GITHUB_APP_ID) {
-      throw new Error("GITHUB_APP_ID is not set")
+    const session = await auth()
+    if (session?.token?.access_token) {
+      const baseOctokit = new Octokit({ auth: session.token.access_token })
+      const octokit = baseOctokit as ExtendedOctokit
+      octokit.authType = "user"
+      return octokit
     }
-
-    const app = new App({
-      appId: process.env.GITHUB_APP_ID,
-      privateKey,
-    })
-
-    // Assuming you have the installation ID from the webhook or other source
-    const installationId = getInstallationId()
-    if (!installationId) {
-      return null
-    }
-
-    // Create a ready-to-use Octokit client for this installation
-    const appOctokit = (await app.getInstallationOctokit(
-      Number(installationId)
-    )) as unknown as Octokit
-
-    // Retrieve fine-grained installation permissions once
-    const authApp = createAppAuth({
-      appId: process.env.GITHUB_APP_ID,
-      privateKey,
-      installationId: Number(installationId),
-    })
-
-    const { permissions } = await authApp({ type: "installation" })
-
-    const octokit = appOctokit as ExtendedOctokit
-    octokit.authType = "app"
-    octokit.installationPermissions = permissions as InstallationPermissions
-
-    return octokit
   } catch (error) {
-    console.error("[ERROR] Failed to setup GitHub App authentication:", error)
-    return null
+    console.error("[ERROR] Failed to setup user OAuth authentication:", error)
   }
+
+  // If both methods fail, return null so caller can handle unauthenticated state
+  return null
 }
 
 /**
- * Creates an authenticated GraphQL client using one of two authentication methods:
- * 1. User Authentication: Tries to use the user's session token first
- * 2. GitHub App Authentication: Falls back to using GitHub App credentials
+ * Returns an authenticated GraphQL client that follows the same preference
+ * order as getOctokit (GitHub App first, OAuth fallback).
  */
 export async function getGraphQLClient() {
-  // Try to authenticate using user session
-  const session = await auth()
+  // Prefer GitHub App auth when possible
+  const installationId = getInstallationId()
+  if (installationId) {
+    try {
+      const privateKey = await getPrivateKeyFromFile()
+      if (!process.env.GITHUB_APP_ID) throw new Error("GITHUB_APP_ID is not set")
 
+      const auth = createAppAuth({
+        appId: process.env.GITHUB_APP_ID,
+        privateKey,
+        installationId: Number(installationId),
+      })
+
+      return graphql.defaults({
+        request: { hook: auth.hook },
+      })
+    } catch (error) {
+      console.error(
+        "[ERROR] Failed to setup GitHub App GraphQL auth, falling back to user OAuth:",
+        error
+      )
+      // fall through to OAuth fallback
+    }
+  }
+
+  // OAuth fallback
+  const session = await auth()
   if (session?.token?.access_token) {
-    console.log("Using user OAuth token for authentication")
     return graphql.defaults({
       headers: {
         authorization: `token ${session.token.access_token}`,
@@ -126,48 +152,19 @@ export async function getGraphQLClient() {
     })
   }
 
-  // Fallback to GitHub App authentication
-  try {
-    console.log("Falling back to GitHub App authentication")
-    const privateKey = await getPrivateKeyFromFile()
-
-    if (!process.env.GITHUB_APP_ID) {
-      throw new Error("GITHUB_APP_ID is not set")
-    }
-
-    const installationId = getInstallationId()
-    if (!installationId) {
-      return null
-    }
-
-    const auth = createAppAuth({
-      appId: process.env.GITHUB_APP_ID,
-      privateKey,
-      installationId: Number(installationId),
-    })
-
-    console.log("Successfully created GitHub App auth hook")
-
-    return graphql.defaults({
-      request: {
-        hook: auth.hook,
-      },
-    })
-  } catch (error) {
-    console.error("[ERROR] Failed to setup GitHub App authentication:", error)
-    return null
-  }
+  return null
 }
 
 /**
  * Returns the permissions object for the current GitHub App installation.
+ * When called outside of an App installation context the function returns null.
  */
 export async function getInstallationPermissions() {
   try {
+    const installationId = getInstallationId()
+    if (!installationId) return null
     const privateKey = await getPrivateKeyFromFile()
     if (!process.env.GITHUB_APP_ID) throw new Error("GITHUB_APP_ID is not set")
-    const installationId = getInstallationId()
-    if (!installationId) throw new Error("Installation ID not found")
 
     const auth = createAppAuth({
       appId: process.env.GITHUB_APP_ID,
@@ -175,7 +172,6 @@ export async function getInstallationPermissions() {
       installationId: Number(installationId),
     })
 
-    // Get the installation token and permissions
     const { permissions } = await auth({ type: "installation" })
     return permissions
   } catch (error) {
@@ -185,45 +181,38 @@ export async function getInstallationPermissions() {
 }
 
 /**
- * Returns a token that can be used for git operations (HTTPS).
- * If the current session is an OAuth user, returns the user token.
- * Otherwise returns the GitHub App installation access token.
+ * Returns a token suitable for git/HTTPS operations. Prefers the GitHub App
+ * installation token to reduce reliance on user OAuth scopes.
  */
 export async function getAuthToken(): Promise<{
   token: string
   authType: AuthType
 } | null> {
-  // Try session token first
+  // Prefer installation token when available
+  const installationId = getInstallationId()
+  if (installationId) {
+    const octokit = await getOctokit()
+    if (octokit && octokit.authType === "app") {
+      try {
+        const octokitWithAuth = octokit as unknown as InstallationTokenProvider
+        const { token } = await octokitWithAuth.auth({
+          type: "installation",
+          installationId: Number(installationId),
+        })
+        return { token, authType: "app" }
+      } catch (err) {
+        console.error("[ERROR] Failed to retrieve installation token", err)
+        // fall through to OAuth fallback
+      }
+    }
+  }
+
+  // OAuth fallback (primarily for interactive UI flows)
   const session = await auth()
   if (session?.token?.access_token) {
     return { token: session.token.access_token as string, authType: "user" }
   }
 
-  // Fallback to GitHub App installation token
-  const octokit = await getOctokit()
-  if (!octokit || octokit.authType !== "app") return null
-
-  const installationId = getInstallationId()
-  if (!installationId) return null
-
-  try {
-    // We know that getInstallationOctokit returns an object with an `auth` function,
-    // but the type definition we cast earlier does not include it.
-    // Cast to a narrower interface that includes the method.
-    const octokitWithAuth = octokit as unknown as InstallationTokenProvider
-
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    const authResult = await octokitWithAuth.auth({
-      type: "installation",
-      installationId: Number(installationId),
-    })
-
-    if (authResult?.token) {
-      return { token: authResult.token as string, authType: "app" }
-    }
-  } catch (err) {
-    console.error("[ERROR] Failed to retrieve installation token", err)
-  }
-
   return null
 }
+
