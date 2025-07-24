@@ -1,4 +1,5 @@
 import RepositoryList from "@/components/RepositoryList"
+import InstallGitHubAppPrompt from "@/components/github/InstallGitHubAppPrompt"
 import {
   combineRepositories,
   getAuthenticatedUserRepositories,
@@ -83,16 +84,27 @@ export default async function Repositories({
       }
     }
 
+    // If user has no accessible repositories in their own profile, prompt them
+    // to install the GitHub App so they can grant access.
+    const shouldShowInstallPrompt =
+      authUser?.login === params.username && repositories.length === 0
+
     return (
       <main className="flex min-h-screen flex-col items-center justify-between p-24">
         <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm">
-          <h1 className="text-4xl font-bold mb-8">Select a Repository</h1>
-          <RepositoryList
-            repositories={repositories}
-            currentPage={page}
-            maxPage={maxPage}
-            username={params.username}
-          />
+          {shouldShowInstallPrompt ? (
+            <InstallGitHubAppPrompt />
+          ) : (
+            <>
+              <h1 className="text-4xl font-bold mb-8">Select a Repository</h1>
+              <RepositoryList
+                repositories={repositories}
+                currentPage={page}
+                maxPage={maxPage}
+                username={params.username}
+              />
+            </>
+          )}
         </div>
       </main>
     )
@@ -105,3 +117,4 @@ export default async function Repositories({
     throw new Error("Failed to fetch repositories")
   }
 }
+
