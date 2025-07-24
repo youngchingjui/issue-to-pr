@@ -36,7 +36,7 @@ function getRedirectBaseUrl() {
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
-    // Traditional OAuth provider for public repository access
+    // Traditional OAuth provider – limited to basic read-only user information
     GithubProvider({
       id: "github-oauth",
       name: "GitHub OAuth",
@@ -45,7 +45,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       authorization: {
         url: "https://github.com/login/oauth/authorize",
         params: {
-          scope: "read:user user:email repo workflow",
+          // Request ONLY public profile + e-mail so that later we can separately ask
+          // for additional repository scopes via the GitHub App installation flow.
+          scope: "read:user user:email",
           redirect_uri: `${getRedirectBaseUrl()}/api/auth/callback/github-oauth`,
         },
       },
@@ -134,3 +136,4 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   },
 })
+
