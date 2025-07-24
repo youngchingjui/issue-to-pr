@@ -15,6 +15,15 @@ interface Props {
   repoFullName: RepoFullName
 }
 
+// Helper to fully stop an active MediaRecorder & its tracks.
+function stopRecorder(recorder: MediaRecorder | null) {
+  if (!recorder) return
+  if (recorder.state !== "inactive") {
+    recorder.stop()
+  }
+  recorder.stream?.getTracks().forEach((t) => t.stop())
+}
+
 export default function NewTaskInput({ repoFullName }: Props) {
   const [description, setDescription] = useState("")
   const [loading, setLoading] = useState(false)
@@ -37,9 +46,10 @@ export default function NewTaskInput({ repoFullName }: Props) {
   // Cleanup recorder on unmount
   useEffect(() => {
     return () => {
-      mediaRecorder?.stream.getTracks().forEach((t) => t.stop())
+      stopRecorder(mediaRecorder)
     }
-  }, [mediaRecorder])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -154,11 +164,16 @@ export default function NewTaskInput({ repoFullName }: Props) {
   }
 
   const stopRecording = () => {
-    mediaRecorder?.stop()
+    stopRecorder(mediaRecorder)
   }
 
   const handleRecordingStop = useCallback(async () => {
     setIsRecording(false)
+
+    // Ensure microphone is released immediately.
+    stopRecorder(mediaRecorder)
+    setMediaRecorder(null)
+
     const blob = new Blob(audioChunks.current, { type: "audio/webm" })
     audioChunks.current = []
 
@@ -183,7 +198,7 @@ export default function NewTaskInput({ repoFullName }: Props) {
     } finally {
       setIsTranscribing(false)
     }
-  }, [])
+  }, [mediaRecorder])
 
   return (
     <form
@@ -238,3 +253,4 @@ export default function NewTaskInput({ repoFullName }: Props) {
     </form>
   )
 }
+
