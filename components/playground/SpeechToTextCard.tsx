@@ -15,14 +15,19 @@ export default function SpeechToTextCard() {
 
   const [transcript, setTranscript] = useState("")
   const [isTranscribing, setIsTranscribing] = useState(false)
+  // Store the recorded audio so we can allow playback
+  const [audioUrl, setAudioUrl] = useState<string | null>(null)
+
   const { toast } = useToast()
 
+  // Revoke the object URL when it changes or when the component unmounts to avoid memory leaks
   useEffect(() => {
     return () => {
+      if (audioUrl) URL.revokeObjectURL(audioUrl)
       // Cleanup recorder on unmount
       mediaRecorder?.stream.getTracks().forEach((t) => t.stop())
     }
-  }, [mediaRecorder])
+  }, [audioUrl, mediaRecorder])
 
   const startRecording = async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -34,6 +39,12 @@ export default function SpeechToTextCard() {
     }
 
     try {
+      // If we have a previous audio URL, revoke and clear it when starting a fresh recording
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl)
+        setAudioUrl(null)
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const recorder = new MediaRecorder(stream)
       recorder.ondataavailable = (e) => {
@@ -60,7 +71,11 @@ export default function SpeechToTextCard() {
     const blob = new Blob(audioChunks.current, { type: "audio/webm" })
     audioChunks.current = []
 
-    // Send to server
+    // Allow playback of the recorded audio
+    const url = URL.createObjectURL(blob)
+    setAudioUrl(url)
+
+    // Send to server for transcription
     const formData = new FormData()
     formData.append("file", blob, "recording.webm")
 
@@ -104,6 +119,16 @@ export default function SpeechToTextCard() {
             placeholder="Press the microphone, speak, then stop to transcribe..."
           />
         </div>
+
+        {/* Playback UI */}
+        {audioUrl && (
+          <div className="space-y-2">
+            <Label>Playback</Label>
+            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+            <audio controls src={audioUrl} className="w-full" />
+          </div>
+        )}
+
         <div className="flex items-center gap-4">
           {isRecording ? (
             <Button
@@ -126,3 +151,4 @@ export default function SpeechToTextCard() {
     </Card>
   )
 }
+
