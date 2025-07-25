@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
+import { App } from "octokit"
 import { v4 as uuidv4 } from "uuid"
 import { z } from "zod"
-
-import { App } from "octokit"
 
 import { getPrivateKeyFromFile } from "@/lib/github"
 import { getRepoFromString } from "@/lib/github/content"
@@ -12,7 +11,9 @@ import { ResolveRequestSchema } from "@/lib/schemas/api"
 import { runWithInstallationId } from "@/lib/utils/utils-server"
 import { resolveIssue } from "@/lib/workflows/resolveIssue"
 
-async function getRepoInstallationId(repoFullName: string): Promise<number | null> {
+async function getRepoInstallationId(
+  repoFullName: string
+): Promise<number | null> {
   try {
     const [owner, repo] = repoFullName.split("/")
     if (!owner || !repo) return null
@@ -25,7 +26,10 @@ async function getRepoInstallationId(repoFullName: string): Promise<number | nul
     const installation = await app.getRepoInstallation({ owner, repo })
     return installation.id
   } catch (err) {
-    console.warn(`[WARNING] Unable to resolve installation id for ${repoFullName}:`, err)
+    console.warn(
+      `[WARNING] Unable to resolve installation id for ${repoFullName}:`,
+      err
+    )
     return null
   }
 }
@@ -34,11 +38,21 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
-    const { issueNumber, repoFullName, createPR, environment, installCommand, planId } = ResolveRequestSchema.parse(body)
+    const {
+      issueNumber,
+      repoFullName,
+      createPR,
+      environment,
+      installCommand,
+      planId,
+    } = ResolveRequestSchema.parse(body)
 
     const apiKey = await getUserOpenAIApiKey()
     if (!apiKey) {
-      return NextResponse.json({ error: "Missing OpenAI API key" }, { status: 401 })
+      return NextResponse.json(
+        { error: "Missing OpenAI API key" },
+        { status: 401 }
+      )
     }
 
     const jobId = uuidv4()
@@ -81,9 +95,14 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Error processing request:", error)
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: "Invalid request data", details: error.errors }, { status: 400 })
+      return NextResponse.json(
+        { error: "Invalid request data", details: error.errors },
+        { status: 400 }
+      )
     }
-    return NextResponse.json({ error: "Failed to process request" }, { status: 500 })
+    return NextResponse.json(
+      { error: "Failed to process request" },
+      { status: 500 }
+    )
   }
 }
-
