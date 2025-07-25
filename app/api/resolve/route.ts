@@ -23,7 +23,7 @@ async function getRepoInstallationId(
 
     const privateKey = await getPrivateKeyFromFile()
     const app = new App({ appId, privateKey })
-    const installation = await app.getRepoInstallation({ owner, repo })
+    const installation = await app.getInstallationUrl({ owner, repo })
     return installation.id
   } catch (err) {
     console.warn(

@@ -26,6 +26,7 @@ import IssueTitleCard from "@/components/playground/IssueTitleCard"
 import NewLocalTaskInput from "@/components/playground/NewLocalTaskInput"
 import RipgrepSearchCard from "@/components/playground/RipgrepSearchCard"
 import SpeechToTextCard from "@/components/playground/SpeechToTextCard"
+import TestInstallationsCard from "@/components/playground/TestInstallationsCard"
 import UserRolesCard from "@/components/playground/UserRolesCard"
 import WriteFileCard from "@/components/playground/WriteFileCard"
 import { Button } from "@/components/ui/button"
@@ -68,6 +69,7 @@ export default async function PlaygroundPage() {
       <SpeechToTextCard />
       <UserRolesCard />
       <RipgrepSearchCard />
+      <TestInstallationsCard />
       <DockerodeExecCard />
       <WriteFileCard />
       <ApplyPatchCard />
