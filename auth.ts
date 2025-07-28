@@ -11,13 +11,13 @@ export const runtime = "nodejs"
 declare module "next-auth" {
   interface Session {
     token?: JWT
-    authMethod?: "oauth" | "github-app"
+    authMethod?: "github-app"
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
-    authMethod?: "oauth" | "github-app"
+    authMethod?: "github-app"
   }
 }
 
@@ -36,21 +36,6 @@ function getRedirectBaseUrl() {
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
-    // Traditional OAuth provider for public repository access
-    GithubProvider({
-      id: "github-oauth",
-      name: "GitHub OAuth",
-      clientId: process.env.GITHUB_OAUTH_ID, // Regular OAuth app credentials
-      clientSecret: process.env.GITHUB_OAUTH_SECRET,
-      authorization: {
-        url: "https://github.com/login/oauth/authorize",
-        params: {
-          scope: "read:user user:email repo workflow",
-          redirect_uri: `${getRedirectBaseUrl()}/api/auth/callback/github-oauth`,
-        },
-      },
-    }),
-    // GitHub App provider for installed repositories
     GithubProvider({
       id: "github-app",
       name: "GitHub App",
@@ -91,8 +76,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           ...token,
           ...account,
           // Store which auth method was used
-          authMethod:
-            account.provider === "github-oauth" ? "oauth" : "github-app",
+          authMethod: "github-app",
         }
         if (account.expires_in) {
           newToken.expires_at =
