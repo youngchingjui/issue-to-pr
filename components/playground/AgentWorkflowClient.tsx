@@ -22,13 +22,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import {
-  checkLocalRepoExists,
-  getRepositoryIssues,
-  getUserRepositories,
-} from "@/lib/actions/github"
+import { checkLocalRepoExists, getRepositoryIssues } from "@/lib/actions/github"
 import { getChatCompletion } from "@/lib/actions/openaiChat"
 import { listBranchesSortedByCommitDate } from "@/lib/github/refs"
+import { listUserAppRepositories } from "@/lib/github/repos"
 import { toast } from "@/lib/hooks/use-toast"
 import {
   DEFAULT_SYSTEM_PROMPTS,
@@ -83,7 +80,7 @@ export default function AgentWorkflowClient({
   // Load repositories on mount
   useEffect(() => {
     const loadRepos = async () => {
-      const r = await getUserRepositories()
+      const r = await listUserAppRepositories()
       setRepos(r)
     }
     loadRepos()
