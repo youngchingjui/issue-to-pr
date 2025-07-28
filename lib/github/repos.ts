@@ -1,16 +1,6 @@
 "use server"
 
-import { getInstallationOctokit, getUserInstallations } from "@/lib/github"
-import { RepoSelectorItem } from "@/lib/types/github"
-
-// Minimal subset of the repository fields we actually use
-type InstallationRepository = {
-  id: number
-  name: string
-  full_name: string
-  description: string | null
-  updated_at: string | null
-}
+import { getUserInstallations, getUserOctokit } from "@/lib/github"
 
 /**
  * Returns a deduplicated list of repositories that the current user can access **and**
@@ -18,11 +8,11 @@ type InstallationRepository = {
  *
  * Workflow:
  * 1. Fetch the user's installations via OAuth (`GET /user/installations`).
- * 2. For each installation, create an installation-scoped Octokit client.
- * 3. In parallel, list repositories accessible to that installation (`GET /installation/repositories`).
+ * 2. For each installation, use the OAuth user token to query repositories **that the user can access within that installation**.
+ * 3. In parallel, list repositories accessible to the user for that installation (`GET /user/installations/{installation_id}/repositories`).
  * 4. Merge & deduplicate the results by `nameWithOwner`.
  */
-export async function listUserAppRepositories(): Promise<RepoSelectorItem[]> {
+export async function listUserAppRepositories() {
   // Step 1 – Fetch all installations for the authenticated user
   const installations = await getUserInstallations()
 
@@ -30,28 +20,20 @@ export async function listUserAppRepositories(): Promise<RepoSelectorItem[]> {
     return []
   }
 
-  // Step 2 & 3 – For every installation create an Octokit client and list repos *in parallel*
+  // Step 2 & 3 – For every installation, list repositories the **user** can access within that installation *in parallel*
+  const userOctokit = await getUserOctokit()
+
   const reposByInstallation = await Promise.all(
     installations.map(async (installation: { id: number }) => {
       try {
-        const octokit = await getInstallationOctokit(installation.id)
-
-        // Using the installation-scoped token, list repos accessible to that installation
-        const { data } = await octokit.request(
-          "GET /installation/repositories",
-          { per_page: 100 }
+        const {
+          data: { repositories },
+        } = await userOctokit.request(
+          "GET /user/installations/{installation_id}/repositories",
+          { installation_id: installation.id, per_page: 100 }
         )
 
-        // data.repositories contains the array of repositories
-        const reposArray = (data.repositories ??
-          []) as unknown as InstallationRepository[]
-
-        return reposArray.map((repo) => ({
-          name: repo.name,
-          nameWithOwner: repo.full_name,
-          description: repo.description,
-          updatedAt: repo.updated_at || "",
-        })) as RepoSelectorItem[]
+        return repositories
       } catch (error) {
         console.error(
           `[github/repos] Failed to list repositories for installation ${installation.id}:`,
@@ -66,10 +48,10 @@ export async function listUserAppRepositories(): Promise<RepoSelectorItem[]> {
   const allRepos = reposByInstallation.flat()
 
   // Step 4 – Deduplicate by `nameWithOwner`
-  const uniqueReposMap = new Map<string, RepoSelectorItem>()
+  const uniqueReposMap = new Map<string, (typeof allRepos)[0]>()
   for (const repo of allRepos) {
-    if (!uniqueReposMap.has(repo.nameWithOwner)) {
-      uniqueReposMap.set(repo.nameWithOwner, repo)
+    if (!uniqueReposMap.has(repo.full_name)) {
+      uniqueReposMap.set(repo.full_name, repo)
     }
   }
 
