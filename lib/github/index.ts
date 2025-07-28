@@ -122,39 +122,7 @@ function isOctokitAuthToken(obj: unknown): obj is OctokitAuthToken {
   )
 }
 
-/**
- * Returns a token that can be used for git operations (HTTPS).
- * If the current session is an OAuth user, returns the user token.
- * Otherwise returns the GitHub App installation access token.
- */
-export async function getAuthToken(
-  octokit: ExtendedOctokit | null
-): Promise<OctokitAuthToken | null> {
-  if (!octokit) {
-    octokit = await getOctokit()
-  }
-
-  if (!octokit) {
-    return null
-  }
-
-  let type: "installation" | null
-  // If the current session is an OAuth user, returns the user token.
-  if (octokit.authType === "user") {
-    type = null
-  } else {
-    type = "installation"
-  }
-
-  const auth = await octokit.auth({ type })
-
-  if (isOctokitAuthToken(auth)) {
-    return auth
-  } else {
-    throw new Error(`Did not get expected auth shape: ${String(auth)}`)
-  }
-}
-
+// TODO: Get rid of
 export async function getTestInstallationOctokit(installationId?: number) {
   // Installation ID for user: "youngchingjui" and Github App: "dev-issue-to-pr"
   const BACKUP_INSTALLATION_ID = 77503233

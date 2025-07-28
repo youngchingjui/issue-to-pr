@@ -11,8 +11,7 @@ import {
   stopAndRemoveContainer,
 } from "@/lib/docker"
 import { addWorktree, removeWorktree } from "@/lib/git"
-import { getInstallationOctokit } from "@/lib/github"
-import { getInstallationFromRepo } from "@/lib/github/repos"
+import { getInstallationTokenFromRepo } from "@/lib/github/installation"
 import { AGENT_BASE_IMAGE } from "@/lib/types/docker"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 
@@ -194,26 +193,7 @@ export async function createContainerizedWorkspace({
   hostRepoPath,
 }: ContainerizedWorktreeOptions): Promise<ContainerizedWorktreeResult> {
   const [owner, repo] = repoFullName.split("/")
-  const installation = await getInstallationFromRepo({ owner, repo })
-  const installationOctokit = await getInstallationOctokit(installation.data.id)
-  const auth = await installationOctokit.auth({ type: "installation" })
-
-  // Narrow the `auth` value (it comes back as `unknown`) and ensure it has a
-  // `token` property that is a string.  If any of these checks fail we bail out
-  // early with a descriptive error so we never proceed with an invalid token
-  // shape.
-  if (
-    !auth ||
-    typeof auth !== "object" ||
-    !("token" in auth) ||
-    typeof auth.token !== "string"
-  ) {
-    throw new Error(
-      `Invalid authentication response while setting up containerized workspace for ${repoFullName}`
-    )
-  }
-
-  const token = auth.token
+  const token = await getInstallationTokenFromRepo({ owner, repo })
 
   // 2. Start a detached container with GITHUB_TOKEN env set
   const containerName = `agent-${workflowId}`.replace(/[^a-zA-Z0-9_.-]/g, "-")

@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
-  getAuthToken,
   getGraphQLClient,
   getInstallationPermissions,
   getTestInstallationOctokit,
@@ -64,11 +63,6 @@ const FUNCTION_OPTIONS = [
   {
     label: "getInstallationPermissions (no params)",
     value: "getInstallationPermissions",
-    params: [],
-  },
-  {
-    label: "getAuthToken (no params)",
-    value: "getAuthToken",
     params: [],
   },
   {
@@ -138,8 +132,6 @@ export default function TestGithubUserFunctionsCard() {
           res = await getGraphQLClient()
         } else if (selectedFn.value === "getInstallationPermissions") {
           res = await getInstallationPermissions()
-        } else if (selectedFn.value === "getAuthToken") {
-          res = await getAuthToken(null)
         } else if (selectedFn.value === "getTestInstallationOctokit") {
           const installationId = paramValues["installationId"]
             ? parseInt(paramValues["installationId"])
