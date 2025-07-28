@@ -1,11 +1,11 @@
 import RepoSelector from "@/components/common/RepoSelector"
 import IssueTable from "@/components/issues/IssueTable"
 import NewTaskInput from "@/components/issues/NewTaskInput"
-import { listUserRepositoriesGraphQL } from "@/lib/github/users"
+import { listUserRepositories } from "@/lib/github/users"
 import { repoFullNameSchema } from "@/lib/types/github"
 
 export default async function IssueDashboard() {
-  const repos = await listUserRepositoriesGraphQL()
+  const repos = await listUserRepositories()
   const firstRepo = repos[0]
   if (!firstRepo) {
     return (
@@ -18,7 +18,7 @@ export default async function IssueDashboard() {
       </div>
     )
   }
-  const repoFullName = repoFullNameSchema.parse(firstRepo.full_name)
+  const repoFullName = repoFullNameSchema.parse(firstRepo.nameWithOwner)
 
   return (
     <main className="container mx-auto py-10 max-w-4xl w-full">

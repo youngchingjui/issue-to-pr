@@ -31,8 +31,11 @@ import {
   DEFAULT_SYSTEM_PROMPTS,
   SystemPromptTemplate,
 } from "@/lib/systemPrompts"
-import { repoFullNameSchema } from "@/lib/types/github"
-import { GitHubIssue, RepoSelectorItem } from "@/lib/types/github"
+import {
+  AuthenticatedUserRepository,
+  repoFullNameSchema,
+} from "@/lib/types/github"
+import { GitHubIssue } from "@/lib/types/github"
 
 interface Message {
   role: "system" | "user" | "assistant"
@@ -46,7 +49,7 @@ export default function AgentWorkflowClient({
 }) {
   const availableTools = defaultTools
 
-  const [repos, setRepos] = useState<RepoSelectorItem[]>([])
+  const [repos, setRepos] = useState<AuthenticatedUserRepository[]>([])
   const [selectedRepo, setSelectedRepo] = useState<string>("")
   const [branches, setBranches] = useState<string[]>([])
   const [selectedBranch, setSelectedBranch] = useState<string>("")

@@ -70,12 +70,6 @@ export const IssueOrderFieldSchema = z
   .default("CREATED")
 export type IssueOrderField = z.infer<typeof IssueOrderFieldSchema>
 
-export type RepoSelectorItem = {
-  full_name: string
-  description: string | null
-  updated_at: string | null
-}
-
 // ---
 // Structured Result Type for getIssue
 export type GetIssueResult =

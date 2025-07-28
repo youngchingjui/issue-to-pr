@@ -4,7 +4,7 @@ import { Suspense } from "react"
 import RepoSelector from "@/components/common/RepoSelector"
 import IssueTable from "@/components/issues/IssueTable"
 import NewTaskInput from "@/components/issues/NewTaskInput"
-import { listUserRepositoriesGraphQL } from "@/lib/github/users"
+import { listUserRepositories } from "@/lib/github/users"
 import { repoFullNameSchema } from "@/lib/types/github"
 
 export default async function IssuesPage({
@@ -18,7 +18,7 @@ export default async function IssuesPage({
   )
   if (!repoFullNameParseResult.success) {
     // Only fetch repos if we need to redirect
-    const repos = await listUserRepositoriesGraphQL()
+    const repos = await listUserRepositories()
     const firstRepo = repos[0]
     if (!firstRepo) {
       return (
@@ -31,9 +31,9 @@ export default async function IssuesPage({
         </div>
       )
     }
-    const repoFullName = firstRepo.full_name
+    const repoFullName = firstRepo.nameWithOwner
     if (!repoFullName) {
-      redirect(`/issues?repo=${encodeURIComponent(firstRepo.full_name)}`)
+      redirect(`/issues?repo=${encodeURIComponent(firstRepo.nameWithOwner)}`)
     } else {
       redirect(`/issues?repo=${encodeURIComponent(repoFullName)}`)
     }

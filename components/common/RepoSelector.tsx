@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select"
 import { listUserAppRepositories } from "@/lib/github/repos"
 import { useMediaQuery } from "@/lib/hooks/use-media-query"
-import { RepoSelectorItem } from "@/lib/types/github"
+import { AuthenticatedUserRepository } from "@/lib/types/github"
 
 // Determine which GitHub App slug to use based on environment.
 // 1. Prefer an explicit build-time env var (exposed to the browser) so deployments can override.
@@ -33,7 +33,7 @@ interface Props {
 
 export default function RepoSelector({ selectedRepo }: Props) {
   const router = useRouter()
-  const [repos, setRepos] = useState<RepoSelectorItem[]>([])
+  const [repos, setRepos] = useState<AuthenticatedUserRepository[]>([])
   // Start in loading state because we immediately fetch on mount
   const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)

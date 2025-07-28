@@ -1,12 +1,9 @@
 "use server"
 
 import { getUserOctokit } from "@/lib/github"
+import { listUserRepositories } from "@/lib/github/graphql/queries/listUserRepositories"
 import { listUserAppRepositories } from "@/lib/github/repos"
-import {
-  GitHubUser,
-  RepoPermissions,
-  RepoSelectorItem,
-} from "@/lib/types/github"
+import { GitHubUser, RepoPermissions } from "@/lib/types/github"
 
 export async function getGithubUser(): Promise<GitHubUser | null> {
   try {
@@ -77,44 +74,4 @@ export async function checkRepoPermissions(
   }
 }
 
-interface UserRepositoriesGraphQLResponse {
-  viewer: {
-    repositories: {
-      nodes: RepoSelectorItem[]
-    }
-  }
-}
-
-export async function listUserRepositoriesGraphQL(): Promise<
-  RepoSelectorItem[]
-> {
-  const octokit = await getUserOctokit()
-  const graphqlWithAuth = octokit.graphql
-  if (!graphqlWithAuth) {
-    throw new Error("Could not initialize GraphQL client")
-  }
-
-  const query = `
-    query {
-      viewer {
-        repositories(first: 50, orderBy: { field: UPDATED_AT, direction: DESC }) {
-          nodes {
-            name
-            nameWithOwner
-            description
-            updatedAt
-          }
-        }
-      }
-    }
-  `
-
-  try {
-    const response =
-      await graphqlWithAuth<UserRepositoriesGraphQLResponse>(query)
-    return response.viewer.repositories.nodes
-  } catch (error) {
-    console.error("Error fetching user repositories:", error)
-    return []
-  }
-}
+export { listUserRepositories }
