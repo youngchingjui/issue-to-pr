@@ -7,7 +7,7 @@ import { Octokit } from "@octokit/rest"
 import * as fs from "fs/promises"
 import { App } from "octokit"
 
-import { auth } from "@/auth"
+import { auth, signOut } from "@/auth"
 import { ExtendedOctokit } from "@/lib/types/github"
 import { getInstallationId } from "@/lib/utils/utils-server"
 
@@ -153,6 +153,13 @@ export async function getTestInstallationOctokit(installationId?: number) {
  *
  * @returns An authenticated Octokit instance or throws an error if authentication fails
  */
+export class GitHubTokenError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = "GitHubTokenError"
+  }
+}
+
 export async function getUserOctokit() {
   const session = await auth()
 
@@ -173,6 +180,14 @@ export async function getUserOctokit() {
       token: session.token.access_token,
     },
   })
+
+  try {
+    await userOctokit.rest.users.getAuthenticated()
+  } catch (error) {
+    console.error("[ERROR] GitHub authentication failed:", error)
+    await signOut({ redirectTo: "/?error=invalid-token" })
+    throw new GitHubTokenError("Invalid GitHub token")
+  }
 
   return userOctokit
 }
