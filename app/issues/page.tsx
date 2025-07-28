@@ -33,7 +33,6 @@ export default async function IssuesPage({
     }
     const repoFullName = firstRepo.nameWithOwner
     if (!repoFullName) {
-      // SSR redirect to best guess
       redirect(`/issues?repo=${encodeURIComponent(firstRepo.nameWithOwner)}`)
     } else {
       redirect(`/issues?repo=${encodeURIComponent(repoFullName)}`)
@@ -46,11 +45,9 @@ export default async function IssuesPage({
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <h1 className="text-2xl font-bold">Your Issues & Workflows</h1>
         <div className="flex items-center gap-3">
-          {/* Repo selector */}
           <RepoSelector selectedRepo={repoFullName.fullName} />
         </div>
       </div>
-      {/* New issue input */}
       <div className="mb-6">
         <NewTaskInput repoFullName={repoFullName} />
       </div>
