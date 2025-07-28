@@ -27,6 +27,11 @@ export function runWithInstallationId(
   asyncLocalStorage.run({ installationId }, fn)
 }
 
+// TODO: We currently depend on webhooks to provide installation IDs.
+// BUT, we should also save installation IDs to neo4j database on the first time we retrieve them.
+// They are unique to:
+//   - Our Github App (dev-issue-to-pr (local testing) or issuetopr-dev (production)) (confusing, I know)
+//   - user / org
 export function getInstallationId(): string | null {
   const store = asyncLocalStorage.getStore()
   if (!store) {
@@ -42,8 +47,8 @@ export function getInstallationId(): string | null {
  * available in a local working directory that the server can freely mutate.
  * The steps performed are:
  * 1. Resolve (and lazily create) the base directory via `getLocalRepoDir`.
- * 2. Build an authenticated clone URL using either the current user session's
- *    OAuth token (if present) or a GitHub App installation token exposed
+ * 2. Build an authenticated clone URL using either the user's
+ *    GitHub App token (OAuth or installation token) exposed
  *    through `runWithInstallationId` / `getInstallationId`.
  * 3. Verify that the local repository is healthy via `ensureValidRepo`; if it
  *    is corrupt or missing, attempt a fresh clone.
