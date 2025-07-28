@@ -41,6 +41,16 @@ const ResponseSchema = z.object({
 
 type ListUserRepositoriesResponse = z.infer<typeof ResponseSchema>
 
+/**
+ *
+ * Lists repositories that are available to the user AND the Github App
+ * We use `getUserOctokit` to retreive the list of repositories that are visible
+ * to both the user AND the Github App.
+ * This is different from `listUserAppRepositories` which only lists repositories
+ * that have the Github App installed.
+ * Therefore, public repositories will be included in this list, even if they
+ * don't have the Github App installed. Since the Github App can also "see" public repositories.
+ */
 export async function listUserRepositories(): Promise<RepoSelectorItem[]> {
   const octokit = await getUserOctokit()
   const graphqlWithAuth = octokit.graphql
