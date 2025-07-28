@@ -21,7 +21,7 @@ import {
 import {
   checkRepoPermissions,
   getGithubUser,
-  listUserRepositoriesGraphQL,
+  listUserRepositories,
 } from "@/lib/github/users"
 
 const FUNCTION_OPTIONS = [
@@ -38,8 +38,8 @@ const FUNCTION_OPTIONS = [
     ],
   },
   {
-    label: "listUserRepositoriesGraphQL (no params)",
-    value: "listUserRepositoriesGraphQL",
+    label: "listUserRepositories (no params)",
+    value: "listUserRepositories",
     params: [],
   },
   {
@@ -126,8 +126,8 @@ export default function TestGithubUserFunctionsCard() {
           res = await getGithubUser()
         } else if (selectedFn.value === "checkRepoPermissions") {
           res = await checkRepoPermissions(paramValues["repoFullName"] || "")
-        } else if (selectedFn.value === "listUserRepositoriesGraphQL") {
-          res = await listUserRepositoriesGraphQL()
+        } else if (selectedFn.value === "listUserRepositories") {
+          res = await listUserRepositories()
         } else if (selectedFn.value === "getGraphQLClient") {
           res = await getGraphQLClient()
         } else if (selectedFn.value === "getInstallationPermissions") {
