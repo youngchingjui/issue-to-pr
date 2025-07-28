@@ -95,8 +95,8 @@ export default function RepoSelector({ selectedRepo }: Props) {
         {loading && <div className="px-4 py-2">Loading...</div>}
         {!loading &&
           repos.map((repo) => (
-            <SelectItem key={repo.nameWithOwner} value={repo.nameWithOwner}>
-              {repo.nameWithOwner}
+            <SelectItem key={repo.full_name} value={repo.full_name}>
+              {repo.full_name}
             </SelectItem>
           ))}
       </SelectContent>

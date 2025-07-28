@@ -238,11 +238,8 @@ export default function AgentWorkflowClient({
                     </SelectTrigger>
                     <SelectContent>
                       {repos.map((repo) => (
-                        <SelectItem
-                          key={repo.nameWithOwner}
-                          value={repo.nameWithOwner}
-                        >
-                          {repo.nameWithOwner}
+                        <SelectItem key={repo.full_name} value={repo.full_name}>
+                          {repo.full_name}
                         </SelectItem>
                       ))}
                     </SelectContent>
