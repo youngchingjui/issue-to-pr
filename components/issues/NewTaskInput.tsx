@@ -93,11 +93,14 @@ export default function NewTaskInput({ repoFullName }: Props) {
     }
 
     setLoading(true)
+
+    const { repo, owner } = repoFullName
     try {
       // 1️⃣ Perform the async GitHub call **outside** of startTransition so
       //     errors are captured by this try/catch.
       const res = await createIssue({
-        repoFullName,
+        repo,
+        owner,
         title: taskTitle,
         body: description,
       })
