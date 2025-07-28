@@ -33,3 +33,18 @@ export async function getInstallationTokenFromRepo({
 
   return auth.token
 }
+
+/**
+ * Returns true if the authenticated user has at least one installation of the
+ * Issue&nbsp;to&nbsp;PR GitHub App. Falls back to `false` on errors.
+ */
+export async function userHasAppInstallation(): Promise<boolean> {
+  try {
+    const { getUserInstallations } = await import("./index")
+    const installations = await getUserInstallations()
+    return Array.isArray(installations) && installations.length > 0
+  } catch (err) {
+    console.error("[github/installation] Failed to check installations", err)
+    return false
+  }
+}

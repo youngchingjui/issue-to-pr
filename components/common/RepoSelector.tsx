@@ -26,6 +26,7 @@ if (!GITHUB_APP_SLUG) {
 }
 
 const INSTALL_URL = `https://github.com/apps/${GITHUB_APP_SLUG}/installations/new`
+const SETTINGS_URL = `https://github.com/apps/${GITHUB_APP_SLUG}/installations`
 
 interface Props {
   selectedRepo: string
@@ -68,38 +69,52 @@ export default function RepoSelector({ selectedRepo }: Props) {
   // 2. No repositories detected – show GitHub App installation CTA
   if (!loading && repos.length === 0) {
     return (
-      <Button asChild variant="secondary">
-        <Link href={INSTALL_URL} target="_blank" rel="noopener noreferrer">
-          Install Issue&nbsp;to&nbsp;PR to get started
-        </Link>
-      </Button>
+      <div className="flex flex-col items-start gap-2">
+        <Button asChild variant="secondary">
+          <Link href={INSTALL_URL} target="_blank" rel="noopener noreferrer">
+            Install Issue&nbsp;to&nbsp;PR to get started
+          </Link>
+        </Button>
+        <Button asChild variant="link" className="p-0 h-auto text-sm">
+          <Link href={INSTALL_URL} target="_blank" rel="noopener noreferrer">
+            Manage repositories
+          </Link>
+        </Button>
+      </div>
     )
   }
 
   // 3. Repositories available – show repo selector dropdown
   return (
-    <Select
-      defaultValue={selectedRepo}
-      name="repo"
-      onValueChange={(val) => {
-        router.push(`/issues?repo=${encodeURIComponent(val)}`)
-      }}
-      onOpenChange={setOpen}
-    >
-      <SelectTrigger className="w-64">
-        <SelectValue placeholder="Select repository">
-          {selectedRepo}
-        </SelectValue>
-      </SelectTrigger>
-      <SelectContent align={isDesktop ? "end" : "start"}>
-        {loading && <div className="px-4 py-2">Loading...</div>}
-        {!loading &&
-          repos.map((repo) => (
-            <SelectItem key={repo.full_name} value={repo.full_name}>
-              {repo.full_name}
-            </SelectItem>
-          ))}
-      </SelectContent>
-    </Select>
+    <div className="flex flex-col items-start gap-2">
+      <Select
+        defaultValue={selectedRepo}
+        name="repo"
+        onValueChange={(val) => {
+          router.push(`/issues?repo=${encodeURIComponent(val)}`)
+        }}
+        onOpenChange={setOpen}
+      >
+        <SelectTrigger className="w-64">
+          <SelectValue placeholder="Select repository">
+            {selectedRepo}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent align={isDesktop ? "end" : "start"}>
+          {loading && <div className="px-4 py-2">Loading...</div>}
+          {!loading &&
+            repos.map((repo) => (
+              <SelectItem key={repo.full_name} value={repo.full_name}>
+                {repo.full_name}
+              </SelectItem>
+            ))}
+        </SelectContent>
+      </Select>
+      <Button asChild variant="link" className="p-0 h-auto text-sm">
+        <Link href={SETTINGS_URL} target="_blank" rel="noopener noreferrer">
+          Manage repositories
+        </Link>
+      </Button>
+    </div>
   )
 }
