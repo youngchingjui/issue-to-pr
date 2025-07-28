@@ -1,10 +1,8 @@
 import { redirect } from "next/navigation"
-import { Suspense } from "react"
 
-import RepoSelector from "@/components/common/RepoSelector"
-import IssueTable from "@/components/issues/IssueTable"
-import NewTaskInput from "@/components/issues/NewTaskInput"
-import { listUserRepositoriesGraphQL } from "@/lib/github/users"
+import NoRepoCTA from "@/components/common/NoRepoCTA"
+import NewTaskContainer from "@/components/issues/NewTaskContainer"
+import { listUserAppRepositories } from "@/lib/github/repos"
 import { repoFullNameSchema } from "@/lib/types/github"
 
 export default async function IssuesPage({
@@ -16,47 +14,22 @@ export default async function IssuesPage({
   const repoFullNameParseResult = repoFullNameSchema.safeParse(
     searchParams?.repo
   )
+
+  // When the ?repo param is missing/invalid, try to fall back to the first repo
   if (!repoFullNameParseResult.success) {
-    // Only fetch repos if we need to redirect
-    const repos = await listUserRepositoriesGraphQL()
-    const firstRepo = repos[0]
+    const repos = await listUserAppRepositories()
+    const firstRepo = repos.length > 0 ? repos[0] : null
+
+    // Still no repo → show installation CTA
     if (!firstRepo) {
-      return (
-        <div className="container mx-auto py-10">
-          <h1 className="text-2xl font-bold mb-6">Your Issues</h1>
-          <div className="text-destructive">
-            You have no accessible repositories. Please add or connect a GitHub
-            account with repositories.
-          </div>
-        </div>
-      )
+      return <NoRepoCTA />
     }
-    const repoFullName = firstRepo.nameWithOwner
-    if (!repoFullName) {
-      // SSR redirect to best guess
-      redirect(`/issues?repo=${encodeURIComponent(firstRepo.nameWithOwner)}`)
-    } else {
-      redirect(`/issues?repo=${encodeURIComponent(repoFullName)}`)
-    }
+
+    // Redirect to the first available repository
+    return redirect(`/issues?repo=${encodeURIComponent(firstRepo.full_name)}`)
   }
 
+  // Valid repo param → render the main container
   const repoFullName = repoFullNameParseResult.data
-  return (
-    <main className="container mx-auto py-10 max-w-4xl w-full">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
-        <h1 className="text-2xl font-bold">Your Issues & Workflows</h1>
-        <div className="flex items-center gap-3">
-          {/* Repo selector */}
-          <RepoSelector selectedRepo={repoFullName.fullName} />
-        </div>
-      </div>
-      {/* New issue input */}
-      <div className="mb-6">
-        <NewTaskInput repoFullName={repoFullName} />
-      </div>
-      <Suspense fallback={<div>Loading issues...</div>}>
-        <IssueTable repoFullName={repoFullName} />
-      </Suspense>
-    </main>
-  )
+  return <NewTaskContainer repoFullName={repoFullName} />
 }

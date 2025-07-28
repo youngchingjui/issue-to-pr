@@ -32,3 +32,6 @@ export default async function Redirect({
   // Default fallback to user's profile page
   redirect(`/${user.login}`)
 }
+
+// TODO: On issues page, the repo drop down should only show repos where the app is installed in, and the repos that the authenticated user has access to
+// TODO: If there are no installations available, show button to direct to install the app on their account and choose which repos to allow.

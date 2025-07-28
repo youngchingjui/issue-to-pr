@@ -4,7 +4,7 @@
 // They can also all access the same data, such as the issue, the codebase, etc.
 
 import { CoderAgent } from "@/lib/agents/coder"
-import { getAuthToken } from "@/lib/github"
+import { getInstallationTokenFromRepo } from "@/lib/github/installation"
 import { getIssueComments } from "@/lib/github/issues"
 import { checkRepoPermissions } from "@/lib/github/users"
 import { langfuse } from "@/lib/langfuse"
@@ -161,17 +161,8 @@ export const resolveIssue = async ({
     }
 
     // Get token from session for authenticated git push
-    let sessionToken: string | undefined = undefined
-    if (createPR && userPermissions?.canPush && userPermissions?.canCreatePR) {
-      const tokenResult = await getAuthToken()
-      if (tokenResult?.token) {
-        sessionToken = tokenResult.token
-      } else {
-        throw new Error(
-          "Could not obtain authentication token for pushing branch"
-        )
-      }
-    }
+    const [owner, repo] = repository.full_name.split("/")
+    const sessionToken = await getInstallationTokenFromRepo({ owner, repo })
 
     // Start a trace for this workflow
     const trace = langfuse.trace({

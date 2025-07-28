@@ -12,7 +12,7 @@ import { IssueTitleResponseSchema } from "@/lib/types/api/schemas"
 import { RepoFullName } from "@/lib/types/github"
 
 interface Props {
-  repoFullName: RepoFullName
+  repoFullName: RepoFullName | null
 }
 
 export default function NewTaskInput({ repoFullName }: Props) {
@@ -43,6 +43,15 @@ export default function NewTaskInput({ repoFullName }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!repoFullName) {
+      toast({
+        title: "No repository selected",
+        description: "Please select a repository to create an issue.",
+        variant: "destructive",
+      })
+      return
+    }
 
     if (!description.trim()) {
       toast({
@@ -84,11 +93,14 @@ export default function NewTaskInput({ repoFullName }: Props) {
     }
 
     setLoading(true)
+
+    const { repo, owner } = repoFullName
     try {
       // 1️⃣ Perform the async GitHub call **outside** of startTransition so
       //     errors are captured by this try/catch.
       const res = await createIssue({
-        repoFullName,
+        repo,
+        owner,
         title: taskTitle,
         body: description,
       })

@@ -127,7 +127,6 @@ Our system uses a hybrid database approach where PostgreSQL and Neo4j complement
 1. **Authentication**
 
    - JWT-based authentication
-   - No storage of OAuth tokens
    - Regular JWT rotation
    - Audit logging for sensitive operations
 

@@ -1,6 +1,6 @@
 "use server"
 
-import getOctokit from "@/lib/github"
+import getOctokit, { getUserOctokit } from "@/lib/github"
 import { getIssueToPullRequestMap } from "@/lib/github/pullRequests"
 import {
   getLatestPlanIdsForIssues,
@@ -12,20 +12,22 @@ import {
   GitHubIssue,
   GitHubIssueComment,
   ListForRepoParams,
-  RepoFullName,
 } from "@/lib/types/github"
 
-export async function createIssue({
-  repoFullName,
-  title,
-  body,
-}: {
-  repoFullName: RepoFullName
+type CreateIssueParams = {
+  repo: string
+  owner: string
   title: string
   body: string
-}) {
-  const octokit = await getOctokit()
-  const { owner, repo } = repoFullName
+}
+
+export async function createIssue({
+  repo,
+  owner,
+  title,
+  body,
+}: CreateIssueParams) {
+  const octokit = await getUserOctokit()
   if (!octokit) throw new Error("No octokit found")
   return await octokit.rest.issues.create({ owner, repo, title, body })
 }

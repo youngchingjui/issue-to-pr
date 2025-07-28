@@ -127,12 +127,6 @@ As you make changes to the codebase, don't forget to update this to-do list with
 
 ### Metered Billing Implementation
 
-1. [ ] Set up GitHub OAuth integration:
-
-   - [ ] Register application with GitHub
-   - [ ] Implement OAuth flow for user authentication
-   - [ ] Store GitHub user information securely
-
 2. [ ] Create Stripe integration:
 
    - [ ] Set up Stripe account and API keys
