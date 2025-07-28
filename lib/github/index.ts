@@ -3,9 +3,9 @@
 import { createAppAuth } from "@octokit/auth-app"
 import { createOAuthUserAuth } from "@octokit/auth-oauth-user"
 import { graphql } from "@octokit/graphql"
-import { request } from "@octokit/request"
 import { Octokit } from "@octokit/rest"
 import * as fs from "fs/promises"
+import { App } from "octokit"
 
 import { auth } from "@/auth"
 import { ExtendedOctokit } from "@/lib/types/github"
@@ -231,4 +231,16 @@ export async function getInstallationOctokit(installationId: number) {
   })
 
   return installationOctokit
+}
+
+export async function getAppOctokit() {
+  const appId = process.env.GITHUB_APP_ID
+  if (!appId) throw new Error("GITHUB_APP_ID is not set")
+
+  const privateKey = await getPrivateKeyFromFile()
+  const app = new App({
+    appId,
+    privateKey,
+  })
+  return app
 }

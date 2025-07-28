@@ -31,9 +31,9 @@ export default async function IssuesPage({
         </div>
       )
     }
-    const repoFullName = firstRepo.nameWithOwner
+    const repoFullName = firstRepo.full_name
     if (!repoFullName) {
-      redirect(`/issues?repo=${encodeURIComponent(firstRepo.nameWithOwner)}`)
+      redirect(`/issues?repo=${encodeURIComponent(firstRepo.full_name)}`)
     } else {
       redirect(`/issues?repo=${encodeURIComponent(repoFullName)}`)
     }

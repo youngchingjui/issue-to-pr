@@ -1,6 +1,10 @@
 "use server"
 
-import { getUserInstallations, getUserOctokit } from "@/lib/github"
+import {
+  getAppOctokit,
+  getUserInstallations,
+  getUserOctokit,
+} from "@/lib/github"
 
 /**
  * Returns a deduplicated list of repositories that the current user can access **and**
@@ -56,4 +60,24 @@ export async function listUserAppRepositories() {
   }
 
   return Array.from(uniqueReposMap.values())
+}
+
+export async function getInstallationFromRepo({
+  owner,
+  repo,
+}: {
+  owner: string
+  repo: string
+}) {
+  const app = await getAppOctokit()
+
+  const result = await app.octokit.request(
+    "GET /repos/{owner}/{repo}/installation",
+    {
+      owner,
+      repo,
+    }
+  )
+
+  return result
 }

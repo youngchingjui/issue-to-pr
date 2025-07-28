@@ -11,7 +11,8 @@ import {
   stopAndRemoveContainer,
 } from "@/lib/docker"
 import { addWorktree, removeWorktree } from "@/lib/git"
-import { getAuthToken } from "@/lib/github"
+import { getInstallationOctokit } from "@/lib/github"
+import { getInstallationFromRepo } from "@/lib/github/repos"
 import { AGENT_BASE_IMAGE } from "@/lib/types/docker"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 
@@ -181,6 +182,8 @@ export async function createContainerizedWorktree({
  *
  * Compared to createContainerizedWorktree, this approach does NOT rely on git worktrees mounted
  * from the host. All git operations happen entirely inside the container.
+ *
+ * Git operations will be attributed to the Github App, not the user, so we use our Github App installation credentials
  */
 export async function createContainerizedWorkspace({
   repoFullName,
@@ -190,15 +193,27 @@ export async function createContainerizedWorkspace({
   mountPath = "/workspace",
   hostRepoPath,
 }: ContainerizedWorktreeOptions): Promise<ContainerizedWorktreeResult> {
-  // 1. Obtain a GitHub token (from user session if possible, otherwise app installation)
-  const authTokenResult = await getAuthToken()
-  const token = authTokenResult?.token
+  const [owner, repo] = repoFullName.split("/")
+  const installation = await getInstallationFromRepo({ owner, repo })
+  const installationOctokit = await getInstallationOctokit(installation.data.id)
+  const auth = await installationOctokit.auth({ type: "installation" })
 
-  if (!token) {
+  // Narrow the `auth` value (it comes back as `unknown`) and ensure it has a
+  // `token` property that is a string.  If any of these checks fail we bail out
+  // early with a descriptive error so we never proceed with an invalid token
+  // shape.
+  if (
+    !auth ||
+    typeof auth !== "object" ||
+    !("token" in auth) ||
+    typeof auth.token !== "string"
+  ) {
     throw new Error(
-      "Unable to obtain GitHub token for containerized workspace setup"
+      `Invalid authentication response while setting up containerized workspace for ${repoFullName}`
     )
   }
+
+  const token = auth.token
 
   // 2. Start a detached container with GITHUB_TOKEN env set
   const containerName = `agent-${workflowId}`.replace(/[^a-zA-Z0-9_.-]/g, "-")

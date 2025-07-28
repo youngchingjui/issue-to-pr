@@ -15,7 +15,10 @@ import {
   getUserOctokit,
 } from "@/lib/github"
 import { createIssue } from "@/lib/github/issues"
-import { listUserAppRepositories } from "@/lib/github/repos"
+import {
+  getInstallationFromRepo,
+  listUserAppRepositories,
+} from "@/lib/github/repos"
 import {
   checkRepoPermissions,
   getGithubUser,
@@ -44,6 +47,14 @@ const FUNCTION_OPTIONS = [
     label: "listUserAppRepositories (no params)",
     value: "listUserAppRepositories",
     params: [],
+  },
+  {
+    label: "getRepoInstallation (owner: string, repo: string)",
+    value: "getRepoInstallation",
+    params: [
+      { name: "owner", type: "string", placeholder: "owner" },
+      { name: "repo", type: "string", placeholder: "repo" },
+    ],
   },
   {
     label: "getGraphQLClient (no params)",
@@ -140,6 +151,10 @@ export default function TestGithubUserFunctionsCard() {
           res = await getUserInstallations()
         } else if (selectedFn.value === "listUserAppRepositories") {
           res = await listUserAppRepositories()
+        } else if (selectedFn.value === "getRepoInstallation") {
+          const owner = paramValues["owner"] || ""
+          const repo = paramValues["repo"] || ""
+          res = await getInstallationFromRepo({ owner, repo })
         } else if (selectedFn.value === "createIssue") {
           const repo = paramValues["repo"] || ""
           const owner = paramValues["owner"] || ""

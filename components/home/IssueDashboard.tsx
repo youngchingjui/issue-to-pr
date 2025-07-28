@@ -18,7 +18,7 @@ export default async function IssueDashboard() {
       </div>
     )
   }
-  const repoFullName = repoFullNameSchema.parse(firstRepo.nameWithOwner)
+  const repoFullName = repoFullNameSchema.parse(firstRepo.full_name)
 
   return (
     <main className="container mx-auto py-10 max-w-4xl w-full">
