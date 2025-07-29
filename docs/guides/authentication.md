@@ -36,6 +36,7 @@ GithubProvider({
 
 - Tokens stored in Redis with expiration
 - Automatic token refresh mechanism
+- Tokens refreshed if older than **1 week**
 - Concurrent refresh prevention using locks
 - Key naming convention:
   - `token_${userId}` - User tokens
@@ -70,6 +71,7 @@ UPSTASH_REDIS_REST_TOKEN=your_redis_token
 ### NextAuth Configuration
 
 - Session strategy: JWT
+- Session maxAge: 1 week
 - Callbacks for token and session management
 - Custom session types for TypeScript support
 

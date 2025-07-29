@@ -59,9 +59,10 @@ export async function refreshTokenWithLock(token: JWT) {
           throw new Error("Bad refresh token")
         }
 
-        const newToken = { ...token, ...data }
+        const now = Math.floor(Date.now() / 1000)
+        const newToken = { ...token, ...data, refreshed_at: now }
         if (data.expires_in) {
-          newToken.expires_at = Math.floor(Date.now() / 1000) + data.expires_in
+          newToken.expires_at = now + data.expires_in
         }
 
         // Store the refreshed token in Redis with an expiration
