@@ -6,6 +6,8 @@ import GithubProvider from "next-auth/providers/github"
 import { redis } from "@/lib/redis"
 import { refreshTokenWithLock } from "@/lib/utils/auth"
 
+const WEEK_IN_SECONDS = 60 * 60 * 24 * 7
+
 export const runtime = "nodejs"
 
 declare module "next-auth" {
@@ -62,6 +64,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
     }),
   ],
+  session: {
+    strategy: "jwt",
+    maxAge: WEEK_IN_SECONDS,
+  },
   callbacks: {
     async jwt({ token, account }) {
       if (account) {
@@ -72,15 +78,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           accessToken: !!account.access_token,
           scope: account.scope,
         })
+        const now = Math.floor(Date.now() / 1000)
         const newToken = {
           ...token,
           ...account,
           // Store which auth method was used
           authMethod: "github-app",
+          refreshed_at: now,
         }
         if (account.expires_in) {
-          newToken.expires_at =
-            Math.floor(Date.now() / 1000) + account.expires_in
+          newToken.expires_at = now + account.expires_in
         }
 
         await redis.set(`token_${token.sub}`, JSON.stringify(newToken), {
@@ -89,16 +96,42 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return newToken
       }
 
+      const now = Math.floor(Date.now() / 1000)
+
       if (
-        token.expires_at &&
-        (token.expires_at as number) < Date.now() / 1000
+        token.refreshed_at &&
+        token.refreshed_at + WEEK_IN_SECONDS < now
       ) {
-        if (token.provider == "github") {
+        if (token.provider === "github" || token.provider === "github-app") {
           try {
-            return await refreshTokenWithLock(token)
+            const refreshed = await refreshTokenWithLock(token)
+            refreshed.refreshed_at = now
+            await redis.set(`token_${token.sub}`, JSON.stringify(refreshed), {
+              ex: refreshed.expires_in || 28800,
+            })
+            return refreshed
           } catch (error) {
             console.error("Error refreshing token. Sign in again", error)
-            // Use NextURL for proper URL handling
+            const url = new URL(
+              "/",
+              process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
+            )
+            return NextResponse.redirect(url)
+          }
+        }
+      }
+
+      if (token.expires_at && token.expires_at < now) {
+        if (token.provider === "github" || token.provider === "github-app") {
+          try {
+            const refreshed = await refreshTokenWithLock(token)
+            refreshed.refreshed_at = now
+            await redis.set(`token_${token.sub}`, JSON.stringify(refreshed), {
+              ex: refreshed.expires_in || 28800,
+            })
+            return refreshed
+          } catch (error) {
+            console.error("Error refreshing token. Sign in again", error)
             const url = new URL(
               "/",
               process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
