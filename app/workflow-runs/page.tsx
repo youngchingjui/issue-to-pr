@@ -24,11 +24,12 @@ import { listWorkflowRuns } from "@/lib/neo4j/services/workflow"
  * returned if the user has permission.
  */
 async function getPermittedWorkflowRuns() {
-  // Fetch all runs first (they are inexpensive; filtering happens in memory)
-  const allRuns = await listWorkflowRuns()
+  const [allRuns, repos] = await Promise.all([
+    listWorkflowRuns(),
+    listUserRepositories(),
+  ])
 
   try {
-    const repos = await listUserRepositories()
     const allowed = new Set(repos.map((r) => r.nameWithOwner))
 
     return allRuns.filter((run) => {
@@ -129,4 +130,3 @@ export default async function WorkflowRunsPage() {
     </main>
   )
 }
-
