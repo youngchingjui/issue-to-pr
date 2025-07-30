@@ -4,40 +4,38 @@ import { JWT } from "next-auth/jwt"
 import GithubProvider from "next-auth/providers/github"
 
 import { redis } from "@/lib/redis"
-import { refreshTokenWithLock } from "@/lib/utils/auth-utils"
+import { refreshTokenWithLock } from "@/lib/utils/auth"
 
 export const runtime = "nodejs"
 
 declare module "next-auth" {
   interface Session {
     token?: JWT
-    authMethod?: "oauth" | "github-app"
+    authMethod?: "github-app"
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
-    authMethod?: "oauth" | "github-app"
+    authMethod?: "github-app"
+  }
+}
+
+function getRedirectBaseUrl() {
+  // Vercel staging
+  switch (process.env.VERCEL_ENV) {
+    case "production":
+    case "development":
+      return process.env.NEXT_PUBLIC_BASE_URL
+    case "preview":
+      return `https://${process.env.NEXT_PUBLIC_VERCEL_BRANCH_URL}`
+    default:
+      return "http://localhost:3000"
   }
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
-    // Traditional OAuth provider for public repository access
-    GithubProvider({
-      id: "github-oauth",
-      name: "GitHub OAuth",
-      clientId: process.env.GITHUB_OAUTH_ID, // Regular OAuth app credentials
-      clientSecret: process.env.GITHUB_OAUTH_SECRET,
-      authorization: {
-        url: "https://github.com/login/oauth/authorize",
-        params: {
-          scope: "read:user user:email repo workflow",
-          redirect_uri: `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/callback/github-oauth`,
-        },
-      },
-    }),
-    // GitHub App provider for installed repositories
     GithubProvider({
       id: "github-app",
       name: "GitHub App",
@@ -47,7 +45,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         url: "https://github.com/login/oauth/authorize",
         params: {
           client_id: process.env.GITHUB_APP_CLIENT_ID,
-          redirect_uri: `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/callback/github-app`,
+          redirect_uri: `${getRedirectBaseUrl()}/api/auth/callback/github-app`,
         },
       },
       userinfo: {
@@ -78,8 +76,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           ...token,
           ...account,
           // Store which auth method was used
-          authMethod:
-            account.provider === "github-oauth" ? "oauth" : "github-app",
+          authMethod: "github-app",
         }
         if (account.expires_in) {
           newToken.expires_at =
@@ -90,6 +87,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           ex: account.expires_in || 28800,
         })
         return newToken
+      }
+
+      // Check if this is an old OAuth App token (migration cleanup)
+      if (token.authMethod !== "github-app") {
+        console.log(
+          "Invalidating old OAuth App token, forcing re-authentication"
+        )
+        throw new Error("OAuth App token detected - please sign in again")
       }
 
       if (

@@ -1,16 +1,24 @@
 import { int, ManagedTransaction } from "neo4j-driver"
 
 import { n4j } from "@/lib/neo4j/client"
-import { toAppIssue } from "@/lib/neo4j/repositories/issue"
+import { neo4jToJs } from "@/lib/neo4j/convert"
 import {
   createPlanImplementsIssue,
   getPlanWithDetails as dbGetPlanWithDetails,
   labelEventAsPlan,
+  listLatestPlanIdsForIssues as dbListLatestPlanIdsForIssues,
   listPlansForIssue as dbListPlansForIssue,
-  toAppPlan,
+  listPlanStatusForIssues as dbListPlanStatusForIssues,
 } from "@/lib/neo4j/repositories/plan"
-import { toAppWorkflowRun } from "@/lib/neo4j/repositories/workflowRun"
-import { Issue, LLMResponseWithPlan, Plan, WorkflowRun } from "@/lib/types"
+import {
+  Issue,
+  issueSchema,
+  LLMResponseWithPlan,
+  Plan,
+  planSchema,
+  WorkflowRun,
+  workflowRunSchema,
+} from "@/lib/types"
 
 export async function listPlansForIssue({
   repoFullName,
@@ -18,7 +26,7 @@ export async function listPlansForIssue({
 }: {
   repoFullName: string
   issueNumber: number
-}) {
+}): Promise<Plan[]> {
   const session = await n4j.getSession()
 
   try {
@@ -28,7 +36,8 @@ export async function listPlansForIssue({
         issueNumber,
       })
     })
-    return result.map(toAppPlan)
+
+    return result.map(neo4jToJs).map((plan) => planSchema.parse(plan))
   } finally {
     await session.close()
   }
@@ -99,10 +108,51 @@ export async function getPlanWithDetails(
     })
 
     return {
-      plan: toAppPlan(result.plan),
-      workflow: toAppWorkflowRun(result.workflow),
-      issue: toAppIssue(result.issue),
+      plan: planSchema.parse(neo4jToJs(result.plan)),
+      workflow: workflowRunSchema.parse(neo4jToJs(result.workflow)),
+      issue: issueSchema.parse(neo4jToJs(result.issue)),
     }
+  } finally {
+    await session.close()
+  }
+}
+
+// Batch plan status for multiple issues (service level)
+export async function getPlanStatusForIssues({
+  repoFullName,
+  issueNumbers,
+}: {
+  repoFullName: string
+  issueNumbers: number[]
+}): Promise<Record<number, boolean>> {
+  if (!issueNumbers.length) return {}
+  const session = await n4j.getSession()
+  try {
+    return await session.executeRead(async (tx: ManagedTransaction) => {
+      return await dbListPlanStatusForIssues(tx, { repoFullName, issueNumbers })
+    })
+  } finally {
+    await session.close()
+  }
+}
+
+// Batch latest plan IDs for multiple issues (service level)
+export async function getLatestPlanIdsForIssues({
+  repoFullName,
+  issueNumbers,
+}: {
+  repoFullName: string
+  issueNumbers: number[]
+}): Promise<Record<number, string | null>> {
+  if (!issueNumbers.length) return {}
+  const session = await n4j.getSession()
+  try {
+    return await session.executeRead(async (tx: ManagedTransaction) => {
+      return await dbListLatestPlanIdsForIssues(tx, {
+        repoFullName,
+        issueNumbers,
+      })
+    })
   } finally {
     await session.close()
   }

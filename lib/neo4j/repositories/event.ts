@@ -1,15 +1,10 @@
 import { Integer, ManagedTransaction, Node } from "neo4j-driver"
 
 import {
-  AnyEvent as appAnyEvent,
-  MessageEvent as appMessageEvent,
-} from "@/lib/types"
-import {
   AnyEvent,
   anyEventSchema,
   ErrorEvent,
   errorEventSchema,
-  isLLMResponseWithPlan,
   LLMResponse,
   llmResponseSchema,
   MessageEvent,
@@ -303,52 +298,19 @@ export async function getMessagesForWorkflowRun(
   )
 }
 
-export async function toAppEvent(
-  dbEvent: AnyEvent,
-  workflowId: string
-): Promise<appAnyEvent> {
-  if (dbEvent.type === "llmResponse" && isLLMResponseWithPlan(dbEvent)) {
-    return {
-      ...dbEvent,
-      createdAt: dbEvent.createdAt.toStandardDate(),
-      type: "llmResponseWithPlan",
-      workflowId,
-      plan: {
-        id: dbEvent.id,
-        status: dbEvent.status,
-        version: dbEvent.version.toNumber(),
-        editMessage: dbEvent.editMessage,
-      },
-    }
-  }
-  return {
-    ...dbEvent,
-    createdAt: dbEvent.createdAt.toStandardDate(),
-    workflowId,
-  }
-}
-
-export async function toAppMessageEvent(
-  dbEvent: MessageEvent,
-  workflowId: string
-): Promise<appMessageEvent> {
-  if (dbEvent.type === "llmResponse" && isLLMResponseWithPlan(dbEvent)) {
-    return {
-      ...dbEvent,
-      createdAt: dbEvent.createdAt.toStandardDate(),
-      type: "llmResponseWithPlan",
-      workflowId,
-      plan: {
-        id: dbEvent.id,
-        status: dbEvent.status,
-        version: dbEvent.version.toNumber(),
-        editMessage: dbEvent.editMessage,
-      },
-    }
-  }
-  return {
-    ...dbEvent,
-    createdAt: dbEvent.createdAt.toStandardDate(),
-    workflowId,
-  }
+export async function getEventsForWorkflowRun(
+  tx: ManagedTransaction,
+  workflowRunId: string
+): Promise<AnyEvent[]> {
+  const result = await tx.run<{ e: Node<Integer, AnyEvent, "Event"> }>(
+    `
+    MATCH (w:WorkflowRun {id: $workflowRunId})-[:STARTS_WITH|NEXT*]->(e:Event)
+    RETURN e
+    ORDER BY e.createdAt ASC
+    `,
+    { workflowRunId }
+  )
+  return result.records.map((record) =>
+    anyEventSchema.parse(record.get("e").properties)
+  )
 }

@@ -14,8 +14,11 @@ When searching for existing files or determining where to create new files:
    - Following code organization patterns
 
 2. **Before creating new files:**
-   - Check `/docs/code-structure.md` to understand the correct directory
    - Search existing directories as documented in the structure
    - Verify similar functionality doesn't already exist
 
 This will help maintain consistency and prevent duplicate implementations.
+
+## Additional Guidelines
+
+- **Avoid Barrel Files**: Do not create files whose sole purpose is to re-export symbols from multiple modules. Prefer importing from the original module paths to maintain clear dependency graphs. Barrel files cause compile and build times to increase dramatically, and reduce tree-shaking capabilities.

@@ -2,10 +2,17 @@
 
 ## Table of Contents
 
-1. [Prerequisites](#prerequisites)
-2. [Installation](#installation)
-3. [Configuration](#configuration)
-4. [Development](#development)
+- [Getting Started](#getting-started)
+  - [Table of Contents](#table-of-contents)
+  - [Prerequisites](#prerequisites)
+    - [Redis Installation](#redis-installation)
+      - [macOS](#macos)
+      - [Ubuntu](#ubuntu)
+      - [Windows](#windows)
+  - [Installation](#installation)
+  - [Configuration](#configuration)
+  - [Development](#development)
+  - [Next Steps](#next-steps)
 
 ## Prerequisites
 
@@ -63,10 +70,6 @@ pnpm install
 1. Create `.env.local` file:
 
 ```env
-# GitHub OAuth
-GITHUB_OAUTH_ID=your_oauth_client_id
-GITHUB_OAUTH_SECRET=your_oauth_client_secret
-
 # GitHub App (optional)
 GITHUB_APP_ID=your_app_id
 GITHUB_APP_CLIENT_ID=your_app_client_id
@@ -81,14 +84,7 @@ UPSTASH_REDIS_REST_TOKEN=your_redis_token
 OPENAI_API_KEY=your_openai_key
 ```
 
-2. Configure GitHub OAuth App:
-
-- Go to GitHub Developer Settings
-- Create new OAuth App
-- Set callback URL to `http://localhost:3000/api/auth/callback/github-oauth`
-- Copy Client ID and Secret to `.env.local`
-
-3. (Optional) Configure GitHub App:
+1. Configure GitHub App:
 
 - Create new GitHub App
 - Set permissions

@@ -1,3 +1,5 @@
+// TODO: Migrate schemas to /lib/types/api/schemas.ts
+
 import { z } from "zod"
 
 export const GitHubURLSchema = z
@@ -64,14 +66,20 @@ export const FetchGitHubItemRequestSchema = z.object({
 export const CommentRequestSchema = z.object({
   issueNumber: z.number(),
   repoFullName: z.string().min(1),
-  apiKey: z.string().min(1),
   postToGithub: z.boolean().default(false),
 })
 
 export const ResolveRequestSchema = z.object({
   issueNumber: z.number(),
   repoFullName: z.string(),
-  apiKey: z.string(),
   postToGithub: z.boolean().default(false),
   createPR: z.boolean().default(false),
+  environment: z.enum(["typescript", "python"]).optional(),
+  installCommand: z.string().optional(),
+  planId: z.string().optional(),
+})
+
+export const AutoResolveIssueRequestSchema = z.object({
+  issueNumber: z.number(),
+  repoFullName: z.string().min(1),
 })

@@ -1,4 +1,5 @@
 import getOctokit from "@/lib/github"
+import { getGraphQLClient } from "@/lib/github"
 import {
   IssueComment,
   PullRequest,
@@ -23,7 +24,7 @@ export async function getPullRequestOnBranch({
     throw new Error("No octokit found")
   }
 
-  const pr = await octokit.pulls.list({
+  const pr = await octokit.rest.pulls.list({
     owner,
     repo,
     head: `${owner}:${branch}`,
@@ -34,6 +35,26 @@ export async function getPullRequestOnBranch({
   }
 
   return null
+}
+
+// ------------------------------
+// GraphQL types
+// ------------------------------
+interface RepositoryIdResponse {
+  repository: {
+    id: string
+  }
+}
+
+interface CreatePRGraphQLResponse {
+  createPullRequest: {
+    pullRequest: {
+      number: number
+      url: string
+      title: string
+      body: string | null
+    }
+  }
 }
 
 export async function createPullRequest({
@@ -49,31 +70,77 @@ export async function createPullRequest({
   body: string
   issueNumber?: number
 }) {
-  const octokit = await getOctokit()
-  if (!octokit) {
-    throw new Error("No octokit found")
-  }
-
   const [owner, repo] = repoFullName.split("/")
   if (!owner || !repo) {
     throw new Error("Invalid repository format. Expected 'owner/repo'")
   }
 
+  const graphqlWithAuth = await getGraphQLClient()
+  if (!graphqlWithAuth) {
+    throw new Error("Could not initialize GraphQL client")
+  }
+
+  // 1. Retrieve repository ID (required for mutation input)
+  const repoIdQuery = `
+    query ($owner: String!, $name: String!) {
+      repository(owner: $owner, name: $name) {
+        id
+      }
+    }
+  `
+  const repoIdResult = await graphqlWithAuth<RepositoryIdResponse>(
+    repoIdQuery,
+    {
+      owner,
+      name: repo,
+    }
+  )
+  const repositoryId = repoIdResult.repository.id
+
+  if (!repositoryId) throw new Error("Failed to retrieve repository ID")
+
+  // 2. Prepare body (append closing keyword if issueNumber provided)
   let fullBody = body
-  if (issueNumber !== undefined) {
+  if (typeof issueNumber === "number") {
     fullBody += `\n\nCloses #${issueNumber}`
   }
 
-  const pullRequest = await octokit.pulls.create({
-    owner,
-    repo,
-    title,
-    body: fullBody,
-    head: branch,
-    base: "main",
-  })
+  // 3. Execute createPullRequest mutation
+  const createPRMutation = `
+    mutation ($input: CreatePullRequestInput!) {
+      createPullRequest(input: $input) {
+        pullRequest {
+          number
+          url
+          title
+          body
+        }
+      }
+    }
+  `
 
-  return pullRequest
+  const variables = {
+    input: {
+      repositoryId,
+      baseRefName: "main",
+      headRefName: branch,
+      title,
+      body: fullBody,
+      draft: false,
+    },
+  }
+
+  const response = await graphqlWithAuth<CreatePRGraphQLResponse>(
+    createPRMutation,
+    variables
+  )
+
+  const pr = response.createPullRequest.pullRequest
+
+  // 4. Return in a REST-like shape expected by callers (pr.data.*)
+  return {
+    data: pr,
+  }
 }
 
 export async function getPullRequestDiff({
@@ -91,7 +158,7 @@ export async function getPullRequestDiff({
 
     const [owner, repo] = repoFullName.split("/")
 
-    const response = await octokit.pulls.get({
+    const response = await octokit.rest.pulls.get({
       owner,
       repo,
       pull_number: pullNumber,
@@ -148,7 +215,7 @@ export async function getPullRequestComments({
     throw new Error("No octokit found")
   }
 
-  const commentsResponse = await octokit.issues.listComments({
+  const commentsResponse = await octokit.rest.issues.listComments({
     owner,
     repo,
     issue_number: pullNumber,
@@ -171,13 +238,126 @@ export async function getPullRequestReviews({
     throw new Error("No octokit found")
   }
 
-  const reviewsResponse = await octokit.pulls.listReviews({
+  const reviewsResponse = await octokit.rest.pulls.listReviews({
     owner,
     repo,
     pull_number: pullNumber,
   })
 
   return reviewsResponse.data
+}
+
+// Interface for the GraphQL response for PR reviews and comments
+interface PullRequestReviewCommentsGraphQLResponse {
+  repository: {
+    pullRequest: {
+      reviews: {
+        nodes: Array<{
+          id: string
+          author: { login: string } | null
+          state: string
+          body: string
+          submittedAt: string
+          comments: {
+            nodes: Array<{
+              id: string
+              author: { login: string } | null
+              body: string
+              path: string
+              position: number | null
+              originalPosition: number | null
+              diffHunk: string
+              createdAt: string
+              replyTo: { id: string } | null
+              pullRequestReview: { id: string } | null
+            }>
+          }
+        }>
+      }
+    }
+  }
+}
+
+export async function getPullRequestReviewCommentsGraphQL({
+  repoFullName,
+  pullNumber,
+  reviewsLimit = 50,
+  commentsPerReview = 50,
+}: {
+  repoFullName: string
+  pullNumber: number
+  reviewsLimit?: number
+  commentsPerReview?: number
+}) {
+  const [owner, repo] = repoFullName.split("/")
+  const graphqlWithAuth = await getGraphQLClient()
+  if (!graphqlWithAuth) throw new Error("Could not initialize GraphQL client")
+  // GraphQL query for reviews and review comments
+  const query = `
+    query($owner: String!, $repo: String!, $pullNumber: Int!, $reviewsLimit: Int!, $commentsPerReview: Int!) {
+      repository(owner: $owner, name: $repo) {
+        pullRequest(number: $pullNumber) {
+          reviews(first: $reviewsLimit) {
+            nodes {
+              id
+              author { login }
+              state
+              body
+              submittedAt
+              comments(first: $commentsPerReview) {
+                nodes {
+                  id
+                  author { login }
+                  body
+                  path
+                  position
+                  originalPosition
+                  diffHunk
+                  createdAt
+                  replyTo { id }
+                  pullRequestReview { id }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  `
+  const variables = {
+    owner,
+    repo,
+    pullNumber,
+    reviewsLimit,
+    commentsPerReview,
+  }
+  const response =
+    await graphqlWithAuth<PullRequestReviewCommentsGraphQLResponse>(
+      query,
+      variables
+    )
+  // Defensive: Structure the response for easy UI/LLM consumption
+  const reviews =
+    response?.repository?.pullRequest?.reviews?.nodes?.map((r) => ({
+      id: r.id,
+      author: r.author?.login,
+      state: r.state,
+      body: r.body,
+      submittedAt: r.submittedAt,
+      comments: (r.comments?.nodes || []).map((c) => ({
+        id: c.id,
+        author: c.author?.login,
+        body: c.body,
+        file: c.path,
+        position: c.position,
+        originalPosition: c.originalPosition,
+        diffHunk: c.diffHunk,
+        createdAt: c.createdAt,
+        replyTo: c.replyTo?.id,
+        reviewId: c.pullRequestReview?.id,
+      })),
+    })) || []
+  return reviews
 }
 
 export async function getPullRequest({
@@ -220,10 +400,174 @@ export async function addLabelsToPullRequest({
   if (!owner || !repo) {
     throw new Error("Invalid repository format. Expected 'owner/repo'")
   }
-  await octokit.issues.addLabels({
+  await octokit.rest.issues.addLabels({
     owner,
     repo,
     issue_number: pullNumber,
     labels,
   })
+}
+
+// Minimal type for the GraphQL response
+interface PRLinkedIssuesGraphQLResponse {
+  repository: {
+    pullRequests: {
+      pageInfo: {
+        hasNextPage: boolean
+        endCursor: string | null
+      }
+      nodes: Array<{
+        number: number
+        closingIssuesReferences: {
+          nodes: Array<{ number: number }>
+        }
+      }>
+    }
+  }
+}
+
+export async function getPRLinkedIssuesMap(
+  repoFullName: string
+): Promise<Record<number, boolean>> {
+  const [owner, repo] = repoFullName.split("/")
+  const graphqlWithAuth = await getGraphQLClient()
+  if (!graphqlWithAuth) throw new Error("Could not initialize GraphQL client")
+
+  let hasNextPage = true
+  let endCursor: string | null = null
+  const issuePRStatus: Record<number, boolean> = {}
+
+  while (hasNextPage) {
+    const query = `
+      query($owner: String!, $repo: String!, $after: String) {
+        repository(owner: $owner, name: $repo) {
+          pullRequests(first: 50, after: $after, states: [OPEN, MERGED, CLOSED]) {
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+            nodes {
+              number
+              closingIssuesReferences(first: 10) {
+                nodes {
+                  number
+                }
+              }
+            }
+          }
+        }
+      }
+    `
+    const variables = { owner, repo, after: endCursor }
+    const response = (await graphqlWithAuth(
+      query,
+      variables
+    )) as PRLinkedIssuesGraphQLResponse
+    const prNodes = response.repository.pullRequests.nodes
+    for (const pr of prNodes) {
+      for (const issue of pr.closingIssuesReferences.nodes) {
+        issuePRStatus[issue.number] = true
+      }
+    }
+    hasNextPage = response.repository.pullRequests.pageInfo.hasNextPage
+    endCursor = response.repository.pullRequests.pageInfo.endCursor
+  }
+  return issuePRStatus
+}
+
+export async function getIssueToPullRequestMap(
+  repoFullName: string
+): Promise<Record<number, number>> {
+  const [owner, repo] = repoFullName.split("/")
+  const graphqlWithAuth = await getGraphQLClient()
+  if (!graphqlWithAuth) throw new Error("Could not initialize GraphQL client")
+
+  let hasNextPage = true
+  let endCursor: string | null = null
+  const issuePRMap: Record<number, number> = {}
+
+  while (hasNextPage) {
+    const query = `
+      query($owner: String!, $repo: String!, $after: String) {
+        repository(owner: $owner, name: $repo) {
+          pullRequests(first: 50, after: $after, states: [OPEN, MERGED, CLOSED]) {
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+            nodes {
+              number
+              closingIssuesReferences(first: 10) {
+                nodes {
+                  number
+                }
+              }
+            }
+          }
+        }
+      }
+    `
+    const variables = { owner, repo, after: endCursor }
+    const response = (await graphqlWithAuth(
+      query,
+      variables
+    )) as PRLinkedIssuesGraphQLResponse
+    const prNodes = response.repository.pullRequests.nodes
+    for (const pr of prNodes) {
+      for (const issue of pr.closingIssuesReferences.nodes) {
+        if (!issuePRMap[issue.number]) {
+          issuePRMap[issue.number] = pr.number
+        }
+      }
+    }
+    hasNextPage = response.repository.pullRequests.pageInfo.hasNextPage
+    endCursor = response.repository.pullRequests.pageInfo.endCursor
+  }
+  return issuePRMap
+}
+
+/**
+ * Returns the list of issue numbers that are linked (via closing keywords) to a given pull request.
+ */
+export async function getLinkedIssuesForPR({
+  repoFullName,
+  pullNumber,
+}: {
+  repoFullName: string
+  pullNumber: number
+}): Promise<number[]> {
+  const [owner, repo] = repoFullName.split("/")
+  const graphqlWithAuth = await getGraphQLClient()
+  if (!graphqlWithAuth) throw new Error("Could not initialize GraphQL client")
+
+  const query = `
+    query($owner: String!, $repo: String!, $pullNumber: Int!) {
+      repository(owner: $owner, name: $repo) {
+        pullRequest(number: $pullNumber) {
+          closingIssuesReferences(first: 10) {
+            nodes {
+              number
+            }
+          }
+        }
+      }
+    }
+  `
+  const variables = { owner, repo, pullNumber }
+  interface LinkedIssuesResponse {
+    repository: {
+      pullRequest: {
+        closingIssuesReferences: {
+          nodes: Array<{ number: number }>
+        }
+      } | null
+    } | null
+  }
+  const response = (await graphqlWithAuth(
+    query,
+    variables
+  )) as LinkedIssuesResponse
+  const nodes =
+    response.repository?.pullRequest?.closingIssuesReferences?.nodes || []
+  return nodes.map((n) => n.number)
 }

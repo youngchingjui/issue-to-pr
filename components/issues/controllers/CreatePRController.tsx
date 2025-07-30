@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/tooltip"
 import { toast } from "@/lib/hooks/use-toast"
 import { ResolveRequestSchema } from "@/lib/schemas/api"
-import { getApiKeyFromLocalStorage } from "@/lib/utils/utils-common"
 
 interface Props {
   issueNumber: number
@@ -34,21 +33,10 @@ export default function CreatePRController({
 
   const execute = async () => {
     try {
-      const apiKey = getApiKeyFromLocalStorage()
-      if (!apiKey) {
-        toast({
-          title: "API key not found",
-          description: "Please save an OpenAI API key first.",
-          variant: "destructive",
-        })
-        return
-      }
-
       onStart()
       const requestBody = ResolveRequestSchema.parse({
         issueNumber,
         repoFullName,
-        apiKey,
         createPR: postToGithub,
       })
       const response = await fetch("/api/resolve", {

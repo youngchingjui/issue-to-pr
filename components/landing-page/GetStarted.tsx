@@ -16,7 +16,7 @@ export default function GetStarted() {
           className="absolute top-0 left-0 w-full h-full"
           style={{
             background:
-              "linear-gradient(to bottom, hsl(var(--background)), hsl(var(--card)))",
+              "linear-gradient(to bottom, oklch(var(--background)), oklch(var(--card)))",
             clipPath: "polygon(0 50%, 100% 35%, 100% 100%, 0 100%)",
           }}
         />

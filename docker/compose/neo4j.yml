@@ -17,6 +17,11 @@ services:
       - neo4j_logs:/logs
       - neo4j_import:/var/lib/neo4j/import
       - neo4j_plugins:/plugins
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:7474"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
 volumes:
   neo4j_data:

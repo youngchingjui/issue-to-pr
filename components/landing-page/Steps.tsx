@@ -15,19 +15,39 @@ import TextLg from "../ui/text-lg"
 
 const steps = [
   {
-    title: "Get The App",
+    title: "Create a GitHub Issue (or PR)",
     description:
-      "Once you enable the app on the GitHub App Store, It activates automatically.",
+      "Begin by opening a new issue or pull request. Issue To PR activates instantly.",
   },
   {
-    title: "Create an Issue or Pull Request",
+    title: "System Auto-Generates a Plan",
     description:
-      "Issue To PR will automatically generate plans on new issues and reviews of PRs.",
+      "For each issue, agents analyze the codebase and generate a detailed, traceable plan—including a list of all explicit and implicit assumptions.",
   },
   {
-    title: "Resolve Issues",
+    title: "Agent Implements Code, Tests, Lint",
     description:
-      "Resolve Github Issues by signing in to issuetopr.dev, finding the issue to resolve, and select 'Fix Issue and Create PR'.",
+      "AI agents handle code changes and new or updated tests, while auto-fixing lints (tests/lint fix is rapidly improving—full automation coming soon).",
+  },
+  {
+    title: "Pull Request Is Created With Full Metadata",
+    description:
+      "A high-quality PR is opened: it includes the rationale, linked issue, evidence, and clear explanations for each change.",
+  },
+  {
+    title: "Review & Iterate—With Seamless Updates Via Comments",
+    description:
+      "You can review, approve, or suggest changes to the plan or PR—just comment on the PR or issue using @issue-to-pr—no separate UI. The agents update accordingly.",
+  },
+  {
+    title: "Trace Every Agent Decision Or Action",
+    description:
+      "Each step and change is fully traceable: see agent rationale, context, and evidence at every turn.",
+  },
+  {
+    title: "Handle Multiple Issues in Parallel",
+    description:
+      "No backlog bottlenecks: the system processes many issues or PRs at once, not one-by-one. Accelerate your entire backlog—remove blockers and context switches.",
   },
 ]
 
@@ -74,8 +94,7 @@ const Steps = () => {
               onMouseLeave={() => setIsHovered(null)}
               className={twMerge(
                 `flex-1 overflow-hidden bg-white/90 transition-all duration-300`,
-                isHovered === index && "bg-white",
-                isHovered !== null && isHovered !== index && "blur-sm"
+                isHovered === index && "bg-white"
               )}
             >
               <CardHeader className="pb-0">

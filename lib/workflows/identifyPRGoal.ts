@@ -1,4 +1,4 @@
-import { GoalIdentifierAgent } from "@/lib/agents"
+import { GoalIdentifierAgent } from "@/lib/agents/GoalIdentifierAgent"
 import { getRepoFromString } from "@/lib/github/content"
 import {
   getPullRequest,
@@ -12,7 +12,7 @@ import {
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
-import { createGetIssueTool } from "@/lib/tools"
+import { createGetIssueTool } from "@/lib/tools/GetIssueTool"
 import { GitHubIssue } from "@/lib/types/github"
 
 interface IdentifyPRGoalParams {

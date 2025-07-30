@@ -1,28 +1,74 @@
-import getOctokit from "@/lib/github"
+"use server"
+
+import getOctokit, { getUserOctokit } from "@/lib/github"
+import { getIssueToPullRequestMap } from "@/lib/github/pullRequests"
 import {
+  getLatestPlanIdsForIssues,
+  getPlanStatusForIssues,
+} from "@/lib/neo4j/services/plan"
+import { listWorkflowRuns } from "@/lib/neo4j/services/workflow"
+import {
+  GetIssueResult,
   GitHubIssue,
   GitHubIssueComment,
   ListForRepoParams,
 } from "@/lib/types/github"
 
+type CreateIssueParams = {
+  repo: string
+  owner: string
+  title: string
+  body: string
+}
+
+export async function createIssue({
+  repo,
+  owner,
+  title,
+  body,
+}: CreateIssueParams) {
+  const octokit = await getUserOctokit()
+  if (!octokit) throw new Error("No octokit found")
+  return await octokit.rest.issues.create({ owner, repo, title, body })
+}
+
+// Updated: fetch single issue from GitHub with structured error result
 export async function getIssue({
   fullName,
   issueNumber,
 }: {
   fullName: string
   issueNumber: number
-}): Promise<GitHubIssue> {
+}): Promise<GetIssueResult> {
   const octokit = await getOctokit()
   if (!octokit) {
-    throw new Error("No octokit found")
+    return { type: "other_error", error: "No octokit found" }
   }
   const [owner, repo] = fullName.split("/")
-  const issue = await octokit.rest.issues.get({
-    owner,
-    repo,
-    issue_number: issueNumber,
-  })
-  return issue.data
+  if (!owner || !repo) {
+    return { type: "not_found" }
+  }
+  try {
+    const issue = await octokit.rest.issues.get({
+      owner,
+      repo,
+      issue_number: issueNumber,
+    })
+    return { type: "success", issue: issue.data }
+  } catch (error) {
+    if (!error) {
+      return { type: "other_error", error: "Unknown error" }
+    }
+    if (typeof error === "object" && "status" in error) {
+      if (error.status === 404) {
+        return { type: "not_found" }
+      }
+      if (error.status === 403) {
+        return { type: "forbidden" }
+      }
+    }
+    return { type: "other_error", error }
+  }
 }
 
 export async function createIssueComment({
@@ -63,7 +109,7 @@ export async function getIssueComments({
   if (!octokit) {
     throw new Error("No octokit found")
   }
-  const comments = await octokit.issues.listComments({
+  const comments = await octokit.rest.issues.listComments({
     owner,
     repo,
     issue_number: issueNumber,
@@ -84,7 +130,7 @@ export async function getIssueList({
     throw new Error("No octokit found")
   }
 
-  const issues = await octokit.issues.listForRepo({
+  const issues = await octokit.rest.issues.listForRepo({
     owner,
     repo,
     ...rest,
@@ -119,4 +165,66 @@ export async function updateIssueComment({
     console.error(`Failed to update comment: ${commentId}`, error)
     throw error
   }
+}
+
+/**
+ * Aggregates GitHub issues with Neo4j plan, PR, and workflow status
+ */
+export type IssueWithStatus = GitHubIssue & {
+  hasPlan: boolean
+  hasPR: boolean
+  hasActiveWorkflow: boolean
+  planId?: string | null
+  prNumber?: number
+}
+
+/**
+ * For a repo, get list of issues with hasPlan, hasPR, and active workflow badges.
+ */
+export async function getIssueListWithStatus({
+  repoFullName,
+  ...rest
+}: {
+  repoFullName: string
+} & Omit<ListForRepoParams, "owner" | "repo">): Promise<IssueWithStatus[]> {
+  // 1. Get issues from GitHub
+  const issues = await getIssueList({ repoFullName, ...rest })
+
+  // 2. Query Neo4j for plans using the service layer
+  const issueNumbers = issues.map((issue) => issue.number)
+  const [issuePlanStatus, issuePlanIds] = await Promise.all([
+    getPlanStatusForIssues({ repoFullName, issueNumbers }),
+    getLatestPlanIdsForIssues({ repoFullName, issueNumbers }),
+  ])
+
+  // 3. Get PRs from GitHub using GraphQL, and find for each issue if it has a PR referencing it.
+  const issuePRMap = await getIssueToPullRequestMap(repoFullName)
+
+  // 4. Determine active workflows for each issue (simple sequential for now)
+  const withStatus: IssueWithStatus[] = await Promise.all(
+    issues.map(async (issue) => {
+      let hasActiveWorkflow = false
+      try {
+        const runs = await listWorkflowRuns({
+          repoFullName,
+          issueNumber: issue.number,
+        })
+        // Only consider a workflow "active" if it is still running (ignore timedOut)
+        hasActiveWorkflow = runs.some((r) => r.state === "running")
+      } catch (err) {
+        console.error(`Issue listing workflow runs: ${String(err)}`)
+      }
+
+      return {
+        ...issue,
+        hasPlan: issuePlanStatus[issue.number] || false,
+        hasPR: Boolean(issuePRMap[issue.number]),
+        hasActiveWorkflow,
+        planId: issuePlanIds[issue.number] || null,
+        prNumber: issuePRMap[issue.number],
+      }
+    })
+  )
+
+  return withStatus
 }

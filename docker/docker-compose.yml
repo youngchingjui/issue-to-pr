@@ -1,8 +1,8 @@
 # Import all service configurations
 include:
   - compose/neo4j.yml
+  - compose/redis.yml
   # Add more service configurations here as needed
-  # - compose/redis.yml
   # - compose/other-service.yml
 
 name: issue-to-pr

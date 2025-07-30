@@ -212,7 +212,7 @@ export function IssueSearch({ onSearch, defaultValues }: IssueSearchProps) {
                               date ? date.toISOString().split("T")[0] : ""
                             )
                           }
-                          initialFocus
+                          autoFocus
                         />
                       </PopoverContent>
                     </Popover>

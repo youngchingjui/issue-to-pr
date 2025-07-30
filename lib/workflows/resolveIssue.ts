@@ -4,7 +4,7 @@
 // They can also all access the same data, such as the issue, the codebase, etc.
 
 import { CoderAgent } from "@/lib/agents/coder"
-import { createDirectoryTree } from "@/lib/fs"
+import { getInstallationTokenFromRepo } from "@/lib/github/installation"
 import { getIssueComments } from "@/lib/github/issues"
 import { checkRepoPermissions } from "@/lib/github/users"
 import { langfuse } from "@/lib/langfuse"
@@ -13,23 +13,33 @@ import {
   createStatusEvent,
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
-import { listPlansForIssue } from "@/lib/neo4j/services/plan"
+import {
+  getPlanWithDetails,
+  listPlansForIssue,
+} from "@/lib/neo4j/services/plan"
+import { getRepositorySettings } from "@/lib/neo4j/services/repository"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
+import { createBranchTool } from "@/lib/tools/Branch"
+import { createCommitTool } from "@/lib/tools/Commit"
+import { createCreatePRTool } from "@/lib/tools/CreatePRTool"
+import { createFileCheckTool } from "@/lib/tools/FileCheckTool"
+import { createGetFileContentTool } from "@/lib/tools/GetFileContent"
+import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
+import { createSetupRepoTool } from "@/lib/tools/SetupRepoTool"
+import { createSyncBranchTool } from "@/lib/tools/SyncBranchTool"
+import { createWriteFileContentTool } from "@/lib/tools/WriteFileContent"
+import { Plan, RepoEnvironment, RepoSettings } from "@/lib/types"
 import {
-  createBranchTool,
-  createCommitTool,
-  createCreatePRTool,
-  createGetFileContentTool,
-  createRipgrepSearchTool,
-  createSyncBranchTool,
-  createWriteFileContentTool,
-} from "@/lib/tools"
-import {
-  createRepoFullName,
   GitHubIssue,
   GitHubRepository,
+  repoFullNameSchema,
   RepoPermissions,
 } from "@/lib/types/github"
+import { setupEnv } from "@/lib/utils/cli"
+import {
+  createContainerizedDirectoryTree,
+  createContainerizedWorkspace,
+} from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 
 interface ResolveIssueParams {
@@ -38,15 +48,30 @@ interface ResolveIssueParams {
   apiKey: string
   jobId: string
   createPR?: boolean
+  planId?: string
+  // Optional custom repository setup commands
+  installCommand?: string // Legacy alias; treat as setupCommands when provided
 }
 
-export const resolveIssue = async (params: ResolveIssueParams) => {
-  const { issue, repository, apiKey, jobId, createPR } = params
+export const resolveIssue = async ({
+  issue,
+  repository,
+  apiKey,
+  jobId,
+  createPR,
+  planId,
+  installCommand,
+}: ResolveIssueParams) => {
   const workflowId = jobId // Keep workflowId alias for clarity if preferred
 
   let userPermissions: RepoPermissions | null = null
 
+  const repoFullName = repoFullNameSchema.parse(repository.full_name)
+  let containerCleanup: (() => Promise<void>) | null = null
   try {
+    const repoSettings: RepoSettings | null =
+      await getRepositorySettings(repoFullName)
+
     // Emit workflow start event
     await initializeWorkflowRun({
       id: workflowId,
@@ -76,16 +101,68 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
           workflowId,
           content: `Warning: Insufficient permissions to create PR (${userPermissions.reason}). Code will be generated locally only.`,
         })
-
         // Proceed with the workflow, but PR won't be created
       }
     }
 
-    // Setup local repository
-    const baseDir = await setupLocalRepository({
+    // Ensure local repository exists and is up-to-date
+    const hostRepoPath = await setupLocalRepository({
       repoFullName: repository.full_name,
       workingBranch: repository.default_branch,
     })
+
+    // Setup containerized repository using the local copy
+    const { containerName, cleanup } = await createContainerizedWorkspace({
+      repoFullName: repository.full_name,
+      branch: repository.default_branch,
+      workflowId,
+      hostRepoPath,
+    })
+    const env: RepoEnvironment = { kind: "container", name: containerName }
+    containerCleanup = cleanup
+    await createStatusEvent({
+      workflowId,
+      content: `Setting up containerized environment`,
+    })
+
+    // Setup environment
+    let resolvedSetupCommands: string | string[] = ""
+    if (repoSettings?.setupCommands && repoSettings.setupCommands.length) {
+      resolvedSetupCommands = repoSettings.setupCommands
+    }
+    if (installCommand && !resolvedSetupCommands) {
+      resolvedSetupCommands = installCommand
+    }
+
+    if (resolvedSetupCommands) {
+      try {
+        const setupMsg = await setupEnv(env, resolvedSetupCommands)
+        await createStatusEvent({
+          workflowId,
+          content: setupMsg,
+        })
+      } catch (err) {
+        await createErrorEvent({
+          workflowId,
+          content: `Setup failed: ${String(err)}`,
+        })
+        await createWorkflowStateEvent({
+          workflowId,
+          state: "error",
+          content: `Setup failed: ${String(err)}`,
+        })
+        throw err
+      }
+    } else {
+      await createStatusEvent({
+        workflowId,
+        content: "No setup commands provided. Skipping environment setup.",
+      })
+    }
+
+    // Get token from session for authenticated git push
+    const [owner, repo] = repository.full_name.split("/")
+    const sessionToken = await getInstallationTokenFromRepo({ owner, repo })
 
     // Start a trace for this workflow
     const trace = langfuse.trace({
@@ -94,7 +171,7 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
     const span = trace.span({ name: "coordinate" })
 
     // Generate a directory tree of the codebase
-    const tree = await createDirectoryTree(baseDir)
+    const tree = await createContainerizedDirectoryTree(containerName)
 
     // Retrieve all the comments on the issue
     const comments = await getIssueComments({
@@ -105,6 +182,7 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
     // Initialize the persistent coder agent
     const coder = new CoderAgent({
       apiKey,
+      model: "o3",
       createPR: Boolean(
         createPR && userPermissions?.canPush && userPermissions?.canCreatePR
       ),
@@ -113,26 +191,36 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
     coder.addSpan({ span, generationName: "resolveIssue" })
 
     // Load base tools
-    const getFileContentTool = createGetFileContentTool(baseDir)
-    const searchCodeTool = createRipgrepSearchTool(baseDir)
-    const writeFileTool = createWriteFileContentTool(baseDir)
-    const branchTool = createBranchTool(baseDir)
-    const commitTool = createCommitTool(baseDir, repository.default_branch)
+    const setupRepoTool = createSetupRepoTool(env)
+    const getFileContentTool = createGetFileContentTool(env)
+    const searchCodeTool = createRipgrepSearchTool(env)
+    const writeFileTool = createWriteFileContentTool(env)
+    const branchTool = createBranchTool(env)
+    const commitTool = createCommitTool(env, repository.default_branch)
+    const fileCheckTool = createFileCheckTool(env)
 
     // Add base tools to persistent coder
+    coder.addTool(setupRepoTool)
     coder.addTool(getFileContentTool)
     coder.addTool(writeFileTool)
     coder.addTool(searchCodeTool)
     coder.addTool(branchTool)
     coder.addTool(commitTool)
+    coder.addTool(fileCheckTool)
 
     // Add sync and PR tools only if createPR is true AND permissions are sufficient
     let syncBranchTool: ReturnType<typeof createSyncBranchTool> | undefined
     let createPRTool: ReturnType<typeof createCreatePRTool> | undefined
-    if (createPR && userPermissions?.canPush && userPermissions?.canCreatePR) {
+    if (
+      createPR &&
+      userPermissions?.canPush &&
+      userPermissions?.canCreatePR &&
+      sessionToken
+    ) {
       syncBranchTool = createSyncBranchTool(
-        createRepoFullName(repository.full_name),
-        baseDir
+        repoFullNameSchema.parse(repository.full_name),
+        env,
+        sessionToken
       )
       createPRTool = createCreatePRTool(repository, issue.number)
 
@@ -167,12 +255,8 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
         role: "user",
         content: `Github issue comments:\n${comments
           .map(
-            (comment) => `
-- **User**: ${comment.user?.login}
-- **Created At**: ${new Date(comment.created_at).toLocaleString()}
-- **Reactions**: ${comment.reactions ? comment.reactions.total_count : 0}
-- **Comment**: ${comment.body}
-`
+            (comment) =>
+              `\n- **User**: ${comment.user?.login}\n- **Created At**: ${new Date(comment.created_at).toLocaleString()}\n- **Reactions**: ${comment.reactions ? comment.reactions.total_count : 0}\n- **Comment**: ${comment.body}\n`
           )
           .join("\n")}`,
       })
@@ -186,25 +270,33 @@ export const resolveIssue = async (params: ResolveIssueParams) => {
       })
     }
 
-    // Check for existing plan
-    const plans = await listPlansForIssue({
-      repoFullName: repository.full_name,
-      issueNumber: issue.number,
-    })
-    plans.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-
-    // Take the latest plan for now.
-    // TODO: Add a UI to allow the user to select a plan
-    const plan = plans[0]
-
+    let plan: Plan | undefined
+    if (planId) {
+      // Use the specified plan by id
+      try {
+        const planDetails = await getPlanWithDetails(planId)
+        plan = planDetails.plan
+      } catch (err) {
+        await createStatusEvent({
+          workflowId,
+          content: `Specified planId (${planId}) not found or could not be loaded: ${err}`,
+        })
+      }
+    }
+    if (!plan) {
+      // Fallback to latest plan logic
+      const plans = await listPlansForIssue({
+        repoFullName: repository.full_name,
+        issueNumber: issue.number,
+      })
+      plans.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      plan = plans[0]
+    }
     if (plan) {
       // Inject the plan itself as a user message (for clarity, before issue/comments/tree)
       await coder.addMessage({
         role: "user",
-        content: `
-Implementation plan for this issue (from previous workflow):
-${plan.content}
-`,
+        content: `\nImplementation plan for this issue (from previous workflow):\n${plan.content}\n`,
       })
     }
 
@@ -245,5 +337,9 @@ ${plan.content}
       are emitted. This ensures all consumers (frontend/infra) get proper error status updates.
     */
     throw error
+  } finally {
+    if (containerCleanup) {
+      await containerCleanup()
+    }
   }
 }

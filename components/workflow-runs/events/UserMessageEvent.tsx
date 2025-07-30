@@ -1,16 +1,16 @@
-"use server"
+"use client"
 
 import ReactMarkdown from "react-markdown"
 
 import { CollapsibleContent } from "@/components/ui/collapsible-content"
-import { EventTime } from "@/components/workflow-runs/events"
+import { EventTime } from "@/components/workflow-runs/events/EventTime"
 import { ReviewComment, UserMessage } from "@/lib/types"
 
 export interface Props {
   event: UserMessage | ReviewComment
 }
 
-export async function UserMessageEvent({ event }: Props) {
+export function UserMessageEvent({ event }: Props) {
   const headerContent = (
     <>
       <div className="text-xs font-medium text-muted-foreground">

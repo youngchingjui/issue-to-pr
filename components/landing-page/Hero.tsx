@@ -1,8 +1,6 @@
-import { ExternalLink } from "lucide-react"
 import * as motion from "motion/react-client"
-import Link from "next/link"
 
-import ShineButton from "@/components/ui/shine-button"
+import AuthButton from "@/components/landing-page/AuthButton"
 
 export default async function Hero() {
   return (
@@ -15,7 +13,7 @@ export default async function Hero() {
       <motion.div
         animate={{
           background: [
-            "radial-gradient(circle, transparent 20%, hsl(var(--background)), transparent 70%), linear-gradient(-100deg, transparent 20%, hsl(var(--background)), transparent 70%)",
+            "radial-gradient(circle, transparent 20%, oklch(var(--background)), transparent 70%), linear-gradient(-100deg, transparent 20%, oklch(var(--background)), transparent 70%)",
           ],
           transition: {
             duration: 3,
@@ -30,19 +28,11 @@ export default async function Hero() {
         className="max-w-5xl mx-auto relative z-10"
       >
         <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold mb-3 sm:mb-6 md:mb-8 leading-tight">
-          <span>Resolve Github Issues</span>{" "}
-          <span>
-            in <br />
-            <span className="italic text-accent relative">
-              one click
-              <span className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-accent/0 via-accent to-accent/0"></span>
-            </span>
-          </span>
+          <span>Update your code with natural language</span>
         </h1>
-        <p className="text-stone-600 text-sm sm:text-base md:text-lg mb-8 sm:mb-10 max-w-3xl mx-auto px-2 sm:px-4 md:px-5 w-full text-center leading-relaxed">
-          No more writing prompts for AI. Issue To PR automatically extracts all
-          the context it needs from your GitHub issues and codebase to create
-          Pull Requests that solve your problems.
+        <p className="text-stone-600 text-sm sm:text-base md:text-lg mb-2 sm:mb-3 max-w-3xl mx-auto px-2 sm:px-4 md:px-5 w-full text-center leading-relaxed">
+          Issue To PR&#39;s background AI agents review your codebase, develop
+          an implementation plan, and create Pull Requests.
         </p>
       </motion.div>
 
@@ -50,19 +40,11 @@ export default async function Hero() {
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.4 }}
+        className="mt-8 flex flex-col items-center"
       >
-        <Link
-          href="https://github.com/apps/issuetopr-dev"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-block"
-          prefetch={false}
-        >
-          <ShineButton className="text-base sm:text-lg px-4 sm:px-5 md:px-6 py-3 bg-accent text-accent-foreground hover:bg-accent/70">
-            Install Github App
-            <ExternalLink className="ml-2 h-4 w-4 sm:h-5 sm:w-5 inline" />
-          </ShineButton>
-        </Link>
+        <div className="relative isolate">
+          <AuthButton />
+        </div>
       </motion.div>
     </motion.section>
   )

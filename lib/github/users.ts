@@ -1,9 +1,13 @@
-import getOctokit from "@/lib/github"
+"use server"
+
+import { getUserOctokit } from "@/lib/github"
+import { listUserRepositories } from "@/lib/github/graphql/queries/listUserRepositories"
+import { listUserAppRepositories } from "@/lib/github/repos"
 import { GitHubUser, RepoPermissions } from "@/lib/types/github"
 
 export async function getGithubUser(): Promise<GitHubUser | null> {
   try {
-    const octokit = await getOctokit()
+    const octokit = await getUserOctokit()
     if (!octokit) {
       console.log("No Octokit instance found")
       return null
@@ -17,38 +21,30 @@ export async function getGithubUser(): Promise<GitHubUser | null> {
   }
 }
 
-interface GithubPermissions {
-  admin?: boolean
-  push?: boolean
-  pull?: boolean
-  maintain?: boolean
-}
-
 export async function checkRepoPermissions(
   repoFullName: string
 ): Promise<RepoPermissions> {
   try {
-    const octokit = await getOctokit()
-    if (!octokit) {
-      return {
-        canPush: false,
-        canCreatePR: false,
-        reason: "No GitHub authentication found",
-      }
+    const repos = await listUserAppRepositories()
+
+    let canPush = false
+    let canCreatePR = false
+
+    // Find the repository matching the provided full name ("owner/repo")
+    const repoData = repos.find((r) => r.full_name === repoFullName)
+
+    if (!repoData) {
+      throw new Error(`Repository not found or not accessible: ${repoFullName}`)
     }
 
-    const [owner, repo] = repoFullName.split("/")
+    const { permissions } = repoData
 
-    // Get repository permissions for the authenticated user
-    const { data: repoData } = await octokit.repos.get({
-      owner,
-      repo,
-    })
+    if (!permissions) {
+      throw new Error(`There were no permissions, strange: ${permissions}`)
+    }
 
-    // Check if user has push access
-    const permissions = (repoData.permissions || {}) as GithubPermissions
-    const canPush = permissions.push || permissions.admin || false
-    const canCreatePR = permissions.pull || permissions.admin || false
+    canPush = permissions.push || permissions.admin || false
+    canCreatePR = permissions.pull || permissions.admin || false
 
     if (!canPush && !canCreatePR) {
       return {
@@ -66,11 +62,16 @@ export async function checkRepoPermissions(
         canPush && canCreatePR ? undefined : "Limited permissions available",
     }
   } catch (error) {
-    console.error("Error checking repository permissions:", error)
-    return {
-      canPush: false,
-      canCreatePR: false,
-      reason: `Failed to check permissions: ${error.message || "Unknown error"}`,
+    if (error && typeof error === "object" && "status" in error) {
+      if (error.status === 404) {
+        throw new Error("Repository not found: " + repoFullName)
+      }
     }
+    console.error("Error checking repository permissions:", error)
+    throw new Error(
+      `Failed to check permissions: ${error instanceof Error ? error.message : String(error)}`
+    )
   }
 }
+
+export { listUserRepositories }

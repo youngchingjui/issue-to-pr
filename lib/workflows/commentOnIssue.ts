@@ -1,19 +1,28 @@
 import { ThinkerAgent } from "@/lib/agents/thinker"
 import { AUTH_CONFIG } from "@/lib/auth/config"
-import { createDirectoryTree } from "@/lib/fs"
+import { isContainerRunning } from "@/lib/docker"
 import {
   createIssueComment,
   getIssue,
   updateIssueComment,
 } from "@/lib/github/issues"
 import { langfuse } from "@/lib/langfuse"
-import { createStatusEvent } from "@/lib/neo4j/services/event"
-import { createWorkflowStateEvent } from "@/lib/neo4j/services/event"
+import {
+  createStatusEvent,
+  createWorkflowStateEvent,
+} from "@/lib/neo4j/services/event"
 import { tagMessageAsPlan } from "@/lib/neo4j/services/plan"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
-import { createGetFileContentTool, createRipgrepSearchTool } from "@/lib/tools"
-import { BaseEvent as appBaseEvent } from "@/lib/types"
+import { createContainerExecTool } from "@/lib/tools/ContainerExecTool"
+import { createGetFileContentTool } from "@/lib/tools/GetFileContent"
+import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
+import { BaseEvent as appBaseEvent, RepoEnvironment } from "@/lib/types"
+import { AGENT_BASE_IMAGE } from "@/lib/types/docker"
 import { GitHubRepository } from "@/lib/types/github"
+import {
+  createContainerizedDirectoryTree,
+  createContainerizedWorkspace,
+} from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 
 interface GitHubError extends Error {
@@ -36,6 +45,7 @@ export default async function commentOnIssue(
   let initialCommentId: number | null = null
 
   let latestEvent: appBaseEvent | null = null
+  let containerCleanup: (() => Promise<void>) | null = null
 
   try {
     await initializeWorkflowRun({
@@ -57,7 +67,7 @@ export default async function commentOnIssue(
     })
 
     // Get the issue
-    const issue = await getIssue({
+    const issueResult = await getIssue({
       fullName: repo.full_name,
       issueNumber,
     }).catch((error: GitHubError) => {
@@ -70,6 +80,10 @@ export default async function commentOnIssue(
         `Failed to get issue #${issueNumber}: ${error.response?.data?.message || error.message}`
       )
     })
+
+    if (issueResult.type !== "success") {
+      throw new Error(JSON.stringify(issueResult))
+    }
 
     latestEvent = await createStatusEvent({
       content: "Issue retrieved successfully",
@@ -129,34 +143,55 @@ export default async function commentOnIssue(
     }
 
     latestEvent = await createStatusEvent({
-      content: "Setting up the local repository",
+      content: "Setting up containerized environment",
       workflowId: jobId,
       parentId: latestEvent.id,
     })
 
-    // Setup local repository using setupLocalRepository
-    const dirPath = await setupLocalRepository({
+    // Ensure local repository exists and is up-to-date
+    const hostRepoPath = await setupLocalRepository({
       repoFullName: repo.full_name,
       workingBranch: repo.default_branch,
+    })
+
+    // Setup containerized workspace environment, copying from host path
+    const { containerName, cleanup } = await createContainerizedWorkspace({
+      repoFullName: repo.full_name,
+      branch: repo.default_branch,
+      workflowId: jobId,
+      image: AGENT_BASE_IMAGE,
+      hostRepoPath,
     }).catch((error) => {
-      console.error("Failed to setup local repository:", {
+      console.error("Failed to setup containerized environment:", {
         error,
         repo: repo.full_name,
       })
-      throw new Error(`Failed to setup local repository: ${error.message}`)
+      throw new Error(
+        `Failed to setup containerized environment: ${error.message}`
+      )
     })
 
+    containerCleanup = cleanup
+
+    const running = await isContainerRunning(containerName)
+    if (!running) {
+      throw new Error(`Container ${containerName} failed to start`)
+    }
+
     latestEvent = await createStatusEvent({
-      content: "Repository setup completed",
+      content: "Container environment ready",
       workflowId: jobId,
       parentId: latestEvent.id,
     })
 
-    const tree = await createDirectoryTree(dirPath)
+    // Build directory tree using containerized version of createDirectoryTree
+    const tree = await createContainerizedDirectoryTree(containerName)
 
-    // Prepare the tools
-    const getFileContentTool = createGetFileContentTool(dirPath)
-    const searchCodeTool = createRipgrepSearchTool(dirPath)
+    // Prepare the environment and tools for container execution
+    const env: RepoEnvironment = { kind: "container", name: containerName }
+    const getFileContentTool = createGetFileContentTool(env)
+    const searchCodeTool = createRipgrepSearchTool(env)
+    const containerExecTool = createContainerExecTool(containerName)
 
     latestEvent = await createStatusEvent({
       content: "Beginning to review issue and codebase",
@@ -165,13 +200,18 @@ export default async function commentOnIssue(
     })
 
     // Create and initialize the thinker agent
-    const thinker = new ThinkerAgent({ apiKey })
+    const thinker = new ThinkerAgent({ apiKey, model: "o3" })
+
     await thinker.addJobId(jobId) // Set jobId before any messages are added
+
     const span = trace.span({ name: "generateComment" })
     thinker.addSpan({ span, generationName: "commentOnIssue" })
+
     thinker.addTool(getFileContentTool)
     thinker.addTool(searchCodeTool)
+    thinker.addTool(containerExecTool)
 
+    const issue = issueResult.issue
     // Add issue information as user message
     await thinker.addMessage({
       role: "user",
@@ -182,7 +222,7 @@ export default async function commentOnIssue(
     if (tree && tree.length > 0) {
       await thinker.addMessage({
         role: "user",
-        content: `Here is the codebase's tree directory:\n${tree.join("\n")}`,
+        content: `Here is the codebase's file structure:\n${tree.join("\n")}`,
       })
     }
 
@@ -262,8 +302,12 @@ export default async function commentOnIssue(
       state: "completed",
     })
 
-    // Return the comment
-    return { status: "complete", issueComment: response }
+    // Return the comment plus planId for downstream consumption
+    return {
+      status: "complete",
+      issueComment: response,
+      planId: lastAssistantMessage.id,
+    }
   } catch (error) {
     const githubError = error as GitHubError
     console.error("Error in commentOnIssue workflow:", {
@@ -301,5 +345,10 @@ export default async function commentOnIssue(
     })
 
     throw githubError // Re-throw the error to be handled by the caller
+  } finally {
+    // Always cleanup the containerized environment
+    if (containerCleanup) {
+      await containerCleanup()
+    }
   }
 }

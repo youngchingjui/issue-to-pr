@@ -6,7 +6,6 @@ import { SessionProvider } from "next-auth/react"
 
 import { auth } from "@/auth"
 import Navigation from "@/components/layout/Navigation"
-import { TestButton } from "@/components/TestButton"
 import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -34,14 +33,6 @@ export default async function RootLayout({
           <Navigation />
           {children}
           <Toaster />
-          {/* Floating TestButton only in development */}
-          {process.env.NODE_ENV === "development" && (
-            <div
-              style={{ position: "fixed", bottom: 24, right: 24, zIndex: 1000 }}
-            >
-              <TestButton />
-            </div>
-          )}
         </SessionProvider>
       </body>
     </html>

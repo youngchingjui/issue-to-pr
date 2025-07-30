@@ -26,7 +26,7 @@ Issue-to-PR is a Next.js application that automates GitHub issue resolution usin
 
 ## Core Features
 
-1. GitHub Authentication (OAuth & App)
+1. GitHub Authentication (Github App)
 2. Repository & Issue Management
 3. AI-Powered Code Generation
 4. Automated PR Creation

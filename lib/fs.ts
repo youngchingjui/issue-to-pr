@@ -10,6 +10,8 @@ export async function createDirectoryTree(
   // Generate a list of all files in the directory
   // Does not include folders, node_modules, or hidden files or folders
 
+  // TODO: We should just use `tree` instead.
+
   let output: string[] = []
   const files = await fs.readdir(dir)
 
@@ -64,6 +66,14 @@ export async function getLocalRepoDir(repo_full_name: string) {
 }
 
 export async function getFileContent(filePath: string) {
+  const stats = await fs.stat(filePath)
+  if (stats.isDirectory()) {
+    const err = new Error(
+      `Cannot read content of a directory: ${filePath}`
+    ) as Error & { code: string }
+    err.code = "EISDIR"
+    throw err
+  }
   const file = await fs.readFile(filePath)
   return file.toString()
 }

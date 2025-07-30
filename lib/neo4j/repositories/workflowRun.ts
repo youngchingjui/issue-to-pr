@@ -1,7 +1,6 @@
 import { int, Integer, ManagedTransaction, Node } from "neo4j-driver"
 import { ZodError } from "zod"
 
-import { WorkflowRun as AppWorkflowRun } from "@/lib/types"
 import {
   AnyEvent,
   anyEventSchema,
@@ -45,51 +44,85 @@ export async function get(
   return raw ? workflowRunSchema.parse(raw) : null
 }
 
-export async function listAll(
-  tx: ManagedTransaction
-): Promise<(WorkflowRun & { state: WorkflowRunState })[]> {
+// Now includes the issue as an extra field per workflow run
+export async function listAll(tx: ManagedTransaction): Promise<
+  {
+    run: WorkflowRun
+    state: WorkflowRunState
+    issue?: Issue
+  }[]
+> {
   const result = await tx.run<{
     w: Node<Integer, WorkflowRun, "WorkflowRun">
     state: WorkflowRunState
+    i: Node<Integer, Issue, "Issue"> | null
   }>(
     `MATCH (w:WorkflowRun)
     OPTIONAL MATCH (w)-[:STARTS_WITH|NEXT*]->(e:Event {type: 'workflowState'})
-    WITH w, e
+    OPTIONAL MATCH (w)-[:BASED_ON_ISSUE]->(i:Issue)
+    WITH w, e, i
     ORDER BY e.createdAt DESC
-    WITH w, collect(e)[0] as latestWorkflowState
-    RETURN w, latestWorkflowState.state AS state
+    WITH w, collect(e)[0] as latestWorkflowState, collect(i)[0] as issue
+    RETURN w, latestWorkflowState.state AS state, issue as i
     `
   )
 
   return result.records.map((record) => {
     const run = workflowRunSchema.parse(record.get("w").properties)
-    const state = workflowRunStateSchema.safeParse(record.get("state"))
-    return { ...run, state: state.success ? state.data : "completed" }
+    const stateParse = workflowRunStateSchema.safeParse(record.get("state"))
+    const state: WorkflowRunState = stateParse.success
+      ? stateParse.data
+      : "completed"
+
+    const issue = record.get("i")?.properties
+      ? issueSchema.parse(record.get("i")?.properties)
+      : undefined
+    return {
+      run,
+      state,
+      issue,
+    }
   })
 }
 
 export async function listForIssue(
   tx: ManagedTransaction,
   issue: Issue
-): Promise<(WorkflowRun & { state: WorkflowRunState })[]> {
+): Promise<
+  {
+    run: WorkflowRun
+    state: WorkflowRunState
+    issue: Issue
+  }[]
+> {
   const result = await tx.run<{
     w: Node<Integer, WorkflowRun, "WorkflowRun">
     state: WorkflowRunState
+    i: Node<Integer, Issue, "Issue">
   }>(
     `MATCH (w:WorkflowRun)-[:BASED_ON_ISSUE]->(i:Issue {number: $issue.number, repoFullName: $issue.repoFullName})
     OPTIONAL MATCH (w)-[:STARTS_WITH|NEXT*]->(e:Event {type: 'workflowState'})
-    WITH w, e
+    WITH w, e, i
     ORDER BY e.createdAt DESC
-    WITH w, collect(e)[0] as latestWorkflowState
-    RETURN w, latestWorkflowState.state AS state
+    WITH w, collect(e)[0] as latestWorkflowState, i
+    RETURN w, latestWorkflowState.state AS state, i
     `,
     { issue }
   )
 
   return result.records.map((record) => {
     const run = workflowRunSchema.parse(record.get("w").properties)
-    const state = workflowRunStateSchema.safeParse(record.get("state"))
-    return { ...run, state: state.success ? state.data : "completed" }
+    const stateParse = workflowRunStateSchema.safeParse(record.get("state"))
+    const state: WorkflowRunState = stateParse.success
+      ? stateParse.data
+      : "completed"
+
+    const issue = issueSchema.parse(record.get("i").properties)
+    return {
+      run,
+      state,
+      issue,
+    }
   })
 }
 
@@ -191,13 +224,4 @@ export async function mergeIssueLink(
   const run = workflowRunSchema.parse(result.records[0].get("w").properties)
   const parsedIssue = issueSchema.parse(result.records[0].get("i").properties)
   return { run, issue: parsedIssue }
-}
-
-export const toAppWorkflowRun = (dbRun: WorkflowRun): AppWorkflowRun => {
-  // NOTE: Currently there's no transformation needed.
-  // This function is placeholder for future transformations.
-  return {
-    ...dbRun,
-    createdAt: dbRun.createdAt.toStandardDate(),
-  }
 }

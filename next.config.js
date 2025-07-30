@@ -1,8 +1,21 @@
 const CSP_BASE_URL = "https://lavish-tugboat-5ca.notion.site/"
 import MiniCssExtractPlugin from "mini-css-extract-plugin"
 
+// Dynamically import the bundle analyzer for ESM
+const withBundleAnalyzer = (await import("@next/bundle-analyzer")).default({
+  enabled: process.env.ANALYZE === "true",
+})
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "avatars.githubusercontent.com",
+      },
+    ],
+  },
   async headers() {
     return [
       {
@@ -54,8 +67,16 @@ const nextConfig = {
       })
     })
 
+    if (isServer) {
+      // Avoid loading cpu-features to client side, from dockerode
+      config.externals.push("cpu-features")
+      // Also exclude ssh2 and its native bindings since we only use local socket
+      config.externals.push("ssh2")
+    }
+
     return config
   },
 }
 
-export default nextConfig
+// Export the config, wrapped with the analyzer if enabled
+export default withBundleAnalyzer(nextConfig)

@@ -94,7 +94,7 @@ class RedisManager {
       return RedisManager.instance
     } catch (error) {
       RedisManager.isConnecting = false
-      throw new Error(`Failed to establish Redis connection: ${error.message}`)
+      throw new Error(`Failed to establish Redis connection: ${error}`)
     }
   }
 
@@ -116,10 +116,17 @@ export const redis = new Proxy({} as Redis, {
   get: (_target: Redis, prop: keyof Redis) => {
     return async (...args: unknown[]) => {
       const client = await RedisManager.getClient()
-      const value = client[prop]
+      const value = client[prop] as unknown // The property can be a method or a primitive value
+
+      // If the property is a function, bind the Redis client as its `this` context
       if (typeof value === "function") {
-        return value.apply(client, args)
+        // Cast to a generic function type to avoid strict `this` context errors
+        return (value as (...fnArgs: unknown[]) => unknown).bind(client)(
+          ...args
+        )
       }
+
+      // Otherwise return the property value directly
       return value
     }
   },

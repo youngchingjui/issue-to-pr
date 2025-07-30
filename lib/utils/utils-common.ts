@@ -1,8 +1,9 @@
+// TODO: Migrate to /lib/utils/client.ts or /lib/utils/server.ts
+
 import { type ClassValue, clsx } from "clsx"
 import { EventEmitter } from "events"
 import { twMerge } from "tailwind-merge"
 
-import { LOCAL_STORAGE_KEY } from "@/lib/globals"
 import { GitHubURLSchema } from "@/lib/schemas/api"
 import { GitHubIssue } from "@/lib/types/github"
 
@@ -10,18 +11,22 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function getApiKeyFromLocalStorage(): string | null {
-  if (typeof window !== "undefined") {
-    return localStorage.getItem(LOCAL_STORAGE_KEY)
-  }
-  return null
-}
-
 export function getCloneUrlWithAccessToken(
   userRepo: string,
   token: string
 ): string {
   // userRepo format is "username/repo"
+  // GitHub App installation tokens (prefix "ghs_") must be passed as the password with
+  // a fixed username `x-access-token`, per GitHub documentation:
+  //docs.github.com/en/enterprise-cloud@latest/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation#about-authentication-as-a-github-app-installation
+  // For all other tokens (e.g. OAuth or personal access tokens like `ghp_` or `github_pat_`),
+  // embedding the token directly as the username continues to work.
+  if (token.startsWith("ghs_")) {
+    // Treat as GitHub App installation token -> username is fixed, token is password
+    return `https://x-access-token:${token}@github.com/${userRepo}.git`
+  }
+
+  // Default behaviour for PAT / OAuth tokens
   return `https://${token}@github.com/${userRepo}.git`
 }
 

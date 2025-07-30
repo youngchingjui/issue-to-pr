@@ -8,6 +8,8 @@ import { GitHubError } from "@/lib/github/content"
 import { getGithubUser } from "@/lib/github/users"
 import { AuthenticatedUserRepository } from "@/lib/types/github"
 
+export const dynamic = "force-dynamic"
+
 export default async function Repositories({
   params,
   searchParams,

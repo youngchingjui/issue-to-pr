@@ -1,7 +1,6 @@
 "use client"
 
 import { toast } from "@/lib/hooks/use-toast"
-import { getApiKeyFromLocalStorage } from "@/lib/utils/utils-common"
 
 interface Props {
   repoFullName: string
@@ -20,20 +19,10 @@ export default function IdentifyPRGoalController({
 }: Props) {
   const execute = async () => {
     try {
-      const key = getApiKeyFromLocalStorage()
-      if (!key) {
-        toast({
-          title: "API key not found",
-          description: "Please save an OpenAI API key first.",
-          variant: "destructive",
-        })
-        return
-      }
-
       onStart()
       const response = await fetch("/api/analyze-pr", {
         method: "POST",
-        body: JSON.stringify({ pullNumber, repoFullName, apiKey: key }),
+        body: JSON.stringify({ pullNumber, repoFullName }),
       })
 
       if (!response.ok) {

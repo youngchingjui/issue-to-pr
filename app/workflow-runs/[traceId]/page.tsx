@@ -4,53 +4,20 @@ import { notFound } from "next/navigation"
 
 import BaseGitHubItemCard from "@/components/github/BaseGitHubItemCard"
 import { Button } from "@/components/ui/button"
-import {
-  ErrorEvent,
-  LLMResponseEvent,
-  StatusUpdate,
-  SystemPromptEvent,
-  ToolCallEvent,
-  ToolCallResultEvent,
-  UserMessageEvent,
-} from "@/components/workflow-runs/events"
+import ContainerManager from "@/components/workflow-runs/ContainerManager"
+import WorkflowRunEventsFeed from "@/components/workflow-runs/WorkflowRunEventsFeed"
+import { getContainerStatus } from "@/lib/docker"
 import { getIssue } from "@/lib/github/issues"
 import { getWorkflowRunWithDetails } from "@/lib/neo4j/services/workflow"
-import { AnyEvent, Issue } from "@/lib/types"
-import { GitHubIssue } from "@/lib/types/github"
+import { GetIssueResult } from "@/lib/types/github"
 
-function EventRenderer({
-  event,
-  issue,
-}: {
-  event: AnyEvent
-  issue?: Issue
-}): React.ReactNode {
-  // Basic event
-
-  switch (event.type) {
-    case "status":
-      return <StatusUpdate event={event} />
-    case "systemPrompt":
-      return <SystemPromptEvent event={event} />
-    case "userMessage":
-      return <UserMessageEvent event={event} />
-    case "llmResponse":
-    case "llmResponseWithPlan":
-      return <LLMResponseEvent event={event} issue={issue} />
-    case "toolCall":
-      return <ToolCallEvent event={event} />
-    case "toolCallResult":
-      return <ToolCallResultEvent event={event} />
-    case "workflowState":
-      return <StatusUpdate event={event} />
-    case "reviewComment":
-      return <UserMessageEvent event={event} />
-    case "error":
-      return <ErrorEvent event={event} />
-    default:
-      console.error(`Unrecognized event: ${JSON.stringify(event)}`)
-      return null
-  }
+/**
+ * Generate the Docker container name for a given workflow/trace ID. Keep the
+ * logic in sync with the name generation used in createContainerizedWorktree
+ * and createContainerizedWorkspace utilities.
+ */
+function containerNameForTrace(traceId: string): string {
+  return `agent-${traceId}`.replace(/[^a-zA-Z0-9_.-]/g, "-")
 }
 
 export default async function WorkflowRunDetailPage({
@@ -62,12 +29,16 @@ export default async function WorkflowRunDetailPage({
 
   const { workflow, events, issue } = await getWorkflowRunWithDetails(traceId)
 
-  let githubIssue: GitHubIssue | null = null
+  let githubIssue: GetIssueResult | null = null
   if (issue) {
     githubIssue = await getIssue({
       fullName: issue.repoFullName,
       issueNumber: issue.number,
     })
+
+    if (githubIssue.type !== "success") {
+      notFound()
+    }
   }
 
   // If no workflow was found
@@ -80,6 +51,10 @@ export default async function WorkflowRunDetailPage({
       `Workflow type not found. WorkflowRun: ${JSON.stringify(workflow)}`
     )
   }
+
+  // Determine container status (best-effort; failures fall back to "not_found")
+  const containerName = containerNameForTrace(traceId)
+  const containerStatus = await getContainerStatus(containerName)
 
   return (
     <main className="container mx-auto p-4">
@@ -96,9 +71,14 @@ export default async function WorkflowRunDetailPage({
 
         {/* Page Header */}
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold">
+          <h1 className="text-2xl font-bold flex items-center gap-3 flex-wrap">
             {issue?.title || `Workflow Run: ${traceId}`}
           </h1>
+          {/* Container actions & status */}
+          <ContainerManager
+            workflowId={traceId}
+            initialStatus={containerStatus}
+          />
           {workflow.type && (
             <p className="text-sm text-muted-foreground">
               Workflow Type:{" "}
@@ -114,7 +94,9 @@ export default async function WorkflowRunDetailPage({
           <div className="space-y-3">
             <h2 className="text-lg font-semibold">Associated Issue</h2>
             <div className="max-w-2xl">
-              <BaseGitHubItemCard item={{ ...githubIssue, type: "issue" }} />
+              <BaseGitHubItemCard
+                item={{ ...githubIssue.issue, type: "issue" }}
+              />
             </div>
           </div>
         )}
@@ -123,13 +105,11 @@ export default async function WorkflowRunDetailPage({
         {events && (
           <div className="space-y-3">
             <h2 className="text-lg font-semibold">Timeline</h2>
-            <div className="bg-card border rounded-lg overflow-hidden">
-              {events.map((event) => (
-                <div key={event.id} className="p-3 sm:p-4">
-                  <EventRenderer event={event} issue={issue} />
-                </div>
-              ))}
-            </div>
+            <WorkflowRunEventsFeed
+              workflowId={traceId}
+              initialEvents={events}
+              issue={issue}
+            />
           </div>
         )}
       </div>

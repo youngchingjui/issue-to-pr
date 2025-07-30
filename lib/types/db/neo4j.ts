@@ -6,9 +6,13 @@ import {
   issueSchema as appIssueSchema,
   llmResponseSchema as appLLMResponseSchema,
   planSchema as appPlanSchema,
+  reasoningEventSchema as appReasoningEventSchema,
+  repoSettingsSchema as appRepoSettingsSchema,
   reviewCommentSchema as appReviewCommentSchema,
+  settingsSchema as appSettingsSchema,
   statusEventSchema as appStatusEventSchema,
   systemPromptSchema as appSystemPromptSchema,
+  taskSchema as appTaskSchema,
   toolCallResultSchema as appToolCallResultSchema,
   toolCallSchema as appToolCallSchema,
   userMessageSchema as appUserMessageSchema,
@@ -54,6 +58,13 @@ export const planSchema = appPlanSchema.merge(
   })
 )
 
+export const taskSchema = appTaskSchema.merge(
+  z.object({
+    createdAt: z.instanceof(DateTime),
+    githubIssueNumber: z.instanceof(Integer).optional(),
+  })
+)
+
 // Event schemas
 export const errorEventSchema = appErrorEventSchema
   .merge(
@@ -91,6 +102,10 @@ export const llmResponseSchema = appLLMResponseSchema
   .omit({ workflowId: true })
   .merge(z.object({ createdAt: z.instanceof(DateTime) }))
 
+export const reasoningEventSchema = appReasoningEventSchema
+  .omit({ workflowId: true })
+  .merge(z.object({ createdAt: z.instanceof(DateTime) }))
+
 export const llmResponseWithPlanSchema = llmResponseSchema.merge(
   planSchema.omit({ createdAt: true })
 )
@@ -109,6 +124,7 @@ export const reviewCommentSchema = appReviewCommentSchema
 
 export const messageEventSchema = z.union([
   llmResponseWithPlanSchema,
+  reasoningEventSchema,
   z.discriminatedUnion("type", [
     userMessageSchema,
     systemPromptSchema,
@@ -121,6 +137,7 @@ export const messageEventSchema = z.union([
 export const anyEventSchema = z.discriminatedUnion("type", [
   errorEventSchema,
   llmResponseSchema,
+  reasoningEventSchema,
   reviewCommentSchema,
   statusEventSchema,
   systemPromptSchema,
@@ -136,7 +153,9 @@ export type Issue = z.infer<typeof issueSchema>
 export type LLMResponse = z.infer<typeof llmResponseSchema>
 export type LLMResponseWithPlan = z.infer<typeof llmResponseWithPlanSchema>
 export type MessageEvent = z.infer<typeof messageEventSchema>
+export type ReasoningEvent = z.infer<typeof reasoningEventSchema>
 export type Plan = z.infer<typeof planSchema>
+export type Task = z.infer<typeof taskSchema>
 export type ReviewComment = z.infer<typeof reviewCommentSchema>
 export type StatusEvent = z.infer<typeof statusEventSchema>
 export type SystemPrompt = z.infer<typeof systemPromptSchema>
@@ -151,3 +170,22 @@ export function isLLMResponseWithPlan(
 ): event is LLMResponseWithPlan {
   return llmResponseWithPlanSchema.safeParse(event).success
 }
+
+// ---- Repo Settings (repository-level) ----
+export const repoSettingsSchema = appRepoSettingsSchema.merge(
+  z.object({
+    // Ensure Neo4j temporal type is preserved while at repository layer
+    lastUpdated: z.instanceof(DateTime),
+  })
+)
+
+export type RepoSettings = z.infer<typeof repoSettingsSchema>
+
+// ---- User Settings ----
+export const userSettingsSchema = appSettingsSchema.merge(
+  z.object({
+    lastUpdated: z.instanceof(DateTime),
+  })
+)
+
+export type UserSettings = z.infer<typeof userSettingsSchema>

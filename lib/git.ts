@@ -6,6 +6,8 @@ import { promises as fs } from "fs"
 import path from "path"
 import util from "util"
 
+import { getCloneUrlWithAccessToken } from "@/lib/utils/utils-common"
+
 const execPromise = util.promisify(exec)
 
 export async function checkIfGitExists(dir: string): Promise<boolean> {
@@ -66,17 +68,41 @@ export async function createBranch(
 
 export async function pushBranch(
   branchName: string,
-  cwd: string | undefined = undefined
+  cwd: string | undefined = undefined,
+  token?: string,
+  repoFullName?: string
 ): Promise<string> {
-  const command = `git push origin ${branchName}`
-  return new Promise((resolve, reject) => {
-    exec(command, { cwd }, (error, stdout) => {
-      if (error) {
-        return reject(new Error(error.message))
+  let oldRemoteUrl: string | null = null
+  try {
+    if (token && repoFullName) {
+      // Get current origin URL
+      const { stdout: originalUrl } = await execPromise(
+        "git remote get-url origin",
+        { cwd }
+      )
+      oldRemoteUrl = originalUrl.trim()
+      // Set authenticated remote
+      const authenticatedUrl = getCloneUrlWithAccessToken(repoFullName, token)
+      await execPromise(`git remote set-url origin "${authenticatedUrl}"`, {
+        cwd,
+      })
+    }
+    const command = `git push origin ${branchName}`
+    const { stdout } = await execPromise(command, { cwd })
+    return stdout
+  } finally {
+    // Restore the original remote if we changed it
+    if (token && repoFullName && oldRemoteUrl) {
+      try {
+        await execPromise(`git remote set-url origin "${oldRemoteUrl}"`, {
+          cwd,
+        })
+      } catch (e) {
+        // Fail quietly, as this is cleanup
+        console.error(`[ERROR] Failed to restore original remote: ${e}`)
       }
-      return resolve(stdout)
-    })
-  })
+    }
+  }
 }
 
 async function executeGitCommand(
@@ -86,10 +112,8 @@ async function executeGitCommand(
   return new Promise((resolve, reject) => {
     exec(command, { cwd: dir }, (error, stdout, stderr) => {
       if (error) {
-        console.error(`[ERROR] Command failed: ${command}\n${error.message}`)
-        return reject(
-          new Error(`Failed to execute git command: ${error.message}`)
-        )
+        console.error(`[ERROR] Command failed: ${command}\n${error}`)
+        return reject(new Error(`Failed to execute git command: ${error}`))
       }
       if (stderr) {
         console.warn(`[WARNING] Command produced stderr: ${stderr}`)
@@ -142,11 +166,13 @@ export async function cleanCheckout(branchName: string, dir: string) {
     // Checkout the branch
     await checkoutBranchQuietly(branchName, dir)
   } catch (error) {
-    console.error(`[ERROR] Failed during clean checkout: ${error.message}`)
+    console.error(`[ERROR] Failed during clean checkout: ${error}`)
     throw error
   }
 }
 
+// TODO: This will fail if we don't authenticate with user's credentials
+// for private repos
 export async function cloneRepo(
   cloneUrl: string,
   dir: string | undefined = undefined
@@ -188,7 +214,7 @@ export async function checkRepoIntegrity(dir: string): Promise<boolean> {
     await executeGitCommand("git fsck", dir)
     return true
   } catch (error) {
-    console.error(`[ERROR] Repository integrity check failed: ${error.message}`)
+    console.error(`[ERROR] Repository integrity check failed: ${error}`)
     return false
   }
 }
@@ -200,7 +226,7 @@ export async function cleanupRepo(dir: string): Promise<void> {
     // Also remove any tracked files that might be corrupted
     await fs.rm(dir, { recursive: true, force: true })
   } catch (error) {
-    console.error(`[ERROR] Failed to cleanup repository: ${error.message}`)
+    console.error(`[ERROR] Failed to cleanup repository: ${error}`)
     throw error
   }
 }
@@ -223,6 +249,13 @@ export async function ensureValidRepo(
     await cleanupRepo(dir)
     await cloneRepo(cloneUrl, dir)
   }
+}
+
+export async function setRemoteOrigin(
+  dir: string,
+  remoteUrl: string
+): Promise<void> {
+  await executeGitCommand(`git remote set-url origin "${remoteUrl}"`, dir)
 }
 
 export async function stageFile(
@@ -291,4 +324,64 @@ export async function getCurrentBranch(repoPath: string): Promise<string> {
       throw new Error("Failed to get current branch: Unknown error")
     }
   }
+}
+
+export async function addWorktree(
+  repoDir: string,
+  worktreeDir: string,
+  branch: string = "main"
+): Promise<string> {
+  // Ensure parent directory exists before adding the worktree
+  await fs.mkdir(path.dirname(worktreeDir), { recursive: true })
+
+  const execWorktree = (cmd: string) =>
+    new Promise<string>((resolve, reject) => {
+      exec(cmd, { cwd: repoDir }, (error, stdout, stderr) => {
+        if (error) {
+          return reject(error)
+        }
+        if (stderr) {
+          console.warn(`[WARNING] addWorktree produced stderr: ${stderr}`)
+        }
+        resolve(stdout)
+      })
+    })
+
+  // First attempt: normal add (may fail if branch already checked out)
+  try {
+    return await execWorktree(`git worktree add "${worktreeDir}" ${branch}`)
+  } catch (err: unknown) {
+    // TODO: Handle if any of the below completely fail (how?)
+    // Fallback 1: detached HEAD
+    try {
+      return await execWorktree(
+        `git worktree add --detach "${worktreeDir}" ${branch}`
+      )
+    } catch {
+      // Fallback 2: force add (should rarely be needed)
+      return await execWorktree(
+        `git worktree add --force "${worktreeDir}" ${branch}`
+      )
+    }
+  }
+}
+
+export async function removeWorktree(
+  repoDir: string,
+  worktreeDir: string,
+  force: boolean = true
+): Promise<string> {
+  const flag = force ? "--force" : ""
+  const command = `git worktree remove ${flag} "${worktreeDir}"`.trim()
+  return new Promise((resolve, reject) => {
+    exec(command, { cwd: repoDir }, (error, stdout, stderr) => {
+      if (error) {
+        return reject(new Error(error.message))
+      }
+      if (stderr) {
+        console.warn(`[WARNING] removeWorktree produced stderr: ${stderr}`)
+      }
+      return resolve(stdout)
+    })
+  })
 }

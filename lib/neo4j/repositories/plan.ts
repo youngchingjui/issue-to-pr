@@ -1,7 +1,6 @@
 import { int, Integer, ManagedTransaction, Node } from "neo4j-driver"
 import { z } from "zod"
 
-import { Plan as AppPlan } from "@/lib/types"
 import {
   Issue,
   issueSchema,
@@ -93,15 +92,6 @@ export async function createPlanImplementsIssue(
   }
 }
 
-// Convert db-level Plan to app-level Plan (currently passthrough, but for future-proofing)
-export const toAppPlan = (dbPlan: Plan): AppPlan => {
-  return {
-    ...dbPlan,
-    version: dbPlan.version.toNumber(),
-    createdAt: dbPlan.createdAt.toStandardDate(),
-  }
-}
-
 // Get Plan and related nodes by planId
 export async function getPlanWithDetails(
   tx: ManagedTransaction,
@@ -126,4 +116,52 @@ export async function getPlanWithDetails(
     workflow: workflowRunSchema.parse(raw.get("w")?.properties),
     issue: issueSchema.parse(raw.get("i")?.properties),
   }
+}
+
+// Batch plan status for multiple issues
+export async function listPlanStatusForIssues(
+  tx: ManagedTransaction,
+  {
+    repoFullName,
+    issueNumbers,
+  }: { repoFullName: string; issueNumbers: number[] }
+): Promise<Record<number, boolean>> {
+  if (!issueNumbers.length) return {}
+  const cypher = `
+    MATCH (i:Issue)
+    WHERE i.repoFullName = $repoFullName AND i.number IN $issueNumbers
+    OPTIONAL MATCH (p:Plan)-[:IMPLEMENTS]->(i)
+    RETURN i.number AS number, count(p) > 0 AS hasPlan
+  `
+  const result = await tx.run(cypher, { repoFullName, issueNumbers })
+  const status: Record<number, boolean> = {}
+  for (const record of result.records) {
+    status[record.get("number")] = record.get("hasPlan")
+  }
+  return status
+}
+
+// Batch latest plan ID for multiple issues
+export async function listLatestPlanIdsForIssues(
+  tx: ManagedTransaction,
+  {
+    repoFullName,
+    issueNumbers,
+  }: { repoFullName: string; issueNumbers: number[] }
+): Promise<Record<number, string | null>> {
+  if (!issueNumbers.length) return {}
+  const cypher = `
+    MATCH (i:Issue)
+    WHERE i.repoFullName = $repoFullName AND i.number IN $issueNumbers
+    OPTIONAL MATCH (p:Plan)-[:IMPLEMENTS]->(i)
+    WITH i.number AS number, p
+    ORDER BY p.createdAt DESC
+    RETURN number, head(collect(p.id)) AS planId
+  `
+  const result = await tx.run(cypher, { repoFullName, issueNumbers })
+  const planIds: Record<number, string | null> = {}
+  for (const record of result.records) {
+    planIds[record.get("number")] = record.get("planId") || null
+  }
+  return planIds
 }
