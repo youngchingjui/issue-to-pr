@@ -1,5 +1,6 @@
 import { components } from "@octokit/openapi-types"
 import { RestEndpointMethodTypes } from "@octokit/rest"
+import { Octokit } from "octokit"
 import { z } from "zod"
 
 // GitHub API Types
@@ -69,13 +70,6 @@ export const IssueOrderFieldSchema = z
   .default("CREATED")
 export type IssueOrderField = z.infer<typeof IssueOrderFieldSchema>
 
-export type RepoSelectorItem = {
-  name: string
-  nameWithOwner: string
-  description: string | null
-  updatedAt: string
-}
-
 // ---
 // Structured Result Type for getIssue
 export type GetIssueResult =
@@ -83,3 +77,5 @@ export type GetIssueResult =
   | { type: "not_found" }
   | { type: "forbidden" }
   | { type: "other_error"; error: unknown }
+
+export type ExtendedOctokit = Octokit & { authType: "user" | "app" }

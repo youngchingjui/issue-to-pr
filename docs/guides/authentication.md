@@ -9,36 +9,9 @@
 
 ## Overview
 
-The application supports two authentication methods for GitHub integration:
-
-- Traditional OAuth for public repository access
-- GitHub App installation for enhanced repository access
+The application supports OAuth via Github App
 
 ## Authentication Methods
-
-### OAuth Authentication
-
-- Used for public repository access
-- Provides user-level permissions
-- Configuration:
-
-```typescript
-GithubProvider({
-  id: "github-oauth",
-  name: "GitHub OAuth",
-  clientId: process.env.GITHUB_OAUTH_ID,
-  clientSecret: process.env.GITHUB_OAUTH_SECRET,
-  authorization: {
-    params: {
-      scope: "read:user user:email repo workflow",
-    },
-  },
-})
-```
-
-Required Permissions: `read:user`, `user:email`, `repo`, `workflow`
-
-> **Note**: After this scope change, existing users will need to re-authorize the app in GitHub to grant the new `workflow` permission. Without re-authorization, the application may not be able to perform actions on workflow files for previously authorized users.
 
 ### GitHub App Authentication
 
@@ -82,9 +55,6 @@ GithubProvider({
 ### Environment Variables
 
 ```env
-# OAuth Configuration
-GITHUB_OAUTH_ID=your_oauth_client_id
-GITHUB_OAUTH_SECRET=your_oauth_client_secret
 
 # GitHub App Configuration
 GITHUB_APP_ID=your_app_id

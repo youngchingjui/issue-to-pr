@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
       installCommand,
       planId,
     } = ResolveRequestSchema.parse(body)
+
     const apiKey = await getUserOpenAIApiKey()
     if (!apiKey) {
       return NextResponse.json(
@@ -28,18 +29,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generate a unique job ID
     const jobId = uuidv4()
 
-    // Start the resolve workflow as a background job
     ;(async () => {
       try {
-        // Get full repository details and issue
         const fullRepo = await getRepoFromString(repoFullName)
-        const issue = await getIssue({
-          fullName: repoFullName,
-          issueNumber,
-        })
+        const issue = await getIssue({ fullName: repoFullName, issueNumber })
 
         if (issue.type !== "success") {
           throw new Error(JSON.stringify(issue))
@@ -56,21 +51,16 @@ export async function POST(request: NextRequest) {
           ...(installCommand && { installCommand }),
         })
       } catch (error) {
-        // Save error status
         console.error(String(error))
       }
     })()
 
-    // Return the job ID immediately
     return NextResponse.json({ jobId })
   } catch (error) {
     console.error("Error processing request:", error)
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        {
-          error: "Invalid request data",
-          details: error.errors,
-        },
+        { error: "Invalid request data", details: error.errors },
         { status: 400 }
       )
     }

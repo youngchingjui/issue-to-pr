@@ -19,6 +19,7 @@ import { redirect } from "next/navigation"
 
 import { auth } from "@/auth"
 import OAuthTokenCard from "@/components/auth/OAuthTokenCard"
+import RepoSelector from "@/components/common/RepoSelector"
 import AgentWorkflowClient from "@/components/playground/AgentWorkflowClient"
 import ApplyPatchCard from "@/components/playground/ApplyPatchCard"
 import DockerodeExecCard from "@/components/playground/DockerodeExecCard"
@@ -26,9 +27,11 @@ import IssueTitleCard from "@/components/playground/IssueTitleCard"
 import NewLocalTaskInput from "@/components/playground/NewLocalTaskInput"
 import RipgrepSearchCard from "@/components/playground/RipgrepSearchCard"
 import SpeechToTextCard from "@/components/playground/SpeechToTextCard"
+import TestGithubUserFunctionsCard from "@/components/playground/TestGithubUserFunctionsCard"
 import UserRolesCard from "@/components/playground/UserRolesCard"
 import WriteFileCard from "@/components/playground/WriteFileCard"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getGithubUser } from "@/lib/github/users"
 import { getUserRoles } from "@/lib/neo4j/services/user"
 
@@ -62,8 +65,20 @@ export default async function PlaygroundPage() {
             fullName: "issue-to-pr/test-repo",
           }}
         />
+        <TestGithubUserFunctionsCard />
       </div>
       <AgentWorkflowClient defaultTools={DEFAULT_TOOLS} />
+      <Card>
+        <CardHeader>
+          <CardTitle>Test Repo Selector Component</CardTitle>
+        </CardHeader>
+        <CardContent>
+          Use this component to test the RepoSelector component. It should show
+          a button to install the Github App if no repos are available.
+          Uninstall the Github App to test the installation CTA.
+          <RepoSelector selectedRepo="issue-to-pr/test-repo" />
+        </CardContent>
+      </Card>
       <IssueTitleCard />
       <SpeechToTextCard />
       <UserRolesCard />

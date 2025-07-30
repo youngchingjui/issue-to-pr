@@ -34,7 +34,7 @@ Our core entities are defined in `lib/types/neo4j.ts`. Below are the key nodes a
 
 Users in Neo4j primarily serve as connection points for relationships in the graph, while detailed user data is stored in PostgreSQL. See `User` type in `neo4j.ts`.
 
-Note: Core user data (OAuth config, subscription status, preferences) is stored in PostgreSQL. The Neo4j User node serves primarily as an anchor point for graph relationships.
+Note: Core user data (subscription status, preferences) is stored in PostgreSQL. The Neo4j User node serves primarily as an anchor point for graph relationships.
 
 #### Repository
 
@@ -189,7 +189,6 @@ Our system uses a hybrid database approach where:
 1. **PostgreSQL stores:**
 
    - User profiles and authentication
-   - OAuth configurations
    - Subscription status and billing
    - User preferences
    - Draft content

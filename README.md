@@ -64,7 +64,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ## Features
 
-- GitHub Authentication (OAuth & App)
+- GitHub Authentication (Github App)
 - Repository & Issue Management
 - AI-Powered Code Generation
 - Automated PR Creation
@@ -112,4 +112,3 @@ Please read our [Contributing Guide](docs/guides/contributing.md) for details on
 ## Server Actions
 
 We keep server functions alongside other helpers under `lib/`. Any file can become a server action simply by including the `"use server"` directive at the top. There is no separate `actions` directory—functions defined in `lib` can be imported directly in client components and invoked as server actions. Workflow buttons should call these helpers and handle their own loading state; since workflows are long‑running, they execute in the background without additional context providers.
-
