@@ -29,28 +29,37 @@ const INSTALL_URL = `https://github.com/apps/${GITHUB_APP_SLUG}/installations/ne
 
 interface Props {
   selectedRepo: string
+  repositories?: AuthenticatedUserRepository[]
 }
 
-export default function RepoSelector({ selectedRepo }: Props) {
+// TODO: Not quite sure this data fetching is all necessary. Need to revisit and consider how to best fetch data here.
+// In conjunction with the pages that use this component.
+export default function RepoSelector({
+  selectedRepo,
+  repositories: initialRepositories,
+}: Props) {
   const router = useRouter()
-  const [repos, setRepos] = useState<AuthenticatedUserRepository[]>([])
-  // Start in loading state because we immediately fetch on mount
-  const [loading, setLoading] = useState(true)
+  const [repos, setRepos] = useState<AuthenticatedUserRepository[]>(
+    initialRepositories || []
+  )
+  // Only start in loading state if repositories weren't provided
+  const [loading, setLoading] = useState(!initialRepositories)
   const [open, setOpen] = useState(false)
   const isDesktop = useMediaQuery("md")
 
-  // Fetch repositories as soon as the component mounts so we can
-  // decide whether to show the repo dropdown or the installation CTA.
+  // Only fetch repositories if they weren't provided as props
   useEffect(() => {
-    listUserAppRepositories()
-      .then((data) => setRepos(data))
-      .finally(() => setLoading(false))
-  }, [])
+    if (!initialRepositories) {
+      listUserAppRepositories()
+        .then((data) => setRepos(data))
+        .finally(() => setLoading(false))
+    }
+  }, [initialRepositories])
 
   // Still allow refetching when the dropdown is opened for the first time
-  // in case something went wrong in the initial fetch.
+  // in case something went wrong in the initial fetch (only when no initial repositories provided).
   useEffect(() => {
-    if (open && repos.length === 0 && !loading) {
+    if (open && repos.length === 0 && !loading && !initialRepositories) {
       setLoading(true)
       listUserAppRepositories()
         .then((data) => setRepos(data))
@@ -58,7 +67,7 @@ export default function RepoSelector({ selectedRepo }: Props) {
     }
     // We intentionally omit `repos.length` here to avoid refetching on every update.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open])
+  }, [open, initialRepositories])
 
   // 1. Loading state
   if (loading) {
