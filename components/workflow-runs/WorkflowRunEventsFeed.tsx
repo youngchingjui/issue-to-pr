@@ -1,7 +1,9 @@
 "use client"
 
+import { useState } from "react"
 import useSWR from "swr"
 
+import EventDetailDrawer from "@/components/workflow-runs/EventDetailDrawer"
 import { ErrorEvent } from "@/components/workflow-runs/events/ErrorEvent"
 import { LLMResponseEvent } from "@/components/workflow-runs/events/LLMResponseEvent"
 import { StatusUpdate } from "@/components/workflow-runs/events/StatusUpdate"
@@ -56,6 +58,8 @@ export default function WorkflowRunEventsFeed({
   initialEvents,
   issue,
 }: Props) {
+  const [selectedEvent, setSelectedEvent] = useState<AnyEvent | null>(null)
+
   // Check if workflow has reached a terminal state
   const isWorkflowComplete = (events: AnyEvent[]) => {
     const latestWorkflowStateEvent = [...events]
@@ -82,12 +86,24 @@ export default function WorkflowRunEventsFeed({
   if (!data) return null
 
   return (
-    <div className="bg-card border rounded-lg overflow-hidden">
-      {data.map((event) => (
-        <div key={event.id} className="p-3 sm:p-4">
-          <EventRenderer event={event} issue={issue} />
-        </div>
-      ))}
-    </div>
+    <>
+      <div className="bg-card border rounded-lg overflow-hidden">
+        {data.map((event) => (
+          <div
+            key={event.id}
+            className="p-3 sm:p-4 hover:bg-muted/50 cursor-pointer"
+            onClick={() => setSelectedEvent(event)}
+          >
+            <EventRenderer event={event} issue={issue} />
+          </div>
+        ))}
+      </div>
+      <EventDetailDrawer
+        event={selectedEvent}
+        onOpenChange={(open) => {
+          if (!open) setSelectedEvent(null)
+        }}
+      />
+    </>
   )
 }
