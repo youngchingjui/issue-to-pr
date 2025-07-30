@@ -1,8 +1,9 @@
 "use client"
 
+import { useState } from "react"
 import useSWR from "swr"
-import { useState, Fragment } from "react"
 
+import EventDetailDrawer from "@/components/workflow-runs/EventDetailDrawer"
 import { ErrorEvent } from "@/components/workflow-runs/events/ErrorEvent"
 import { LLMResponseEvent } from "@/components/workflow-runs/events/LLMResponseEvent"
 import { StatusUpdate } from "@/components/workflow-runs/events/StatusUpdate"
@@ -11,7 +12,6 @@ import { ToolCallEvent } from "@/components/workflow-runs/events/ToolCallEvent"
 import { ToolCallResultEvent } from "@/components/workflow-runs/events/ToolCallResultEvent"
 import { UserMessageEvent } from "@/components/workflow-runs/events/UserMessageEvent"
 import { AnyEvent, Issue } from "@/lib/types"
-import EventDetailDrawer from "@/components/workflow-runs/EventDetailDrawer"
 
 interface Props {
   workflowId: string
@@ -70,7 +70,7 @@ export default function WorkflowRunEventsFeed({
 
     // WorkflowStateEvent has a 'state' property
     if (latestWorkflowStateEvent.type === "workflowState") {
-      const state = (latestWorkflowStateEvent as any).state
+      const state = latestWorkflowStateEvent.state
       return state === "completed" || state === "error"
     }
 
@@ -86,7 +86,7 @@ export default function WorkflowRunEventsFeed({
   if (!data) return null
 
   return (
-    <Fragment>
+    <>
       <div className="bg-card border rounded-lg overflow-hidden">
         {data.map((event) => (
           <div
@@ -98,14 +98,12 @@ export default function WorkflowRunEventsFeed({
           </div>
         ))}
       </div>
-
       <EventDetailDrawer
         event={selectedEvent}
         onOpenChange={(open) => {
           if (!open) setSelectedEvent(null)
         }}
       />
-    </Fragment>
+    </>
   )
 }
-

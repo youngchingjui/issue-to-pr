@@ -1,17 +1,17 @@
 "use client"
 
-import { useMediaQuery } from "@/lib/hooks/use-media-query"
-import { AnyEvent } from "@/lib/types"
+import { Button } from "@/components/ui/button"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Sheet,
+  SheetClose,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetDescription,
-  SheetClose,
 } from "@/components/ui/sheet"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Button } from "@/components/ui/button"
+import { useMediaQuery } from "@/lib/hooks/use-media-query"
+import { AnyEvent } from "@/lib/types"
 
 interface Props {
   event: AnyEvent | null
@@ -23,12 +23,17 @@ export default function EventDetailDrawer({ event, onOpenChange }: Props) {
 
   return (
     <Sheet open={!!event} onOpenChange={onOpenChange}>
-      <SheetContent side={isMobile ? "bottom" : "right"} className="sm:max-w-md w-full">
+      <SheetContent
+        side={isMobile ? "bottom" : "right"}
+        className="sm:max-w-md w-full"
+      >
         <SheetHeader>
           <SheetTitle>Event Details</SheetTitle>
           {event && (
             <SheetDescription>
-              <span className="font-mono text-xs text-muted-foreground">{event.type}</span>
+              <span className="font-mono text-xs text-muted-foreground">
+                {event.type}
+              </span>
             </SheetDescription>
           )}
         </SheetHeader>
@@ -38,7 +43,9 @@ export default function EventDetailDrawer({ event, onOpenChange }: Props) {
               {JSON.stringify(event, null, 2)}
             </pre>
           ) : (
-            <div className="text-center text-sm text-muted-foreground">No event selected</div>
+            <div className="text-center text-sm text-muted-foreground">
+              No event selected
+            </div>
           )}
         </ScrollArea>
         <div className="mt-4 flex justify-end">
@@ -52,4 +59,3 @@ export default function EventDetailDrawer({ event, onOpenChange }: Props) {
     </Sheet>
   )
 }
-
