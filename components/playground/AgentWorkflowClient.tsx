@@ -22,20 +22,20 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import {
-  checkLocalRepoExists,
-  getRepositoryIssues,
-  getUserRepositories,
-} from "@/lib/actions/github"
+import { checkLocalRepoExists, getRepositoryIssues } from "@/lib/actions/github"
 import { getChatCompletion } from "@/lib/actions/openaiChat"
 import { listBranchesSortedByCommitDate } from "@/lib/github/refs"
+import { listUserAppRepositories } from "@/lib/github/repos"
 import { toast } from "@/lib/hooks/use-toast"
 import {
   DEFAULT_SYSTEM_PROMPTS,
   SystemPromptTemplate,
 } from "@/lib/systemPrompts"
-import { repoFullNameSchema } from "@/lib/types/github"
-import { GitHubIssue, RepoSelectorItem } from "@/lib/types/github"
+import {
+  AuthenticatedUserRepository,
+  repoFullNameSchema,
+} from "@/lib/types/github"
+import { GitHubIssue } from "@/lib/types/github"
 
 interface Message {
   role: "system" | "user" | "assistant"
@@ -49,7 +49,7 @@ export default function AgentWorkflowClient({
 }) {
   const availableTools = defaultTools
 
-  const [repos, setRepos] = useState<RepoSelectorItem[]>([])
+  const [repos, setRepos] = useState<AuthenticatedUserRepository[]>([])
   const [selectedRepo, setSelectedRepo] = useState<string>("")
   const [branches, setBranches] = useState<string[]>([])
   const [selectedBranch, setSelectedBranch] = useState<string>("")
@@ -83,7 +83,7 @@ export default function AgentWorkflowClient({
   // Load repositories on mount
   useEffect(() => {
     const loadRepos = async () => {
-      const r = await getUserRepositories()
+      const r = await listUserAppRepositories()
       setRepos(r)
     }
     loadRepos()
@@ -241,11 +241,8 @@ export default function AgentWorkflowClient({
                     </SelectTrigger>
                     <SelectContent>
                       {repos.map((repo) => (
-                        <SelectItem
-                          key={repo.nameWithOwner}
-                          value={repo.nameWithOwner}
-                        >
-                          {repo.nameWithOwner}
+                        <SelectItem key={repo.full_name} value={repo.full_name}>
+                          {repo.full_name}
                         </SelectItem>
                       ))}
                     </SelectContent>

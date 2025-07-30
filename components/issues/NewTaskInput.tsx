@@ -12,7 +12,16 @@ import { IssueTitleResponseSchema } from "@/lib/types/api/schemas"
 import { RepoFullName } from "@/lib/types/github"
 
 interface Props {
-  repoFullName: RepoFullName
+  repoFullName: RepoFullName | null
+}
+
+// Helper to fully stop an active MediaRecorder & its tracks.
+function stopRecorder(recorder: MediaRecorder | null) {
+  if (!recorder) return
+  if (recorder.state !== "inactive") {
+    recorder.stop()
+  }
+  recorder.stream?.getTracks().forEach((t) => t.stop())
 }
 
 export default function NewTaskInput({ repoFullName }: Props) {
@@ -37,12 +46,21 @@ export default function NewTaskInput({ repoFullName }: Props) {
   // Cleanup recorder on unmount
   useEffect(() => {
     return () => {
-      mediaRecorder?.stream.getTracks().forEach((t) => t.stop())
+      stopRecorder(mediaRecorder)
     }
   }, [mediaRecorder])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!repoFullName) {
+      toast({
+        title: "No repository selected",
+        description: "Please select a repository to create an issue.",
+        variant: "destructive",
+      })
+      return
+    }
 
     if (!description.trim()) {
       toast({
@@ -84,11 +102,14 @@ export default function NewTaskInput({ repoFullName }: Props) {
     }
 
     setLoading(true)
+
+    const { repo, owner } = repoFullName
     try {
       // 1️⃣ Perform the async GitHub call **outside** of startTransition so
       //     errors are captured by this try/catch.
       const res = await createIssue({
-        repoFullName,
+        repo,
+        owner,
         title: taskTitle,
         body: description,
       })
@@ -154,11 +175,16 @@ export default function NewTaskInput({ repoFullName }: Props) {
   }
 
   const stopRecording = () => {
-    mediaRecorder?.stop()
+    stopRecorder(mediaRecorder)
   }
 
   const handleRecordingStop = useCallback(async () => {
     setIsRecording(false)
+
+    // Ensure microphone is released immediately.
+    stopRecorder(mediaRecorder)
+    setMediaRecorder(null)
+
     const blob = new Blob(audioChunks.current, { type: "audio/webm" })
     audioChunks.current = []
 
@@ -183,7 +209,7 @@ export default function NewTaskInput({ repoFullName }: Props) {
     } finally {
       setIsTranscribing(false)
     }
-  }, [])
+  }, [mediaRecorder])
 
   return (
     <form
