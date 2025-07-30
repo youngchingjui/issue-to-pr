@@ -85,38 +85,36 @@ export default function RepoSelector({ selectedRepo }: Props) {
 
   // 3. Repositories available – show repo selector dropdown
   return (
-    <div className="flex flex-col items-start gap-2">
-      <Select
-        defaultValue={selectedRepo}
-        name="repo"
-        onValueChange={(val) => {
-          router.push(`/issues?repo=${encodeURIComponent(val)}`)
-        }}
-        onOpenChange={setOpen}
-      >
-        <SelectTrigger className="w-64">
-          <SelectValue placeholder="Select repository">
-            {selectedRepo}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent align={isDesktop ? "end" : "start"}>
-          {loading && <div className="px-4 py-2">Loading...</div>}
-          {!loading &&
-            repos.map((repo) => (
-              <SelectItem key={repo.full_name} value={repo.full_name}>
-                {repo.full_name}
-              </SelectItem>
-            ))}
-          {!loading && repos.length > 0 && (
-            <div className="my-1 border-t border-border/40" />
-          )}
-          <Button asChild variant="ghost" className="w-full">
-            <Link href={INSTALL_URL} target="_blank" rel="noopener noreferrer">
-              Manage repositories
-            </Link>
-          </Button>
-        </SelectContent>
-      </Select>
-    </div>
+    <Select
+      defaultValue={selectedRepo}
+      name="repo"
+      onValueChange={(val) => {
+        router.push(`/issues?repo=${encodeURIComponent(val)}`)
+      }}
+      onOpenChange={setOpen}
+    >
+      <SelectTrigger className="w-64">
+        <SelectValue placeholder="Select repository">
+          {selectedRepo}
+        </SelectValue>
+      </SelectTrigger>
+      <SelectContent align={isDesktop ? "end" : "start"}>
+        {loading && <div className="px-4 py-2">Loading...</div>}
+        {!loading &&
+          repos.map((repo) => (
+            <SelectItem key={repo.full_name} value={repo.full_name}>
+              {repo.full_name}
+            </SelectItem>
+          ))}
+        {!loading && repos.length > 0 && (
+          <div className="my-1 border-t border-border/40" />
+        )}
+        <Button asChild variant="ghost" className="w-full">
+          <Link href={INSTALL_URL} target="_blank" rel="noopener noreferrer">
+            Manage repositories
+          </Link>
+        </Button>
+      </SelectContent>
+    </Select>
   )
 }
