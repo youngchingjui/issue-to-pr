@@ -25,17 +25,37 @@ export async function refreshTokenWithLock(token: JWT) {
         if (cachedToken) {
           console.log("Using cached token from Redis")
           try {
-            return typeof cachedToken === "string"
-              ? JSON.parse(cachedToken)
-              : cachedToken
+            const parsedToken =
+              typeof cachedToken === "string"
+                ? JSON.parse(cachedToken)
+                : cachedToken
+
+            // Validate that cached token has proper auth method
+            if (parsedToken.authMethod !== "github-app") {
+              console.log(
+                "Cached token is from old OAuth App, removing from cache"
+              )
+              await redis.del(tokenKey)
+              // Continue with refresh attempt
+            } else {
+              return parsedToken
+            }
           } catch (e) {
             console.error(`Error parsing cached token for key ${tokenKey}:`, e)
             // If parsing fails, continue with refresh
           }
         }
 
-        // Refresh token
-        console.log("Refreshing token")
+        // Check if this is an old OAuth App token before attempting refresh
+        if (token.authMethod !== "github-app") {
+          console.log("Cannot refresh old OAuth App token, invalidating")
+          throw new Error(
+            "OAuth App token detected during refresh - please sign in again"
+          )
+        }
+
+        // Refresh token using GitHub App credentials
+        console.log("Refreshing GitHub App token")
         const response = await fetch(
           "https://github.com/login/oauth/access_token",
           {
@@ -45,8 +65,8 @@ export async function refreshTokenWithLock(token: JWT) {
               Accept: "application/json",
             },
             body: new URLSearchParams({
-              client_id: process.env.AUTH_GITHUB_ID ?? "",
-              client_secret: process.env.AUTH_GITHUB_SECRET ?? "",
+              client_id: process.env.GITHUB_APP_CLIENT_ID ?? "",
+              client_secret: process.env.GITHUB_APP_CLIENT_SECRET ?? "",
               refresh_token: (token.refresh_token as string) ?? "",
               grant_type: "refresh_token",
             }),
@@ -59,7 +79,12 @@ export async function refreshTokenWithLock(token: JWT) {
           throw new Error("Bad refresh token")
         }
 
-        const newToken = { ...token, ...data }
+        const newToken = {
+          ...token,
+          ...data,
+          // Ensure the auth method is preserved after refresh
+          authMethod: "github-app",
+        }
         if (data.expires_in) {
           newToken.expires_at = Math.floor(Date.now() / 1000) + data.expires_in
         }
@@ -82,9 +107,21 @@ export async function refreshTokenWithLock(token: JWT) {
     if (cachedToken) {
       console.log("Using cached token from Redis after waiting")
       try {
-        return typeof cachedToken === "string"
-          ? JSON.parse(cachedToken)
-          : cachedToken
+        const parsedToken =
+          typeof cachedToken === "string"
+            ? JSON.parse(cachedToken)
+            : cachedToken
+
+        // Validate that cached token has proper auth method
+        if (parsedToken.authMethod !== "github-app") {
+          console.log(
+            "Cached token after waiting is from old OAuth App, removing from cache"
+          )
+          await redis.del(tokenKey)
+          // Continue with retries
+        } else {
+          return parsedToken
+        }
       } catch (e) {
         console.error(
           `Error parsing cached token for key ${tokenKey} after waiting:`,
@@ -100,9 +137,19 @@ export async function refreshTokenWithLock(token: JWT) {
   if (cachedToken) {
     console.log("Using cached token from Redis after max retries")
     try {
-      return typeof cachedToken === "string"
-        ? JSON.parse(cachedToken)
-        : cachedToken
+      const parsedToken =
+        typeof cachedToken === "string" ? JSON.parse(cachedToken) : cachedToken
+
+      // Validate that cached token has proper auth method
+      if (parsedToken.authMethod !== "github-app") {
+        console.log(
+          "Final cached token is from old OAuth App, removing from cache"
+        )
+        await redis.del(tokenKey)
+        // Don't return the token, let it throw the error below
+      } else {
+        return parsedToken
+      }
     } catch (e) {
       console.error("Error parsing cached token after max retries:", e)
     }
