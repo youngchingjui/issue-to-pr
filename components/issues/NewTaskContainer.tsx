@@ -18,8 +18,12 @@ export default async function NewTaskContainer({
   repositories,
 }: Props) {
   return (
-    <main className="container mx-auto py-10 max-w-4xl w-full">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+    // Removed the `container` utility to reduce the built-in horizontal
+    // padding (~2rem on small screens) that was causing the mobile view to
+    // feel cramped. We now apply a smaller, explicit horizontal padding that
+    // scales up on larger breakpoints.
+    <main className="mx-auto max-w-4xl w-full py-10 px-4 sm:px-6">
+      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h1 className="text-2xl font-bold">Your Issues &amp; Workflows</h1>
         <div className="flex items-center gap-3">
           <RepoSelector
@@ -35,3 +39,4 @@ export default async function NewTaskContainer({
     </main>
   )
 }
+
