@@ -34,8 +34,7 @@ export default function SpeechToTextCard() {
     return () => {
       stopRecorder(mediaRecorder)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [mediaRecorder])
 
   const startRecording = async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -144,4 +143,3 @@ export default function SpeechToTextCard() {
     </Card>
   )
 }
-
