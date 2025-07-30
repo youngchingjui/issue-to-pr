@@ -164,11 +164,12 @@ export async function getUserOctokit() {
     throw new Error("Access token is not a string")
   }
 
+  // `clientId` and `clientSecret` are already determined by
+  // auth.js library when authenticating user in `auth.js`.
+  // No need to add them here, as they're inferred in the `access_token`
   const userOctokit = new Octokit({
     authStrategy: createOAuthUserAuth,
     auth: {
-      clientId: process.env.GITHUB_APP_CLIENT_ID!,
-      clientSecret: process.env.GITHUB_APP_CLIENT_SECRET!,
       clientType: "github-app",
       token: session.token.access_token,
     },
