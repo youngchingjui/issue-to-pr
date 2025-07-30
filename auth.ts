@@ -89,6 +89,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return newToken
       }
 
+      // Check if this is an old OAuth App token (migration cleanup)
+      if (token.authMethod !== "github-app") {
+        console.log(
+          "Invalidating old OAuth App token, forcing re-authentication"
+        )
+        throw new Error("OAuth App token detected - please sign in again")
+      }
+
       if (
         token.expires_at &&
         (token.expires_at as number) < Date.now() / 1000
