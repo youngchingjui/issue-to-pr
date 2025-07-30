@@ -48,8 +48,7 @@ export default function NewTaskInput({ repoFullName }: Props) {
     return () => {
       stopRecorder(mediaRecorder)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [mediaRecorder])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -265,4 +264,3 @@ export default function NewTaskInput({ repoFullName }: Props) {
     </form>
   )
 }
-
