@@ -26,6 +26,9 @@ export default async function Navigation() {
     }
   }
 
+  // Determine avatar URL – prefer GitHub avatar then session image
+  const avatarUrl = githubUser?.avatar_url || session?.user?.image || undefined
+
   return (
     <motion.header
       initial={{ opacity: 0, y: -20 }}
@@ -56,9 +59,11 @@ export default async function Navigation() {
           <DynamicNavigation
             isAuthenticated={!!session?.user}
             isAdmin={isAdmin}
+            avatarUrl={avatarUrl}
           />
         </div>
       </div>
     </motion.header>
   )
 }
+

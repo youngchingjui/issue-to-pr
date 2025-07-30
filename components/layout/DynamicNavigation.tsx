@@ -6,17 +6,25 @@ import {
   Github,
   HelpCircle,
   LogIn,
+  LogOut,
   Menu,
 } from "lucide-react"
 import * as motion from "motion/react-client"
 import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
+import { signOut } from "next-auth/react"
 
-import SignOutButton from "@/components/common/SignOutButton"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import NavButton from "@/components/ui/nav-button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { signInWithGithub } from "@/lib/actions/auth"
+import { signInWithGithub, signOutAndRedirect } from "@/lib/actions/auth"
 
 // Landing page navigation items
 const landingNavItems = [
@@ -25,12 +33,33 @@ const landingNavItems = [
   { icon: BookOpen, label: "Blog", href: "/blogs" },
 ]
 
+// Shared navigation items for authenticated users
+const authenticatedNavItems = (
+  isAdmin: boolean
+): Array<{ label: string; href: string }> => {
+  const items = [
+    { label: "Workflows", href: "/workflow-runs" },
+    { label: "Issues", href: "/issues" },
+    { label: "Kanban", href: "/kanban" },
+    { label: "Contribute", href: "/contribute" },
+    { label: "Settings", href: "/settings" },
+  ]
+
+  if (isAdmin) {
+    items.splice(1, 0, { label: "Playground", href: "/playground" })
+  }
+
+  return items
+}
+
 export default function DynamicNavigation({
   isAuthenticated,
   isAdmin,
+  avatarUrl,
 }: {
   isAuthenticated: boolean
   isAdmin: boolean
+  avatarUrl?: string
 }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -42,8 +71,6 @@ export default function DynamicNavigation({
   const isBlogsPage = pathname === "/blogs"
 
   // Show the landing page navigation *only* for unauthenticated users.
-  // Once the user is signed in, we want to expose the full authenticated
-  // navigation even when they remain on the landing or blog pages.
   if (!isAuthenticated && (isLandingPage || isBlogsPage)) {
     return (
       <div className="flex items-center flex-1 ml-6">
@@ -111,85 +138,43 @@ export default function DynamicNavigation({
   }
 
   if (isAuthenticated) {
-    return (
-      <>
-        {/* Standard navigation for authenticated users */}
-        <nav className="hidden sm:flex items-center space-x-4 ml-auto">
-          <Button
-            variant="ghost"
-            size="sm"
-            asChild
-            className="flex items-center"
-          >
-            <Link href="/workflow-runs">Workflows</Link>
-          </Button>
-          {isAdmin && (
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              className="flex items-center"
-            >
-              <Link href="/playground">Playground</Link>
-            </Button>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            asChild
-            className="flex items-center"
-          >
-            <Link href="/issues">Issues</Link>
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            asChild
-            className="flex items-center"
-          >
-            <Link href="/kanban">Kanban</Link>
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            asChild
-            className="flex items-center"
-          >
-            <Link href="/contribute">Contribute</Link>
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            asChild
-            className="flex items-center"
-          >
-            <Link href="/settings">Settings</Link>
-          </Button>
-          <SignOutButton />
-        </nav>
+    const navItems = authenticatedNavItems(isAdmin)
 
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="ml-auto sm:hidden">
-              <Menu className="h-5 w-5" />
-              <span className="sr-only">Open Menu</span>
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="sm:hidden w-64 p-4">
-            <nav className="mt-4 flex flex-col gap-4">
-              <Link href="/workflow-runs">Workflows</Link>
-              {isAdmin && <Link href="/playground">Playground</Link>}
-              <Link href="/issues">Issues</Link>
-              <Link href="/kanban">Kanban</Link>
-              <Link href="/contribute">Contribute</Link>
-              <Link href="/settings">Settings</Link>
-            </nav>
-            <div className="mt-6">
-              <SignOutButton />
-            </div>
-          </SheetContent>
-        </Sheet>
-      </>
+    const handleSignOut = async () => {
+      await signOut({ redirect: false })
+      await signOutAndRedirect()
+    }
+
+    return (
+      <div className="flex items-center ml-auto">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="inline-flex items-center justify-center focus:outline-none">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={avatarUrl || "/next.svg"}
+                alt="Profile"
+                className="w-8 h-8 rounded-full border"
+              />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            {navItems.map((item) => (
+              <DropdownMenuItem key={item.href} asChild>
+                <Link href={item.href}>{item.label}</Link>
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onSelect={handleSignOut}
+              className="cursor-pointer"
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Log out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     )
   }
 
