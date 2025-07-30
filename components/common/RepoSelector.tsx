@@ -26,7 +26,6 @@ if (!GITHUB_APP_SLUG) {
 }
 
 const INSTALL_URL = `https://github.com/apps/${GITHUB_APP_SLUG}/installations/new`
-const SETTINGS_URL = `https://github.com/apps/${GITHUB_APP_SLUG}/installations`
 
 interface Props {
   selectedRepo: string
@@ -108,13 +107,16 @@ export default function RepoSelector({ selectedRepo }: Props) {
                 {repo.full_name}
               </SelectItem>
             ))}
+          {!loading && repos.length > 0 && (
+            <div className="my-1 border-t border-border/40" />
+          )}
+          <Button asChild variant="ghost" className="w-full">
+            <Link href={INSTALL_URL} target="_blank" rel="noopener noreferrer">
+              Manage repositories
+            </Link>
+          </Button>
         </SelectContent>
       </Select>
-      <Button asChild variant="link" className="p-0 h-auto text-sm">
-        <Link href={SETTINGS_URL} target="_blank" rel="noopener noreferrer">
-          Manage repositories
-        </Link>
-      </Button>
     </div>
   )
 }
