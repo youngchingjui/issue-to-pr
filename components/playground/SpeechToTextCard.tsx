@@ -8,6 +8,18 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/lib/hooks/use-toast"
 
+// Helper to fully stop an active MediaRecorder & its tracks.
+function stopRecorder(recorder: MediaRecorder | null) {
+  if (!recorder) return
+  if (recorder.state !== "inactive") {
+    recorder.stop()
+  }
+  // On some browsers (notably Safari on iOS) calling recorder.stop() does **not**
+  // stop the underlying MediaStream tracks which keeps the microphone active.
+  // Ensure they are stopped explicitly.
+  recorder.stream?.getTracks().forEach((t) => t.stop())
+}
+
 export default function SpeechToTextCard() {
   const [isRecording, setIsRecording] = useState(false)
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
@@ -17,10 +29,10 @@ export default function SpeechToTextCard() {
   const [isTranscribing, setIsTranscribing] = useState(false)
   const { toast } = useToast()
 
+  // Clean-up when component unmounts
   useEffect(() => {
     return () => {
-      // Cleanup recorder on unmount
-      mediaRecorder?.stream.getTracks().forEach((t) => t.stop())
+      stopRecorder(mediaRecorder)
     }
   }, [mediaRecorder])
 
@@ -52,11 +64,16 @@ export default function SpeechToTextCard() {
   }
 
   const stopRecording = () => {
-    mediaRecorder?.stop()
+    stopRecorder(mediaRecorder)
   }
 
   const handleRecordingStop = useCallback(async () => {
     setIsRecording(false)
+
+    // Ensure microphone is released as soon as recording stops.
+    stopRecorder(mediaRecorder)
+    setMediaRecorder(null)
+
     const blob = new Blob(audioChunks.current, { type: "audio/webm" })
     audioChunks.current = []
 
@@ -78,7 +95,7 @@ export default function SpeechToTextCard() {
     } finally {
       setIsTranscribing(false)
     }
-  }, [toast])
+  }, [mediaRecorder, toast])
 
   const handleCopy = async () => {
     try {
