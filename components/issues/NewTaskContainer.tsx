@@ -1,10 +1,11 @@
 import RepoSelector from "@/components/common/RepoSelector"
 import IssueTable from "@/components/issues/IssueTable"
 import NewTaskInput from "@/components/issues/NewTaskInput"
-import { RepoFullName } from "@/lib/types/github"
+import { AuthenticatedUserRepository, RepoFullName } from "@/lib/types/github"
 
 interface Props {
   repoFullName: RepoFullName
+  repositories: AuthenticatedUserRepository[]
 }
 
 /**
@@ -12,13 +13,19 @@ interface Props {
  * creation, and the issues/tasks table. This component is intentionally UI-only
  * so it can be reused by multiple pages without duplicating JSX.
  */
-export default async function NewTaskContainer({ repoFullName }: Props) {
+export default async function NewTaskContainer({
+  repoFullName,
+  repositories,
+}: Props) {
   return (
     <main className="container mx-auto py-10 max-w-4xl w-full">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <h1 className="text-2xl font-bold">Your Issues &amp; Workflows</h1>
         <div className="flex items-center gap-3">
-          <RepoSelector selectedRepo={repoFullName.fullName} />
+          <RepoSelector
+            selectedRepo={repoFullName.fullName}
+            repositories={repositories}
+          />
         </div>
       </div>
       <div className="mb-6">

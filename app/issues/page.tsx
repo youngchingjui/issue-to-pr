@@ -3,7 +3,10 @@ import { redirect } from "next/navigation"
 import NoRepoCTA from "@/components/common/NoRepoCTA"
 import NewTaskContainer from "@/components/issues/NewTaskContainer"
 import { listUserAppRepositories } from "@/lib/github/repos"
-import { repoFullNameSchema } from "@/lib/types/github"
+import {
+  AuthenticatedUserRepository,
+  repoFullNameSchema,
+} from "@/lib/types/github"
 
 export default async function IssuesPage({
   searchParams,
@@ -15,9 +18,10 @@ export default async function IssuesPage({
     searchParams?.repo
   )
 
+  let repos: AuthenticatedUserRepository[] | undefined
   // When the ?repo param is missing/invalid, try to fall back to the first repo
   if (!repoFullNameParseResult.success) {
-    const repos = await listUserAppRepositories()
+    repos = await listUserAppRepositories()
     const firstRepo = repos.length > 0 ? repos[0] : null
 
     // Still no repo → show installation CTA
@@ -30,6 +34,11 @@ export default async function IssuesPage({
   }
 
   // Valid repo param → render the main container
+
+  if (!repos) {
+    repos = await listUserAppRepositories()
+  }
+
   const repoFullName = repoFullNameParseResult.data
-  return <NewTaskContainer repoFullName={repoFullName} />
+  return <NewTaskContainer repoFullName={repoFullName} repositories={repos} />
 }

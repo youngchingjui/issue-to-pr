@@ -5,6 +5,7 @@ import {
   getUserInstallations,
   getUserOctokit,
 } from "@/lib/github"
+import { AuthenticatedUserRepository } from "@/lib/types/github"
 
 /**
  * Returns a deduplicated list of repositories that the current user can access **and**
@@ -16,7 +17,9 @@ import {
  * 3. In parallel, list repositories accessible to the user for that installation (`GET /user/installations/{installation_id}/repositories`).
  * 4. Merge & deduplicate the results by `nameWithOwner`.
  */
-export async function listUserAppRepositories() {
+export async function listUserAppRepositories(): Promise<
+  AuthenticatedUserRepository[]
+> {
   // Step 1 – Fetch all installations for the authenticated user
   const installations = await getUserInstallations()
 

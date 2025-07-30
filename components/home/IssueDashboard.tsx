@@ -13,5 +13,5 @@ export default async function IssueDashboard() {
   }
 
   const repoFullName = repoFullNameSchema.parse(firstRepo.full_name)
-  return <NewTaskContainer repoFullName={repoFullName} />
+  return <NewTaskContainer repoFullName={repoFullName} repositories={repos} />
 }
