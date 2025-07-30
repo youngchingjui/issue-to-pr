@@ -14,9 +14,7 @@ import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
 import { signOut } from "next-auth/react"
 
-import SignOutButton from "@/components/common/SignOutButton"
 import { Button } from "@/components/ui/button"
-import NavButton from "@/components/ui/nav-button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +22,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import NavButton from "@/components/ui/nav-button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { signInWithGithub, signOutAndRedirect } from "@/lib/actions/auth"
 
@@ -148,29 +147,6 @@ export default function DynamicNavigation({
 
     return (
       <div className="flex items-center ml-auto">
-        {/* Mobile menu remains available */}
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="sm:hidden mr-1.5">
-              <Menu className="h-5 w-5" />
-              <span className="sr-only">Open Menu</span>
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="sm:hidden w-64 p-4">
-            <nav className="mt-4 flex flex-col gap-4">
-              {navItems.map((item) => (
-                <Link key={item.href} href={item.href}>
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-            <div className="mt-6">
-              <SignOutButton />
-            </div>
-          </SheetContent>
-        </Sheet>
-
-        {/* Avatar dropdown for desktop */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="inline-flex items-center justify-center focus:outline-none">
@@ -189,7 +165,10 @@ export default function DynamicNavigation({
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={handleSignOut} className="cursor-pointer">
+            <DropdownMenuItem
+              onSelect={handleSignOut}
+              className="cursor-pointer"
+            >
               <LogOut className="h-4 w-4" />
               <span>Log out</span>
             </DropdownMenuItem>
@@ -234,4 +213,3 @@ export default function DynamicNavigation({
     </>
   )
 }
-
