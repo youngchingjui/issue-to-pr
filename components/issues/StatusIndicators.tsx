@@ -84,7 +84,7 @@ export default function StatusIndicators({ issue, repoFullName }: Props) {
             </Tooltip>
           ) : null}
         </div>
-        {/* PR Icons Slot */}
+
         <div
           style={{ width: 24, display: "flex", justifyContent: "center" }}
           className="relative"
@@ -96,7 +96,7 @@ export default function StatusIndicators({ issue, repoFullName }: Props) {
                   href={`https://github.com/${repoFullName}/pull/${pr.number}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`cursor-pointer absolute`}
+                  className={`cursor-pointer absolute bg-white rounded-full p-1 hover:p-2 transition-all duration-200`}
                   style={{ left: idx * 6, zIndex: idx }}
                 >
                   <GitPullRequest
@@ -106,7 +106,8 @@ export default function StatusIndicators({ issue, repoFullName }: Props) {
                 </a>
               </TooltipTrigger>
               <TooltipContent side="bottom">
-                PR #{pr.number} - {pr.isDraft ? "Draft" : pr.state.toLowerCase()}
+                PR #{pr.number} -{" "}
+                {pr.isDraft ? "Draft" : pr.state.toLowerCase()}
               </TooltipContent>
             </Tooltip>
           ))}
@@ -115,4 +116,3 @@ export default function StatusIndicators({ issue, repoFullName }: Props) {
     </TooltipProvider>
   )
 }
-
