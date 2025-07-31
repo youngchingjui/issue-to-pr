@@ -1,6 +1,8 @@
+// TODO: Review if we still need this after we migrate away from OAuth app
+
 export const AUTH_CONFIG = {
   // Change this to switch between OAuth and GitHub App
-  defaultProvider: "github-oauth" as const,
+  defaultProvider: "github-app" as const,
 
   // Helper to get the current provider ID
   getCurrentProvider: () => {

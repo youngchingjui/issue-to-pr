@@ -10,15 +10,7 @@ import { getContainerStatus } from "@/lib/docker"
 import { getIssue } from "@/lib/github/issues"
 import { getWorkflowRunWithDetails } from "@/lib/neo4j/services/workflow"
 import { GetIssueResult } from "@/lib/types/github"
-
-/**
- * Generate the Docker container name for a given workflow/trace ID. Keep the
- * logic in sync with the name generation used in createContainerizedWorktree
- * and createContainerizedWorkspace utilities.
- */
-function containerNameForTrace(traceId: string): string {
-  return `agent-${traceId}`.replace(/[^a-zA-Z0-9_.-]/g, "-")
-}
+import { containerNameForTrace } from "@/lib/utils/utils-common"
 
 export default async function WorkflowRunDetailPage({
   params,

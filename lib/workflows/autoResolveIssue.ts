@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from "uuid"
 
 import PlanAndCodeAgent from "@/lib/agents/PlanAndCodeAgent"
-import { getAuthToken } from "@/lib/github"
+import { getInstallationTokenFromRepo } from "@/lib/github/installation"
 import { getIssueComments } from "@/lib/github/issues"
 import { checkRepoPermissions } from "@/lib/github/users"
 import { langfuse } from "@/lib/langfuse"
@@ -10,20 +10,15 @@ import {
   createStatusEvent,
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
+import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
 import { RepoEnvironment } from "@/lib/types"
-import {
-  GitHubIssue,
-  GitHubRepository,
-  RepoPermissions,
-} from "@/lib/types/github"
+import { GitHubIssue, GitHubRepository } from "@/lib/types/github"
 import {
   createContainerizedDirectoryTree,
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
-
-import { getUserOpenAIApiKey } from "../neo4j/services/user"
 
 interface Params {
   issue: GitHubIssue
@@ -49,7 +44,6 @@ export const autoResolveIssue = async ({
   }
 
   const workflowId = jobId ?? uuidv4()
-  let userPermissions: RepoPermissions | null = null
 
   try {
     await initializeWorkflowRun({
@@ -67,7 +61,16 @@ export const autoResolveIssue = async ({
       content: `Starting auto resolve workflow for issue #${issue.number}`,
     })
 
-    userPermissions = await checkRepoPermissions(repository.full_name)
+    const { canPush, canCreatePR } = await checkRepoPermissions(
+      repository.full_name
+    )
+
+    if (!canCreatePR || !canPush) {
+      await createStatusEvent({
+        workflowId,
+        content: `[WARNING]: Insufficient permissions to push code changes or create PR\nCan push?: ${canPush}\nCan create PR?: ${canCreatePR}`,
+      })
+    }
 
     const hostRepoPath = await setupLocalRepository({
       repoFullName: repository.full_name,
@@ -83,11 +86,11 @@ export const autoResolveIssue = async ({
 
     const env: RepoEnvironment = { kind: "container", name: containerName }
 
-    let sessionToken: string | undefined = undefined
-    if (userPermissions.canPush && userPermissions.canCreatePR) {
-      const tokenResult = await getAuthToken()
-      sessionToken = tokenResult?.token
-    }
+    const [owner, repo] = repository.full_name.split("/")
+    const sessionToken = await getInstallationTokenFromRepo({
+      owner,
+      repo,
+    })
 
     const trace = langfuse.trace({ name: "autoResolve" })
     const span = trace.span({ name: "PlanAndCodeAgent" })

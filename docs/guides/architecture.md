@@ -41,7 +41,7 @@ Our system is a GitHub-integrated workflow automation platform that converts iss
 ### Authentication
 
 - NextAuth.js
-- GitHub OAuth & App integration
+- GitHub App
 
 ### Observability
 
@@ -90,7 +90,6 @@ graph TD
 
 - **Purpose**: Handles all interactions with GitHub's platform
 - **Operations**:
-  - OAuth authentication
   - Issue and PR management
   - Code repository operations
   - Webhook event processing

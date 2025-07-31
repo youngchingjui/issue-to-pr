@@ -11,8 +11,9 @@ import {
   stopAndRemoveContainer,
 } from "@/lib/docker"
 import { addWorktree, removeWorktree } from "@/lib/git"
-import { getAuthToken } from "@/lib/github"
+import { getInstallationTokenFromRepo } from "@/lib/github/installation"
 import { AGENT_BASE_IMAGE } from "@/lib/types/docker"
+import { containerNameForTrace } from "@/lib/utils/utils-common"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 
 // Promisified exec for host-side commands (e.g., docker cp)
@@ -132,7 +133,7 @@ export async function createContainerizedWorktree({
   // 3. Add the worktree for the chosen branch
   await addWorktree(cloneDir, worktreeDir, branch)
 
-  const containerName = `agent-${workflowId}`.replace(/[^a-zA-Z0-9_.-]/g, "-")
+  const containerName = containerNameForTrace(workflowId)
 
   // 4. Start detached container mounting both the *clone* (read-only) and the *worktree* (rw)
   await startContainer({
@@ -181,6 +182,8 @@ export async function createContainerizedWorktree({
  *
  * Compared to createContainerizedWorktree, this approach does NOT rely on git worktrees mounted
  * from the host. All git operations happen entirely inside the container.
+ *
+ * Git operations will be attributed to the Github App, not the user, so we use our Github App installation credentials
  */
 export async function createContainerizedWorkspace({
   repoFullName,
@@ -190,18 +193,11 @@ export async function createContainerizedWorkspace({
   mountPath = "/workspace",
   hostRepoPath,
 }: ContainerizedWorktreeOptions): Promise<ContainerizedWorktreeResult> {
-  // 1. Obtain a GitHub token (from user session if possible, otherwise app installation)
-  const authTokenResult = await getAuthToken()
-  const token = authTokenResult?.token
-
-  if (!token) {
-    throw new Error(
-      "Unable to obtain GitHub token for containerized workspace setup"
-    )
-  }
+  const [owner, repo] = repoFullName.split("/")
+  const token = await getInstallationTokenFromRepo({ owner, repo })
 
   // 2. Start a detached container with GITHUB_TOKEN env set
-  const containerName = `agent-${workflowId}`.replace(/[^a-zA-Z0-9_.-]/g, "-")
+  const containerName = containerNameForTrace(workflowId)
 
   await startContainer({
     image,

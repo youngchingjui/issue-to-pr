@@ -5,6 +5,7 @@ import Docker from "dockerode"
 import util from "util"
 
 import {
+  RunningContainer,
   WriteFileInContainerParams,
   writeFileInContainerSchema,
 } from "@/lib/types/docker"
@@ -245,13 +246,6 @@ export async function isContainerRunning(name: string): Promise<boolean> {
   }
 }
 
-export interface RunningContainer {
-  id: string
-  name: string
-  image: string
-  status: string
-}
-
 /**
  * List currently running Docker containers.
  */
@@ -356,5 +350,77 @@ export async function getContainerStatus(name: string): Promise<string> {
     return data.State?.Status || "unknown"
   } catch {
     return "not_found"
+  }
+}
+
+/**
+ * Container git information result
+ */
+interface ContainerGitInfo {
+  branch: string
+  status: string
+  diffStat: string
+  diff: string
+}
+
+/**
+ * Extract git information from a running container. Executes a series of git
+ * commands inside the container and returns structured information useful for
+ * surfacing in the UI.
+ *
+ * @param containerName - Name of the running container
+ * @param workdir - Working directory inside the container (default: "/workspace")
+ * @param diffLimit - Maximum characters for diff output (default: 10000)
+ * @returns Promise<ContainerGitInfo> - Git information including branch, status, diffStat, and diff
+ */
+export async function getContainerGitInfo(
+  containerName: string,
+  workdir: string = "/workspace",
+  diffLimit: number = 10000
+): Promise<ContainerGitInfo> {
+  // 1. Current branch (falls back to "unknown" on error)
+  const branchRes = await execInContainerWithDockerode({
+    name: containerName,
+    command: "git rev-parse --abbrev-ref HEAD",
+    cwd: workdir,
+  })
+  const currentBranch =
+    branchRes.exitCode === 0 ? branchRes.stdout.trim() : "unknown"
+
+  // 2. Status (porcelain to keep parsing simple)
+  const statusRes = await execInContainerWithDockerode({
+    name: containerName,
+    command: "git status --porcelain",
+    cwd: workdir,
+  })
+  const status = statusRes.exitCode === 0 ? statusRes.stdout.trim() : ""
+
+  // 3. Diff against origin/main (stat summary) – ignore failures (e.g. branch missing)
+  const diffStatRes = await execInContainerWithDockerode({
+    name: containerName,
+    command:
+      "git fetch origin main --quiet || true && git diff --stat origin/main",
+    cwd: workdir,
+  })
+  const diffStat = diffStatRes.exitCode === 0 ? diffStatRes.stdout.trim() : ""
+
+  // 4. Full diff (may be large) – cap at diffLimit characters to avoid blowing up payload
+  const diffRes = await execInContainerWithDockerode({
+    name: containerName,
+    command: "git diff origin/main",
+    cwd: workdir,
+  })
+  let diff = diffRes.exitCode === 0 ? diffRes.stdout : ""
+  if (diff.length > diffLimit) {
+    diff =
+      diff.slice(0, diffLimit) +
+      `\n... (truncated ${diff.length - diffLimit} chars)`
+  }
+
+  return {
+    branch: currentBranch,
+    status,
+    diffStat,
+    diff,
   }
 }

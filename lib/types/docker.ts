@@ -67,3 +67,11 @@ export type FileContents = z.infer<typeof fileContentsSchema>
 export type WriteFileInContainerParams = z.infer<
   typeof writeFileInContainerSchema
 >
+
+// Docker container information returned by docker ps
+export interface RunningContainer {
+  id: string
+  name: string
+  image: string
+  status: string
+}

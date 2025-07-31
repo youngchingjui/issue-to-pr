@@ -3,19 +3,7 @@
 import { getLocalRepoDir } from "@/lib/fs"
 import { checkIfGitExists } from "@/lib/git"
 import { getIssueList } from "@/lib/github/issues"
-import { listBranches } from "@/lib/github/repos"
-import { listUserRepositoriesGraphQL } from "@/lib/github/users"
-import { GitHubIssue, RepoSelectorItem } from "@/lib/types/github"
-
-export async function getUserRepositories(): Promise<RepoSelectorItem[]> {
-  return await listUserRepositoriesGraphQL()
-}
-
-export async function getRepositoryBranches(
-  repoFullName: string
-): Promise<string[]> {
-  return await listBranches(repoFullName)
-}
+import { GitHubIssue } from "@/lib/types/github"
 
 export async function getRepositoryIssues(
   repoFullName: string
