@@ -6,7 +6,6 @@ import util from "util"
 import { v4 as uuidv4 } from "uuid"
 
 import {
-  containerNameForTrace,
   execInContainer,
   startContainer,
   stopAndRemoveContainer,
@@ -14,6 +13,7 @@ import {
 import { addWorktree, removeWorktree } from "@/lib/git"
 import { getInstallationTokenFromRepo } from "@/lib/github/installation"
 import { AGENT_BASE_IMAGE } from "@/lib/types/docker"
+import { containerNameForTrace } from "@/lib/utils/utils-common"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 
 // Promisified exec for host-side commands (e.g., docker cp)

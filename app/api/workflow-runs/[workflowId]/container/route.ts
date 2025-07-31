@@ -6,11 +6,11 @@ import { NextRequest, NextResponse } from "next/server"
 import util from "util"
 
 import {
-  containerNameForTrace,
   getContainerStatus,
   isContainerRunning,
   stopAndRemoveContainer,
 } from "@/lib/docker"
+import { containerNameForTrace } from "@/lib/utils/utils-common"
 
 const execPromise = util.promisify(hostExec)
 

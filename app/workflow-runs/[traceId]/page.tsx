@@ -6,10 +6,11 @@ import BaseGitHubItemCard from "@/components/github/BaseGitHubItemCard"
 import { Button } from "@/components/ui/button"
 import ContainerManager from "@/components/workflow-runs/ContainerManager"
 import WorkflowRunEventsFeed from "@/components/workflow-runs/WorkflowRunEventsFeed"
-import { containerNameForTrace, getContainerStatus } from "@/lib/docker"
+import { getContainerStatus } from "@/lib/docker"
 import { getIssue } from "@/lib/github/issues"
 import { getWorkflowRunWithDetails } from "@/lib/neo4j/services/workflow"
 import { GetIssueResult } from "@/lib/types/github"
+import { containerNameForTrace } from "@/lib/utils/utils-common"
 
 export default async function WorkflowRunDetailPage({
   params,

@@ -2,11 +2,10 @@
 
 import {
   listRunningContainers,
-  RunningContainer,
   startContainer,
   stopAndRemoveContainer,
 } from "@/lib/docker"
-import { AGENT_BASE_IMAGE } from "@/lib/types/docker"
+import { AGENT_BASE_IMAGE, RunningContainer } from "@/lib/types/docker"
 
 // Use shared constant for the agent base image prefix
 const AGENT_BASE_IMAGE_PREFIX = AGENT_BASE_IMAGE

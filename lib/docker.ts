@@ -5,6 +5,7 @@ import Docker from "dockerode"
 import util from "util"
 
 import {
+  RunningContainer,
   WriteFileInContainerParams,
   writeFileInContainerSchema,
 } from "@/lib/types/docker"
@@ -245,13 +246,6 @@ export async function isContainerRunning(name: string): Promise<boolean> {
   }
 }
 
-export interface RunningContainer {
-  id: string
-  name: string
-  image: string
-  status: string
-}
-
 /**
  * List currently running Docker containers.
  */
@@ -357,17 +351,6 @@ export async function getContainerStatus(name: string): Promise<string> {
   } catch {
     return "not_found"
   }
-}
-
-/**
- * Derive the deterministic container name used by our workflow utilities.
- * Must stay in sync with container naming logic across the application.
- *
- * @param traceId - The workflow trace/run ID
- * @returns The standardized container name
- */
-export function containerNameForTrace(traceId: string): string {
-  return `agent-${traceId}`.replace(/[^a-zA-Z0-9_.-]/g, "-")
 }
 
 /**
