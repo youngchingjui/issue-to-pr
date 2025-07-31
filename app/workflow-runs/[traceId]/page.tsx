@@ -6,19 +6,10 @@ import BaseGitHubItemCard from "@/components/github/BaseGitHubItemCard"
 import { Button } from "@/components/ui/button"
 import ContainerManager from "@/components/workflow-runs/ContainerManager"
 import WorkflowRunEventsFeed from "@/components/workflow-runs/WorkflowRunEventsFeed"
-import { getContainerStatus } from "@/lib/docker"
+import { containerNameForTrace, getContainerStatus } from "@/lib/docker"
 import { getIssue } from "@/lib/github/issues"
 import { getWorkflowRunWithDetails } from "@/lib/neo4j/services/workflow"
 import { GetIssueResult } from "@/lib/types/github"
-
-/**
- * Generate the Docker container name for a given workflow/trace ID. Keep the
- * logic in sync with the name generation used in createContainerizedWorktree
- * and createContainerizedWorkspace utilities.
- */
-function containerNameForTrace(traceId: string): string {
-  return `agent-${traceId}`.replace(/[^a-zA-Z0-9_.-]/g, "-")
-}
 
 export default async function WorkflowRunDetailPage({
   params,

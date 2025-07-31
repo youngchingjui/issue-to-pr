@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server"
 import util from "util"
 
 import {
+  containerNameForTrace,
   getContainerStatus,
   isContainerRunning,
   stopAndRemoveContainer,
@@ -14,13 +15,6 @@ import {
 const execPromise = util.promisify(hostExec)
 
 export const dynamic = "force-dynamic"
-
-/**
- * Derive the deterministic container name used by our workflow utilities.
- */
-function containerNameForTrace(traceId: string): string {
-  return `agent-${traceId}`.replace(/[^a-zA-Z0-9_.-]/g, "-")
-}
 
 export async function GET(
   _request: NextRequest,

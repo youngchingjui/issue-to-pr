@@ -6,6 +6,7 @@ import util from "util"
 import { v4 as uuidv4 } from "uuid"
 
 import {
+  containerNameForTrace,
   execInContainer,
   startContainer,
   stopAndRemoveContainer,
@@ -132,7 +133,7 @@ export async function createContainerizedWorktree({
   // 3. Add the worktree for the chosen branch
   await addWorktree(cloneDir, worktreeDir, branch)
 
-  const containerName = `agent-${workflowId}`.replace(/[^a-zA-Z0-9_.-]/g, "-")
+  const containerName = containerNameForTrace(workflowId)
 
   // 4. Start detached container mounting both the *clone* (read-only) and the *worktree* (rw)
   await startContainer({
@@ -196,7 +197,7 @@ export async function createContainerizedWorkspace({
   const token = await getInstallationTokenFromRepo({ owner, repo })
 
   // 2. Start a detached container with GITHUB_TOKEN env set
-  const containerName = `agent-${workflowId}`.replace(/[^a-zA-Z0-9_.-]/g, "-")
+  const containerName = containerNameForTrace(workflowId)
 
   await startContainer({
     image,
