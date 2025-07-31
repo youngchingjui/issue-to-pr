@@ -1,37 +1,40 @@
 import { NextRequest, NextResponse } from "next/server"
 
-import { openai } from "@/lib/openai"
+import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
+import { transcribeAudio } from "@/lib/openai"
 
-// Whisper transcription endpoint
-// Accepts multipart/form-data with field "file" containing an audio blob.
-// Returns JSON: { text: string }
-
-export const dynamic = "force-dynamic" // Ensure this is executed in a Node context
-
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const formData = await req.formData()
-    const file = formData.get("file")
+    // Get the form data containing the audio file
+    const formData = await request.formData()
+    const audioFile = formData.get("audio") as File
 
-    if (!file || !(file instanceof Blob)) {
+    if (!audioFile) {
       return NextResponse.json({ error: "Missing audio file" }, { status: 400 })
     }
 
-    // Convert the incoming blob to a File object so that the OpenAI SDK can accept it.
-    // In Node 18+, File is available globally via undici's fetch implementation.
-    const audioFile = new File([file], "recording.webm", {
-      type: file.type || "audio/webm",
-    })
+    // Get user's OpenAI API key
+    const apiKey = await getUserOpenAIApiKey()
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: "Missing OpenAI API key" },
+        { status: 401 }
+      )
+    }
 
-    // Call Whisper
-    const transcription = await openai.audio.transcriptions.create({
-      file: audioFile,
-      model: "whisper-1",
-    })
+    // Transcribe the audio using the existing function
+    const result = await transcribeAudio(audioFile)
 
-    return NextResponse.json({ text: transcription.text })
-  } catch (err) {
-    console.error("Whisper transcription failed", err)
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    if (result.success) {
+      return NextResponse.json({ text: result.text }, { status: 200 })
+    } else {
+      return NextResponse.json({ error: result.error }, { status: 500 })
+    }
+  } catch (error) {
+    console.error("Transcription API error:", error)
+    return NextResponse.json(
+      { error: "An unexpected error occurred: " + error },
+      { status: 500 }
+    )
   }
 }

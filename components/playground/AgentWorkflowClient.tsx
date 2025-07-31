@@ -23,10 +23,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { checkLocalRepoExists, getRepositoryIssues } from "@/lib/actions/github"
-import { getChatCompletion } from "@/lib/actions/openaiChat"
 import { listBranchesSortedByCommitDate } from "@/lib/github/refs"
 import { listUserAppRepositories } from "@/lib/github/repos"
 import { toast } from "@/lib/hooks/use-toast"
+import { getChatCompletion } from "@/lib/openai"
 import {
   DEFAULT_SYSTEM_PROMPTS,
   SystemPromptTemplate,

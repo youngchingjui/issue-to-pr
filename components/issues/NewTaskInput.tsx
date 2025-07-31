@@ -188,18 +188,26 @@ export default function NewTaskInput({ repoFullName }: Props) {
     const blob = new Blob(audioChunks.current, { type: "audio/webm" })
     audioChunks.current = []
 
-    const formData = new FormData()
-    formData.append("file", blob, "recording.webm")
+    const audioFile = new File([blob], "recording.webm", {
+      type: "audio/webm",
+    })
 
     setIsTranscribing(true)
     try {
-      const res = await fetch("/api/openai/transcribe", {
+      const formData = new FormData()
+      formData.append("audio", audioFile)
+
+      const response = await fetch("/api/openai/transcribe", {
         method: "POST",
         body: formData,
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Failed to transcribe")
 
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || `HTTP ${response.status}`)
+      }
+
+      const data = await response.json()
       const text: string = data.text || ""
       if (text) {
         setDescription((prev) => (prev.trim() ? `${prev}\n${text}` : text))
