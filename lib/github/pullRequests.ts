@@ -408,7 +408,7 @@ export async function addLabelsToPullRequest({
   })
 }
 
-// Minimal type for the GraphQL response
+// Existing minimal GraphQL response interfaces for mapping
 interface PRLinkedIssuesGraphQLResponse {
   repository: {
     pullRequests: {
@@ -424,6 +424,101 @@ interface PRLinkedIssuesGraphQLResponse {
       }>
     }
   }
+}
+
+// ------------------ NEW: Detailed Issue -> PR info map ------------------
+interface PRNodeWithStatus {
+  number: number
+  state: "OPEN" | "MERGED" | "CLOSED"
+  isDraft: boolean
+  closingIssuesReferences: {
+    nodes: Array<{ number: number }>
+  }
+}
+
+interface PRLinkedIssuesWithStatusGraphQLResponse {
+  repository: {
+    pullRequests: {
+      pageInfo: {
+        hasNextPage: boolean
+        endCursor: string | null
+      }
+      nodes: PRNodeWithStatus[]
+    }
+  }
+}
+
+export type PullRequestBrief = {
+  number: number
+  state: "OPEN" | "MERGED" | "CLOSED"
+  isDraft: boolean
+}
+
+/**
+ * Returns mapping of issueNumber -> array of PullRequestBrief objects that reference that issue.
+ */
+export async function getIssueToPullRequestDetailsMap(
+  repoFullName: string
+): Promise<Record<number, PullRequestBrief[]>> {
+  const [owner, repo] = repoFullName.split("/")
+  const graphqlWithAuth = await getGraphQLClient()
+  if (!graphqlWithAuth) throw new Error("Could not initialize GraphQL client")
+
+  let hasNextPage = true
+  let endCursor: string | null = null
+  const issuePRMap: Record<number, PullRequestBrief[]> = {}
+
+  while (hasNextPage) {
+    const query = `
+      query($owner: String!, $repo: String!, $after: String) {
+        repository(owner: $owner, name: $repo) {
+          pullRequests(first: 50, after: $after, states: [OPEN, MERGED, CLOSED]) {
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+            nodes {
+              number
+              state
+              isDraft
+              closingIssuesReferences(first: 10) {
+                nodes {
+                  number
+                }
+              }
+            }
+          }
+        }
+      }
+    `
+    const variables = { owner, repo, after: endCursor }
+    const response = (await graphqlWithAuth(
+      query,
+      variables
+    )) as PRLinkedIssuesWithStatusGraphQLResponse
+
+    const prNodes = response.repository.pullRequests.nodes
+    for (const pr of prNodes) {
+      const brief: PullRequestBrief = {
+        number: pr.number,
+        state: pr.state,
+        isDraft: pr.isDraft,
+      }
+      for (const issue of pr.closingIssuesReferences.nodes) {
+        if (!issuePRMap[issue.number]) {
+          issuePRMap[issue.number] = []
+        }
+        issuePRMap[issue.number].push(brief)
+      }
+    }
+    hasNextPage = response.repository.pullRequests.pageInfo.hasNextPage
+    endCursor = response.repository.pullRequests.pageInfo.endCursor
+  }
+  // Sort each PR list by number ascending (oldest first)
+  for (const key of Object.keys(issuePRMap)) {
+    issuePRMap[Number(key)].sort((a, b) => a.number - b.number)
+  }
+  return issuePRMap
 }
 
 export async function getPRLinkedIssuesMap(
@@ -571,3 +666,4 @@ export async function getLinkedIssuesForPR({
     response.repository?.pullRequest?.closingIssuesReferences?.nodes || []
   return nodes.map((n) => n.number)
 }
+
