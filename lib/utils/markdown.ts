@@ -8,11 +8,11 @@
  */
 export function extractImageUrlsFromMarkdown(markdown: string): string[] {
   // Regex: ![alt](url) or ![alt](url "title")
-  const imageRegex = /!\[.*?\]\((.*?)(?:\s+(['\"]).*?\2)?\)/g;
-  const matches: string[] = [];
-  let match;
+  const imageRegex = /!\[.*?\]\((.*?)(?:\s+(['\"]).*?\2)?\)/g
+  const matches: string[] = []
+  let match: RegExpExecArray | null
   while ((match = imageRegex.exec(markdown)) !== null) {
-    matches.push(match[1]);
+    matches.push(match[1])
   }
-  return matches;
+  return matches
 }
