@@ -1,7 +1,7 @@
 "use server"
 
 import getOctokit, { getUserOctokit } from "@/lib/github"
-import { getIssueToPullRequestMap } from "@/lib/github/pullRequests"
+import { getIssueToPullRequestDetailsMap } from "@/lib/github/pullRequests"
 import {
   getLatestPlanIdsForIssues,
   getPlanStatusForIssues,
@@ -13,6 +13,7 @@ import {
   GitHubIssueComment,
   ListForRepoParams,
 } from "@/lib/types/github"
+import type { PullRequestBrief } from "@/lib/github/pullRequests"
 
 type CreateIssueParams = {
   repo: string
@@ -60,10 +61,10 @@ export async function getIssue({
       return { type: "other_error", error: "Unknown error" }
     }
     if (typeof error === "object" && "status" in error) {
-      if (error.status === 404) {
+      if ((error as any).status === 404) {
         return { type: "not_found" }
       }
-      if (error.status === 403) {
+      if ((error as any).status === 403) {
         return { type: "forbidden" }
       }
     }
@@ -175,7 +176,8 @@ export type IssueWithStatus = GitHubIssue & {
   hasPR: boolean
   hasActiveWorkflow: boolean
   planId?: string | null
-  prNumber?: number
+  // Multiple PR briefs associated with the issue (could be empty)
+  pullRequests: PullRequestBrief[]
 }
 
 /**
@@ -197,8 +199,8 @@ export async function getIssueListWithStatus({
     getLatestPlanIdsForIssues({ repoFullName, issueNumbers }),
   ])
 
-  // 3. Get PRs from GitHub using GraphQL, and find for each issue if it has a PR referencing it.
-  const issuePRMap = await getIssueToPullRequestMap(repoFullName)
+  // 3. Get PRs details from GitHub using GraphQL
+  const issuePRDetailsMap = await getIssueToPullRequestDetailsMap(repoFullName)
 
   // 4. Determine active workflows for each issue (simple sequential for now)
   const withStatus: IssueWithStatus[] = await Promise.all(
@@ -215,16 +217,19 @@ export async function getIssueListWithStatus({
         console.error(`Issue listing workflow runs: ${String(err)}`)
       }
 
+      const prs = issuePRDetailsMap[issue.number] ?? []
+
       return {
         ...issue,
         hasPlan: issuePlanStatus[issue.number] || false,
-        hasPR: Boolean(issuePRMap[issue.number]),
+        hasPR: prs.length > 0,
         hasActiveWorkflow,
         planId: issuePlanIds[issue.number] || null,
-        prNumber: issuePRMap[issue.number],
+        pullRequests: prs,
       }
     })
   )
 
   return withStatus
 }
+
