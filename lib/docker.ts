@@ -356,7 +356,7 @@ export async function getContainerStatus(name: string): Promise<string> {
 /**
  * Container git information result
  */
-export interface ContainerGitInfo {
+interface ContainerGitInfo {
   branch: string
   status: string
   diffStat: string

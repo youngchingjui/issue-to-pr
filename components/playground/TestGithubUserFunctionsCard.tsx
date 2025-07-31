@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { getContainerGitInfo } from "@/lib/docker"
 import {
   getGraphQLClient,
   getInstallationPermissions,
@@ -92,6 +93,15 @@ const FUNCTION_OPTIONS = [
       { name: "body", type: "string", placeholder: "test body" },
     ],
   },
+  {
+    label: "getContainerGitInfo (containerName, workdir?, diffLimit?)",
+    value: "getContainerGitInfo",
+    params: [
+      { name: "containerName", type: "string", placeholder: "container-name" },
+      { name: "workdir", type: "string", placeholder: "/workspace" },
+      { name: "diffLimit", type: "number", placeholder: "10000" },
+    ],
+  },
 ]
 
 export default function TestGithubUserFunctionsCard() {
@@ -153,6 +163,13 @@ export default function TestGithubUserFunctionsCard() {
           const title = paramValues["title"] || ""
           const body = paramValues["body"] || ""
           res = await createIssue({ repo, owner, title, body })
+        } else if (selectedFn.value === "getContainerGitInfo") {
+          const containerName = paramValues["containerName"] || ""
+          const workdir = paramValues["workdir"] || "/workspace"
+          const diffLimit = paramValues["diffLimit"]
+            ? parseInt(paramValues["diffLimit"])
+            : 10000
+          res = await getContainerGitInfo(containerName, workdir, diffLimit)
         }
         setResult(res)
       } catch (err: unknown) {
