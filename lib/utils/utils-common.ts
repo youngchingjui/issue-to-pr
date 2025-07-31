@@ -53,6 +53,17 @@ export const SSEUtils = {
 }
 
 /**
+ * Derive the deterministic container name used by our workflow utilities.
+ * Must stay in sync with container naming logic across the application.
+ *
+ * @param traceId - The workflow trace/run ID
+ * @returns The standardized container name
+ */
+export function containerNameForTrace(traceId: string): string {
+  return `agent-${traceId}`.replace(/[^a-zA-Z0-9_.-]/g, "-")
+}
+
+/**
  * Gets the full repository name from a GitHub issue
  * @param issue The GitHub issue object
  * @returns The full repository name in the format "owner/repo", or undefined if repository info is missing
