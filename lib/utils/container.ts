@@ -134,6 +134,21 @@ export async function createContainerizedWorktree({
 
   const containerName = `agent-${workflowId}`.replace(/[^a-zA-Z0-9_.-]/g, "-")
 
+  // Obtain GitHub token (optional in this path)
+  let envVars: Record<string, string> = {}
+  try {
+    const authResult = await getAuthToken()
+    if (authResult?.token) {
+      envVars = {
+        GITHUB_TOKEN: authResult.token,
+        GH_TOKEN: authResult.token,
+      }
+    }
+  } catch (e) {
+    // Non-fatal; proceed without token if unavailable
+    console.warn("[WARN] Failed to obtain GitHub token for worktree container", e)
+  }
+
   // 4. Start detached container mounting both the *clone* (read-only) and the *worktree* (rw)
   await startContainer({
     image,
@@ -143,6 +158,7 @@ export async function createContainerizedWorktree({
       { hostPath: worktreeDir, containerPath: worktreeDir },
     ],
     workdir: worktreeDir,
+    env: envVars,
   })
 
   // Helper functions
@@ -195,7 +211,7 @@ export async function createContainerizedWorkspace({
   const [owner, repo] = repoFullName.split("/")
   const token = await getInstallationTokenFromRepo({ owner, repo })
 
-  // 2. Start a detached container with GITHUB_TOKEN env set
+  // 2. Start a detached container with GITHUB_TOKEN & GH_TOKEN env set
   const containerName = `agent-${workflowId}`.replace(/[^a-zA-Z0-9_.-]/g, "-")
 
   await startContainer({
@@ -204,6 +220,7 @@ export async function createContainerizedWorkspace({
     user: "root",
     env: {
       GITHUB_TOKEN: token,
+      GH_TOKEN: token,
     },
     workdir: mountPath,
   })
@@ -319,3 +336,4 @@ export async function copyRepoToExistingContainer({
     throw new Error(`Failed to copy repository to container: ${e}`)
   }
 }
+
