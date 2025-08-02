@@ -134,6 +134,10 @@ export default function RepoSelector({
             // Auto focus when dropdown opens
             autoFocus
             className="h-8 text-sm"
+            // Prevent Radix Select typeahead from closing the dropdown on key presses.
+            onKeyDown={(e) => e.stopPropagation()}
+            // On mobile, some browsers emit pointer events that can bubble up and close the menu.
+            onPointerDown={(e) => e.stopPropagation()}
           />
         </div>
         {loading && <div className="px-4 py-2">Loading...</div>}
