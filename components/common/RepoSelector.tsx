@@ -86,6 +86,24 @@ export default function RepoSelector({
       )
     : repos
 
+  // Ensure that the currently selected repository is always present in the list.
+  // When it vanishes due to a search filter Radix re-calculates focus which causes
+  // the <Input> to lose focus (mobile keyboards collapse). By force-including the
+  // selected repo we keep the internal focus management stable.
+  const visibleRepos = (() => {
+    if (filteredRepos.some((r) => r.full_name === selectedRepo)) {
+      return filteredRepos
+    }
+
+    const selectedEntry = repos.find((r) => r.full_name === selectedRepo)
+    if (!selectedEntry) {
+      return filteredRepos
+    }
+
+    // Prepend to avoid changing the relative ordering of the filtered list.
+    return [selectedEntry, ...filteredRepos]
+  })()
+
   // 1. Loading state
   if (loading) {
     return <div className="px-4 py-2">Loading...</div>
@@ -142,12 +160,12 @@ export default function RepoSelector({
         </div>
         {loading && <div className="px-4 py-2">Loading...</div>}
         {!loading &&
-          filteredRepos.map((repo) => (
+          visibleRepos.map((repo) => (
             <SelectItem key={repo.full_name} value={repo.full_name}>
               {repo.full_name}
             </SelectItem>
           ))}
-        {!loading && filteredRepos.length > 0 && (
+        {!loading && visibleRepos.length > 0 && (
           <div className="my-1 border-t border-border/40" />
         )}
         <Button asChild variant="ghost" className="w-full">
