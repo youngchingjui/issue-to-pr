@@ -34,7 +34,8 @@ export default async function Navigation() {
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="sticky top-0 z-50 w-full border-b backdrop-blur bg-background/95 supports-[backdrop-filter]:bg-background/60"
+      // Removed border-b to create a seamless look per design request
+      className="sticky top-0 z-50 w-full backdrop-blur bg-background/95 supports-[backdrop-filter]:bg-background/60"
     >
       <div className="container max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-14 items-center py-2">
