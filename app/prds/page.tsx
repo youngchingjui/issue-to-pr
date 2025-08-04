@@ -1,5 +1,7 @@
 "use client"
 
+// TODO: Make this a server component and move any state and user interaction to separate client components.
+
 import { useEffect, useState } from "react"
 import { v4 as uuidv4 } from "uuid"
 
@@ -126,4 +128,3 @@ export default function PRDPage() {
     </div>
   )
 }
-

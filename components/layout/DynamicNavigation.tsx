@@ -40,7 +40,6 @@ const authenticatedNavItems = (
   const items = [
     { label: "Workflows", href: "/workflow-runs" },
     { label: "Issues", href: "/issues" },
-    { label: "PRDs", href: "/prds" }, // NEW navigation item
     { label: "Kanban", href: "/kanban" },
     { label: "Contribute", href: "/contribute" },
     { label: "Settings", href: "/settings" },
@@ -48,7 +47,8 @@ const authenticatedNavItems = (
 
   if (isAdmin) {
     // Insert Playground right after Workflows (index 1 after insertion of Issues)
-    items.splice(2, 0, { label: "Playground", href: "/playground" })
+    items.splice(1, 0, { label: "Playground", href: "/playground" })
+    items.splice(1, 0, { label: "PRDs", href: "/prds" })
   }
 
   return items
@@ -215,4 +215,3 @@ export default function DynamicNavigation({
     </>
   )
 }
-
