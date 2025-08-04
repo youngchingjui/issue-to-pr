@@ -31,6 +31,10 @@ export default function SpeechToTextCard() {
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   const [recordedMimeType, setRecordedMimeType] = useState<string | null>(null)
 
+  // NEW: retain the raw server response for easier debugging of very long
+  // recordings/transcripts.
+  const [rawResponse, setRawResponse] = useState<string>("")
+
   const { toast } = useToast()
 
   // Clean-up when component unmounts
@@ -128,6 +132,7 @@ export default function SpeechToTextCard() {
     })
 
     setIsTranscribing(true)
+    setRawResponse("") // reset previous output
     try {
       const formData = new FormData()
       formData.append("audio", audioFile)
@@ -137,12 +142,22 @@ export default function SpeechToTextCard() {
         body: formData,
       })
 
+      // Grab the raw body text (regardless of success) for debugging.
+      const responseText = await response.text()
+      setRawResponse(responseText)
+
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || `HTTP ${response.status}`)
+        // Attempt to parse error JSON; fall back to plain text.
+        try {
+          const errorData = JSON.parse(responseText)
+          throw new Error(errorData.error || `HTTP ${response.status}`)
+        } catch {
+          throw new Error(responseText || `HTTP ${response.status}`)
+        }
       }
 
-      const data = await response.json()
+      // Parse the successful JSON.
+      const data = JSON.parse(responseText)
       setTranscript(data.text)
     } catch (err) {
       toast({ description: String(err), variant: "destructive" })
@@ -151,12 +166,21 @@ export default function SpeechToTextCard() {
     }
   }, [mediaRecorder, toast, recordedMimeType])
 
-  const handleCopy = async () => {
+  const handleCopyTranscript = async () => {
     try {
       await navigator.clipboard.writeText(transcript)
       toast({ description: "Copied transcription to clipboard." })
     } catch {
       toast({ description: "Failed to copy.", variant: "destructive" })
+    }
+  }
+
+  const handleCopyRaw = async () => {
+    try {
+      await navigator.clipboard.writeText(rawResponse)
+      toast({ description: "Copied raw response." })
+    } catch {
+      toast({ description: "Failed to copy raw response.", variant: "destructive" })
     }
   }
 
@@ -175,6 +199,19 @@ export default function SpeechToTextCard() {
             placeholder="Press the microphone, speak, then stop to transcribe..."
           />
         </div>
+
+        {/* Debug output */}
+        {rawResponse && (
+          <div className="space-y-2">
+            <Label>Raw Server Response</Label>
+            <Textarea
+              className="font-mono"
+              rows={6}
+              value={rawResponse}
+              readOnly
+            />
+          </div>
+        )}
 
         {/* Playback UI */}
         {audioUrl && (
@@ -203,7 +240,7 @@ export default function SpeechToTextCard() {
           </div>
         )}
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
           {isRecording ? (
             <Button
               variant="destructive"
@@ -217,11 +254,23 @@ export default function SpeechToTextCard() {
               {isTranscribing ? "Transcribing..." : "Start Recording"}
             </Button>
           )}
-          <Button variant="outline" onClick={handleCopy} disabled={!transcript}>
-            Copy
+          <Button
+            variant="outline"
+            onClick={handleCopyTranscript}
+            disabled={!transcript}
+          >
+            Copy Transcript
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleCopyRaw}
+            disabled={!rawResponse}
+          >
+            Copy Raw
           </Button>
         </div>
       </CardContent>
     </Card>
   )
 }
+
