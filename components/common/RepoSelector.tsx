@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
 import { listUserAppRepositories } from "@/lib/github/repos"
 import { useMediaQuery } from "@/lib/hooks/use-media-query"
 import { AuthenticatedUserRepository } from "@/lib/types/github"
@@ -47,6 +48,9 @@ export default function RepoSelector({
   const [open, setOpen] = useState(false)
   const isDesktop = useMediaQuery("md")
 
+  // Search query state
+  const [query, setQuery] = useState("")
+
   // Only fetch repositories if they weren't provided as props
   useEffect(() => {
     if (!initialRepositories) {
@@ -68,6 +72,37 @@ export default function RepoSelector({
     // We intentionally omit `repos.length` here to avoid refetching on every update.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialRepositories])
+
+  // Reset query when dropdown is closed
+  useEffect(() => {
+    if (!open) {
+      setQuery("")
+    }
+  }, [open])
+
+  const filteredRepos = query
+    ? repos.filter((r) =>
+        r.full_name.toLowerCase().includes(query.toLowerCase())
+      )
+    : repos
+
+  // Ensure that the currently selected repository is always present in the list.
+  // When it vanishes due to a search filter Radix re-calculates focus which causes
+  // the <Input> to lose focus (mobile keyboards collapse). By force-including the
+  // selected repo we keep the internal focus management stable.
+  const visibleRepos = (() => {
+    if (filteredRepos.some((r) => r.full_name === selectedRepo)) {
+      return filteredRepos
+    }
+
+    const selectedEntry = repos.find((r) => r.full_name === selectedRepo)
+    if (!selectedEntry) {
+      return filteredRepos
+    }
+
+    // Prepend to avoid changing the relative ordering of the filtered list.
+    return [selectedEntry, ...filteredRepos]
+  })()
 
   // 1. Loading state
   if (loading) {
@@ -108,14 +143,29 @@ export default function RepoSelector({
         </SelectValue>
       </SelectTrigger>
       <SelectContent align={isDesktop ? "end" : "start"}>
+        {/* Search input */}
+        <div className="p-1 sticky top-0 bg-popover z-10">
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search repositories..."
+            // Auto focus when dropdown opens
+            autoFocus
+            className="h-8 text-sm"
+            // Prevent Radix Select typeahead from closing the dropdown on key presses.
+            onKeyDown={(e) => e.stopPropagation()}
+            // On mobile, some browsers emit pointer events that can bubble up and close the menu.
+            onPointerDown={(e) => e.stopPropagation()}
+          />
+        </div>
         {loading && <div className="px-4 py-2">Loading...</div>}
         {!loading &&
-          repos.map((repo) => (
+          visibleRepos.map((repo) => (
             <SelectItem key={repo.full_name} value={repo.full_name}>
               {repo.full_name}
             </SelectItem>
           ))}
-        {!loading && repos.length > 0 && (
+        {!loading && visibleRepos.length > 0 && (
           <div className="my-1 border-t border-border/40" />
         )}
         <Button asChild variant="ghost" className="w-full">
@@ -127,3 +177,4 @@ export default function RepoSelector({
     </Select>
   )
 }
+
