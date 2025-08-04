@@ -41,6 +41,7 @@ export default function SpeechToTextCard() {
   }, [audioUrl, mediaRecorder])
 
   const startRecording = async () => {
+    console.log("[SpeechToText] startRecording invoked")
     if (!navigator.mediaDevices?.getUserMedia) {
       toast({
         description: "Your browser does not support audio recording.",
@@ -74,7 +75,7 @@ export default function SpeechToTextCard() {
         }
       }
 
-      console.log("Using MIME type:", mimeType || "default")
+      console.log("[SpeechToText] Starting media recorder. Using MIME type:", mimeType || "default")
       setRecordedMimeType(mimeType || "audio/webm")
 
       const recorder = mimeType
@@ -86,9 +87,11 @@ export default function SpeechToTextCard() {
       }
       recorder.onstop = handleRecordingStop
       recorder.start()
+      console.log("[SpeechToText] MediaRecorder started, state=", recorder.state)
       setMediaRecorder(recorder)
       setIsRecording(true)
-    } catch {
+    } catch (err) {
+      console.error("[SpeechToText] Error while starting recording", err)
       toast({
         description: "Unable to access microphone.",
         variant: "destructive",
@@ -97,10 +100,12 @@ export default function SpeechToTextCard() {
   }
 
   const stopRecording = () => {
+    console.log("[SpeechToText] stopRecording invoked")
     stopRecorder(mediaRecorder)
   }
 
   const handleRecordingStop = useCallback(async () => {
+    console.log("[SpeechToText] handleRecordingStop invoked – assembling blob from", audioChunks.current.length, "chunks")
     setIsRecording(false)
 
     // Ensure microphone is released as soon as recording stops.
@@ -111,7 +116,10 @@ export default function SpeechToTextCard() {
     const blob = new Blob(audioChunks.current, { type: actualMimeType })
     audioChunks.current = []
 
-    console.log("blob", blob, "MIME type:", actualMimeType, "size:", blob.size)
+    console.log("[SpeechToText] Blob created.", {
+      mimeType: actualMimeType,
+      size: blob.size,
+    })
 
     // Allow playback of the recorded audio
     const url = URL.createObjectURL(blob)
@@ -127,24 +135,35 @@ export default function SpeechToTextCard() {
       type: actualMimeType,
     })
 
+    console.log("[SpeechToText] File object created:", {
+      name: audioFile.name,
+      type: audioFile.type,
+      size: audioFile.size,
+    })
+
     setIsTranscribing(true)
     try {
       const formData = new FormData()
       formData.append("audio", audioFile)
 
+      console.log("[SpeechToText] Sending fetch request to /api/openai/transcribe")
       const response = await fetch("/api/openai/transcribe", {
         method: "POST",
         body: formData,
       })
 
+      console.log("[SpeechToText] Fetch response received. status=", response.status)
+
       if (!response.ok) {
-        const errorData = await response.json()
+        const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.error || `HTTP ${response.status}`)
       }
 
       const data = await response.json()
+      console.log("[SpeechToText] Transcription successful", data)
       setTranscript(data.text)
     } catch (err) {
+      console.error("[SpeechToText] Transcription failed", err)
       toast({ description: String(err), variant: "destructive" })
     } finally {
       setIsTranscribing(false)
@@ -225,3 +244,4 @@ export default function SpeechToTextCard() {
     </Card>
   )
 }
+
