@@ -175,4 +175,3 @@ export const autoResolveIssue = async ({
 }
 
 export default autoResolveIssue
-

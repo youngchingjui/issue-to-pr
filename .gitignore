@@ -10,6 +10,10 @@
 !.yarn/releases
 !.yarn/versions
 
+# service dependencies and build outputs
+services/*/node_modules
+services/*/dist
+
 # testing
 /coverage
 
