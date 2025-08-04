@@ -180,7 +180,10 @@ export default function SpeechToTextCard() {
       await navigator.clipboard.writeText(rawResponse)
       toast({ description: "Copied raw response." })
     } catch {
-      toast({ description: "Failed to copy raw response.", variant: "destructive" })
+      toast({
+        description: "Failed to copy raw response.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -273,4 +276,3 @@ export default function SpeechToTextCard() {
     </Card>
   )
 }
-
