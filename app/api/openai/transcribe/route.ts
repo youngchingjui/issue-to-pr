@@ -39,7 +39,10 @@ export async function POST(request: NextRequest) {
     const result = await transcribeAudio(audioFile)
 
     if (result.success) {
-      console.log("[Transcribe API] Transcription success. Text length=", result.text.length)
+      console.log(
+        "[Transcribe API] Transcription success. Text length=",
+        result.text.length
+      )
       return NextResponse.json({ text: result.text }, { status: 200 })
     } else {
       console.error("[Transcribe API] Transcription failed", result.error)
@@ -53,4 +56,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-

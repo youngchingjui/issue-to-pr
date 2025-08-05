@@ -75,7 +75,10 @@ export default function SpeechToTextCard() {
         }
       }
 
-      console.log("[SpeechToText] Starting media recorder. Using MIME type:", mimeType || "default")
+      console.log(
+        "[SpeechToText] Starting media recorder. Using MIME type:",
+        mimeType || "default"
+      )
       setRecordedMimeType(mimeType || "audio/webm")
 
       const recorder = mimeType
@@ -87,7 +90,10 @@ export default function SpeechToTextCard() {
       }
       recorder.onstop = handleRecordingStop
       recorder.start()
-      console.log("[SpeechToText] MediaRecorder started, state=", recorder.state)
+      console.log(
+        "[SpeechToText] MediaRecorder started, state=",
+        recorder.state
+      )
       setMediaRecorder(recorder)
       setIsRecording(true)
     } catch (err) {
@@ -105,7 +111,11 @@ export default function SpeechToTextCard() {
   }
 
   const handleRecordingStop = useCallback(async () => {
-    console.log("[SpeechToText] handleRecordingStop invoked – assembling blob from", audioChunks.current.length, "chunks")
+    console.log(
+      "[SpeechToText] handleRecordingStop invoked – assembling blob from",
+      audioChunks.current.length,
+      "chunks"
+    )
     setIsRecording(false)
 
     // Ensure microphone is released as soon as recording stops.
@@ -146,13 +156,18 @@ export default function SpeechToTextCard() {
       const formData = new FormData()
       formData.append("audio", audioFile)
 
-      console.log("[SpeechToText] Sending fetch request to /api/openai/transcribe")
+      console.log(
+        "[SpeechToText] Sending fetch request to /api/openai/transcribe"
+      )
       const response = await fetch("/api/openai/transcribe", {
         method: "POST",
         body: formData,
       })
 
-      console.log("[SpeechToText] Fetch response received. status=", response.status)
+      console.log(
+        "[SpeechToText] Fetch response received. status=",
+        response.status
+      )
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
@@ -244,4 +259,3 @@ export default function SpeechToTextCard() {
     </Card>
   )
 }
-
