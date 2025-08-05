@@ -5,8 +5,7 @@
   "type": "module",
   "workspaces": [
     ".",
-    "services/*",
-    "services/shared"
+    "services/*"
   ],
   "scripts": {
     "predev": "./scripts/start-services.sh && pnpm i",
@@ -28,9 +27,7 @@
     "test:agent": "NODE_OPTIONS='--experimental-vm-modules' jest -c __tests__/config/jest.config.agent.ts",
     "dev:worker": "pnpm --filter worker dev",
     "build:all": "pnpm --filter \"*\" build",
-    "start:worker": "pnpm --filter worker start",
-    "build:shared": "pnpm --filter shared build",
-    "dev:shared": "pnpm --filter shared dev"
+    "start:worker": "pnpm --filter worker start"
   },
   "dependencies": {
     "@hookform/resolvers": "4",

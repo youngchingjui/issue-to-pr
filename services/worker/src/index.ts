@@ -1,11 +1,7 @@
 import { QueueEvents, Worker } from "bullmq"
-import { getSharedRedisClient } from "shared"
 
-import {
-  processAutoResolveIssue,
-  processCommentOnIssue,
-  processResolveIssue,
-} from "./jobs/index.js"
+import { processAutoResolveIssue } from "./jobs/autoResolveIssue.js"
+import { processCommentOnIssue } from "./jobs/commentOnIssue.js"
 import { QUEUE_NAMES } from "./queues/index.js"
 
 async function startWorker() {
@@ -13,13 +9,13 @@ async function startWorker() {
 
   try {
     // Get Redis connection
-    const redisConnection = await getSharedRedisClient()
+    const redisConnection = await getRedisClient()
     console.log("[Worker] Connected to Redis")
 
     // Create workers for each queue
     const resolveIssueWorker = new Worker(
       QUEUE_NAMES.RESOLVE_ISSUE,
-      processResolveIssue,
+      processAutoResolveIssue,
       {
         connection: redisConnection,
         concurrency: 2, // Process up to 2 jobs concurrently

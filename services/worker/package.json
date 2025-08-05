@@ -12,7 +12,6 @@
   "dependencies": {
     "bullmq": "^5.0.0",
     "ioredis": "^5.3.2",
-    "shared": "workspace:*",
     "uuid": "^11.0.5",
     "zod": "^3.24.2"
   },
