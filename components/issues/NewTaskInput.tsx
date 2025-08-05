@@ -232,15 +232,16 @@ export default function NewTaskInput({ repoFullName }: Props) {
           placeholder="Describe a task or use the microphone to speak..."
           required
           disabled={isSubmitting}
-          rows={3}
+          // Height tweaks: 50% viewport on mobile, 40% on md+ screens
+          className="h-[50vh] md:h-[40vh]"
         />
       </div>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <Button type="submit" disabled={isSubmitting}>
           {generatingTitle ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating issue
-              title...
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating
+              issue title...
             </>
           ) : loading || isPending ? (
             <>
@@ -272,3 +273,4 @@ export default function NewTaskInput({ repoFullName }: Props) {
     </form>
   )
 }
+
