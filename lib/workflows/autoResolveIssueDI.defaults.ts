@@ -1,6 +1,5 @@
 // Default DI bindings for the `autoResolveIssueDI` workflow.  These implementations
-// simply defer to the concrete helpers that already exist in the codebase so
-// that the rest of the application can continue to behave exactly as before.
+// use the new shared structure with proper separation of concerns.
 //
 // Keeping the default wiring in a separate module ensures that
 // `autoResolveIssueDI.ts` itself remains *completely* free of imports from other
@@ -8,7 +7,9 @@
 
 import { v4 as uuidv4 } from "uuid"
 
+import { auth } from "@/auth"
 import PlanAndCodeAgent from "@/lib/agents/PlanAndCodeAgent"
+import getOctokit from "@/lib/github"
 import { getInstallationTokenFromRepo } from "@/lib/github/installation"
 import { getIssueComments } from "@/lib/github/issues"
 import { checkRepoPermissions } from "@/lib/github/users"
@@ -23,7 +24,15 @@ import {
   createContainerizedDirectoryTree,
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
-import { setupLocalRepository } from "@/lib/utils/utils-server"
+import { getInstallationId } from "@/lib/utils/utils-server"
+// Import the new shared structure
+import { RepositoryService } from "@/shared/src/1a lib/RepositoryService.js"
+import {
+  AuthenticationAdapter,
+  FileSystemAdapter,
+  GitAdapter,
+  RepositoryAdapter,
+} from "@/shared/src/1b adapters/index.js"
 
 import type {
   AgentFactory,
@@ -39,8 +48,30 @@ import type {
 /*                            CONCRETE ADAPTERS                               */
 /* -------------------------------------------------------------------------- */
 
+// Create adapters
+const fileSystemAdapter = new FileSystemAdapter()
+const gitAdapter = new GitAdapter()
+const authAdapter = new AuthenticationAdapter(
+  auth,
+  getOctokit,
+  getInstallationId
+)
+const repositoryAdapter = new RepositoryAdapter(getOctokit, fileSystemAdapter)
+
+// Create the repository service that orchestrates everything
+const repositoryService = new RepositoryService(
+  repositoryAdapter,
+  fileSystemAdapter,
+  gitAdapter,
+  authAdapter
+)
+
+// Wrap the repository service to match the expected interface
 const repoService: RepoService = {
-  setupLocalRepository,
+  setupLocalRepository: async (params) => {
+    const repository = await repositoryService.setupLocalRepository(params)
+    return repository.localPath!
+  },
 }
 
 const containerService: ContainerService = {
@@ -51,14 +82,32 @@ const containerService: ContainerService = {
 const githubService: GitHubService = {
   checkRepoPermissions,
   getInstallationToken: getInstallationTokenFromRepo,
-  getIssueComments,
+  getIssueComments: async (params) => {
+    const comments = await getIssueComments(
+      params.repoFullName,
+      params.issueNumber
+    )
+    return comments.map((comment) => ({
+      body: comment.body || "",
+      user: { login: comment.user?.login || "" },
+      created_at: comment.created_at,
+    }))
+  },
 }
 
 const eventService: EventService = {
-  initializeWorkflowRun,
-  createWorkflowStateEvent,
-  createStatusEvent,
-  createErrorEvent,
+  initializeWorkflowRun: async (params) => {
+    await initializeWorkflowRun(params)
+  },
+  createWorkflowStateEvent: async (params) => {
+    await createWorkflowStateEvent(params)
+  },
+  createStatusEvent: async (params) => {
+    await createStatusEvent(params)
+  },
+  createErrorEvent: async (params) => {
+    await createErrorEvent(params)
+  },
 }
 
 const agentFactory: AgentFactory = (ctx: AgentFactoryContext) => {
