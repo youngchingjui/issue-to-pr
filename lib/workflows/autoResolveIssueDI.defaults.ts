@@ -8,33 +8,31 @@
 
 import { v4 as uuidv4 } from "uuid"
 
-import {
-  setupLocalRepository,
-} from "@/lib/utils/utils-server"
-import {
-  createContainerizedWorkspace,
-  createContainerizedDirectoryTree,
-} from "@/lib/utils/container"
-import { checkRepoPermissions } from "@/lib/github/users"
+import PlanAndCodeAgent from "@/lib/agents/PlanAndCodeAgent"
 import { getInstallationTokenFromRepo } from "@/lib/github/installation"
 import { getIssueComments } from "@/lib/github/issues"
+import { checkRepoPermissions } from "@/lib/github/users"
+import { langfuse } from "@/lib/langfuse"
 import {
   createErrorEvent,
   createStatusEvent,
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
-import PlanAndCodeAgent from "@/lib/agents/PlanAndCodeAgent"
-import { langfuse } from "@/lib/langfuse"
+import {
+  createContainerizedDirectoryTree,
+  createContainerizedWorkspace,
+} from "@/lib/utils/container"
+import { setupLocalRepository } from "@/lib/utils/utils-server"
 
 import type {
-  RepoService,
-  ContainerService,
-  GitHubService,
-  EventService,
   AgentFactory,
-  Dependencies,
   AgentFactoryContext,
+  ContainerService,
+  Dependencies,
+  EventService,
+  GitHubService,
+  RepoService,
 } from "./autoResolveIssueDI"
 
 /* -------------------------------------------------------------------------- */
@@ -64,7 +62,15 @@ const eventService: EventService = {
 }
 
 const agentFactory: AgentFactory = (ctx: AgentFactoryContext) => {
-  const { apiKey, env, defaultBranch, issueNumber, repository, sessionToken, jobId } = ctx
+  const {
+    apiKey,
+    env,
+    defaultBranch,
+    issueNumber,
+    repository,
+    sessionToken,
+    jobId,
+  } = ctx
 
   const trace = langfuse.trace({ name: "autoResolve" })
   const span = trace.span({ name: "PlanAndCodeAgent" })
@@ -92,4 +98,3 @@ export const defaultDependencies: Dependencies = {
   agentFactory,
   uuid: uuidv4,
 }
-
