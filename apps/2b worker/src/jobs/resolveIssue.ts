@@ -1,5 +1,6 @@
 import { Job } from "bullmq"
-import { ResolveIssueJobData } from "shared"
+
+import { ResolveIssueJobData } from "@/shared/"
 
 export async function processResolveIssue(job: Job<ResolveIssueJobData>) {
   const { issueNumber, repoFullName, jobId, createPR } = job.data

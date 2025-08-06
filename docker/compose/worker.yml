@@ -2,7 +2,7 @@ services:
   worker:
     build:
       context: ../..
-      dockerfile: services/worker/Dockerfile
+      dockerfile: apps/worker/Dockerfile
     environment:
       # Redis connection
       - REDIS_URL=redis://redis:6379 # Connects to redis.yml service

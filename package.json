@@ -5,7 +5,8 @@
   "type": "module",
   "workspaces": [
     ".",
-    "services/*"
+    "apps/*",
+    "shared/"
   ],
   "scripts": {
     "predev": "./scripts/start-services.sh && pnpm i",
