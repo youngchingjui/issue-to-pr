@@ -9,7 +9,7 @@
     "shared/"
   ],
   "scripts": {
-    "predev": "./scripts/start-services.sh && pnpm i",
+    "predev": "./scripts/start-services.sh && pnpm i && pnpm tsc:watch:detached",
     "dev": "next dev",
     "prestart": "./scripts/start-services.sh",
     "start": "next start",
@@ -28,7 +28,10 @@
     "test:agent": "NODE_OPTIONS='--experimental-vm-modules' jest -c __tests__/config/jest.config.agent.ts",
     "dev:worker": "pnpm --filter worker dev",
     "build:all": "pnpm --filter \"*\" build",
-    "start:worker": "pnpm --filter worker start"
+    "start:worker": "pnpm --filter worker start",
+    "tsc:watch": "concurrently \"tsc --watch\" \"tsc --watch --project shared/tsconfig.json\" \"tsc --watch --project apps/worker/tsconfig.json\"",
+    "tsc:watch:all": "pnpm tsc:watch",
+    "tsc:watch:detached": "concurrently -d \"tsc --watch\" \"tsc --watch --project shared/tsconfig.json\" \"tsc --watch --project apps/worker/tsconfig.json\""
   },
   "dependencies": {
     "@hookform/resolvers": "4",
@@ -116,7 +119,8 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.0.0",
     "typescript": "^5",
-    "typescript-eslint": "^8.19.0"
+    "typescript-eslint": "^8.19.0",
+    "concurrently": "^9.1.0"
   },
   "msw": {
     "workerDirectory": [
