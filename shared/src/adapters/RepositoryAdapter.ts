@@ -1,10 +1,12 @@
-import { Repository } from "@/core/entities/Repository.js"
-import type { RepositoryPort } from "@/core/ports/RepositoryPort.js"
+import { Repository } from "@/core/entities/Repository"
+import type { RepositoryPort } from "@/core/ports/RepositoryPort"
+import type { FileSystemPort } from "@/core/ports/FileSystemPort"
+import type { Octokit } from "octokit"
 
 export class RepositoryAdapter implements RepositoryPort {
   constructor(
-    private readonly getOctokit: () => Promise<any>,
-    private readonly fileSystemPort: any // FileSystemPort
+    private readonly getOctokit: () => Promise<Octokit>,
+    private readonly fileSystemPort: FileSystemPort
   ) {}
 
   async setupLocalRepository(params: {
@@ -27,6 +29,12 @@ export class RepositoryAdapter implements RepositoryPort {
     }
 
     const [owner, repo] = repoFullName.split("/")
+    if (!owner || !repo) {
+      throw new Error(
+        `Invalid repository name format: ${repoFullName}. Expected format: owner/repo`
+      )
+    }
+
     const { data: repoData } = await octokit.rest.repos.get({
       owner,
       repo,

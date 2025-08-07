@@ -29,9 +29,7 @@
     "dev:worker": "pnpm --filter worker dev",
     "build:all": "pnpm --filter \"*\" build",
     "start:worker": "pnpm --filter worker start",
-    "tsc:watch": "concurrently \"tsc --watch\" \"tsc --watch --project shared/tsconfig.json\" \"tsc --watch --project apps/worker/tsconfig.json\"",
-    "tsc:watch:all": "pnpm tsc:watch",
-    "tsc:watch:detached": "concurrently -d \"tsc --watch\" \"tsc --watch --project shared/tsconfig.json\" \"tsc --watch --project apps/worker/tsconfig.json\""
+    "tsc:watch": "tsc --build --watch"
   },
   "dependencies": {
     "@hookform/resolvers": "4",
@@ -119,8 +117,7 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.0.0",
     "typescript": "^5",
-    "typescript-eslint": "^8.19.0",
-    "concurrently": "^9.1.0"
+    "typescript-eslint": "^8.19.0"
   },
   "msw": {
     "workerDirectory": [

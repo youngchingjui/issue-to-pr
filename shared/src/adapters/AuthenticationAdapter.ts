@@ -1,11 +1,23 @@
 import type { AuthenticationPort } from "@/core/ports/AuthenticationPort"
+import type { Octokit } from "octokit"
+
+// Define session type based on NextAuth structure
+interface AuthSession {
+  token?: {
+    access_token?: string
+  }
+}
+
+// Question: To keep separation of concerns and clean code, should we be importing
+// libraries from different providers such as Octokit and NextAuth and combining them here in an adapter?
+// On the flip side, how else would we connect the session token from NextAuth to Octokit?
 
 // This adapter would need to be implemented in the main app since it depends on NextAuth
 // For now, we'll create a placeholder that shows the interface
 export class AuthenticationAdapter implements AuthenticationPort {
   constructor(
-    private readonly auth: () => Promise<any>,
-    private readonly getOctokit: () => Promise<any>,
+    private readonly auth: () => Promise<AuthSession | null>,
+    private readonly getOctokit: () => Promise<Octokit>,
     private readonly getInstallationId: () => string | null
   ) {}
 
@@ -25,10 +37,11 @@ export class AuthenticationAdapter implements AuthenticationPort {
       throw new Error("No installation ID available")
     }
 
-    const { token } = await octokit.auth({
+    const authResult = (await octokit.auth({
       type: "installation",
       installationId: Number(installationId),
-    })
+    })) as { token: string }
+    const { token } = authResult
 
     return token
   }
