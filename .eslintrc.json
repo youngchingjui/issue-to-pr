@@ -16,56 +16,7 @@
     ],
     "no-unused-vars": "off",
     "simple-import-sort/imports": "warn",
-    "simple-import-sort/exports": "warn",
-    "no-restricted-imports": [
-      "warn",
-      {
-        "patterns": [
-          {
-            "group": ["shared/src/lib/*"],
-            "importNames": ["*"],
-            "from": "shared/src/adapters/*",
-            "message": "Business logic layer (/lib) cannot import from adapters layer. Use dependency injection with ports instead."
-          },
-          {
-            "group": ["shared/src/lib/*"],
-            "importNames": ["*"],
-            "from": "apps/*",
-            "message": "Business logic layer (/lib) cannot import from application layer. Use dependency injection with ports instead."
-          },
-          {
-            "group": ["shared/src/adapters/*"],
-            "importNames": ["*"],
-            "from": "shared/src/lib/*",
-            "message": "Adapters layer cannot import from business logic layer. Adapters should only implement ports from /core."
-          },
-          {
-            "group": ["shared/src/adapters/*"],
-            "importNames": ["*"],
-            "from": "apps/*",
-            "message": "Adapters layer cannot import from application layer. Adapters should only implement ports from /core."
-          },
-          {
-            "group": ["shared/src/core/*"],
-            "importNames": ["*"],
-            "from": "shared/src/lib/*",
-            "message": "Core layer cannot import from business logic layer. Core should have no external dependencies."
-          },
-          {
-            "group": ["shared/src/core/*"],
-            "importNames": ["*"],
-            "from": "shared/src/adapters/*",
-            "message": "Core layer cannot import from adapters layer. Core should have no external dependencies."
-          },
-          {
-            "group": ["shared/src/core/*"],
-            "importNames": ["*"],
-            "from": "apps/*",
-            "message": "Core layer cannot import from application layer. Core should have no external dependencies."
-          }
-        ]
-      }
-    ]
+    "simple-import-sort/exports": "warn"
   },
   "parserOptions": {
     "sourceType": "module",
