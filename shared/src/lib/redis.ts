@@ -1,4 +1,4 @@
-import type { RedisPort, RedisConnection } from "@/core/ports/RedisPort.js"
+import type { RedisConnection, RedisPort } from "@/core/ports/RedisPort"
 
 /**
  * Redis service that follows clean architecture principles

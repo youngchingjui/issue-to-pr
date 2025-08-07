@@ -1,5 +1,5 @@
 {
-  "plugins": ["simple-import-sort"],
+  "plugins": ["simple-import-sort", "import"],
   "extends": [
     "next/core-web-vitals",
     "next/typescript",
@@ -16,10 +16,67 @@
     ],
     "no-unused-vars": "off",
     "simple-import-sort/imports": "warn",
-    "simple-import-sort/exports": "warn"
+    "simple-import-sort/exports": "warn",
+    "import/no-restricted-paths": [
+      "warn",
+      {
+        "zones": [
+          {
+            "target": "./shared/src/lib/**",
+            "from": "./shared/src/adapters/**",
+            "message": "Business logic layer (/lib) cannot import from adapters layer (/adapters)"
+          },
+          {
+            "target": "./shared/src/lib/**",
+            "from": "./apps/**",
+            "message": "Business logic layer (/lib) cannot import from apps layer (/apps)"
+          },
+          {
+            "target": "./shared/src/adapters/**",
+            "from": "./shared/src/lib/**",
+            "message": "Adapters layer (/adapters) cannot import from business logic layer (/lib)"
+          },
+          {
+            "target": "./shared/src/adapters/**",
+            "from": "./apps/**",
+            "message": "Adapters layer (/adapters) cannot import from apps layer (/apps)"
+          },
+          {
+            "target": "./shared/src/core/**",
+            "from": "./shared/src/lib/**",
+            "message": "Core layer (/core) cannot import from business logic layer (/lib)"
+          },
+          {
+            "target": "./shared/src/core/**",
+            "from": "./shared/src/adapters/**",
+            "message": "Core layer (/core) cannot import from adapters layer (/adapters)"
+          },
+          {
+            "target": "./shared/src/core/**",
+            "from": "./apps/**",
+            "message": "Core layer (/core) cannot import from apps layer (/apps)"
+          }
+        ]
+      }
+    ]
   },
   "parserOptions": {
     "sourceType": "module",
     "ecmaVersion": "latest"
+  },
+  "settings": {
+    "import/resolver": {
+      "typescript": {
+        "alwaysTryTypes": true,
+        "project": [
+          "./tsconfig.json",
+          "./shared/tsconfig.json",
+          "./apps/worker/tsconfig.json"
+        ]
+      },
+      "node": {
+        "extensions": [".js", ".jsx", ".ts", ".tsx"]
+      }
+    }
   }
 }
