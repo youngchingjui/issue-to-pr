@@ -1,5 +1,5 @@
 // This file contains a re-implementation of the auto resolve issue workflow
-// that follows a dependency-injection (DI) friendly design.  
+// that follows a dependency-injection (DI) friendly design.
 //
 // The workflow itself **does not** import any concrete services from the rest of
 // the codebase.  Instead it operates exclusively on a set of clearly defined
@@ -10,11 +10,16 @@
 // NOTE:  A set of default, production-ready implementations can be found in
 // `lib/workflows/autoResolveIssueDI.defaults.ts`.  These wire the abstract
 // interfaces below to the existing concrete helpers that live elsewhere in the
-// repository.  
+// repository.
 
 /* -------------------------------------------------------------------------- */
 /*                                  TYPES                                     */
 /* -------------------------------------------------------------------------- */
+
+// TODO: We should probably save this in another branch or PR.
+// This generally seems to be the right approach, but I'm not interested
+// In adding this to the code base at the moment.
+// We will definitely need this, so we need to find a way to save this in another branch to be reviewed later.
 
 export interface RepoService {
   /**
@@ -77,9 +82,15 @@ export interface EventService {
     content?: string
   }): Promise<void>
 
-  createStatusEvent(params: { workflowId: string; content: string }): Promise<void>
+  createStatusEvent(params: {
+    workflowId: string
+    content: string
+  }): Promise<void>
 
-  createErrorEvent(params: { workflowId: string; content: string }): Promise<void>
+  createErrorEvent(params: {
+    workflowId: string
+    content: string
+  }): Promise<void>
 }
 
 export interface AgentInput {
@@ -288,4 +299,3 @@ export const autoResolveIssueDI = async (
 }
 
 export default autoResolveIssueDI
-
