@@ -9,7 +9,7 @@
     "shared/"
   ],
   "scripts": {
-    "predev": "./scripts/start-services.sh && pnpm i && pnpm tsc:watch:detached",
+    "predev": "./scripts/start-services.sh && pnpm i",
     "dev": "next dev",
     "prestart": "./scripts/start-services.sh",
     "start": "next start",
