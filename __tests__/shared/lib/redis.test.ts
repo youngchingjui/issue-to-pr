@@ -1,7 +1,5 @@
-import { RedisService } from "./redis.js"
-import type { RedisPort, RedisConnection } from "@/core/ports/RedisPort.js"
-
-// TODO: Seems OK, but this should be in __tests__ folder.
+import type { RedisConnection, RedisPort } from "@/shared/core/ports/RedisPort"
+import { RedisService } from "@/shared/lib/redis"
 
 // Mock Redis connection for testing
 class MockRedisConnection implements RedisConnection {
