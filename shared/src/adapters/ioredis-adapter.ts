@@ -1,5 +1,3 @@
-// TODO: This file should be called `ioredis-adapter.ts`. Use git mv to rename it.
-
 import Redis from "ioredis"
 
 import {
