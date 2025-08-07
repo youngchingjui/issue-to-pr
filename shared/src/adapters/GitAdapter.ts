@@ -3,7 +3,7 @@ import { promises as fs } from "fs"
 import path from "path"
 import util from "util"
 
-import type { GitPort } from "../0 core/ports/GitPort.js"
+import type { GitPort } from "@/core/ports/GitPort.js"
 
 const execPromise = util.promisify(exec)
 
@@ -13,9 +13,9 @@ export class GitAdapter implements GitPort {
     await execPromise(command)
   }
 
-  async isGitRepository(path: string): Promise<boolean> {
+  async isGitRepository(repoPath: string): Promise<boolean> {
     try {
-      await fs.access(path.join(path, ".git"))
+      await fs.access(path.join(repoPath, ".git"))
       return true
     } catch {
       return false

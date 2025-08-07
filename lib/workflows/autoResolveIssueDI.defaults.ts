@@ -25,14 +25,13 @@ import {
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
 import { getInstallationId } from "@/lib/utils/utils-server"
-// Import the new shared structure
-import { RepositoryService } from "@/shared/src/1a lib/RepositoryService.js"
 import {
   AuthenticationAdapter,
   FileSystemAdapter,
   GitAdapter,
   RepositoryAdapter,
-} from "@/shared/src/1b adapters/index.js"
+} from "@/shared/src/adapters/index.js"
+import { RepositoryService } from "@/shared/src/lib/RepositoryService.js"
 
 import type {
   AgentFactory,

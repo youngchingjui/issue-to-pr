@@ -1,5 +1,5 @@
-import type { Repository } from "../0 core/entities/Repository.js"
-import type { RepositoryPort } from "../0 core/ports/RepositoryPort.js"
+import { Repository } from "@/core/entities/Repository.js"
+import type { RepositoryPort } from "@/core/ports/RepositoryPort.js"
 
 export class RepositoryAdapter implements RepositoryPort {
   constructor(

@@ -6,7 +6,7 @@ import {
   RedisConnection,
   RedisPort,
   RedisSubscription,
-} from "../0 core/ports/RedisPort.js"
+} from "@/core/ports/RedisPort.js"
 
 /**
  * Wrapper class that adapts ioredis to our abstract RedisConnection interface

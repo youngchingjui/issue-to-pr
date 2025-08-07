@@ -1,4 +1,4 @@
-import type { AuthenticationPort } from "../0 core/ports/AuthenticationPort.js"
+import type { AuthenticationPort } from "@/core/ports/AuthenticationPort"
 
 // This adapter would need to be implemented in the main app since it depends on NextAuth
 // For now, we'll create a placeholder that shows the interface

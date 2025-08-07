@@ -1,6 +1,6 @@
 import { QueueEvents, Worker } from "bullmq"
 
-import { getRedisClient } from "@/shared/1a lib/redis"
+import { getRedisClient } from "@/shared/lib/redis"
 
 import { processAutoResolveIssue } from "./jobs/autoResolveIssue.js"
 import { processCommentOnIssue } from "./jobs/commentOnIssue.js"

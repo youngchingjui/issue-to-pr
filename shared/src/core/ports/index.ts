@@ -1,5 +1,5 @@
+export type { AuthenticationPort } from "./AuthenticationPort.js"
 export type { FileSystemPort } from "./FileSystemPort.js"
 export type { GitPort } from "./GitPort.js"
-export type { AuthenticationPort } from "./AuthenticationPort.js"
+export type { RedisPort } from "./RedisPort.js"
 export type { RepositoryPort } from "./RepositoryPort.js"
-export type { RedisPort } from "./redis.js"

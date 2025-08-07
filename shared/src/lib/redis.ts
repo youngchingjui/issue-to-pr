@@ -2,9 +2,9 @@
 // TODO: We also need a README that explains this code architecture convention.
 // TODO: We also need an eslint rule that enforces this.
 
-import { RedisPort } from "../0 core/ports/RedisPort.js"
-import { RedisAdapter } from "../1b adapters/redis.js"
-import { UpstashRedisAdapter } from "../1b adapters/upstash-redis.js"
+import { RedisAdapter } from "@/adapters/redis.js"
+import { UpstashRedisAdapter } from "@/adapters/upstash-redis.js"
+import { RedisPort } from "@/core/ports/RedisPort.js"
 
 let redisAdapter: RedisPort | null = null
 

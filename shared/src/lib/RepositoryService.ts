@@ -1,10 +1,10 @@
-import type { Repository } from "../0 core/entities/Repository.js"
+import { Repository } from "@/core/entities/Repository.js"
 import type {
   AuthenticationPort,
   FileSystemPort,
   GitPort,
   RepositoryPort,
-} from "../0 core/ports/index.js"
+} from "@/core/ports/index.js"
 
 export class RepositoryService {
   constructor(

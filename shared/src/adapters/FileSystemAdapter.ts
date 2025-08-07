@@ -2,7 +2,7 @@ import { promises as fs } from "fs"
 import os from "os"
 import path from "path"
 
-import type { FileSystemPort } from "../0 core/ports/FileSystemPort.js"
+import type { FileSystemPort } from "@/core/ports/FileSystemPort.js"
 
 export class FileSystemAdapter implements FileSystemPort {
   async createDirectory(dirPath: string): Promise<void> {
