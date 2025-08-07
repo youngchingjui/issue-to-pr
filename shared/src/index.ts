@@ -5,28 +5,22 @@ export type {
   WorkerJobResult,
   WorkerEvent,
   WorkerEventType,
-} from "./core/ports/WorkerPort.js"
-export type { RedisPort } from "./core/ports/RedisPort.js"
+} from "./core/ports/WorkerPort"
+export type { RedisPort } from "./core/ports/RedisPort"
 
 // Business logic services
-export { WorkerService } from "./lib/WorkerService.js"
-export type { WorkerDefinition, QueueDefinition } from "./lib/WorkerService.js"
+export { WorkerService } from "./lib/WorkerService"
+export type { WorkerDefinition, QueueDefinition } from "./lib/WorkerService"
+export { RedisService, createRedisService } from "./lib/redis"
 
 // Job processors
-export { processAutoResolveIssue } from "./lib/jobs/autoResolveIssue.js"
-export { processCommentOnIssue } from "./lib/jobs/commentOnIssue.js"
-export { processResolveIssue } from "./lib/jobs/resolveIssue.js"
-export type { AutoResolveIssueJobData } from "./lib/jobs/autoResolveIssue.js"
-export type { CommentOnIssueJobData } from "./lib/jobs/commentOnIssue.js"
-export type { ResolveIssueJobData } from "./lib/jobs/resolveIssue.js"
+export { processAutoResolveIssue } from "./lib/jobs/autoResolveIssue"
+export { processCommentOnIssue } from "./lib/jobs/commentOnIssue"
+export { processResolveIssue } from "./lib/jobs/resolveIssue"
+export type { AutoResolveIssueJobData } from "./lib/jobs/autoResolveIssue"
+export type { CommentOnIssueJobData } from "./lib/jobs/commentOnIssue"
+export type { ResolveIssueJobData } from "./lib/jobs/resolveIssue"
 
 // Infrastructure adapters
-export { BullMQAdapter } from "./adapters/BullMQAdapter.js"
-
-// Utilities
-export {
-  getRedisAdapter,
-  getRedisClient,
-  getBullMQRedisClient,
-  closeRedisConnection,
-} from "./lib/redis.js"
+export { BullMQAdapter } from "./adapters/BullMQAdapter"
+export { RedisAdapterFactory } from "./adapters/redis-adapter-factory"

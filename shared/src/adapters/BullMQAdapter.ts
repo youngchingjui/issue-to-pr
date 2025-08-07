@@ -5,8 +5,8 @@ import type {
   QueueConfig,
   WorkerEvent,
   WorkerEventType,
-} from "@/core/ports/WorkerPort.js"
-import type { RedisPort } from "@/core/ports/RedisPort.js"
+} from "@/core/ports/WorkerPort"
+import type { RedisPort } from "@/core/ports/RedisPort"
 
 export class BullMQAdapter implements WorkerPort {
   private queues: Map<string, Queue> = new Map()
@@ -16,11 +16,7 @@ export class BullMQAdapter implements WorkerPort {
   constructor(private readonly redisPort: RedisPort) {}
 
   async createQueue(config: QueueConfig): Promise<Queue> {
-    const redisConnection = await this.redisPort.getConnection()
-
-    // For BullMQ, we need to get the actual ioredis client
-    const connectionOptions =
-      await this.getBullMQConnectionOptions(redisConnection)
+    const connectionOptions = await this.getBullMQConnectionOptions()
 
     const queue = new Queue(config.name, {
       connection: connectionOptions,
@@ -32,9 +28,7 @@ export class BullMQAdapter implements WorkerPort {
   }
 
   async createWorker(config: WorkerConfig): Promise<Worker> {
-    const redisConnection = await this.redisPort.getConnection()
-    const connectionOptions =
-      await this.getBullMQConnectionOptions(redisConnection)
+    const connectionOptions = await this.getBullMQConnectionOptions()
 
     const worker = new Worker(
       config.name,
@@ -171,9 +165,12 @@ export class BullMQAdapter implements WorkerPort {
     this.queueEvents.clear()
   }
 
-  private async getBullMQConnectionOptions(redisConnection: any): Promise<any> {
-    // For BullMQ, we need to ensure we have an ioredis connection
-    // If the redisConnection is already an ioredis instance, return it
+  private async getBullMQConnectionOptions(): Promise<any> {
+    // For BullMQ, we need to get the actual ioredis client
+    // We'll try to get it from the Redis adapter if it supports it
+    const redisConnection = await this.redisPort.getConnection()
+
+    // Check if the connection is already an ioredis instance
     if (
       redisConnection &&
       typeof redisConnection === "object" &&
@@ -182,8 +179,8 @@ export class BullMQAdapter implements WorkerPort {
       return redisConnection
     }
 
-    // If it's not an ioredis instance, we need to create one
-    // This is a fallback for when the Redis adapter doesn't provide ioredis directly
+    // If the Redis adapter doesn't provide ioredis directly, we need to create one
+    // This is a limitation of BullMQ - it requires ioredis specifically
     const Redis = await import("ioredis")
     const url = process.env.REDIS_URL || "redis://localhost:6379"
     return new Redis.default(url, {

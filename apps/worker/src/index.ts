@@ -1,6 +1,7 @@
 import { WorkerService } from "@/shared/lib/WorkerService"
 import { BullMQAdapter } from "@/shared/adapters/BullMQAdapter"
-import { getRedisAdapter } from "@/shared/lib/redis"
+import { RedisAdapterFactory } from "@/shared/adapters/redis-adapter-factory"
+import { createRedisService } from "@/shared/lib/redis"
 
 // TODO: These should be called "/shared/lib/workflows/autoResolveIssue" etc.
 import { processAutoResolveIssue } from "@/shared/lib/jobs/autoResolveIssue"
@@ -18,9 +19,12 @@ async function startWorker() {
   console.log("[Worker] Starting issue-to-pr background worker...")
 
   try {
-    // Get Redis adapter
-    const redisAdapter = getRedisAdapter()
+    // Create Redis adapter using factory
+    const redisAdapter = RedisAdapterFactory.createAdapter()
     console.log("[Worker] Connected to Redis")
+
+    // Create Redis service using dependency injection
+    const redisService = createRedisService(redisAdapter)
 
     // Create BullMQ adapter
     const workerAdapter = new BullMQAdapter(redisAdapter)
@@ -94,14 +98,18 @@ async function startWorker() {
     process.on("SIGINT", async () => {
       console.log("[Worker] Received SIGINT, shutting down gracefully...")
       await workerService.shutdown()
+      await redisService.close()
       process.exit(0)
     })
 
     process.on("SIGTERM", async () => {
       console.log("[Worker] Received SIGTERM, shutting down gracefully...")
       await workerService.shutdown()
+      await redisService.close()
       process.exit(0)
     })
+
+    console.log("[Worker] Worker started successfully")
   } catch (error) {
     console.error("[Worker] Failed to start worker:", error)
     process.exit(1)
