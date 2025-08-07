@@ -1,148 +1,105 @@
-import { QueueEvents, Worker } from "bullmq"
+import { WorkerService } from "@/shared/lib/WorkerService"
+import { BullMQAdapter } from "@/shared/adapters/BullMQAdapter"
+import { getRedisAdapter } from "@/shared/lib/redis"
 
-import { getRedisClient } from "@/shared/lib/redis"
+// TODO: These should be called "/shared/lib/workflows/autoResolveIssue" etc.
+import { processAutoResolveIssue } from "@/shared/lib/jobs/autoResolveIssue"
+import { processCommentOnIssue } from "@/shared/lib/jobs/commentOnIssue"
+import { processResolveIssue } from "@/shared/lib/jobs/resolveIssue"
 
-import { processAutoResolveIssue } from "./jobs/autoResolveIssue.js"
-import { processCommentOnIssue } from "./jobs/commentOnIssue.js"
-import { QUEUE_NAMES } from "./queues/index.js"
+// Queue names
+const QUEUE_NAMES = {
+  RESOLVE_ISSUE: "resolve-issue",
+  COMMENT_ON_ISSUE: "comment-on-issue",
+  AUTO_RESOLVE_ISSUE: "auto-resolve-issue",
+} as const
 
 async function startWorker() {
   console.log("[Worker] Starting issue-to-pr background worker...")
 
   try {
-    // Get Redis connection
-    const redisConnection = await getRedisClient()
+    // Get Redis adapter
+    const redisAdapter = getRedisAdapter()
     console.log("[Worker] Connected to Redis")
 
-    // Create workers for each queue
-    const resolveIssueWorker = new Worker(
-      QUEUE_NAMES.RESOLVE_ISSUE,
-      processAutoResolveIssue,
+    // Create BullMQ adapter
+    const workerAdapter = new BullMQAdapter(redisAdapter)
+
+    // Create worker service
+    const workerService = new WorkerService(workerAdapter)
+
+    // Define queue configurations
+    const queueDefinitions = [
       {
-        connection: redisConnection,
-        concurrency: 2, // Process up to 2 jobs concurrently
-      }
-    )
-
-    const commentOnIssueWorker = new Worker(
-      QUEUE_NAMES.COMMENT_ON_ISSUE,
-      processCommentOnIssue,
+        name: QUEUE_NAMES.RESOLVE_ISSUE,
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: {
+            type: "exponential" as const,
+            delay: 2000,
+          },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+      },
       {
-        connection: redisConnection,
-        concurrency: 3, // Comments can be processed faster
-      }
-    )
-
-    const autoResolveIssueWorker = new Worker(
-      QUEUE_NAMES.AUTO_RESOLVE_ISSUE,
-      processAutoResolveIssue,
+        name: QUEUE_NAMES.COMMENT_ON_ISSUE,
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: {
+            type: "exponential" as const,
+            delay: 2000,
+          },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+      },
       {
-        connection: redisConnection,
-        concurrency: 1, // More resource intensive
-      }
-    )
+        name: QUEUE_NAMES.AUTO_RESOLVE_ISSUE,
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: {
+            type: "exponential" as const,
+            delay: 2000,
+          },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+      },
+    ]
 
-    // Set up queue events for monitoring
-    const resolveIssueEvents = new QueueEvents(QUEUE_NAMES.RESOLVE_ISSUE, {
-      connection: redisConnection,
-    })
-    const commentOnIssueEvents = new QueueEvents(QUEUE_NAMES.COMMENT_ON_ISSUE, {
-      connection: redisConnection,
-    })
-    const autoResolveIssueEvents = new QueueEvents(
-      QUEUE_NAMES.AUTO_RESOLVE_ISSUE,
-      { connection: redisConnection }
-    )
+    // Define worker configurations
+    const workerDefinitions = [
+      {
+        name: QUEUE_NAMES.RESOLVE_ISSUE,
+        concurrency: 2,
+        processor: processResolveIssue,
+      },
+      {
+        name: QUEUE_NAMES.COMMENT_ON_ISSUE,
+        concurrency: 3,
+        processor: processCommentOnIssue,
+      },
+      {
+        name: QUEUE_NAMES.AUTO_RESOLVE_ISSUE,
+        concurrency: 1,
+        processor: processAutoResolveIssue,
+      },
+    ]
 
-    // Event listeners for monitoring
-    resolveIssueWorker.on("completed", (job) => {
-      console.log(
-        `[Worker] Job ${job.id} completed in queue ${QUEUE_NAMES.RESOLVE_ISSUE}`
-      )
-    })
+    // Start all workers
+    await workerService.startWorkers(workerDefinitions, queueDefinitions)
 
-    resolveIssueWorker.on("failed", (job, err) => {
-      console.error(
-        `[Worker] Job ${job?.id} failed in queue ${QUEUE_NAMES.RESOLVE_ISSUE}:`,
-        err
-      )
-    })
-
-    commentOnIssueWorker.on("completed", (job) => {
-      console.log(
-        `[Worker] Job ${job.id} completed in queue ${QUEUE_NAMES.COMMENT_ON_ISSUE}`
-      )
-    })
-
-    commentOnIssueWorker.on("failed", (job, err) => {
-      console.error(
-        `[Worker] Job ${job?.id} failed in queue ${QUEUE_NAMES.COMMENT_ON_ISSUE}:`,
-        err
-      )
-    })
-
-    autoResolveIssueWorker.on("completed", (job) => {
-      console.log(
-        `[Worker] Job ${job.id} completed in queue ${QUEUE_NAMES.AUTO_RESOLVE_ISSUE}`
-      )
-    })
-
-    autoResolveIssueWorker.on("failed", (job, err) => {
-      console.error(
-        `[Worker] Job ${job?.id} failed in queue ${QUEUE_NAMES.AUTO_RESOLVE_ISSUE}:`,
-        err
-      )
-    })
-
-    // Global error handling
-    resolveIssueWorker.on("error", (err) => {
-      console.error("[Worker] Resolve issue worker error:", err)
-    })
-
-    commentOnIssueWorker.on("error", (err) => {
-      console.error("[Worker] Comment on issue worker error:", err)
-    })
-
-    autoResolveIssueWorker.on("error", (err) => {
-      console.error("[Worker] Auto resolve issue worker error:", err)
-    })
-
-    console.log("[Worker] All workers started successfully")
-    console.log(`[Worker] Listening for jobs on queues:`)
-    console.log(`  - ${QUEUE_NAMES.RESOLVE_ISSUE} (concurrency: 2)`)
-    console.log(`  - ${QUEUE_NAMES.COMMENT_ON_ISSUE} (concurrency: 3)`)
-    console.log(`  - ${QUEUE_NAMES.AUTO_RESOLVE_ISSUE} (concurrency: 1)`)
-
-    // Graceful shutdown
+    // Set up graceful shutdown
     process.on("SIGINT", async () => {
       console.log("[Worker] Received SIGINT, shutting down gracefully...")
-
-      await Promise.all([
-        resolveIssueWorker.close(),
-        commentOnIssueWorker.close(),
-        autoResolveIssueWorker.close(),
-        resolveIssueEvents.close(),
-        commentOnIssueEvents.close(),
-        autoResolveIssueEvents.close(),
-      ])
-
-      console.log("[Worker] All workers shut down successfully")
+      await workerService.shutdown()
       process.exit(0)
     })
 
     process.on("SIGTERM", async () => {
       console.log("[Worker] Received SIGTERM, shutting down gracefully...")
-
-      await Promise.all([
-        resolveIssueWorker.close(),
-        commentOnIssueWorker.close(),
-        autoResolveIssueWorker.close(),
-        resolveIssueEvents.close(),
-        commentOnIssueEvents.close(),
-        autoResolveIssueEvents.close(),
-      ])
-
-      console.log("[Worker] All workers shut down successfully")
+      await workerService.shutdown()
       process.exit(0)
     })
   } catch (error) {

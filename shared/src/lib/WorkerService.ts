@@ -1,0 +1,195 @@
+import type {
+  WorkerPort,
+  WorkerConfig,
+  QueueConfig,
+  WorkerEvent,
+} from "@/core/ports/WorkerPort.js"
+
+export interface WorkerDefinition {
+  name: string
+  concurrency: number
+  processor: (job: any) => Promise<any>
+}
+
+export interface QueueDefinition {
+  name: string
+  defaultJobOptions?: {
+    attempts?: number
+    backoff?: {
+      type: "exponential" | "fixed"
+      delay: number
+    }
+    removeOnComplete?: number
+    removeOnFail?: number
+  }
+}
+
+export class WorkerService {
+  private workers: Map<string, any> = new Map()
+  private queues: Map<string, any> = new Map()
+  private eventListeners: Map<string, Array<(event: WorkerEvent) => void>> =
+    new Map()
+
+  constructor(private readonly workerPort: WorkerPort) {}
+
+  /**
+   * Start all workers with the provided configurations
+   * @param workerDefinitions Array of worker definitions
+   * @param queueDefinitions Array of queue definitions
+   */
+  async startWorkers(
+    workerDefinitions: WorkerDefinition[],
+    queueDefinitions: QueueDefinition[]
+  ): Promise<void> {
+    console.log("[WorkerService] Starting workers...")
+
+    try {
+      // Create queues first
+      for (const queueDef of queueDefinitions) {
+        const queue = await this.workerPort.createQueue({
+          name: queueDef.name,
+          defaultJobOptions: queueDef.defaultJobOptions,
+        })
+        this.queues.set(queueDef.name, queue)
+        console.log(`[WorkerService] Created queue: ${queueDef.name}`)
+      }
+
+      // Create workers
+      for (const workerDef of workerDefinitions) {
+        const worker = await this.workerPort.createWorker({
+          name: workerDef.name,
+          concurrency: workerDef.concurrency,
+          processor: workerDef.processor,
+        })
+
+        this.workers.set(workerDef.name, worker)
+
+        // Set up event listeners
+        this.setupWorkerEventListeners(worker, workerDef.name)
+
+        console.log(
+          `[WorkerService] Started worker: ${workerDef.name} (concurrency: ${workerDef.concurrency})`
+        )
+      }
+
+      console.log(`[WorkerService] All workers started successfully`)
+      console.log(`[WorkerService] Listening for jobs on queues:`)
+      for (const queueDef of queueDefinitions) {
+        console.log(`  - ${queueDef.name}`)
+      }
+    } catch (error) {
+      console.error("[WorkerService] Failed to start workers:", error)
+      throw error
+    }
+  }
+
+  /**
+   * Add a job to a specific queue
+   * @param queueName Name of the queue
+   * @param data Job data
+   * @param options Optional job options
+   * @returns Promise that resolves to the job ID
+   */
+  async addJob(
+    queueName: string,
+    data: Record<string, any>,
+    options?: Record<string, any>
+  ): Promise<string> {
+    return await this.workerPort.addJob(queueName, data, options)
+  }
+
+  /**
+   * Get job progress
+   * @param jobId Job ID
+   * @returns Promise that resolves to the job progress (0-100)
+   */
+  async getJobProgress(jobId: string): Promise<number> {
+    return await this.workerPort.getJobProgress(jobId)
+  }
+
+  /**
+   * Update job progress
+   * @param jobId Job ID
+   * @param progress Progress percentage (0-100)
+   */
+  async updateJobProgress(jobId: string, progress: number): Promise<void> {
+    await this.workerPort.updateJobProgress(jobId, progress)
+  }
+
+  /**
+   * Add event listener for worker events
+   * @param workerName Worker name
+   * @param callback Event callback function
+   */
+  onWorkerEvent(
+    workerName: string,
+    callback: (event: WorkerEvent) => void
+  ): void {
+    if (!this.eventListeners.has(workerName)) {
+      this.eventListeners.set(workerName, [])
+    }
+    this.eventListeners.get(workerName)!.push(callback)
+  }
+
+  /**
+   * Gracefully shutdown all workers and queues
+   */
+  async shutdown(): Promise<void> {
+    console.log("[WorkerService] Shutting down workers gracefully...")
+
+    try {
+      // Close all workers
+      const workerClosePromises = Array.from(this.workers.values()).map(
+        (worker) => this.workerPort.closeWorker(worker)
+      )
+
+      // Close all queues
+      const queueClosePromises = Array.from(this.queues.values()).map((queue) =>
+        this.workerPort.closeQueue(queue)
+      )
+
+      await Promise.all([...workerClosePromises, ...queueClosePromises])
+
+      this.workers.clear()
+      this.queues.clear()
+      this.eventListeners.clear()
+
+      console.log("[WorkerService] All workers shut down successfully")
+    } catch (error) {
+      console.error("[WorkerService] Error during shutdown:", error)
+      throw error
+    }
+  }
+
+  /**
+   * Set up event listeners for a worker
+   * @param worker Worker instance
+   * @param workerName Worker name
+   */
+  private setupWorkerEventListeners(worker: any, workerName: string): void {
+    const listeners = this.eventListeners.get(workerName) || []
+
+    // Set up completed event
+    this.workerPort.onWorkerEvent(worker, "completed", (event) => {
+      console.log(
+        `[WorkerService] Job ${event.jobId} completed in worker ${workerName}`
+      )
+      listeners.forEach((callback) => callback(event))
+    })
+
+    // Set up failed event
+    this.workerPort.onWorkerEvent(worker, "failed", (event) => {
+      console.error(
+        `[WorkerService] Job ${event.jobId} failed in worker ${workerName}:`,
+        event.error
+      )
+      listeners.forEach((callback) => callback(event))
+    })
+
+    // Set up error event
+    this.workerPort.onWorkerEvent(worker, "error", (event) => {
+      console.error(`[WorkerService] Worker ${workerName} error:`, event.error)
+      listeners.forEach((callback) => callback(event))
+    })
+  }
+}

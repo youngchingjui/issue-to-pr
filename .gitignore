@@ -10,7 +10,9 @@
 !.yarn/releases
 !.yarn/versions
 
-# service dependencies and build outputs
+# apps and shared dependencies and build outputs
+apps/*/node_modules
+apps/*/dist
 shared/node_modules
 shared/dist
 
