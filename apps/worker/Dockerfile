@@ -9,17 +9,17 @@ RUN npm install -g pnpm
 
 # Copy package manager files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml* ./
-COPY services/worker/package.json ./services/worker/
-COPY services/shared/package.json ./services/shared/
+COPY apps/worker/package.json ./apps/worker/
+COPY shared/package.json ./shared/
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
 # Copy shared library source
-COPY services/shared/ ./services/shared/
+COPY shared/ ./shared/
 
 # Copy worker source
-COPY services/worker/ ./services/worker/
+COPY apps/worker/ ./apps/worker/
 
 # Build shared library
 RUN pnpm --filter shared build
