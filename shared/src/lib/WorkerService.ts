@@ -3,7 +3,7 @@ import type {
   WorkerConfig,
   QueueConfig,
   WorkerEvent,
-} from "@/core/ports/WorkerPort.js"
+} from "@/core/ports/WorkerPort"
 
 export interface WorkerDefinition {
   name: string
