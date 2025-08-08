@@ -1,3 +1,4 @@
+import type { JobProgress } from "bullmq"
 import { Job, Queue, QueueEvents, Worker } from "bullmq"
 
 import type { RedisPort } from "@/core/ports/RedisPort"
@@ -34,7 +35,6 @@ export class BullMQAdapter implements WorkerPort {
     const worker = new Worker(
       config.name,
       async (job: Job) => {
-        // Convert BullMQ job to our abstract format
         const workerJob = {
           id: job.id!,
           data: job.data,
@@ -122,7 +122,7 @@ export class BullMQAdapter implements WorkerPort {
         break
 
       case "progress":
-        worker.on("progress", (job: Job, progress: number | object) => {
+        worker.on("progress", (job: Job, progress: JobProgress) => {
           callback({
             type: "progress",
             jobId: job.id!,
@@ -167,33 +167,22 @@ export class BullMQAdapter implements WorkerPort {
   }
 
   private async getBullMQConnectionOptions() {
-    // For BullMQ, we need to get the actual ioredis client
-    // We'll try to get it from the Redis adapter if it supports it
-    const redisConnection = await this.redisPort.getConnection()
-
-    // Check if the connection is already an ioredis instance
-    if (
-      redisConnection &&
-      typeof redisConnection === "object" &&
-      "options" in redisConnection
-    ) {
-      return redisConnection
+    // BullMQ requires an ioredis client. Enforce that the injected Redis adapter
+    // can provide the underlying ioredis client; otherwise fail fast so the
+    // application can compose the correct adapter at the composition root.
+    const redisPortMaybeAny = this.redisPort as unknown as {
+      getIORedisClient?: () => Promise<unknown>
     }
 
-    /*
-    TODO: I'm not sure I like this approach.
-    First of all, this is a BullMQAdapter. So it shouldn't rely on
-    other 3rd party libraries.
-    Probably better to just throw an error if the redis adapter doesn't have ioredis capability.
-    */
+    if (
+      redisPortMaybeAny &&
+      typeof redisPortMaybeAny.getIORedisClient === "function"
+    ) {
+      return await redisPortMaybeAny.getIORedisClient()
+    }
 
-    // If the Redis adapter doesn't provide ioredis directly, we need to create one
-    // This is a limitation of BullMQ - it requires ioredis specifically
-    const Redis = await import("ioredis")
-    const url = process.env.REDIS_URL || "redis://localhost:6379"
-    return new Redis.default(url, {
-      maxRetriesPerRequest: 3,
-      lazyConnect: true,
-    })
+    throw new Error(
+      "BullMQAdapter requires an ioredis client. Please compose BullMQAdapter with an ioredis-backed Redis adapter (e.g., RedisAdapter from shared/src/adapters/ioredis-adapter)."
+    )
   }
 }

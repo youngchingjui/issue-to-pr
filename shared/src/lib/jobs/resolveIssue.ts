@@ -12,8 +12,7 @@ export interface ResolveIssueJobData {
 export async function processResolveIssue(
   job: WorkerJobData
 ): Promise<WorkerJobResult> {
-  const { issueNumber, repoFullName, jobId, createPR } =
-    job.data as ResolveIssueJobData
+  const { issueNumber, repoFullName, jobId, createPR } = job.data
 
   try {
     console.log(

@@ -1,12 +1,11 @@
-import { WorkerService } from "@/shared/lib/WorkerService"
 import { BullMQAdapter } from "@/shared/adapters/BullMQAdapter"
-import { RedisAdapterFactory } from "@/shared/adapters/redis-adapter-factory"
-import { createRedisService } from "@/shared/lib/redis"
-
+import { RedisAdapter } from "@/shared/adapters/ioredis-adapter"
 // TODO: These should be called "/shared/lib/workflows/autoResolveIssue" etc.
 import { processAutoResolveIssue } from "@/shared/lib/jobs/autoResolveIssue"
 import { processCommentOnIssue } from "@/shared/lib/jobs/commentOnIssue"
 import { processResolveIssue } from "@/shared/lib/jobs/resolveIssue"
+import { createRedisService } from "@/shared/lib/redis"
+import { WorkerService } from "@/shared/lib/WorkerService"
 
 // Queue names
 const QUEUE_NAMES = {
@@ -19,9 +18,9 @@ async function startWorker() {
   console.log("[Worker] Starting issue-to-pr background worker...")
 
   try {
-    // Create Redis adapter using factory
-    const redisAdapter = RedisAdapterFactory.createAdapter()
-    console.log("[Worker] Connected to Redis")
+    // Create Redis adapter explicitly using ioredis for BullMQ compatibility
+    const redisAdapter = new RedisAdapter()
+    console.log("[Worker] Connected to Redis (ioredis)")
 
     // Create Redis service using dependency injection
     const redisService = createRedisService(redisAdapter)

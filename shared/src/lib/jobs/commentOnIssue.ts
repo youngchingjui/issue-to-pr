@@ -12,8 +12,7 @@ export interface CommentOnIssueJobData {
 export async function processCommentOnIssue(
   job: WorkerJobData
 ): Promise<WorkerJobResult> {
-  const { issueNumber, repoFullName, jobId, postToGithub } =
-    job.data as CommentOnIssueJobData
+  const { issueNumber, repoFullName, jobId, postToGithub } = job.data
 
   try {
     console.log(
