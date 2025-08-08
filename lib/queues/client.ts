@@ -1,15 +1,12 @@
 import { Queue } from "bullmq"
-
 import {
   AutoResolveIssueJobData,
-  CommentOnIssueJobData,
-} from "@/services/shared/dist"
-import {
   autoResolveIssueJobDataSchema,
+  CommentOnIssueJobData,
   commentOnIssueJobDataSchema,
   ResolveIssueJobData,
   resolveIssueJobDataSchema,
-} from "@/services/shared/src/types"
+} from "shared"
 
 // Queue names (must match worker)
 export const QUEUE_NAMES = {
@@ -165,4 +162,101 @@ export async function getJobStatus(queueName: string, jobId: string) {
     failedReason: job.failedReason,
     returnvalue: job.returnvalue,
   }
+}
+
+type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES]
+
+async function getQueueByName(queueName: QueueName): Promise<Queue> {
+  switch (queueName) {
+    case QUEUE_NAMES.RESOLVE_ISSUE:
+      return await getResolveIssueQueue()
+    case QUEUE_NAMES.COMMENT_ON_ISSUE:
+      return await getCommentOnIssueQueue()
+    case QUEUE_NAMES.AUTO_RESOLVE_ISSUE:
+      return await getAutoResolveIssueQueue()
+    default:
+      throw new Error(`Unknown queue: ${queueName}`)
+  }
+}
+
+export async function getQueueCounts(queueName: QueueName) {
+  const queue = await getQueueByName(queueName)
+  const counts = await queue.getJobCounts(
+    "waiting",
+    "active",
+    "completed",
+    "failed",
+    "delayed"
+  )
+  return counts
+}
+
+export async function getActiveJobs(queueName: QueueName, limit = 20) {
+  const queue = await getQueueByName(queueName)
+  const jobs = await queue.getJobs(["active"], 0, limit)
+  return jobs.map((job) => ({
+    id: job.id,
+    name: job.name,
+    progress: job.progress,
+    data: job.data,
+    timestamp: job.timestamp,
+    processedOn: job.processedOn,
+  }))
+}
+
+export async function getRecentJobs(
+  queueName: QueueName,
+  types: Array<"completed" | "failed"> = ["completed", "failed"],
+  limit = 20
+) {
+  const queue = await getQueueByName(queueName)
+  const jobs = await queue.getJobs(types, 0, limit)
+  return jobs.map((job) => ({
+    id: job.id,
+    name: job.name,
+    failedReason: job.failedReason,
+    returnvalue: job.returnvalue,
+    finishedOn: job.finishedOn,
+    data: job.data,
+  }))
+}
+
+export async function getWorkers(queueName: QueueName) {
+  const queue = await getQueueByName(queueName)
+  // BullMQ returns worker info objects connected to this queue
+  // Shape can vary by BullMQ version; expose raw info for UI
+  const workers = await queue.getWorkers()
+  return workers
+}
+
+export async function getAllQueuesStatus() {
+  const names: QueueName[] = [
+    QUEUE_NAMES.RESOLVE_ISSUE,
+    QUEUE_NAMES.COMMENT_ON_ISSUE,
+    QUEUE_NAMES.AUTO_RESOLVE_ISSUE,
+  ]
+
+  const results = await Promise.all(
+    names.map(async (name) => {
+      const [counts, activeJobs, recentCompleted, recentFailed, workers] =
+        await Promise.all([
+          getQueueCounts(name),
+          getActiveJobs(name, 20),
+          getRecentJobs(name, ["completed"], 10),
+          getRecentJobs(name, ["failed"], 10),
+          getWorkers(name),
+        ])
+
+      return {
+        name,
+        counts,
+        activeJobs,
+        recentCompleted,
+        recentFailed,
+        workers,
+      }
+    })
+  )
+
+  return results
 }

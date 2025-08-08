@@ -1,7 +1,8 @@
-import { Repository } from "@/core/entities/Repository"
-import type { RepositoryPort } from "@/core/ports/RepositoryPort"
-import type { FileSystemPort } from "@/core/ports/FileSystemPort"
 import type { Octokit } from "octokit"
+
+import { Repository } from "@/core/entities/Repository"
+import type { FileSystemPort } from "@/core/ports/FileSystemPort"
+import type { RepositoryPort } from "@/core/ports/RepositoryPort"
 
 export class RepositoryAdapter implements RepositoryPort {
   constructor(

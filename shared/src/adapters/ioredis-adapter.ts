@@ -1,11 +1,11 @@
 import Redis from "ioredis"
 
+import type { IORedisPort } from "@/core/ports/IORedisPort"
 import {
   RedisConnection,
   RedisPort,
   RedisSubscription,
-} from "@/core/ports/RedisPort.js"
-import type { IORedisPort } from "@/core/ports/IORedisPort"
+} from "@/core/ports/RedisPort"
 
 /**
  * Wrapper class that adapts ioredis to our abstract RedisConnection interface

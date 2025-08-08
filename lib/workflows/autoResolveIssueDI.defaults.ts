@@ -10,6 +10,13 @@
 // In adding this to the code base at the moment.
 // We will definitely need this, so we need to find a way to save this in another branch to be reviewed later.
 
+import { RepositoryService } from "shared"
+import {
+  AuthenticationAdapter,
+  FileSystemAdapter,
+  GitAdapter,
+  RepositoryAdapter,
+} from "shared"
 import { v4 as uuidv4 } from "uuid"
 
 import { auth } from "@/auth"
@@ -30,13 +37,6 @@ import {
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
 import { getInstallationId } from "@/lib/utils/utils-server"
-import {
-  AuthenticationAdapter,
-  FileSystemAdapter,
-  GitAdapter,
-  RepositoryAdapter,
-} from "@/shared/src/adapters/index.js"
-import { RepositoryService } from "@/shared/src/lib/RepositoryService.js"
 
 import type {
   AgentFactory,

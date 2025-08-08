@@ -9,11 +9,15 @@
     "shared/"
   ],
   "scripts": {
-    "predev": "./scripts/start-services.sh && pnpm i",
+    "predev": "./scripts/start-services.sh && pnpm build:shared && pnpm i",
     "dev": "next dev",
+    "dev:worker": "pnpm --filter worker dev",
     "prestart": "./scripts/start-services.sh",
     "start": "next start",
+    "start:worker": "pnpm --filter worker start",
     "build": "next build",
+    "build:shared": "pnpm --filter shared build",
+    "build:all": "pnpm --filter \"*\" build",
     "analyze": "ANALYZE=true next build",
     "lint": "next lint",
     "lint:eslint": "next lint",
@@ -26,9 +30,6 @@
     "test:components": "jest --selectProjects dom",
     "test:node": "jest --selectProjects node",
     "test:agent": "NODE_OPTIONS='--experimental-vm-modules' jest -c __tests__/config/jest.config.agent.ts",
-    "dev:worker": "pnpm --filter worker dev",
-    "build:all": "pnpm --filter \"*\" build",
-    "start:worker": "pnpm --filter worker start",
     "tsc:watch": "tsc --build --watch"
   },
   "dependencies": {
@@ -82,6 +83,7 @@
     "react-hook-form": "7",
     "react-markdown": "^10.1.0",
     "redis": "^4.7.0",
+    "shared": "workspace:*",
     "simple-git": "^3.27.0",
     "swr": "^2.3.4",
     "tailwind-merge": "^2.6.0",

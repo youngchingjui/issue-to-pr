@@ -4,8 +4,7 @@
     "paths": {
       "@/styles/*": ["styles/*"],
       "@/components/*": ["components/*"],
-      "@/*": ["./*"],
-      "@/shared/*": ["shared/src/*"]
+      "@/*": ["./*"]
     },
     "target": "ES2017",
     "lib": ["dom", "dom.iterable", "esnext"],
@@ -18,7 +17,7 @@
     "incremental": true,
     "module": "esnext",
     "esModuleInterop": true,
-    "moduleResolution": "node10",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
@@ -32,5 +31,12 @@
   },
   "include": ["**/*", ".next/types/**/*.ts"],
   "exclude": ["node_modules"],
-  "references": [{ "path": "./shared" }, { "path": "./apps/worker" }]
+  "references": [
+    {
+      "path": "./shared"
+    },
+    {
+      "path": "./apps/worker"
+    }
+  ]
 }
