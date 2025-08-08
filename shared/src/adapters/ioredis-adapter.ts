@@ -5,6 +5,7 @@ import {
   RedisPort,
   RedisSubscription,
 } from "@/core/ports/RedisPort.js"
+import type { IORedisPort } from "@/core/ports/IORedisPort"
 
 /**
  * Wrapper class that adapts ioredis to our abstract RedisConnection interface
@@ -75,7 +76,7 @@ class IORedisConnectionAdapter implements RedisConnection {
   }
 }
 
-export class RedisAdapter implements RedisPort {
+export class RedisAdapter implements RedisPort, IORedisPort {
   private client: Redis | null = null
   private readonly url: string
 

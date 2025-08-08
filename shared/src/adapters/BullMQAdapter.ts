@@ -1,7 +1,8 @@
 import type { JobProgress } from "bullmq"
 import { Job, Queue, QueueEvents, Worker } from "bullmq"
+import type Redis from "ioredis"
 
-import type { RedisPort } from "@/core/ports/RedisPort"
+import type { IORedisPort } from "@/core/ports/IORedisPort"
 import type {
   QueueConfig,
   WorkerConfig,
@@ -15,7 +16,7 @@ export class BullMQAdapter implements WorkerPort {
   private workers: Map<string, Worker> = new Map()
   private queueEvents: Map<string, QueueEvents> = new Map()
 
-  constructor(private readonly redisPort: RedisPort) {}
+  constructor(private readonly redisPort: IORedisPort) {}
 
   async createQueue(config: QueueConfig): Promise<Queue> {
     const connectionOptions = await this.getBullMQConnectionOptions()
@@ -166,23 +167,7 @@ export class BullMQAdapter implements WorkerPort {
     this.queueEvents.clear()
   }
 
-  private async getBullMQConnectionOptions() {
-    // BullMQ requires an ioredis client. Enforce that the injected Redis adapter
-    // can provide the underlying ioredis client; otherwise fail fast so the
-    // application can compose the correct adapter at the composition root.
-    const redisPortMaybeAny = this.redisPort as unknown as {
-      getIORedisClient?: () => Promise<unknown>
-    }
-
-    if (
-      redisPortMaybeAny &&
-      typeof redisPortMaybeAny.getIORedisClient === "function"
-    ) {
-      return await redisPortMaybeAny.getIORedisClient()
-    }
-
-    throw new Error(
-      "BullMQAdapter requires an ioredis client. Please compose BullMQAdapter with an ioredis-backed Redis adapter (e.g., RedisAdapter from shared/src/adapters/ioredis-adapter)."
-    )
+  private async getBullMQConnectionOptions(): Promise<Redis> {
+    return await this.redisPort.getIORedisClient()
   }
 }
