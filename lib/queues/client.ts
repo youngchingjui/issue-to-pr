@@ -1,19 +1,20 @@
+// TODO: Since this imports bullmq, this is probably a server script that requires nodejs.
+// Probalby need to add 'use server' to it.
+// Probably also need to find a better place to put this, depending on how it's used in our code architecture.
+// We have some documentation that describes how we want to organize code.
+
+"use server"
 import { Queue } from "bullmq"
 import {
   AutoResolveIssueJobData,
   autoResolveIssueJobDataSchema,
   CommentOnIssueJobData,
   commentOnIssueJobDataSchema,
+  QUEUE_NAMES,
+  type QueueName,
   ResolveIssueJobData,
   resolveIssueJobDataSchema,
 } from "shared"
-
-// Queue names (must match worker)
-export const QUEUE_NAMES = {
-  RESOLVE_ISSUE: "resolve-issue",
-  COMMENT_ON_ISSUE: "comment-on-issue",
-  AUTO_RESOLVE_ISSUE: "auto-resolve-issue",
-} as const
 
 // Queue instances
 let resolveIssueQueue: Queue | null = null
@@ -163,8 +164,6 @@ export async function getJobStatus(queueName: string, jobId: string) {
     returnvalue: job.returnvalue,
   }
 }
-
-type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES]
 
 async function getQueueByName(queueName: QueueName): Promise<Queue> {
   switch (queueName) {

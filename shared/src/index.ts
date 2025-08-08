@@ -14,17 +14,27 @@ export type {
   WorkerJobResult,
   WorkerPort,
 } from "./core/ports/WorkerPort"
-export type { AutoResolveIssueJobData } from "./lib/jobs/autoResolveIssue"
 export { processAutoResolveIssue } from "./lib/jobs/autoResolveIssue"
-export type { CommentOnIssueJobData } from "./lib/jobs/commentOnIssue"
 export { processCommentOnIssue } from "./lib/jobs/commentOnIssue"
-export type { ResolveIssueJobData } from "./lib/jobs/resolveIssue"
 export { processResolveIssue } from "./lib/jobs/resolveIssue"
 export { createRedisService, RedisService } from "./lib/redis"
 export { RepositoryService } from "./lib/RepositoryService"
+export type {
+  AutoResolveIssueJobData,
+  CommentOnIssueJobData,
+  EnqueueErrorResponse,
+  EnqueueRequest,
+  EnqueueResponse,
+  QueueName,
+  ResolveIssueJobData,
+} from "./lib/schemas"
 export {
   autoResolveIssueJobDataSchema,
   commentOnIssueJobDataSchema,
+  enqueueErrorResponseSchema,
+  enqueueRequestSchema,
+  enqueueResponseSchema,
+  QUEUE_NAMES,
   resolveIssueJobDataSchema,
 } from "./lib/schemas"
 export type { QueueDefinition, WorkerDefinition } from "./lib/WorkerService"

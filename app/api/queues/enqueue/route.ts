@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import {
-  AutoResolveIssueJobData,
-  CommentOnIssueJobData,
-  ResolveIssueJobData,
+  type EnqueueErrorResponse,
+  enqueueErrorResponseSchema,
+  type EnqueueRequest,
+  enqueueRequestSchema,
+  type EnqueueResponse,
+  enqueueResponseSchema,
+  QUEUE_NAMES,
 } from "shared"
 import { z } from "zod"
 
@@ -10,54 +14,13 @@ import {
   enqueueAutoResolveIssue,
   enqueueCommentOnIssue,
   enqueueResolveIssue,
-  QUEUE_NAMES,
 } from "@/lib/queues/client"
 
-export const EnqueueRequestSchema = z.object({
-  queueName: z.enum([
-    QUEUE_NAMES.RESOLVE_ISSUE,
-    QUEUE_NAMES.COMMENT_ON_ISSUE,
-    QUEUE_NAMES.AUTO_RESOLVE_ISSUE,
-  ]),
-  data: z.union([
-    z
-      .object({
-        issueNumber: z.number(),
-        repoFullName: z.string(),
-        jobId: z.string(),
-        createPR: z.boolean(),
-      })
-      .transform((data) => data),
-    z
-      .object({
-        issueNumber: z.number(),
-        repoFullName: z.string(),
-        jobId: z.string(),
-        postToGithub: z.boolean(),
-      })
-      .transform((data) => data),
-    z
-      .object({
-        issueNumber: z.number(),
-        repoFullName: z.string(),
-        jobId: z.string(),
-      })
-      .transform((data) => data),
-  ]),
-})
-
-export const EnqueueResponseSchema = z.object({
-  jobId: z.string(),
-})
-
-export const EnqueueErrorResponseSchema = z.object({
-  error: z.string(),
-  details: z.any().optional(),
-})
-
-export type EnqueueRequest = z.infer<typeof EnqueueRequestSchema>
-export type EnqueueResponse = z.infer<typeof EnqueueResponseSchema>
-export type EnqueueErrorResponse = z.infer<typeof EnqueueErrorResponseSchema>
+// Re-export schemas for API route [[memory:5566472]]
+export const EnqueueRequestSchema = enqueueRequestSchema
+export const EnqueueResponseSchema = enqueueResponseSchema
+export const EnqueueErrorResponseSchema = enqueueErrorResponseSchema
+export type { EnqueueErrorResponse, EnqueueRequest, EnqueueResponse }
 
 export const dynamic = "force-dynamic"
 

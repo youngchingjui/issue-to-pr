@@ -1,6 +1,12 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import {
+  enqueueErrorResponseSchema,
+  type EnqueueRequest,
+  enqueueResponseSchema,
+} from "shared"
+import { QUEUE_NAMES, type QueueName } from "shared"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,14 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-
-const QUEUE_NAMES = {
-  RESOLVE_ISSUE: "resolve-issue",
-  COMMENT_ON_ISSUE: "comment-on-issue",
-  AUTO_RESOLVE_ISSUE: "auto-resolve-issue",
-} as const
-
-type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES]
 
 type QueueCounts = {
   waiting?: number
@@ -87,28 +85,61 @@ export default function WorkerDashboardCard() {
   const handleEnqueue = useCallback(async () => {
     setPosting(true)
     try {
-      const dataBase = {
+      const baseJobData = {
         issueNumber: Number(issueNumber) || 123,
         repoFullName,
         jobId: crypto.randomUUID(),
       }
-      let data: any = dataBase
-      if (queueName === QUEUE_NAMES.RESOLVE_ISSUE) {
-        data = { ...dataBase, createPR: true }
-      } else if (queueName === QUEUE_NAMES.COMMENT_ON_ISSUE) {
-        data = { ...dataBase, postToGithub: false }
+
+      // Construct request body according to the API schema
+      let requestBody: EnqueueRequest
+      switch (queueName) {
+        case QUEUE_NAMES.RESOLVE_ISSUE:
+          requestBody = {
+            queueName: QUEUE_NAMES.RESOLVE_ISSUE,
+            data: { ...baseJobData, createPR: true },
+          }
+          break
+        case QUEUE_NAMES.COMMENT_ON_ISSUE:
+          requestBody = {
+            queueName: QUEUE_NAMES.COMMENT_ON_ISSUE,
+            data: { ...baseJobData, postToGithub: false },
+          }
+          break
+        case QUEUE_NAMES.AUTO_RESOLVE_ISSUE:
+          requestBody = {
+            queueName: QUEUE_NAMES.AUTO_RESOLVE_ISSUE,
+            data: baseJobData,
+          }
+          break
+        default:
+          throw new Error(`Unknown queue name: ${queueName}`)
       }
 
       const res = await fetch("/api/queues/enqueue", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ queueName, data }),
+        body: JSON.stringify(requestBody),
       })
-      const json = await res.json()
+
       if (res.ok) {
-        setJobId(json.jobId)
+        const responseJson = await res.json()
+        const parseResult = enqueueResponseSchema.safeParse(responseJson)
+
+        if (parseResult.success) {
+          setJobId(parseResult.data.jobId)
+        } else {
+          console.error("Invalid response format:", parseResult.error)
+        }
       } else {
-        console.error(json)
+        const errorJson = await res.json()
+        const parseResult = enqueueErrorResponseSchema.safeParse(errorJson)
+
+        if (parseResult.success) {
+          console.error("Enqueue failed:", parseResult.data)
+        } else {
+          console.error("Enqueue failed with invalid error format:", errorJson)
+        }
       }
     } finally {
       setPosting(false)
@@ -214,19 +245,26 @@ export default function WorkerDashboardCard() {
                       No workers reported
                     </div>
                   ) : (
-                    q.workers.map((w: any, idx: number) => (
-                      <div key={idx} className="rounded bg-muted p-2">
-                        <div className="flex justify-between">
-                          <span>{w.name || w.id || "worker"}</span>
-                          <span>concurrency: {w.concurrency ?? "-"}</span>
-                        </div>
-                        {w.processed ? (
-                          <div className="text-muted-foreground">
-                            processed: {w.processed}
+                    q.workers.map((w: unknown, idx: number) => {
+                      const worker = w as Record<string, unknown>
+                      return (
+                        <div key={idx} className="rounded bg-muted p-2">
+                          <div className="flex justify-between">
+                            <span>
+                              {String(worker.name || worker.id || "worker")}
+                            </span>
+                            <span>
+                              concurrency: {String(worker.concurrency ?? "-")}
+                            </span>
                           </div>
-                        ) : null}
-                      </div>
-                    ))
+                          {worker.processed ? (
+                            <div className="text-muted-foreground">
+                              processed: {String(worker.processed)}
+                            </div>
+                          ) : null}
+                        </div>
+                      )
+                    })
                   )}
                 </div>
               </div>
@@ -237,17 +275,23 @@ export default function WorkerDashboardCard() {
                   {q.recentCompleted.length === 0 ? (
                     <div className="text-muted-foreground">None</div>
                   ) : (
-                    q.recentCompleted.map((j: any) => (
-                      <div key={j.id} className="rounded bg-muted p-2">
-                        <div className="flex justify-between">
-                          <span>#{j.id}</span>
-                          <span>done</span>
+                    q.recentCompleted.map((j: unknown) => {
+                      const job = j as Record<string, unknown>
+                      return (
+                        <div
+                          key={String(job.id)}
+                          className="rounded bg-muted p-2"
+                        >
+                          <div className="flex justify-between">
+                            <span>#{String(job.id)}</span>
+                            <span>done</span>
+                          </div>
+                          <div className="truncate text-muted-foreground">
+                            {JSON.stringify(job.returnvalue ?? job.data)}
+                          </div>
                         </div>
-                        <div className="truncate text-muted-foreground">
-                          {JSON.stringify(j.returnvalue ?? j.data)}
-                        </div>
-                      </div>
-                    ))
+                      )
+                    })
                   )}
                 </div>
               </div>
@@ -258,17 +302,23 @@ export default function WorkerDashboardCard() {
                   {q.recentFailed.length === 0 ? (
                     <div className="text-muted-foreground">None</div>
                   ) : (
-                    q.recentFailed.map((j: any) => (
-                      <div key={j.id} className="rounded bg-muted p-2">
-                        <div className="flex justify-between">
-                          <span>#{j.id}</span>
-                          <span>failed</span>
+                    q.recentFailed.map((j: unknown) => {
+                      const job = j as Record<string, unknown>
+                      return (
+                        <div
+                          key={String(job.id)}
+                          className="rounded bg-muted p-2"
+                        >
+                          <div className="flex justify-between">
+                            <span>#{String(job.id)}</span>
+                            <span>failed</span>
+                          </div>
+                          <div className="truncate text-muted-foreground">
+                            {String(job.failedReason)}
+                          </div>
                         </div>
-                        <div className="truncate text-muted-foreground">
-                          {j.failedReason}
-                        </div>
-                      </div>
-                    ))
+                      )
+                    })
                   )}
                 </div>
               </div>
