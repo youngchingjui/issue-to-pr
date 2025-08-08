@@ -1,12 +1,13 @@
-import { Queue, Worker, QueueEvents, Job } from "bullmq"
+import { Job, Queue, QueueEvents, Worker } from "bullmq"
+
+import type { RedisPort } from "@/core/ports/RedisPort"
 import type {
-  WorkerPort,
-  WorkerConfig,
   QueueConfig,
+  WorkerConfig,
   WorkerEvent,
   WorkerEventType,
+  WorkerPort,
 } from "@/core/ports/WorkerPort"
-import type { RedisPort } from "@/core/ports/RedisPort"
 
 export class BullMQAdapter implements WorkerPort {
   private queues: Map<string, Queue> = new Map()

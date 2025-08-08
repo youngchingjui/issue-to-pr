@@ -1,5 +1,6 @@
-import type { AuthenticationPort } from "@/core/ports/AuthenticationPort"
 import type { Octokit } from "octokit"
+
+import type { AuthenticationPort } from "@/core/ports/AuthenticationPort"
 
 // Define session type based on NextAuth structure
 interface AuthSession {
