@@ -5,7 +5,7 @@
  */
 export interface WorkerJobData {
   id: string
-  data: Record<string, any>
+  data: Record<string, unknown>
   progress?: number
 }
 
@@ -14,7 +14,7 @@ export interface WorkerJobData {
  */
 export interface WorkerJobResult {
   success: boolean
-  data?: Record<string, any>
+  data?: Record<string, unknown>
   error?: string
 }
 
@@ -29,7 +29,7 @@ export type WorkerEventType = "completed" | "failed" | "progress" | "error"
 export interface WorkerEvent {
   type: WorkerEventType
   jobId?: string
-  data?: any
+  data?: unknown
   error?: Error
 }
 
@@ -68,14 +68,14 @@ export interface WorkerPort {
    * @param config Queue configuration
    * @returns Promise that resolves to a queue instance
    */
-  createQueue(config: QueueConfig): Promise<any>
+  createQueue(config: QueueConfig): Promise<unknown>
 
   /**
    * Create a worker
    * @param config Worker configuration
    * @returns Promise that resolves to a worker instance
    */
-  createWorker(config: WorkerConfig): Promise<any>
+  createWorker(config: WorkerConfig): Promise<unknown>
 
   /**
    * Add a job to a queue
@@ -86,8 +86,8 @@ export interface WorkerPort {
    */
   addJob(
     queueName: string,
-    data: Record<string, any>,
-    options?: Record<string, any>
+    data: Record<string, unknown>,
+    options?: Record<string, unknown>
   ): Promise<string>
 
   /**
@@ -112,7 +112,7 @@ export interface WorkerPort {
    * @param callback Event callback function
    */
   onWorkerEvent(
-    worker: any,
+    worker: unknown,
     eventType: WorkerEventType,
     callback: (event: WorkerEvent) => void
   ): void
@@ -122,14 +122,14 @@ export interface WorkerPort {
    * @param worker Worker instance
    * @returns Promise that resolves when worker is closed
    */
-  closeWorker(worker: any): Promise<void>
+  closeWorker(worker: unknown): Promise<void>
 
   /**
    * Close a queue
    * @param queue Queue instance
    * @returns Promise that resolves when queue is closed
    */
-  closeQueue(queue: any): Promise<void>
+  closeQueue(queue: unknown): Promise<void>
 
   /**
    * Close all workers and queues

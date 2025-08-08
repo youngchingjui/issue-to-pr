@@ -63,8 +63,8 @@ export class BullMQAdapter implements WorkerPort {
 
   async addJob(
     queueName: string,
-    data: Record<string, any>,
-    options?: Record<string, any>
+    data: Record<string, unknown>,
+    options?: Record<string, unknown>
   ): Promise<string> {
     const queue = this.queues.get(queueName)
     if (!queue) {
@@ -122,7 +122,7 @@ export class BullMQAdapter implements WorkerPort {
         break
 
       case "progress":
-        worker.on("progress", (job: Job, progress: any) => {
+        worker.on("progress", (job: Job, progress: number | object) => {
           callback({
             type: "progress",
             jobId: job.id!,
@@ -166,7 +166,7 @@ export class BullMQAdapter implements WorkerPort {
     this.queueEvents.clear()
   }
 
-  private async getBullMQConnectionOptions(): Promise<any> {
+  private async getBullMQConnectionOptions() {
     // For BullMQ, we need to get the actual ioredis client
     // We'll try to get it from the Redis adapter if it supports it
     const redisConnection = await this.redisPort.getConnection()
@@ -179,6 +179,13 @@ export class BullMQAdapter implements WorkerPort {
     ) {
       return redisConnection
     }
+
+    /*
+    TODO: I'm not sure I like this approach.
+    First of all, this is a BullMQAdapter. So it shouldn't rely on
+    other 3rd party libraries.
+    Probably better to just throw an error if the redis adapter doesn't have ioredis capability.
+    */
 
     // If the Redis adapter doesn't provide ioredis directly, we need to create one
     // This is a limitation of BullMQ - it requires ioredis specifically

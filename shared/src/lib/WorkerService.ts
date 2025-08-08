@@ -1,14 +1,17 @@
-import type {
-  WorkerPort,
-  WorkerConfig,
-  QueueConfig,
-  WorkerEvent,
-} from "@/core/ports/WorkerPort"
+import type { WorkerEvent, WorkerPort } from "@/core/ports/WorkerPort"
 
 export interface WorkerDefinition {
   name: string
   concurrency: number
-  processor: (job: any) => Promise<any>
+  processor: (job: {
+    id: string
+    data: Record<string, unknown>
+    progress?: number
+  }) => Promise<{
+    success: boolean
+    data?: Record<string, unknown>
+    error?: string
+  }>
 }
 
 export interface QueueDefinition {
@@ -25,8 +28,8 @@ export interface QueueDefinition {
 }
 
 export class WorkerService {
-  private workers: Map<string, any> = new Map()
-  private queues: Map<string, any> = new Map()
+  private workers: Map<string, unknown> = new Map()
+  private queues: Map<string, unknown> = new Map()
   private eventListeners: Map<string, Array<(event: WorkerEvent) => void>> =
     new Map()
 
@@ -92,8 +95,8 @@ export class WorkerService {
    */
   async addJob(
     queueName: string,
-    data: Record<string, any>,
-    options?: Record<string, any>
+    data: Record<string, unknown>,
+    options?: Record<string, unknown>
   ): Promise<string> {
     return await this.workerPort.addJob(queueName, data, options)
   }
@@ -166,7 +169,7 @@ export class WorkerService {
    * @param worker Worker instance
    * @param workerName Worker name
    */
-  private setupWorkerEventListeners(worker: any, workerName: string): void {
+  private setupWorkerEventListeners(worker: unknown, workerName: string): void {
     const listeners = this.eventListeners.get(workerName) || []
 
     // Set up completed event
