@@ -13,20 +13,26 @@ import { z } from "zod"
 
 import { getRepoFromString } from "@/lib/github/content"
 import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
-import { CommentRequestSchema } from "@/lib/schemas/api"
 import commentOnIssue from "@/lib/workflows/commentOnIssue"
+
+import {
+  type CommentErrorResponse,
+  CommentRequestSchema,
+  type CommentResponse,
+} from "./schemas"
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { issueNumber, repoFullName, postToGithub } =
       CommentRequestSchema.parse(body)
+
     const apiKey = await getUserOpenAIApiKey()
     if (!apiKey) {
-      return NextResponse.json(
-        { error: "Missing OpenAI API key" },
-        { status: 401 }
-      )
+      const errorResponse: CommentErrorResponse = {
+        error: "Missing OpenAI API key",
+      }
+      return NextResponse.json(errorResponse, { status: 401 })
     }
 
     // Generate a unique job ID
@@ -51,20 +57,20 @@ export async function POST(request: NextRequest) {
     })()
 
     // Immediately return the job ID to the client
-    return NextResponse.json({ jobId })
+    const response: CommentResponse = { jobId }
+    return NextResponse.json(response)
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          error: "Invalid request data",
-          details: error.errors,
-        },
-        { status: 400 }
-      )
+      const errorResponse: CommentErrorResponse = {
+        error: "Invalid request data",
+        details: error.errors,
+      }
+      return NextResponse.json(errorResponse, { status: 400 })
     }
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    )
+
+    const errorResponse: CommentErrorResponse = {
+      error: "Internal server error",
+    }
+    return NextResponse.json(errorResponse, { status: 500 })
   }
 }

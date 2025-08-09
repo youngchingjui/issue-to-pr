@@ -3,13 +3,11 @@
 import { useState } from "react"
 import { z } from "zod"
 
+import { FetchGitHubItemRequestSchema } from "@/app/api/github/fetch/route"
 import GitHubItemDetails from "@/components/contribute/GitHubItemDetails"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  FetchGitHubItemRequestSchema,
-  GitHubURLSchema,
-} from "@/lib/schemas/api"
+import { GitHubURLSchema } from "@/lib/schemas/api"
 import { GitHubItem, WorkflowType } from "@/lib/types/github"
 
 interface ErrorResponse {

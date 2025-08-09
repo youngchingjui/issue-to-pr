@@ -18,9 +18,12 @@ For more information about running with Docker, see [docker/README.md](./docker/
 
 For detailed documentation, please visit:
 
+// TODO: Actually we already have a architecture document. The code-architeure document then seems a bit duplicated.
+// We should review both documents, identify what's still relevant (the architecture.md doc will be a bit outdated), and combine them to just `architectured.md`.
+
 - [Getting Started Guide](docs/setup/getting-started.md)
-- [Architecture Overview](docs/guides/architecture.md)
-- [API Documentation](docs/api/README.md)
+- [System Architecture Overview](docs/guides/architecture.md)
+- [Clean Architecture (Layers, Ports & Adapters)](docs/code-architecture.md)
 - [Component Documentation](docs/components/README.md)
 
 ## Quick Start
@@ -29,26 +32,20 @@ For detailed documentation, please visit:
 
 Before you begin, ensure you have the following installed:
 
-- Node.js (version 14 or later)
-- pnpm (required) - We use pnpm for its significant advantages:
+- Node.js (version 24 or later)
+- pnpm (preferred) - We use pnpm for its significant advantages:
   - Much faster installation than npm
   - Efficient disk space usage through content-addressable storage
   - Strict dependency management preventing phantom dependencies
   - Dramatically improved CI/CD build times
-- Redis server
+- docker
 
 For detailed setup instructions, see our [Getting Started Guide](docs/setup/getting-started.md).
 
 ### Environment Variables
 
+// TODO: Create a `.env.sample` file that maps to our latest env variables.
 Create a `.env.local` file in the root of your project. See [Configuration Guide](docs/setup/getting-started.md#configuration) for all available options.
-
-Basic configuration:
-
-```env
-AUTH_GITHUB_ID=your_github_client_id
-AUTH_GITHUB_SECRET=your_github_client_secret
-```
 
 ### Development Quick Start
 
@@ -75,15 +72,11 @@ For detailed feature documentation, see our [User Guide](docs/guides/user-guide.
 
 ---
 
-## Setting your OpenAI API key
-
-Some features require your own OpenAI API key. You can set it on the app's Settings page. This key is stored only in your browser, not on our servers. For instructions, go to **Settings → OpenAI API Key** after logging in.
-
----
-
 ## Continuous Integration
 
 Jest tests are now automatically run on every PR and push via GitHub Actions. PRs will show a 'Checks' status based on test results.
+
+// TODO: Just put this whole testing section in table of contents and link to the document.
 
 ## Testing
 
@@ -108,7 +101,3 @@ For more detailed testing information, see [**tests**/README.md](./__tests__/REA
 ## Contributing
 
 Please read our [Contributing Guide](docs/guides/contributing.md) for details on our code of conduct and development process.
-
-## Server Actions
-
-We keep server functions alongside other helpers under `lib/`. Any file can become a server action simply by including the `"use server"` directive at the top. There is no separate `actions` directory—functions defined in `lib` can be imported directly in client components and invoked as server actions. Workflow buttons should call these helpers and handle their own loading state; since workflows are long‑running, they execute in the background without additional context providers.

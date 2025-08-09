@@ -10,6 +10,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    networks:
+      - issue-to-pr-network
 
 volumes:
   redis_data:

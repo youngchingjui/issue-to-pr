@@ -3,6 +3,7 @@
 import { HelpCircle } from "lucide-react"
 import { useState } from "react"
 
+import { ResolveRequestSchema } from "@/app/api/resolve/schemas"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import {
@@ -12,7 +13,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { toast } from "@/lib/hooks/use-toast"
-import { ResolveRequestSchema } from "@/lib/schemas/api"
 
 interface Props {
   issueNumber: number

@@ -1,0 +1,40 @@
+services:
+  worker:
+    build:
+      context: ../..
+      dockerfile: apps/worker/Dockerfile
+    environment:
+      # Redis connection
+      - REDIS_URL=redis://redis:6379 # Connects to redis.yml service
+
+      # Neo4j connection
+      - NEO4J_URI=bolt://neo4j:7687 # Connects to neo4j.yml service
+      - NEO4J_USERNAME=${NEO4J_USER}
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD}
+
+      # OpenAI API key (passed through from host)
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+
+      # GitHub configuration
+      - GITHUB_APP_ID=${GITHUB_APP_ID}
+      - GITHUB_APP_PRIVATE_KEY_PATH=${GITHUB_APP_PRIVATE_KEY_PATH}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
+
+      # Environment
+      - NODE_ENV=${NODE_ENV}
+    depends_on:
+      redis:
+        condition: service_healthy
+      neo4j:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - issue-to-pr-network
+    volumes:
+      - ${GITHUB_APP_PRIVATE_KEY_PATH}:/app/secrets/github-private-key.pem:ro
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('Worker health check')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

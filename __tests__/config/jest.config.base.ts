@@ -11,3 +11,5 @@ const baseConfig: Config = {
 }
 
 export default baseConfig
+
+// TODO: Consider if I need a new config for test for our new /shared folder

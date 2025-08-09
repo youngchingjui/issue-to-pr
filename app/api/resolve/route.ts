@@ -5,8 +5,13 @@ import { z } from "zod"
 import { getRepoFromString } from "@/lib/github/content"
 import { getIssue } from "@/lib/github/issues"
 import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
-import { ResolveRequestSchema } from "@/lib/schemas/api"
 import { resolveIssue } from "@/lib/workflows/resolveIssue"
+
+import {
+  type ResolveErrorResponse,
+  ResolveRequestSchema,
+  type ResolveResponse,
+} from "./schemas"
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,10 +28,10 @@ export async function POST(request: NextRequest) {
 
     const apiKey = await getUserOpenAIApiKey()
     if (!apiKey) {
-      return NextResponse.json(
-        { error: "Missing OpenAI API key" },
-        { status: 401 }
-      )
+      const errorResponse: ResolveErrorResponse = {
+        error: "Missing OpenAI API key",
+      }
+      return NextResponse.json(errorResponse, { status: 401 })
     }
 
     const jobId = uuidv4()
@@ -55,18 +60,22 @@ export async function POST(request: NextRequest) {
       }
     })()
 
-    return NextResponse.json({ jobId })
+    const response: ResolveResponse = { jobId }
+    return NextResponse.json(response)
   } catch (error) {
     console.error("Error processing request:", error)
+
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Invalid request data", details: error.errors },
-        { status: 400 }
-      )
+      const errorResponse: ResolveErrorResponse = {
+        error: "Invalid request data",
+        details: error.errors,
+      }
+      return NextResponse.json(errorResponse, { status: 400 })
     }
-    return NextResponse.json(
-      { error: "Failed to process request" },
-      { status: 500 }
-    )
+
+    const errorResponse: ResolveErrorResponse = {
+      error: "Failed to process request",
+    }
+    return NextResponse.json(errorResponse, { status: 500 })
   }
 }

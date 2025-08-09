@@ -1,7 +1,7 @@
-// TODO: Migrate schemas to /lib/types/api/schemas.ts
-
 import { z } from "zod"
 
+// TODO: Not sure this GithubURLSchema belongs here (/lib/schemas/api.ts)
+// Find another place where this should exist, and move it there
 export const GitHubURLSchema = z
   .string({
     required_error: "Please enter a URL",
@@ -56,30 +56,3 @@ export const GitHubURLSchema = z
 
     throw new Error("Invalid GitHub URL format")
   })
-
-export const FetchGitHubItemRequestSchema = z.object({
-  type: z.enum(["issue", "pull"]),
-  number: z.number(),
-  fullName: z.string(),
-})
-
-export const CommentRequestSchema = z.object({
-  issueNumber: z.number(),
-  repoFullName: z.string().min(1),
-  postToGithub: z.boolean().default(false),
-})
-
-export const ResolveRequestSchema = z.object({
-  issueNumber: z.number(),
-  repoFullName: z.string(),
-  postToGithub: z.boolean().default(false),
-  createPR: z.boolean().default(false),
-  environment: z.enum(["typescript", "python"]).optional(),
-  installCommand: z.string().optional(),
-  planId: z.string().optional(),
-})
-
-export const AutoResolveIssueRequestSchema = z.object({
-  issueNumber: z.number(),
-  repoFullName: z.string().min(1),
-})
