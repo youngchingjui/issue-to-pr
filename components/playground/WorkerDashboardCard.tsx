@@ -1,13 +1,6 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import {
-  enqueueErrorResponseSchema,
-  type EnqueueRequest,
-  enqueueResponseSchema,
-  QUEUE_NAMES,
-  type QueueName,
-} from "@shared/lib/schemas"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -20,6 +13,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  enqueueErrorResponseSchema,
+  type EnqueueRequest,
+  enqueueResponseSchema,
+  QUEUE_NAMES,
+  type QueueName,
+} from "@/shared/lib/schemas"
 
 type QueueCounts = {
   waiting?: number

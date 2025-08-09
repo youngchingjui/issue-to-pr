@@ -1,13 +1,4 @@
 import { NextRequest, NextResponse } from "next/server"
-import {
-  type EnqueueErrorResponse,
-  enqueueErrorResponseSchema,
-  type EnqueueRequest,
-  enqueueRequestSchema,
-  type EnqueueResponse,
-  enqueueResponseSchema,
-  QUEUE_NAMES,
-} from "@shared/lib/schemas"
 import { z } from "zod"
 
 import {
@@ -15,15 +6,17 @@ import {
   enqueueCommentOnIssue,
   enqueueResolveIssue,
 } from "@/lib/queues/client"
+import {
+  EnqueueErrorResponse,
+  EnqueueResponse,
+  QUEUE_NAMES,
+} from "@/shared/lib/schemas"
 
-// Re-export schemas for API route [[memory:5566472]]
-export const EnqueueRequestSchema = enqueueRequestSchema
-export const EnqueueResponseSchema = enqueueResponseSchema
-export const EnqueueErrorResponseSchema = enqueueErrorResponseSchema
-export type { EnqueueErrorResponse, EnqueueRequest, EnqueueResponse }
+import { EnqueueRequestSchema } from "./schemas"
 
 export const dynamic = "force-dynamic"
 
+// TODO: Define zod schemas for request and response and save in ./schemas.ts
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()

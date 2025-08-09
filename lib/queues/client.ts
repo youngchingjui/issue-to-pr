@@ -1,10 +1,10 @@
-// TODO: Since this imports bullmq, this is probably a server script that requires nodejs.
-// Probalby need to add 'use server' to it.
-// Probably also need to find a better place to put this, depending on how it's used in our code architecture.
-// We have some documentation that describes how we want to organize code.
-
 "use server"
-import { Queue } from "bullmq"
+
+import type { Queue } from "bullmq"
+
+import { BullMQAdapter } from "@/shared/adapters/BullMQAdapter"
+import { RedisAdapter } from "@/shared/adapters/ioredis-adapter"
+import type { WorkerPort } from "@/shared/core/ports/WorkerPort"
 import {
   AutoResolveIssueJobData,
   autoResolveIssueJobDataSchema,
@@ -14,171 +14,100 @@ import {
   type QueueName,
   ResolveIssueJobData,
   resolveIssueJobDataSchema,
-} from "@shared/lib/schemas"
+} from "@/shared/lib/schemas"
 
-// Queue instances
-let resolveIssueQueue: Queue | null = null
-let commentOnIssueQueue: Queue | null = null
-let autoResolveIssueQueue: Queue | null = null
+let workerPortSingleton: WorkerPort | null = null
+const queuesByName: Map<QueueName, Queue> = new Map()
 
-async function getResolveIssueQueue(): Promise<Queue> {
-  if (!resolveIssueQueue) {
-    // Use a simple Redis connection for BullMQ
-    const redisUrl = process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL
-    if (!redisUrl) {
-      throw new Error("Redis URL not found in environment variables")
-    }
-
-    resolveIssueQueue = new Queue(QUEUE_NAMES.RESOLVE_ISSUE, {
-      connection: {
-        host: redisUrl.includes("localhost") ? "localhost" : redisUrl,
-        port: redisUrl.includes("localhost") ? 6379 : undefined,
-        maxRetriesPerRequest: null,
-      },
-      defaultJobOptions: {
-        removeOnComplete: 100,
-        removeOnFail: 50,
-      },
-    })
+async function ensureInitialized(): Promise<WorkerPort> {
+  if (workerPortSingleton) {
+    return workerPortSingleton
   }
-  return resolveIssueQueue
+
+  // Compose adapters (app layer)
+  const redisAdapter = new RedisAdapter()
+  const adapter = new BullMQAdapter(redisAdapter)
+  workerPortSingleton = adapter
+
+  // Ensure queues exist and cache their instances for status operations
+  const defaultJobOptions = {
+    attempts: 3,
+    backoff: { type: "exponential" as const, delay: 2000 },
+    removeOnComplete: 100,
+    removeOnFail: 50,
+  }
+
+  const resolveQueue = (await adapter.createQueue({
+    name: QUEUE_NAMES.RESOLVE_ISSUE,
+    defaultJobOptions,
+  })) as Queue
+  const commentQueue = (await adapter.createQueue({
+    name: QUEUE_NAMES.COMMENT_ON_ISSUE,
+    defaultJobOptions,
+  })) as Queue
+  const autoResolveQueue = (await adapter.createQueue({
+    name: QUEUE_NAMES.AUTO_RESOLVE_ISSUE,
+    defaultJobOptions,
+  })) as Queue
+
+  queuesByName.set(QUEUE_NAMES.RESOLVE_ISSUE, resolveQueue)
+  queuesByName.set(QUEUE_NAMES.COMMENT_ON_ISSUE, commentQueue)
+  queuesByName.set(QUEUE_NAMES.AUTO_RESOLVE_ISSUE, autoResolveQueue)
+
+  return workerPortSingleton
 }
 
-async function getCommentOnIssueQueue(): Promise<Queue> {
-  if (!commentOnIssueQueue) {
-    // Use a simple Redis connection for BullMQ
-    const redisUrl = process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL
-    if (!redisUrl) {
-      throw new Error("Redis URL not found in environment variables")
-    }
-
-    commentOnIssueQueue = new Queue(QUEUE_NAMES.COMMENT_ON_ISSUE, {
-      connection: {
-        host: redisUrl.includes("localhost") ? "localhost" : redisUrl,
-        port: redisUrl.includes("localhost") ? 6379 : undefined,
-        maxRetriesPerRequest: null,
-      },
-      defaultJobOptions: {
-        removeOnComplete: 100,
-        removeOnFail: 50,
-      },
-    })
+function getCachedQueue(queueName: QueueName): Queue {
+  const queue = queuesByName.get(queueName)
+  if (!queue) {
+    throw new Error(`Queue not initialized: ${queueName}`)
   }
-  return commentOnIssueQueue
+  return queue
 }
 
-async function getAutoResolveIssueQueue(): Promise<Queue> {
-  if (!autoResolveIssueQueue) {
-    // Use a simple Redis connection for BullMQ
-    const redisUrl = process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL
-    if (!redisUrl) {
-      throw new Error("Redis URL not found in environment variables")
-    }
-
-    autoResolveIssueQueue = new Queue(QUEUE_NAMES.AUTO_RESOLVE_ISSUE, {
-      connection: {
-        host: redisUrl.includes("localhost") ? "localhost" : redisUrl,
-        port: redisUrl.includes("localhost") ? 6379 : undefined,
-        maxRetriesPerRequest: null,
-      },
-      defaultJobOptions: {
-        removeOnComplete: 100,
-        removeOnFail: 50,
-      },
-    })
-  }
-  return autoResolveIssueQueue
-}
-
-// Job enqueue functions
+// Job enqueue functions (via WorkerPort)
 export async function enqueueResolveIssue(
   data: ResolveIssueJobData
 ): Promise<string> {
-  // Validate data
   const validatedData = resolveIssueJobDataSchema.parse(data)
-
-  const queue = await getResolveIssueQueue()
-  const job = await queue.add(QUEUE_NAMES.RESOLVE_ISSUE, validatedData, {
-    jobId: validatedData.jobId, // Use our jobId as BullMQ job ID
-  })
-
-  return job.id!
+  const port = await ensureInitialized()
+  return await port.addJob(
+    QUEUE_NAMES.RESOLVE_ISSUE,
+    validatedData as unknown as Record<string, unknown>,
+    { jobId: validatedData.jobId }
+  )
 }
 
 export async function enqueueCommentOnIssue(
   data: CommentOnIssueJobData
 ): Promise<string> {
-  // Validate data
   const validatedData = commentOnIssueJobDataSchema.parse(data)
-
-  const queue = await getCommentOnIssueQueue()
-  const job = await queue.add(QUEUE_NAMES.COMMENT_ON_ISSUE, validatedData, {
-    jobId: validatedData.jobId, // Use our jobId as BullMQ job ID
-  })
-
-  return job.id!
+  const port = await ensureInitialized()
+  return await port.addJob(
+    QUEUE_NAMES.COMMENT_ON_ISSUE,
+    validatedData as unknown as Record<string, unknown>,
+    { jobId: validatedData.jobId }
+  )
 }
 
 export async function enqueueAutoResolveIssue(
   data: AutoResolveIssueJobData
 ): Promise<string> {
-  // Validate data
   const validatedData = autoResolveIssueJobDataSchema.parse(data)
-
-  const queue = await getAutoResolveIssueQueue()
-  const job = await queue.add(QUEUE_NAMES.AUTO_RESOLVE_ISSUE, validatedData, {
-    jobId: validatedData.jobId, // Use our jobId as BullMQ job ID
-  })
-
-  return job.id!
-}
-
-// Job status functions
-export async function getJobStatus(queueName: string, jobId: string) {
-  let queue: Queue
-
-  switch (queueName) {
-    case QUEUE_NAMES.RESOLVE_ISSUE:
-      queue = await getResolveIssueQueue()
-      break
-    case QUEUE_NAMES.COMMENT_ON_ISSUE:
-      queue = await getCommentOnIssueQueue()
-      break
-    case QUEUE_NAMES.AUTO_RESOLVE_ISSUE:
-      queue = await getAutoResolveIssueQueue()
-      break
-    default:
-      throw new Error(`Unknown queue: ${queueName}`)
-  }
-
-  const job = await queue.getJob(jobId)
-  if (!job) {
-    return null
-  }
-
-  return {
-    id: job.id,
-    progress: job.progress,
-    finishedOn: job.finishedOn,
-    failedReason: job.failedReason,
-    returnvalue: job.returnvalue,
-  }
+  const port = await ensureInitialized()
+  return await port.addJob(
+    QUEUE_NAMES.AUTO_RESOLVE_ISSUE,
+    validatedData as unknown as Record<string, unknown>,
+    { jobId: validatedData.jobId }
+  )
 }
 
 async function getQueueByName(queueName: QueueName): Promise<Queue> {
-  switch (queueName) {
-    case QUEUE_NAMES.RESOLVE_ISSUE:
-      return await getResolveIssueQueue()
-    case QUEUE_NAMES.COMMENT_ON_ISSUE:
-      return await getCommentOnIssueQueue()
-    case QUEUE_NAMES.AUTO_RESOLVE_ISSUE:
-      return await getAutoResolveIssueQueue()
-    default:
-      throw new Error(`Unknown queue: ${queueName}`)
-  }
+  await ensureInitialized()
+  return getCachedQueue(queueName)
 }
 
-export async function getQueueCounts(queueName: QueueName) {
+async function getQueueCounts(queueName: QueueName) {
   const queue = await getQueueByName(queueName)
   const counts = await queue.getJobCounts(
     "waiting",
@@ -190,7 +119,7 @@ export async function getQueueCounts(queueName: QueueName) {
   return counts
 }
 
-export async function getActiveJobs(queueName: QueueName, limit = 20) {
+async function getActiveJobs(queueName: QueueName, limit = 20) {
   const queue = await getQueueByName(queueName)
   const jobs = await queue.getJobs(["active"], 0, limit)
   return jobs.map((job) => ({
@@ -203,7 +132,7 @@ export async function getActiveJobs(queueName: QueueName, limit = 20) {
   }))
 }
 
-export async function getRecentJobs(
+async function getRecentJobs(
   queueName: QueueName,
   types: Array<"completed" | "failed"> = ["completed", "failed"],
   limit = 20
@@ -220,10 +149,8 @@ export async function getRecentJobs(
   }))
 }
 
-export async function getWorkers(queueName: QueueName) {
+async function getWorkers(queueName: QueueName) {
   const queue = await getQueueByName(queueName)
-  // BullMQ returns worker info objects connected to this queue
-  // Shape can vary by BullMQ version; expose raw info for UI
   const workers = await queue.getWorkers()
   return workers
 }

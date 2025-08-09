@@ -7,28 +7,11 @@ import { getIssue } from "@/lib/github/issues"
 import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
 import { resolveIssue } from "@/lib/workflows/resolveIssue"
 
-export const ResolveRequestSchema = z.object({
-  issueNumber: z.number(),
-  repoFullName: z.string(),
-  postToGithub: z.boolean().default(false),
-  createPR: z.boolean().default(false),
-  environment: z.enum(["typescript", "python"]).optional(),
-  installCommand: z.string().optional(),
-  planId: z.string().optional(),
-})
-
-export const ResolveResponseSchema = z.object({
-  jobId: z.string(),
-})
-
-export const ResolveErrorResponseSchema = z.object({
-  error: z.string(),
-  details: z.any().optional(),
-})
-
-export type ResolveRequest = z.infer<typeof ResolveRequestSchema>
-export type ResolveResponse = z.infer<typeof ResolveResponseSchema>
-export type ResolveErrorResponse = z.infer<typeof ResolveErrorResponseSchema>
+import {
+  type ResolveErrorResponse,
+  ResolveRequestSchema,
+  type ResolveResponse,
+} from "./schemas"
 
 export async function POST(request: NextRequest) {
   try {
