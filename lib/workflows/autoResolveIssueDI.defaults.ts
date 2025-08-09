@@ -10,13 +10,13 @@
 // In adding this to the code base at the moment.
 // We will definitely need this, so we need to find a way to save this in another branch to be reviewed later.
 
-import { RepositoryService } from "shared"
+import { RepositoryService } from "@shared/lib/RepositoryService"
 import {
   AuthenticationAdapter,
   FileSystemAdapter,
   GitAdapter,
   RepositoryAdapter,
-} from "shared"
+} from "@shared/adapters"
 import { v4 as uuidv4 } from "uuid"
 
 import { auth } from "@/auth"

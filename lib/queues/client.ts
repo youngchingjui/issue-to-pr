@@ -14,7 +14,7 @@ import {
   type QueueName,
   ResolveIssueJobData,
   resolveIssueJobDataSchema,
-} from "shared"
+} from "@shared/lib/schemas"
 
 // Queue instances
 let resolveIssueQueue: Queue | null = null

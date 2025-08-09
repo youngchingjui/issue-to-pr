@@ -5,8 +5,9 @@ import {
   enqueueErrorResponseSchema,
   type EnqueueRequest,
   enqueueResponseSchema,
-} from "shared"
-import { QUEUE_NAMES, type QueueName } from "shared"
+  QUEUE_NAMES,
+  type QueueName,
+} from "@shared/lib/schemas"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"

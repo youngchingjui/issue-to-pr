@@ -7,7 +7,7 @@ import {
   type EnqueueResponse,
   enqueueResponseSchema,
   QUEUE_NAMES,
-} from "shared"
+} from "@shared/lib/schemas"
 import { z } from "zod"
 
 import {
