@@ -72,6 +72,7 @@ class IORedisConnectionAdapter implements RedisConnection {
 
   async duplicate(): Promise<RedisConnection> {
     const duplicateClient = this.client.duplicate()
+    await duplicateClient.connect()
     return new IORedisConnectionAdapter(duplicateClient)
   }
 }

@@ -86,38 +86,7 @@ export class WorkerService {
     }
   }
 
-  /**
-   * Add a job to a specific queue
-   * @param queueName Name of the queue
-   * @param data Job data
-   * @param options Optional job options
-   * @returns Promise that resolves to the job ID
-   */
-  async addJob(
-    queueName: string,
-    data: Record<string, unknown>,
-    options?: Record<string, unknown>
-  ): Promise<string> {
-    return await this.workerPort.addJob(queueName, data, options)
-  }
-
-  /**
-   * Get job progress
-   * @param jobId Job ID
-   * @returns Promise that resolves to the job progress (0-100)
-   */
-  async getJobProgress(jobId: string): Promise<number> {
-    return await this.workerPort.getJobProgress(jobId)
-  }
-
-  /**
-   * Update job progress
-   * @param jobId Job ID
-   * @param progress Progress percentage (0-100)
-   */
-  async updateJobProgress(jobId: string, progress: number): Promise<void> {
-    await this.workerPort.updateJobProgress(jobId, progress)
-  }
+  // Note: Job operations now live under JobPort; WorkerService stays focused on worker lifecycle
 
   /**
    * Add event listener for worker events

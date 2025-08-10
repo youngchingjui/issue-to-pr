@@ -1,10 +1,9 @@
 "use server"
 
-import type { Queue } from "bullmq"
-
 import { BullMQAdapter } from "@/shared/adapters/BullMQAdapter"
 import { RedisAdapter } from "@/shared/adapters/ioredis-adapter"
-import type { WorkerPort } from "@/shared/core/ports/WorkerPort"
+import type { JobPort } from "@/shared/core/ports/JobPort"
+import type { QueuePort } from "@/shared/core/ports/QueuePort"
 import {
   AutoResolveIssueJobData,
   autoResolveIssueJobDataSchema,
@@ -16,173 +15,168 @@ import {
   resolveIssueJobDataSchema,
 } from "@/shared/lib/schemas"
 
-let workerPortSingleton: WorkerPort | null = null
-const queuesByName: Map<QueueName, Queue> = new Map()
+class QueueManager {
+  private queuePort: QueuePort | null = null
+  private jobPort: JobPort | null = null
 
-async function ensureInitialized(): Promise<WorkerPort> {
-  if (workerPortSingleton) {
-    return workerPortSingleton
+  /**
+   * Initialize the queue manager by setting up adapters and creating queues.
+   * This must be called before using any other methods.
+   * Multiple calls to initialize are safe - subsequent calls are no-ops.
+   */
+  public async initialize(): Promise<void> {
+    if (this.queuePort && this.jobPort) return // Already initialized
+
+    // Compose adapters (app layer)
+    const redisAdapter = new RedisAdapter()
+    const adapter = new BullMQAdapter(redisAdapter)
+
+    // Do NOT create queues here; the worker owns queue creation/config.
+    // We only attach to ports for read/enqueue operations.
+    this.queuePort = adapter
+    this.jobPort = adapter
   }
 
-  // Compose adapters (app layer)
-  const redisAdapter = new RedisAdapter()
-  const adapter = new BullMQAdapter(redisAdapter)
-  workerPortSingleton = adapter
+  /**
+   * Get a queue instance by name. Returns null if not initialized or queue not found.
+   */
+  // Helper methods now delegate to QueuePort
 
-  // Ensure queues exist and cache their instances for status operations
-  const defaultJobOptions = {
-    attempts: 3,
-    backoff: { type: "exponential" as const, delay: 2000 },
-    removeOnComplete: 100,
-    removeOnFail: 50,
+  // Job enqueue functions - require initialization
+  public async enqueueResolveIssue(data: ResolveIssueJobData): Promise<string> {
+    if (!this.jobPort) {
+      throw new Error("QueueManager not initialized. Call initialize() first.")
+    }
+
+    const validatedData = resolveIssueJobDataSchema.parse(data)
+    return await this.jobPort.addJob(
+      QUEUE_NAMES.RESOLVE_ISSUE,
+      validatedData as unknown as Record<string, unknown>,
+      { jobId: validatedData.jobId }
+    )
   }
 
-  const resolveQueue = (await adapter.createQueue({
-    name: QUEUE_NAMES.RESOLVE_ISSUE,
-    defaultJobOptions,
-  })) as Queue
-  const commentQueue = (await adapter.createQueue({
-    name: QUEUE_NAMES.COMMENT_ON_ISSUE,
-    defaultJobOptions,
-  })) as Queue
-  const autoResolveQueue = (await adapter.createQueue({
-    name: QUEUE_NAMES.AUTO_RESOLVE_ISSUE,
-    defaultJobOptions,
-  })) as Queue
+  public async enqueueCommentOnIssue(
+    data: CommentOnIssueJobData
+  ): Promise<string> {
+    if (!this.jobPort) {
+      throw new Error("QueueManager not initialized. Call initialize() first.")
+    }
 
-  queuesByName.set(QUEUE_NAMES.RESOLVE_ISSUE, resolveQueue)
-  queuesByName.set(QUEUE_NAMES.COMMENT_ON_ISSUE, commentQueue)
-  queuesByName.set(QUEUE_NAMES.AUTO_RESOLVE_ISSUE, autoResolveQueue)
+    const validatedData = commentOnIssueJobDataSchema.parse(data)
+    return await this.jobPort.addJob(
+      QUEUE_NAMES.COMMENT_ON_ISSUE,
+      validatedData as unknown as Record<string, unknown>,
+      { jobId: validatedData.jobId }
+    )
+  }
 
-  return workerPortSingleton
+  public async enqueueAutoResolveIssue(
+    data: AutoResolveIssueJobData
+  ): Promise<string> {
+    if (!this.jobPort) {
+      throw new Error("QueueManager not initialized. Call initialize() first.")
+    }
+
+    const validatedData = autoResolveIssueJobDataSchema.parse(data)
+    return await this.jobPort.addJob(
+      QUEUE_NAMES.AUTO_RESOLVE_ISSUE,
+      validatedData as unknown as Record<string, unknown>,
+      { jobId: validatedData.jobId }
+    )
+  }
+
+  private async getQueueCounts(queueName: QueueName) {
+    if (!this.queuePort) throw new Error("QueueManager not initialized")
+    return this.queuePort.getQueueCounts(queueName)
+  }
+
+  private async getActiveJobs(queueName: QueueName, limit = 20) {
+    if (!this.queuePort) throw new Error("QueueManager not initialized")
+    return this.queuePort.getActiveJobs(queueName, limit)
+  }
+
+  private async getRecentJobs(
+    queueName: QueueName,
+    types: Array<"completed" | "failed"> = ["completed", "failed"],
+    limit = 20
+  ) {
+    if (!this.queuePort) throw new Error("QueueManager not initialized")
+    return this.queuePort.getRecentJobs(queueName, types, limit)
+  }
+
+  private async getWorkers(queueName: QueueName) {
+    if (!this.queuePort) throw new Error("QueueManager not initialized")
+    return this.queuePort.getWorkers(queueName)
+  }
+
+  public async getAllQueuesStatus() {
+    if (!this.queuePort) {
+      throw new Error("QueueManager not initialized. Call initialize() first.")
+    }
+
+    const names: QueueName[] = [
+      QUEUE_NAMES.RESOLVE_ISSUE,
+      QUEUE_NAMES.COMMENT_ON_ISSUE,
+      QUEUE_NAMES.AUTO_RESOLVE_ISSUE,
+    ]
+
+    const results = await Promise.all(
+      names.map(async (name) => {
+        const [counts, activeJobs, recentCompleted, recentFailed, workers] =
+          await Promise.all([
+            this.getQueueCounts(name),
+            this.getActiveJobs(name, 20),
+            this.getRecentJobs(name, ["completed"], 10),
+            this.getRecentJobs(name, ["failed"], 10),
+            this.getWorkers(name),
+          ])
+
+        return {
+          name,
+          counts,
+          activeJobs,
+          recentCompleted,
+          recentFailed,
+          workers,
+        }
+      })
+    )
+
+    return results
+  }
 }
 
-function getCachedQueue(queueName: QueueName): Queue {
-  const queue = queuesByName.get(queueName)
-  if (!queue) {
-    throw new Error(`Queue not initialized: ${queueName}`)
-  }
-  return queue
+// Create and export a default instance for backwards compatibility
+// and convenience in API routes
+const queueManager = new QueueManager()
+
+export async function initialize(): Promise<void> {
+  await queueManager.initialize()
 }
 
-// Job enqueue functions (via WorkerPort)
 export async function enqueueResolveIssue(
   data: ResolveIssueJobData
 ): Promise<string> {
-  const validatedData = resolveIssueJobDataSchema.parse(data)
-  const port = await ensureInitialized()
-  return await port.addJob(
-    QUEUE_NAMES.RESOLVE_ISSUE,
-    validatedData as unknown as Record<string, unknown>,
-    { jobId: validatedData.jobId }
-  )
+  await queueManager.initialize()
+  return queueManager.enqueueResolveIssue(data)
 }
 
 export async function enqueueCommentOnIssue(
   data: CommentOnIssueJobData
 ): Promise<string> {
-  const validatedData = commentOnIssueJobDataSchema.parse(data)
-  const port = await ensureInitialized()
-  return await port.addJob(
-    QUEUE_NAMES.COMMENT_ON_ISSUE,
-    validatedData as unknown as Record<string, unknown>,
-    { jobId: validatedData.jobId }
-  )
+  await queueManager.initialize()
+  return queueManager.enqueueCommentOnIssue(data)
 }
 
 export async function enqueueAutoResolveIssue(
   data: AutoResolveIssueJobData
 ): Promise<string> {
-  const validatedData = autoResolveIssueJobDataSchema.parse(data)
-  const port = await ensureInitialized()
-  return await port.addJob(
-    QUEUE_NAMES.AUTO_RESOLVE_ISSUE,
-    validatedData as unknown as Record<string, unknown>,
-    { jobId: validatedData.jobId }
-  )
-}
-
-async function getQueueByName(queueName: QueueName): Promise<Queue> {
-  await ensureInitialized()
-  return getCachedQueue(queueName)
-}
-
-async function getQueueCounts(queueName: QueueName) {
-  const queue = await getQueueByName(queueName)
-  const counts = await queue.getJobCounts(
-    "waiting",
-    "active",
-    "completed",
-    "failed",
-    "delayed"
-  )
-  return counts
-}
-
-async function getActiveJobs(queueName: QueueName, limit = 20) {
-  const queue = await getQueueByName(queueName)
-  const jobs = await queue.getJobs(["active"], 0, limit)
-  return jobs.map((job) => ({
-    id: job.id,
-    name: job.name,
-    progress: job.progress,
-    data: job.data,
-    timestamp: job.timestamp,
-    processedOn: job.processedOn,
-  }))
-}
-
-async function getRecentJobs(
-  queueName: QueueName,
-  types: Array<"completed" | "failed"> = ["completed", "failed"],
-  limit = 20
-) {
-  const queue = await getQueueByName(queueName)
-  const jobs = await queue.getJobs(types, 0, limit)
-  return jobs.map((job) => ({
-    id: job.id,
-    name: job.name,
-    failedReason: job.failedReason,
-    returnvalue: job.returnvalue,
-    finishedOn: job.finishedOn,
-    data: job.data,
-  }))
-}
-
-async function getWorkers(queueName: QueueName) {
-  const queue = await getQueueByName(queueName)
-  const workers = await queue.getWorkers()
-  return workers
+  await queueManager.initialize()
+  return queueManager.enqueueAutoResolveIssue(data)
 }
 
 export async function getAllQueuesStatus() {
-  const names: QueueName[] = [
-    QUEUE_NAMES.RESOLVE_ISSUE,
-    QUEUE_NAMES.COMMENT_ON_ISSUE,
-    QUEUE_NAMES.AUTO_RESOLVE_ISSUE,
-  ]
-
-  const results = await Promise.all(
-    names.map(async (name) => {
-      const [counts, activeJobs, recentCompleted, recentFailed, workers] =
-        await Promise.all([
-          getQueueCounts(name),
-          getActiveJobs(name, 20),
-          getRecentJobs(name, ["completed"], 10),
-          getRecentJobs(name, ["failed"], 10),
-          getWorkers(name),
-        ])
-
-      return {
-        name,
-        counts,
-        activeJobs,
-        recentCompleted,
-        recentFailed,
-        workers,
-      }
-    })
-  )
-
-  return results
+  await queueManager.initialize()
+  return queueManager.getAllQueuesStatus()
 }

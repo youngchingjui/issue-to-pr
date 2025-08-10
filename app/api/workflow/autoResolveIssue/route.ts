@@ -7,29 +7,11 @@ import { getIssue } from "@/lib/github/issues"
 import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
 import autoResolveIssue from "@/lib/workflows/autoResolveIssue"
 
-export const AutoResolveIssueRequestSchema = z.object({
-  issueNumber: z.number(),
-  repoFullName: z.string().min(1),
-})
-
-export const AutoResolveIssueResponseSchema = z.object({
-  jobId: z.string(),
-})
-
-export const AutoResolveIssueErrorResponseSchema = z.object({
-  error: z.string(),
-  details: z.any().optional(),
-})
-
-export type AutoResolveIssueRequest = z.infer<
-  typeof AutoResolveIssueRequestSchema
->
-export type AutoResolveIssueResponse = z.infer<
-  typeof AutoResolveIssueResponseSchema
->
-export type AutoResolveIssueErrorResponse = z.infer<
-  typeof AutoResolveIssueErrorResponseSchema
->
+import {
+  AutoResolveIssueErrorResponse,
+  AutoResolveIssueRequestSchema,
+  AutoResolveIssueResponse,
+} from "./schemas"
 
 export async function POST(request: NextRequest) {
   try {

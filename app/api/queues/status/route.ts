@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server"
 
-import { getAllQueuesStatus } from "@/lib/queues/client"
+import { getAllQueuesStatus, initialize } from "@/lib/queues/client"
 
 export const dynamic = "force-dynamic"
 
 export async function GET() {
   try {
+    // Initialize once and reuse the singleton
+    await initialize()
+
     const status = await getAllQueuesStatus()
     return NextResponse.json({ status })
   } catch (error) {

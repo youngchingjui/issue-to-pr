@@ -56,6 +56,7 @@ export default function WorkerDashboardCard() {
   const [jobId, setJobId] = useState<string>("")
   const [posting, setPosting] = useState(false)
   const [status, setStatus] = useState<QueueStatus[]>([])
+  const [initializing, setInitializing] = useState(true)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
 
   const refresh = useCallback(async () => {
@@ -66,10 +67,28 @@ export default function WorkerDashboardCard() {
     }
   }, [])
 
+  // We have swr library, could probably use that here.
   useEffect(() => {
-    refresh()
-    timerRef.current = setInterval(refresh, 2000)
+    let cancelled = false
+    ;(async () => {
+      try {
+        // Initialize queues first
+        await fetch("/api/queues/init", { method: "POST" })
+        if (!cancelled) {
+          setInitializing(false)
+          await refresh()
+          timerRef.current = setInterval(refresh, 2000)
+        }
+      } catch (error) {
+        console.error("Failed to initialize queues:", error)
+        if (!cancelled) {
+          setInitializing(false)
+        }
+      }
+    })()
+
     return () => {
+      cancelled = true
       if (timerRef.current) clearInterval(timerRef.current)
     }
   }, [refresh])
@@ -200,132 +219,138 @@ export default function WorkerDashboardCard() {
           </div>
         ) : null}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {status.map((q) => (
-            <div key={q.name} className="rounded border p-3 space-y-2">
-              <div className="font-medium">Queue: {q.name}</div>
-              <div className="grid grid-cols-5 gap-2 text-xs">
-                <div>waiting: {q.counts.waiting ?? 0}</div>
-                <div>active: {q.counts.active ?? 0}</div>
-                <div>completed: {q.counts.completed ?? 0}</div>
-                <div>failed: {q.counts.failed ?? 0}</div>
-                <div>delayed: {q.counts.delayed ?? 0}</div>
-              </div>
+        {initializing ? (
+          <div className="text-center py-8">
+            <div className="text-muted-foreground">Initializing queues...</div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {status.map((q) => (
+              <div key={q.name} className="rounded border p-3 space-y-2">
+                <div className="font-medium">Queue: {q.name}</div>
+                <div className="grid grid-cols-5 gap-2 text-xs">
+                  <div>waiting: {q.counts.waiting ?? 0}</div>
+                  <div>active: {q.counts.active ?? 0}</div>
+                  <div>completed: {q.counts.completed ?? 0}</div>
+                  <div>failed: {q.counts.failed ?? 0}</div>
+                  <div>delayed: {q.counts.delayed ?? 0}</div>
+                </div>
 
-              <div className="space-y-1">
-                <div className="text-sm font-medium">Active jobs</div>
-                <div className="space-y-1 text-xs">
-                  {q.activeJobs.length === 0 ? (
-                    <div className="text-muted-foreground">None</div>
-                  ) : (
-                    q.activeJobs.map((j) => (
-                      <div key={j.id} className="rounded bg-muted p-2">
-                        <div className="flex justify-between">
-                          <span>#{j.id}</span>
-                          <span>
-                            progress:{" "}
-                            {typeof j.progress === "number"
-                              ? `${j.progress}%`
-                              : "-"}
-                          </span>
+                <div className="space-y-1">
+                  <div className="text-sm font-medium">Active jobs</div>
+                  <div className="space-y-1 text-xs">
+                    {q.activeJobs.length === 0 ? (
+                      <div className="text-muted-foreground">None</div>
+                    ) : (
+                      q.activeJobs.map((j) => (
+                        <div key={j.id} className="rounded bg-muted p-2">
+                          <div className="flex justify-between">
+                            <span>#{j.id}</span>
+                            <span>
+                              progress:{" "}
+                              {typeof j.progress === "number"
+                                ? `${j.progress}%`
+                                : "-"}
+                            </span>
+                          </div>
+                          <div className="truncate text-muted-foreground">
+                            {JSON.stringify(j.data)}
+                          </div>
                         </div>
-                        <div className="truncate text-muted-foreground">
-                          {JSON.stringify(j.data)}
-                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-sm font-medium">Workers</div>
+                  <div className="space-y-1 text-xs">
+                    {!q.workers || q.workers.length === 0 ? (
+                      <div className="text-muted-foreground">
+                        No workers reported
                       </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <div className="text-sm font-medium">Workers</div>
-                <div className="space-y-1 text-xs">
-                  {!q.workers || q.workers.length === 0 ? (
-                    <div className="text-muted-foreground">
-                      No workers reported
-                    </div>
-                  ) : (
-                    q.workers.map((w: unknown, idx: number) => {
-                      const worker = w as Record<string, unknown>
-                      return (
-                        <div key={idx} className="rounded bg-muted p-2">
-                          <div className="flex justify-between">
-                            <span>
-                              {String(worker.name || worker.id || "worker")}
-                            </span>
-                            <span>
-                              concurrency: {String(worker.concurrency ?? "-")}
-                            </span>
-                          </div>
-                          {worker.processed ? (
-                            <div className="text-muted-foreground">
-                              processed: {String(worker.processed)}
+                    ) : (
+                      q.workers.map((w: unknown, idx: number) => {
+                        const worker = w as Record<string, unknown>
+                        return (
+                          <div key={idx} className="rounded bg-muted p-2">
+                            <div className="flex justify-between">
+                              <span>
+                                {String(worker.name || worker.id || "worker")}
+                              </span>
+                              <span>
+                                concurrency: {String(worker.concurrency ?? "-")}
+                              </span>
                             </div>
-                          ) : null}
-                        </div>
-                      )
-                    })
-                  )}
+                            {worker.processed ? (
+                              <div className="text-muted-foreground">
+                                processed: {String(worker.processed)}
+                              </div>
+                            ) : null}
+                          </div>
+                        )
+                      })
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-1">
-                <div className="text-sm font-medium">Recently completed</div>
-                <div className="space-y-1 text-xs">
-                  {q.recentCompleted.length === 0 ? (
-                    <div className="text-muted-foreground">None</div>
-                  ) : (
-                    q.recentCompleted.map((j: unknown) => {
-                      const job = j as Record<string, unknown>
-                      return (
-                        <div
-                          key={String(job.id)}
-                          className="rounded bg-muted p-2"
-                        >
-                          <div className="flex justify-between">
-                            <span>#{String(job.id)}</span>
-                            <span>done</span>
+                <div className="space-y-1">
+                  <div className="text-sm font-medium">Recently completed</div>
+                  <div className="space-y-1 text-xs">
+                    {q.recentCompleted.length === 0 ? (
+                      <div className="text-muted-foreground">None</div>
+                    ) : (
+                      q.recentCompleted.map((j: unknown) => {
+                        const job = j as Record<string, unknown>
+                        return (
+                          <div
+                            key={String(job.id)}
+                            className="rounded bg-muted p-2"
+                          >
+                            <div className="flex justify-between">
+                              <span>#{String(job.id)}</span>
+                              <span>done</span>
+                            </div>
+                            <div className="truncate text-muted-foreground">
+                              {JSON.stringify(job.returnvalue ?? job.data)}
+                            </div>
                           </div>
-                          <div className="truncate text-muted-foreground">
-                            {JSON.stringify(job.returnvalue ?? job.data)}
-                          </div>
-                        </div>
-                      )
-                    })
-                  )}
+                        )
+                      })
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-1">
-                <div className="text-sm font-medium">Recently failed</div>
-                <div className="space-y-1 text-xs">
-                  {q.recentFailed.length === 0 ? (
-                    <div className="text-muted-foreground">None</div>
-                  ) : (
-                    q.recentFailed.map((j: unknown) => {
-                      const job = j as Record<string, unknown>
-                      return (
-                        <div
-                          key={String(job.id)}
-                          className="rounded bg-muted p-2"
-                        >
-                          <div className="flex justify-between">
-                            <span>#{String(job.id)}</span>
-                            <span>failed</span>
+                <div className="space-y-1">
+                  <div className="text-sm font-medium">Recently failed</div>
+                  <div className="space-y-1 text-xs">
+                    {q.recentFailed.length === 0 ? (
+                      <div className="text-muted-foreground">None</div>
+                    ) : (
+                      q.recentFailed.map((j: unknown) => {
+                        const job = j as Record<string, unknown>
+                        return (
+                          <div
+                            key={String(job.id)}
+                            className="rounded bg-muted p-2"
+                          >
+                            <div className="flex justify-between">
+                              <span>#{String(job.id)}</span>
+                              <span>failed</span>
+                            </div>
+                            <div className="truncate text-muted-foreground">
+                              {String(job.failedReason)}
+                            </div>
                           </div>
-                          <div className="truncate text-muted-foreground">
-                            {String(job.failedReason)}
-                          </div>
-                        </div>
-                      )
-                    })
-                  )}
+                        )
+                      })
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   )

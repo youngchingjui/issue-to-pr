@@ -6,13 +6,9 @@ import { processCommentOnIssue } from "@/shared/lib/jobs/commentOnIssue"
 import { processResolveIssue } from "@/shared/lib/jobs/resolveIssue"
 import { createRedisService } from "@/shared/lib/redis"
 import { WorkerService } from "@/shared/lib/WorkerService"
+import { QUEUE_NAMES } from "@/shared/lib/schemas"
 
-// Queue names
-const QUEUE_NAMES = {
-  RESOLVE_ISSUE: "resolve-issue",
-  COMMENT_ON_ISSUE: "comment-on-issue",
-  AUTO_RESOLVE_ISSUE: "auto-resolve-issue",
-} as const
+// Use shared queue names registry
 
 async function startWorker() {
   console.log("[Worker] Starting issue-to-pr background worker...")

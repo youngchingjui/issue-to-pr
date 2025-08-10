@@ -45,18 +45,7 @@ export interface WorkerConfig {
 /**
  * Queue configuration interface
  */
-export interface QueueConfig {
-  name: string
-  defaultJobOptions?: {
-    attempts?: number
-    backoff?: {
-      type: "exponential" | "fixed"
-      delay: number
-    }
-    removeOnComplete?: number
-    removeOnFail?: number
-  }
-}
+import type { QueueConfig } from "@/core/entities/Queue"
 
 /**
  * Worker port interface following clean architecture principles
@@ -77,33 +66,7 @@ export interface WorkerPort {
    */
   createWorker(config: WorkerConfig): Promise<unknown>
 
-  /**
-   * Add a job to a queue
-   * @param queueName Name of the queue
-   * @param data Job data
-   * @param options Optional job options
-   * @returns Promise that resolves to the job ID
-   */
-  addJob(
-    queueName: string,
-    data: Record<string, unknown>,
-    options?: Record<string, unknown>
-  ): Promise<string>
-
-  /**
-   * Get job progress
-   * @param jobId Job ID
-   * @returns Promise that resolves to the job progress (0-100)
-   */
-  getJobProgress(jobId: string): Promise<number>
-
-  /**
-   * Update job progress
-   * @param jobId Job ID
-   * @param progress Progress percentage (0-100)
-   * @returns Promise that resolves when progress is updated
-   */
-  updateJobProgress(jobId: string, progress: number): Promise<void>
+  // NOTE: WorkerPort focuses on worker lifecycle and events; job/queue ops live in their own ports
 
   /**
    * Listen to worker events
