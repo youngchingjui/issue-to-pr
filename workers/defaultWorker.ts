@@ -8,13 +8,15 @@
  * logs the job information before marking the job as completed. Replace the
  * processor function with real business logic as needed.
  */
-import { Worker, QueueEvents, Job } from "bullmq"
+import { Job, QueueEvents, Worker } from "bullmq"
 import IORedis from "ioredis"
 
 const redisUrl =
-  process.env.REDIS_URL || process.env.REDIS_CONNECTION_STRING || "redis://localhost:6379"
+  process.env.REDIS_URL ||
+  process.env.REDIS_CONNECTION_STRING ||
+  "redis://localhost:6379"
 
-const connection = new IORedis(redisUrl)
+const connection = new IORedis(redisUrl, { maxRetriesPerRequest: null })
 
 async function processor(job: Job) {
   console.log(`Processing job ${job.id}: ${job.name}`)
@@ -35,4 +37,3 @@ events.on("failed", ({ jobId, failedReason }) => {
 })
 
 console.log("Worker started and listening for jobs on the 'default' queue…")
-

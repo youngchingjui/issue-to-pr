@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+
 import { addJob } from "@/lib/queue"
 
 interface Body {
@@ -8,10 +9,13 @@ interface Body {
 }
 
 export async function POST(req: NextRequest) {
-  const { name = "example", data = {}, options = {} } = (await req.json()) as Body
+  const {
+    name = "example",
+    data = {},
+    options = {},
+  } = (await req.json()) as Body
 
   const jobId = await addJob(name, data, options)
 
   return NextResponse.json({ success: true, id: jobId })
 }
-
