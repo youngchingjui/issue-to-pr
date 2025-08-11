@@ -21,7 +21,9 @@
     "test:components": "jest --selectProjects dom",
     "test:node": "jest --selectProjects node",
     "test:agent": "NODE_OPTIONS='--experimental-vm-modules' jest -c __tests__/config/jest.config.agent.ts",
-    "worker": "ts-node apps/workers/index.ts"
+    "worker:build": "tsc -p apps/workers/tsconfig.json",
+    "worker:prod": "node apps/workers/dist/index.js",
+    "worker:build-and-run": "pnpm worker:build && pnpm worker:prod"
   },
   "dependencies": {
     "@hookform/resolvers": "4",

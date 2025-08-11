@@ -9,12 +9,21 @@
  * processor function with real business logic as needed.
  */
 import { Job, QueueEvents, Worker } from "bullmq"
+import dotenv from "dotenv"
 import IORedis from "ioredis"
 
-const redisUrl =
-  process.env.REDIS_URL ||
-  process.env.REDIS_CONNECTION_STRING ||
-  "redis://localhost:6379"
+// Load environment variables
+if (process.env.NODE_ENV === "production") {
+  dotenv.config({ path: ".env.production.local" })
+} else {
+  dotenv.config({ path: ".env.local" })
+}
+
+const redisUrl = process.env.REDIS_URL
+
+if (!redisUrl) {
+  throw new Error("REDIS_URL is not set")
+}
 
 const connection = new IORedis(redisUrl, { maxRetriesPerRequest: null })
 
@@ -25,7 +34,7 @@ async function processor(job: Job) {
 }
 
 // TODO: Refactor to allow for multiple workers, queues, etc.
-const worker = new Worker("default", processor, { connection })
+new Worker("default", processor, { connection })
 
 const events = new QueueEvents("default", { connection })
 

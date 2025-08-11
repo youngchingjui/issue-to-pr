@@ -1,6 +1,5 @@
+import { addJob } from "@shared/services/job"
 import { NextRequest, NextResponse } from "next/server"
-
-import { addJob } from "@/lib/queue"
 
 import { enqueueJobsRequestSchema } from "./schemas"
 
