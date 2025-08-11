@@ -3,8 +3,13 @@ import { z } from "zod"
 
 import { getIssue } from "@/lib/github/issues"
 import { getPullRequest } from "@/lib/github/pullRequests"
-import { FetchGitHubItemRequestSchema } from "@/lib/schemas/api"
 import { GetIssueResult, GitHubIssue, PullRequest } from "@/lib/types/github"
+
+import {
+  FetchGitHubItemErrorResponse,
+  FetchGitHubItemRequestSchema,
+  FetchGitHubItemResponse,
+} from "./schemas"
 
 export async function POST(request: Request) {
   try {
@@ -21,39 +26,37 @@ export async function POST(request: Request) {
       })
     }
 
-    return NextResponse.json({
+    const response: FetchGitHubItemResponse = {
       ...data,
       type,
-    })
+    }
+
+    return NextResponse.json(response)
   } catch (err) {
     console.error("Error fetching GitHub data:", err)
 
     // Handle Zod validation errors
     if (err instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          error: "Invalid request data",
-          details: err.errors,
-        },
-        { status: 400 }
-      )
+      const errorResponse: FetchGitHubItemErrorResponse = {
+        error: "Invalid request data",
+        details: err.errors,
+      }
+      return NextResponse.json(errorResponse, { status: 400 })
     }
 
     // Handle JSON parsing errors
     if (err instanceof SyntaxError) {
-      return NextResponse.json(
-        {
-          error: "Invalid JSON in request body",
-          details: err.message,
-        },
-        { status: 400 }
-      )
+      const errorResponse: FetchGitHubItemErrorResponse = {
+        error: "Invalid JSON in request body",
+        details: err.message,
+      }
+      return NextResponse.json(errorResponse, { status: 400 })
     }
 
     // Handle other errors
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to fetch data" },
-      { status: 500 }
-    )
+    const errorResponse: FetchGitHubItemErrorResponse = {
+      error: err instanceof Error ? err.message : "Failed to fetch data",
+    }
+    return NextResponse.json(errorResponse, { status: 500 })
   }
 }

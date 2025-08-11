@@ -37,7 +37,7 @@ export async function createBranch(
     })
 
     // Create a new branch
-    await octokit.git.createRef({
+    await octokit.rest.git.createRef({
       owner,
       repo,
       ref: `refs/heads/${branch}`,
