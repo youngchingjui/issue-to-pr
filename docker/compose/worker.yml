@@ -1,0 +1,15 @@
+services:
+  worker:
+    build:
+      context: ../../
+      dockerfile: apps/workers/Dockerfile
+    environment:
+      - NODE_ENV=production
+      - REDIS_URL=redis://redis:6379
+    env_file:
+      - ${ENV_FILE}
+    restart: unless-stopped
+    depends_on:
+      - redis
+    networks:
+      - issue-to-pr-network
