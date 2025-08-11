@@ -3,6 +3,7 @@
 # dependencies
 /node_modules
 /apps/**/node_modules
+/shared/**/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -24,6 +25,7 @@ backups
 # production
 /build
 /apps/workers/dist
+/shared/dist
 
 # misc
 .DS_Store
