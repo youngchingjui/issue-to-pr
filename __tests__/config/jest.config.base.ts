@@ -6,8 +6,14 @@ const baseConfig: Config = {
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
   },
+  globals: {
+    "ts-jest": {
+      tsconfig: "<rootDir>/tsconfig.tests.json",
+    },
+  },
   coveragePathIgnorePatterns: ["/node_modules/", "/.next/", "/coverage/"],
   rootDir: "../..",
 }
 
 export default baseConfig
+
