@@ -21,7 +21,7 @@
     "test:components": "jest --selectProjects dom",
     "test:node": "jest --selectProjects node",
     "test:agent": "NODE_OPTIONS='--experimental-vm-modules' jest -c __tests__/config/jest.config.agent.ts",
-    "worker": "ts-node workers/defaultWorker.ts"
+    "worker": "ts-node apps/workers/index.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "4",

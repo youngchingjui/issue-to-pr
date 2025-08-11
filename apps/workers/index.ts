@@ -2,7 +2,7 @@
  * Example BullMQ worker.
  *
  * To start the worker locally:
- *   pnpm ts-node workers/defaultWorker.ts
+ *   pnpm worker
  *
  * The worker listens to the default queue defined in lib/queue.ts and simply
  * logs the job information before marking the job as completed. Replace the
@@ -24,6 +24,7 @@ async function processor(job: Job) {
   // TODO: implement your real processing logic here
 }
 
+// TODO: Refactor to allow for multiple workers, queues, etc.
 const worker = new Worker("default", processor, { connection })
 
 const events = new QueueEvents("default", { connection })

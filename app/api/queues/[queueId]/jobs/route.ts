@@ -10,7 +10,16 @@ export async function POST(
 ) {
   const { queueId } = params
 
-  const { jobs } = enqueueJobsRequestSchema.parse(await req.json())
+  const { data, error } = enqueueJobsRequestSchema.safeParse(await req.json())
+
+  if (error) {
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 400 }
+    )
+  }
+
+  const { jobs } = data
 
   const jobIds = await Promise.all(jobs.map((job) => addJob(queueId, job)))
 
