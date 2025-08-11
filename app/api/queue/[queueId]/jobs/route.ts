@@ -1,0 +1,26 @@
+import { NextRequest, NextResponse } from "next/server"
+
+import { addJob } from "@/lib/queue"
+
+import { enqueueJobsRequestSchema } from "./schemas"
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { queueId: string } }
+) {
+  const { queueId } = params
+
+  const { jobs } = enqueueJobsRequestSchema.parse(await req.json())
+
+  const jobIds = await Promise.all(jobs.map((job) => addJob(queueId, job)))
+
+  return NextResponse.json({ success: true, jobIds })
+}
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { queueId: string } }
+) {
+  // TODO: Implement this.
+  return NextResponse.json({ success: false, status: "not implemented yet" })
+}
