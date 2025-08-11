@@ -1,0 +1,45 @@
+{
+  "compilerOptions": {
+    /* Modules */
+    "module": "esnext",
+    "moduleResolution": "node",
+
+    /* Emit */
+    "noEmit": true,
+
+    /* Interop */
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+
+    /* JS support */
+    "allowJs": true,
+
+    /* Type Checking */
+    "strict": true,
+    "skipLibCheck": true,
+    "strictNullChecks": true,
+    "noImplicitAny": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+
+    /* Language & Environment */
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "jsx": "preserve",
+
+    /* Paths */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"],
+      "@/components/*": ["components/*"],
+      "@/styles/*": ["styles/*"],
+      "@shared/*": ["shared/*"],
+      "@workers/*": ["apps/workers/*"]
+    },
+
+    /* Incremental */
+    "incremental": true
+  },
+  "exclude": ["node_modules"]
+}
+
