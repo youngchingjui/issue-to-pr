@@ -20,7 +20,8 @@
     "test:coverage": "jest --coverage",
     "test:components": "jest --selectProjects dom",
     "test:node": "jest --selectProjects node",
-    "test:agent": "NODE_OPTIONS='--experimental-vm-modules' jest -c __tests__/config/jest.config.agent.ts"
+    "test:agent": "NODE_OPTIONS='--experimental-vm-modules' jest -c __tests__/config/jest.config.agent.ts",
+    "worker": "ts-node workers/defaultWorker.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "4",
@@ -49,6 +50,8 @@
     "@radix-ui/react-tooltip": "^1.1.8",
     "@types/dockerode": "^3.3.42",
     "@upstash/redis": "^1.34.4",
+    "bullmq": "^4.21.1",
+    "ioredis": "^5.3.4",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -120,3 +123,4 @@
     "rootDir": "."
   }
 }
+
