@@ -11,13 +11,21 @@
 import { Job, QueueEvents, Worker } from "bullmq"
 import dotenv from "dotenv"
 import IORedis from "ioredis"
+import path from "path"
+import { fileURLToPath } from "url"
 
-// Load environment variables
-if (process.env.NODE_ENV === "production") {
-  dotenv.config({ path: ".env.production.local" })
-} else {
-  dotenv.config({ path: ".env.local" })
-}
+// Load environment variables from monorepo root regardless of CWD
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+// dist -> workers -> apps -> repoRoot
+const repoRoot = path.resolve(__dirname, "../../../")
+
+const envFilename =
+  process.env.NODE_ENV === "production" ? ".env.production.local" : ".env.local"
+
+dotenv.config({ path: path.join(repoRoot, envFilename) })
+// Optional: also load base .env as a fallback if present
+dotenv.config({ path: path.join(repoRoot, ".env") })
 
 const redisUrl = process.env.REDIS_URL
 
