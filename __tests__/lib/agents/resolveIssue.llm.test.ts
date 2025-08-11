@@ -81,7 +81,7 @@ describe("resolveIssue LLM agent uses FileCheckTool after file write", () => {
     const agent = new TestAgent({
       messages: injected,
       apiKey: process.env.OPENAI_API_KEY || "sk-test",
-      model: "gpt-4.1",
+      model: "gpt-5",
     })
     // Cast each tool to the generic shape expected by `addTool` to avoid
     // union-type incompatibilities at compile time.

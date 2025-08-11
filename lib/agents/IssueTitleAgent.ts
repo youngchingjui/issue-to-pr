@@ -22,7 +22,7 @@ Return ONLY the title text with no additional commentary.`
 
 export class IssueTitleAgent extends Agent {
   constructor(params: AgentConstructorParams) {
-    super({ model: "gpt-4.1", ...params })
+    super({ model: "gpt-5", ...params })
 
     this.setSystemPrompt(SYSTEM_PROMPT)
   }

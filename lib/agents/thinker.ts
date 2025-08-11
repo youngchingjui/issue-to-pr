@@ -35,7 +35,7 @@ Lookup configuration files to better understand the codebase requirements and st
 
 export class ThinkerAgent extends Agent {
   constructor(params: AgentConstructorParams = {}) {
-    super({ model: "o3", ...params }) // always set o3 first
+    super({ model: "gpt-5", ...params }) // always set o3 first
     this.setDeveloperPrompt(DEVELOPER_PROMPT).catch(console.error)
   }
 }

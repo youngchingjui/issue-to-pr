@@ -183,7 +183,7 @@ export async function alignmentCheck({
     // 3. Init agent
     const agentParams: AgentConstructorParams = {
       apiKey: openAIApiKey,
-      model: "gpt-4.1",
+      model: "gpt-5",
     }
     const agent = new AlignmentAgent(agentParams)
     await agent.addJobId(workflowId)
@@ -235,7 +235,7 @@ export async function alignmentCheck({
       // 1. Instantiate the agent
       const assessmentAgent = new PostAlignmentAssessmentAgent({
         apiKey: openAIApiKey,
-        model: "gpt-4.1",
+        model: "gpt-5",
       })
       await assessmentAgent.addJobId(workflowId)
       assessmentAgent.addSpan({

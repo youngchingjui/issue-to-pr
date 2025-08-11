@@ -67,7 +67,7 @@ export class PlanAndCodeAgent extends ResponsesAPIAgent {
     } = params
 
     // Initialise base Agent (model defaults to "o3" if not overridden)
-    super({ model: "o3", ...base })
+    super({ model: "gpt-5", ...base })
 
     if (jobId) {
       this.jobId = jobId
