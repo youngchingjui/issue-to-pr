@@ -259,6 +259,18 @@ importers:
         specifier: ^8.19.0
         version: 8.26.1(eslint@8.57.1)(typescript@5.8.2)
 
+  apps/workers:
+    dependencies:
+      bullmq:
+        specifier: ~5.56.0
+        version: 5.56.10
+      dotenv:
+        specifier: ^16.5.0
+        version: 16.5.0
+      ioredis:
+        specifier: ^5.3.4
+        version: 5.7.0
+
 packages:
 
   '@adobe/css-tools@4.4.2':
