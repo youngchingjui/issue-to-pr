@@ -8,7 +8,8 @@ import IORedis from "ioredis"
   independently of the Next.js web server lifecycle.
 */
 
-const DEFAULT_QUEUE_NAME = "default"
+// TODO: Move this file to a shared library / service when we have the architecture set up for it.
+// Since this will likely be used by multiple services.
 
 // Lazily-initialised Redis connection – re-using the same connection prevents
 // BullMQ from spawning extra listeners and helps keep the number of open file
@@ -28,7 +29,7 @@ function getRedisConnection(): IORedis {
 
 const queues = new Map<string, Queue>()
 
-export function getQueue(name = DEFAULT_QUEUE_NAME): Queue {
+export function getQueue(name: string): Queue {
   if (queues.has(name)) return queues.get(name) as Queue
 
   const queue = new Queue(name, { connection: getRedisConnection() })
