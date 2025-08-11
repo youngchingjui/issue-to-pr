@@ -25,6 +25,7 @@ import ApplyPatchCard from "@/components/playground/ApplyPatchCard"
 import DockerodeExecCard from "@/components/playground/DockerodeExecCard"
 import IssueTitleCard from "@/components/playground/IssueTitleCard"
 import NewLocalTaskInput from "@/components/playground/NewLocalTaskInput"
+import QueueDemoCard from "@/components/playground/QueueDemoCard"
 import RipgrepSearchCard from "@/components/playground/RipgrepSearchCard"
 import SpeechToTextCard from "@/components/playground/SpeechToTextCard"
 import TestGithubUserFunctionsCard from "@/components/playground/TestGithubUserFunctionsCard"
@@ -86,6 +87,7 @@ export default async function PlaygroundPage() {
       <DockerodeExecCard />
       <WriteFileCard />
       <ApplyPatchCard />
+      <QueueDemoCard />
       {token ? <OAuthTokenCard token={token} /> : null}
       <div>
         <Link href="/playground/evals">
@@ -97,3 +99,4 @@ export default async function PlaygroundPage() {
     </div>
   )
 }
+
