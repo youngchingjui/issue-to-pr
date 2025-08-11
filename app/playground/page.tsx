@@ -17,6 +17,7 @@ const DEFAULT_TOOLS = [
 import Link from "next/link"
 import { redirect } from "next/navigation"
 
+import WorkerDashboardCard from "@/app/playground/WorkerDashboardCard"
 import { auth } from "@/auth"
 import OAuthTokenCard from "@/components/auth/OAuthTokenCard"
 import RepoSelector from "@/components/common/RepoSelector"
@@ -82,6 +83,7 @@ export default async function PlaygroundPage() {
       <IssueTitleCard />
       <SpeechToTextCard />
       <UserRolesCard />
+      <WorkerDashboardCard />
       <RipgrepSearchCard />
       <DockerodeExecCard />
       <WriteFileCard />

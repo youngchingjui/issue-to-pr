@@ -1,10 +1,12 @@
 {
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
       "@/styles/*": ["styles/*"],
       "@/components/*": ["components/*"],
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@/shared/*": ["shared/src/*"]
     },
     "target": "ES2017",
     "lib": ["dom", "dom.iterable", "esnext"],
@@ -30,5 +32,5 @@
     ]
   },
   "include": ["**/*", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "shared/dist"]
 }
