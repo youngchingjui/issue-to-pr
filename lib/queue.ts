@@ -26,9 +26,6 @@ function getRedisConnection(): IORedis {
   return connection
 }
 
-// We create one QueueScheduler per queue to make sure delayed / retried jobs
-// are moved into the active queue even when no worker is running at the
-// moment they are scheduled.
 const queues = new Map<string, Queue>()
 
 export function getQueue(name = DEFAULT_QUEUE_NAME): Queue {
@@ -45,7 +42,7 @@ export async function addJob<T extends Record<string, unknown>>(
   data: T,
   opts: JobsOptions = {}
 ): Promise<string> {
-  const queue = getQueue()
+  const queue = getQueue(name)
   const job = await queue.add(name, data, opts)
   return job.id as string
 }
