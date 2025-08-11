@@ -1,0 +1,26 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "jsx": "preserve",
+    "types": ["jest", "node"]
+  },
+  "include": ["**/*.test.ts", "**/*.test.tsx", "jest.setup.ts"],
+  "exclude": ["node_modules", "dist"],
+  "references": [
+    {
+      "path": "../shared"
+    },
+    { "path": "../apps/worker" },
+    { "path": "../" }
+  ]
+}

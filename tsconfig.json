@@ -1,43 +1,45 @@
+// tsconfig for NextJS app
 {
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
       "@/styles/*": ["styles/*"],
       "@/components/*": ["components/*"],
-      "@/*": ["./*"],
-      "@/shared/*": ["shared/src/*"]
+      "@/lib/*": ["lib/*"],
+      "@/*": ["./*"]
     },
-    "target": "ES2017",
+    "target": "ES2022",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "strictNullChecks": true,
-    "noImplicitAny": false,
-    "noEmit": true,
     "incremental": true,
-    "module": "esnext",
-    "esModuleInterop": true,
+    "noEmit": true,
+    "module": "es2022",
     "moduleResolution": "bundler",
-    "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
     "noUnusedLocals": false,
     "noUnusedParameters": false,
+    "composite": true,
     "plugins": [
       {
         "name": "next"
       }
     ]
   },
-  "include": ["**/*", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "apps/worker/**/*", "shared/**/*"],
-  "references": [
-    {
-      "path": "./shared"
-    },
-    {
-      "path": "./apps/worker"
-    }
+  "include": [
+    "next-env.d.ts",
+    "app/**/*",
+    "components/**/*",
+    "styles/**/*",
+    "lib/**/*",
+    "middleware.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "apps/worker/**/*",
+    "shared/**/*",
+    "__tests__/**/*",
+    "scripts/**/*"
   ]
 }
