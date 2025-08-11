@@ -6,9 +6,12 @@
   "scripts": {
     "predev": "./scripts/start-services.sh && pnpm i",
     "dev": "next dev",
+    "dev:worker": "pnpm --filter @issue-to-pr/worker dev",
     "prestart": "./scripts/start-services.sh",
     "start": "next start",
+    "start:worker": "pnpm --filter @issue-to-pr/worker start",
     "build": "next build",
+    "build:worker": "pnpm --filter @issue-to-pr/worker build",
     "analyze": "ANALYZE=true next build",
     "lint": "next lint",
     "lint:eslint": "next lint",
@@ -20,10 +23,7 @@
     "test:coverage": "jest --coverage",
     "test:components": "jest --selectProjects dom",
     "test:node": "jest --selectProjects node",
-    "test:agent": "NODE_OPTIONS='--experimental-vm-modules' jest -c __tests__/config/jest.config.agent.ts",
-    "worker:build": "tsc -p apps/workers/tsconfig.json",
-    "worker:prod": "node apps/workers/dist/index.js",
-    "worker:build-and-run": "pnpm worker:build && pnpm worker:prod"
+    "test:agent": "NODE_OPTIONS='--experimental-vm-modules' jest -c __tests__/config/jest.config.agent.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "4",
