@@ -1,15 +1,13 @@
 {
   "compilerOptions": {
-    /* Modules */
-    "module": "esnext",
-    "moduleResolution": "node",
+    /* Modules - leave this to the individual projects */
 
-    /* Emit */
-    "noEmit": true,
+    /* Emit - leave this to the individual projects */
 
     /* Interop */
     "esModuleInterop": true,
     "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
 
     /* JS support */
     "allowJs": true,
@@ -21,10 +19,11 @@
     "noImplicitAny": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
+    "exactOptionalPropertyTypes": false,
 
     /* Language & Environment */
-    "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "target": "ES2022",
+    "lib": ["es2022"],
     "jsx": "preserve",
 
     /* Paths */
@@ -33,8 +32,8 @@
       "@/*": ["./*"],
       "@/components/*": ["components/*"],
       "@/styles/*": ["styles/*"],
-      "@shared/*": ["shared/*"],
-      "@workers/*": ["apps/workers/*"]
+      "@shared/*": ["shared/src/*"],
+      "@workers/*": ["apps/workers/src/*"]
     },
 
     /* Incremental */
@@ -42,4 +41,3 @@
   },
   "exclude": ["node_modules"]
 }
-

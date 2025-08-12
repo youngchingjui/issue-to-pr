@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# This script assists in loading environment variables from the correct env file
+# before running `docker-compose up`.
+
 echo "Starting required services..."
 
 # Determine which env file to use based on NODE_ENV
