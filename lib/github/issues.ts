@@ -13,6 +13,7 @@ import {
   GitHubIssueComment,
   ListForRepoParams,
 } from "@/lib/types/github"
+import { withTiming } from "@/lib/utils/telemetry"
 
 type CreateIssueParams = {
   repo: string
@@ -55,15 +56,16 @@ export async function getIssue({
       issue_number: issueNumber,
     })
     return { type: "success", issue: issue.data }
-  } catch (error) {
+  } catch (error: unknown) {
     if (!error) {
       return { type: "other_error", error: "Unknown error" }
     }
-    if (typeof error === "object" && "status" in error) {
-      if (error.status === 404) {
+    const http = error as { status?: number }
+    if (typeof http === "object" && http && "status" in http) {
+      if (http.status === 404) {
         return { type: "not_found" }
       }
-      if (error.status === 403) {
+      if (http.status === 403) {
         return { type: "forbidden" }
       }
     }
@@ -130,13 +132,17 @@ export async function getIssueList({
     throw new Error("No octokit found")
   }
 
-  const issues = await octokit.rest.issues.listForRepo({
-    owner,
-    repo,
-    ...rest,
-  })
+  const issuesResponse = await withTiming(
+    `GitHub REST: issues.listForRepo ${repoFullName}`,
+    async () =>
+      await octokit.rest.issues.listForRepo({
+        owner,
+        repo,
+        ...rest,
+      })
+  )
   // Filter out pull requests from the list of issues
-  return issues.data.filter((issue) => !issue.pull_request)
+  return issuesResponse.data.filter((issue) => !issue.pull_request)
 }
 
 export async function updateIssueComment({
@@ -188,27 +194,41 @@ export async function getIssueListWithStatus({
   repoFullName: string
 } & Omit<ListForRepoParams, "owner" | "repo">): Promise<IssueWithStatus[]> {
   // 1. Get issues from GitHub
-  const issues = await getIssueList({ repoFullName, ...rest })
+  const issues = await withTiming(
+    `GitHub: getIssueList ${repoFullName}`,
+    () => getIssueList({ repoFullName, ...rest })
+  )
 
   // 2. Query Neo4j for plans using the service layer
   const issueNumbers = issues.map((issue) => issue.number)
   const [issuePlanStatus, issuePlanIds] = await Promise.all([
-    getPlanStatusForIssues({ repoFullName, issueNumbers }),
-    getLatestPlanIdsForIssues({ repoFullName, issueNumbers }),
+    withTiming(`Neo4j: getPlanStatusForIssues ${repoFullName}`, () =>
+      getPlanStatusForIssues({ repoFullName, issueNumbers })
+    ),
+    withTiming(`Neo4j: getLatestPlanIdsForIssues ${repoFullName}`, () =>
+      getLatestPlanIdsForIssues({ repoFullName, issueNumbers })
+    ),
   ])
 
   // 3. Get PRs from GitHub using GraphQL, and find for each issue if it has a PR referencing it.
-  const issuePRMap = await getIssueToPullRequestMap(repoFullName)
+  const issuePRMap = await withTiming(
+    `GitHub GraphQL: getIssueToPullRequestMap ${repoFullName}`,
+    () => getIssueToPullRequestMap(repoFullName)
+  )
 
   // 4. Determine active workflows for each issue (simple sequential for now)
   const withStatus: IssueWithStatus[] = await Promise.all(
     issues.map(async (issue) => {
       let hasActiveWorkflow = false
       try {
-        const runs = await listWorkflowRuns({
-          repoFullName,
-          issueNumber: issue.number,
-        })
+        const runs = await withTiming(
+          `Neo4j: listWorkflowRuns ${repoFullName}#${issue.number}`,
+          () =>
+            listWorkflowRuns({
+              repoFullName,
+              issueNumber: issue.number,
+            })
+        )
         // Only consider a workflow "active" if it is still running (ignore timedOut)
         hasActiveWorkflow = runs.some((r) => r.state === "running")
       } catch (err) {
@@ -228,3 +248,4 @@ export async function getIssueListWithStatus({
 
   return withStatus
 }
+

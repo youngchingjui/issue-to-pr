@@ -23,6 +23,7 @@ import {
   WorkflowRunState,
   WorkflowType,
 } from "@/lib/types"
+import { withTiming } from "@/lib/utils/telemetry"
 
 /**
  * Merges (matches or creates) a WorkflowRun node and the corresponding Issue node in the database, linking the two.
@@ -52,33 +53,37 @@ export async function initializeWorkflowRun({
   const session = await n4j.getSession()
   try {
     // Handle database operations within transaction
-    const result = await session.executeWrite(async (tx) => {
-      // If we have both issueNumber and repoFullName, create and link the issue
-      if (issueNumber && repoFullName) {
-        return await mergeIssueLink(tx, {
-          workflowRun: {
+    const result = await withTiming(
+      `Neo4j WRITE: initializeWorkflowRun ${repoFullName ?? "<no-repo>"}`,
+      async () =>
+        session.executeWrite(async (tx) => {
+          // If we have both issueNumber and repoFullName, create and link the issue
+          if (issueNumber && repoFullName) {
+            return await mergeIssueLink(tx, {
+              workflowRun: {
+                id,
+                type,
+                postToGithub,
+              },
+              issue: {
+                repoFullName,
+                number: int(issueNumber),
+              },
+            })
+          }
+
+          // Otherwise just create the workflow run without an issue
+          const run = await create(tx, {
             id,
             type,
             postToGithub,
-          },
-          issue: {
-            repoFullName,
-            number: int(issueNumber),
-          },
+          })
+          return {
+            run,
+            issue: null,
+          }
         })
-      }
-
-      // Otherwise just create the workflow run without an issue
-      const run = await create(tx, {
-        id,
-        type,
-        postToGithub,
-      })
-      return {
-        run,
-        issue: null,
-      }
-    })
+    )
 
     // Transform database models to application models outside the transaction
     return {
@@ -118,15 +123,19 @@ export async function listWorkflowRuns(issue?: {
 > {
   const session = await n4j.getSession()
   try {
-    const result = await session.executeRead(async (tx) => {
-      if (issue) {
-        return await listForIssue(tx, {
-          repoFullName: issue.repoFullName,
-          number: int(issue.issueNumber),
+    const result = await withTiming(
+      `Neo4j READ: listWorkflowRuns ${issue ? `${issue.repoFullName}#${issue.issueNumber}` : "all"}`,
+      async () =>
+        session.executeRead(async (tx) => {
+          if (issue) {
+            return await listForIssue(tx, {
+              repoFullName: issue.repoFullName,
+              number: int(issue.issueNumber),
+            })
+          }
+          return await listAll(tx)
         })
-      }
-      return await listAll(tx)
-    })
+    )
 
     return result
       .map(({ run, state, issue }) => {
@@ -157,10 +166,11 @@ export async function getWorkflowRunWithDetails(
 }> {
   const session = await n4j.getSession()
   try {
-    const { workflow, events, issue } = await session.executeRead(
-      async (tx) => {
+    const { workflow, events, issue } = await withTiming(
+      `Neo4j READ: getWorkflowRunWithDetails ${workflowRunId}`,
+      async () => session.executeRead(async (tx) => {
         return await getWithDetails(tx, workflowRunId)
-      }
+      })
     )
     return {
       workflow: workflowRunSchema.parse(neo4jToJs(workflow)),
@@ -177,9 +187,12 @@ export async function getWorkflowRunMessages(
 ): Promise<MessageEvent[]> {
   const session = await n4j.getSession()
   try {
-    const dbEvents = await session.executeRead(async (tx) => {
-      return await getMessagesForWorkflowRun(tx, workflowRunId)
-    })
+    const dbEvents = await withTiming(
+      `Neo4j READ: getWorkflowRunMessages ${workflowRunId}`,
+      async () => session.executeRead(async (tx) => {
+        return await getMessagesForWorkflowRun(tx, workflowRunId)
+      })
+    )
     return await Promise.all(
       dbEvents.map((e) => toAppMessageEvent(e, workflowRunId))
     )
@@ -193,11 +206,15 @@ export async function getWorkflowRunEvents(
 ): Promise<AnyEvent[]> {
   const session = await n4j.getSession()
   try {
-    const dbEvents = await session.executeRead(async (tx) => {
-      return await getEventsForWorkflowRun(tx, workflowRunId)
-    })
+    const dbEvents = await withTiming(
+      `Neo4j READ: getWorkflowRunEvents ${workflowRunId}`,
+      async () => session.executeRead(async (tx) => {
+        return await getEventsForWorkflowRun(tx, workflowRunId)
+      })
+    )
     return await Promise.all(dbEvents.map((e) => toAppEvent(e, workflowRunId)))
   } finally {
     await session.close()
   }
 }
+
