@@ -39,7 +39,7 @@ export class Agent {
   private untrackedMessages: EnhancedMessage[] = [] // Queue for untracked messages
   tools: Tool<ZodType, unknown>[] = []
   llm: OpenAI | null = null
-  model: ChatModel = "o3"
+  model: ChatModel = "gpt-5"
   jobId?: string
 
   constructor({ model, systemPrompt, apiKey }: AgentConstructorParams) {
@@ -227,6 +227,18 @@ export class Agent {
 
     if (response.choices[0].message.tool_calls) {
       for (const toolCall of response.choices[0].message.tool_calls) {
+        // Only handle function tool calls; ignore custom tool calls for now
+        if (toolCall.type !== "function") {
+          // Optional: track that we ignored a custom tool call
+          if (this.jobId) {
+            await createErrorEvent({
+              workflowId: this.jobId,
+              content: `Ignoring unsupported custom tool call (id=${toolCall.id})`,
+            })
+          }
+          continue
+        }
+
         const tool = this.tools.find(
           (t) => t.function.name === toolCall.function.name
         )
@@ -276,8 +288,6 @@ export class Agent {
             toolResponseString = toolResponse
           }
 
-          // First track message here, instead of this.trackMessage (inside this.addMessage)
-          // Because ChatCompletionMessageParam does not have `toolName` property
           if (this.jobId) {
             await createToolCallResultEvent({
               workflowId: this.jobId,
