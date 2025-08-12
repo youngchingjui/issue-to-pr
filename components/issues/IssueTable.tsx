@@ -10,21 +10,17 @@ interface Props {
   repoFullName: RepoFullName
 }
 
-export default function IssueTable({ repoFullName }: Props) {
+export default async function IssueTable({ repoFullName }: Props) {
   return (
     <div className="rounded-md border">
       <Table className="table-fixed sm:table-auto">
         <TableBody>
           {/* Render GitHub issues first */}
-          <Suspense fallback={<TableSkeleton />}> 
-            {/* issues rows */}
-            {/* @ts-expect-error Async Server Component */}
+          <Suspense fallback={<TableSkeleton />}>
             <IssueRows repoFullName={repoFullName} />
           </Suspense>
 
-          {/* Render tasks separately; may resolve later */}
           <Suspense fallback={null}>
-            {/* @ts-expect-error Async Server Component */}
             <TaskRows repoFullName={repoFullName} />
           </Suspense>
         </TableBody>
@@ -32,4 +28,3 @@ export default function IssueTable({ repoFullName }: Props) {
     </div>
   )
 }
-
