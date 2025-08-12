@@ -11,9 +11,16 @@ export const listJobsResponseSchema = z.object({})
 
 // POST /api/queue/{queueId}/jobs
 export const enqueueJobsRequestSchema = z.object({
-  jobs: z.array(z.any()),
+  jobs: z.array(
+    z.object({
+      name: z.string(),
+      data: z.any().optional().default({}),
+      opts: z.any().optional(),
+    })
+  ),
 })
 
 export const enqueueJobsResponseSchema = z.object({
   jobIds: z.array(z.string()),
 })
+
