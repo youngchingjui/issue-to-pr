@@ -1,5 +1,6 @@
 import { JWT } from "next-auth/jwt"
 
+import { AUTH_CONFIG } from "@/lib/auth/config"
 import { redis } from "@/lib/redis"
 
 export async function refreshTokenWithLock(token: JWT) {
@@ -91,7 +92,7 @@ export async function refreshTokenWithLock(token: JWT) {
 
         // Store the refreshed token in Redis with an expiration
         await redis.set(tokenKey, JSON.stringify(newToken), {
-          ex: newToken.expires_in || 28800,
+          ex: newToken.expires_in || AUTH_CONFIG.tokenCacheTtlSeconds,
         })
         return newToken
       } finally {
