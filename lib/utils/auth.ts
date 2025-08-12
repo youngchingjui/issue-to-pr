@@ -1,7 +1,7 @@
 import { JWT } from "next-auth/jwt"
 
-import { redis } from "@/lib/redis"
 import { AUTH_CONFIG } from "@/lib/auth/config"
+import { redis } from "@/lib/redis"
 
 export async function refreshTokenWithLock(token: JWT) {
   const lockKey = `token_refresh_lock_${token.sub}` // Prevents concurrent refreshes for the same user
@@ -160,4 +160,3 @@ export async function refreshTokenWithLock(token: JWT) {
     "Max retries reached, assuming token refreshed by another instance"
   )
 }
-

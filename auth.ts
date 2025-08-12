@@ -3,9 +3,9 @@ import NextAuth from "next-auth"
 import { JWT } from "next-auth/jwt"
 import GithubProvider from "next-auth/providers/github"
 
+import { AUTH_CONFIG } from "@/lib/auth/config"
 import { redis } from "@/lib/redis"
 import { refreshTokenWithLock } from "@/lib/utils/auth"
-import { AUTH_CONFIG } from "@/lib/auth/config"
 
 export const runtime = "nodejs"
 
@@ -132,4 +132,3 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   },
 })
-
