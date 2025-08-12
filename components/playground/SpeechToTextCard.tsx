@@ -4,14 +4,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/lib/hooks/use-toast"
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/lib/hooks/use-toast"
 
 // Helper to fully stop an active MediaRecorder & its tracks.
 function stopRecorder(recorder: MediaRecorder | null) {
@@ -52,16 +52,13 @@ export default function SpeechToTextCard() {
   const [serverRawResponse, setServerRawResponse] = useState<string | null>(
     null
   )
-  const [recordingInfo, setRecordingInfo] = useState<
-    | null
-    | {
-        chunkCount: number
-        mimeType: string
-        blobSize: number
-        urlOk: boolean
-        objectUrl?: string
-      }
-  >(null)
+  const [recordingInfo, setRecordingInfo] = useState<null | {
+    chunkCount: number
+    mimeType: string
+    blobSize: number
+    urlOk: boolean
+    objectUrl?: string
+  }>(null)
 
   const { toast } = useToast()
 
@@ -124,7 +121,9 @@ export default function SpeechToTextCard() {
         }
       }
 
-      pushDebug(`Starting MediaRecorder with MIME type: ${mimeType || "default"}`)
+      pushDebug(
+        `Starting MediaRecorder with MIME type: ${mimeType || "default"}`
+      )
       setRecordedMimeType(mimeType || "audio/webm")
 
       const recorder = mimeType
@@ -147,7 +146,10 @@ export default function SpeechToTextCard() {
       const msg = `[startRecording] Error: ${String(err)}`
       setLastError(msg)
       pushDebug(msg)
-      toast({ description: "Unable to access microphone.", variant: "destructive" })
+      toast({
+        description: "Unable to access microphone.",
+        variant: "destructive",
+      })
       setDebugOpen(true)
     }
   }
@@ -457,4 +459,3 @@ export default function SpeechToTextCard() {
     </Card>
   )
 }
-
