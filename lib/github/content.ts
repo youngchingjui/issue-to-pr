@@ -3,6 +3,7 @@ import {
   AuthenticatedUserRepository,
   GitHubRepository,
 } from "@/lib/types/github"
+import { withTiming } from "@/lib/utils/telemetry"
 
 export class GitHubError extends Error {
   constructor(
@@ -13,6 +14,8 @@ export class GitHubError extends Error {
     this.name = "GitHubError"
   }
 }
+
+type HttpLikeError = { status?: number }
 
 // TODO: Since all octokit functions here are using octokit.rest.repos, then
 // This file should be renamed to `repos.tsx` to reflect the resource being called
@@ -34,20 +37,25 @@ export async function getFileContent({
     if (!owner || !repo) {
       throw new Error("Invalid repository format. Expected 'owner/repo'")
     }
-    const file = await octokit.rest.repos.getContent({
-      owner,
-      repo,
-      path,
-      ref: branch,
-    })
+    const file = await withTiming(
+      `GitHub REST: repos.getContent ${repoFullName}:${branch}:${path}`,
+      () =>
+        octokit.rest.repos.getContent({
+          owner,
+          repo,
+          path,
+          ref: branch,
+        })
+    )
     return file.data
-  } catch (error) {
+  } catch (error: unknown) {
+    const http = error as HttpLikeError | undefined
     if (!error) {
       throw new GitHubError("An unknown error occurred.", 500)
     }
 
-    if (typeof error === "object" && "status" in error) {
-      switch (error.status) {
+    if (http && typeof http === "object" && "status" in http) {
+      switch (http.status) {
         case 404:
           throw new GitHubError(`File not found: ${path}`, 404)
         case 403:
@@ -86,15 +94,19 @@ export async function updateFileContent({
   const [owner, repo] = repoFullName.split("/")
   const sha = await getFileSha({ repoFullName, path, branch })
 
-  await octokit.rest.repos.createOrUpdateFileContents({
-    owner,
-    repo,
-    path,
-    message: commitMessage,
-    content: Buffer.from(content).toString("base64"),
-    branch,
-    ...(sha && { sha }),
-  })
+  await withTiming(
+    `GitHub REST: repos.createOrUpdateFileContents ${repoFullName}:${branch}:${path}`,
+    () =>
+      octokit.rest.repos.createOrUpdateFileContents({
+        owner,
+        repo,
+        path,
+        message: commitMessage,
+        content: Buffer.from(content).toString("base64"),
+        branch,
+        ...(sha && { sha }),
+      })
+  )
 }
 
 export async function getFileSha({
@@ -112,26 +124,31 @@ export async function getFileSha({
     throw new Error("No octokit found")
   }
   try {
-    const response = await octokit.rest.repos.getContent({
-      owner,
-      repo,
-      path,
-      ref: branch,
-    })
+    const response = await withTiming(
+      `GitHub REST: repos.getContent (sha) ${repoFullName}:${branch}:${path}`,
+      () =>
+        octokit.rest.repos.getContent({
+          owner,
+          repo,
+          path,
+          ref: branch,
+        })
+    )
     if (Array.isArray(response.data)) {
       throw new Error("Path points to a directory, not a file")
     }
 
     if ("sha" in response.data) {
-      return response.data.sha
+      return (response.data as unknown as { sha: string }).sha
     }
-  } catch (error) {
+  } catch (error: unknown) {
+    const http = error as HttpLikeError | undefined
     if (!error) {
       throw new GitHubError("An unknown error occurred.", 500)
     }
 
-    if (typeof error === "object" && "status" in error) {
-      switch (error.status) {
+    if (http && typeof http === "object" && "status" in http) {
+      switch (http.status) {
         case 404:
           console.debug(`[DEBUG] File ${path} not found on branch ${branch}`)
           return null
@@ -159,19 +176,24 @@ export async function checkBranchExists(
   }
 
   try {
-    await octokit.rest.repos.getBranch({
-      owner,
-      repo,
-      branch,
-    })
+    await withTiming(
+      `GitHub REST: repos.getBranch ${repoFullName}:${branch}`,
+      () =>
+        octokit.rest.repos.getBranch({
+          owner,
+          repo,
+          branch,
+        })
+    )
     return true
-  } catch (error) {
+  } catch (error: unknown) {
+    const http = error as HttpLikeError | undefined
     if (!error) {
       throw new GitHubError("An unknown error occurred.", 500)
     }
 
-    if (typeof error === "object" && "status" in error) {
-      switch (error.status) {
+    if (http && typeof http === "object" && "status" in http) {
+      switch (http.status) {
         case 404:
           return false
         default:
@@ -192,10 +214,10 @@ export async function getRepoFromString(
   if (!octokit) {
     throw new Error("No octokit found")
   }
-  const { data: repoData } = await octokit.rest.repos.get({
-    owner,
-    repo,
-  })
+  const { data: repoData } = await withTiming(
+    `GitHub REST: repos.get ${fullName}`,
+    () => octokit.rest.repos.get({ owner, repo })
+  )
   return repoData
 }
 
@@ -217,10 +239,14 @@ export async function getUserRepositories(
     throw new Error("No octokit found")
   }
   try {
-    const response = await octokit.rest.repos.listForUser({
-      username,
-      ...options,
-    })
+    const response = await withTiming(
+      `GitHub REST: repos.listForUser ${username}`,
+      () =>
+        octokit.rest.repos.listForUser({
+          username,
+          ...options,
+        })
+    )
 
     const linkHeader = response.headers.link
     const lastPageMatch = linkHeader?.match(
@@ -231,13 +257,14 @@ export async function getUserRepositories(
       repositories: response.data as AuthenticatedUserRepository[],
       maxPage,
     }
-  } catch (error) {
+  } catch (error: unknown) {
+    const http = error as HttpLikeError | undefined
     if (!error) {
       throw new GitHubError("An unknown error occurred.", 500)
     }
 
-    if (typeof error === "object" && "status" in error) {
-      switch (error.status) {
+    if (http && typeof http === "object" && "status" in http) {
+      switch (http.status) {
         case 404:
           throw new GitHubError(`User not found: ${username}`, 404)
         case 403:
@@ -277,9 +304,10 @@ export async function getAuthenticatedUserRepositories(
     throw new Error("No octokit found")
   }
   try {
-    const response = await octokit.rest.repos.listForAuthenticatedUser({
-      ...options,
-    })
+    const response = await withTiming(
+      `GitHub REST: repos.listForAuthenticatedUser`,
+      () => octokit.rest.repos.listForAuthenticatedUser({ ...options })
+    )
 
     const linkHeader = response.headers.link
     const lastPageMatch = linkHeader?.match(
@@ -290,13 +318,14 @@ export async function getAuthenticatedUserRepositories(
       repositories: response.data as AuthenticatedUserRepository[],
       maxPage,
     }
-  } catch (error) {
+  } catch (error: unknown) {
+    const http = error as HttpLikeError | undefined
     if (!error) {
       throw new GitHubError("An unknown error occurred.", 500)
     }
 
-    if (typeof error === "object" && "status" in error) {
-      switch (error.status) {
+    if (http && typeof http === "object" && "status" in http) {
+      switch (http.status) {
         case 404:
           throw new GitHubError("User not found", 404)
         case 403:
