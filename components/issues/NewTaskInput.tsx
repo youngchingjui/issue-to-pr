@@ -2,7 +2,7 @@
 
 import { Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useTransition, useState } from "react"
+import { useState, useTransition } from "react"
 
 import VoiceDictationButton from "@/components/common/VoiceDictationButton"
 import { Button } from "@/components/ui/button"
@@ -147,8 +147,8 @@ export default function NewTaskInput({ repoFullName }: Props) {
         <Button type="submit" disabled={isSubmitting}>
           {generatingTitle ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating
-              issue title...
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating issue
+              title...
             </>
           ) : loading || isPending ? (
             <>
@@ -169,4 +169,3 @@ export default function NewTaskInput({ repoFullName }: Props) {
     </form>
   )
 }
-

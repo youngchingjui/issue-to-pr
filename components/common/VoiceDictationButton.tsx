@@ -1,6 +1,7 @@
 "use client"
 
 import { Loader2, Mic } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
 import { useVoiceDictation } from "@/lib/hooks/useVoiceDictation"
 
@@ -15,12 +16,8 @@ export default function VoiceDictationButton({
   disabled,
   className,
 }: Props) {
-  const {
-    isRecording,
-    isTranscribing,
-    startRecording,
-    stopRecording,
-  } = useVoiceDictation({ onTranscribed })
+  const { isRecording, isTranscribing, startRecording, stopRecording } =
+    useVoiceDictation({ onTranscribed })
 
   return (
     <Button
@@ -43,4 +40,3 @@ export default function VoiceDictationButton({
     </Button>
   )
 }
-

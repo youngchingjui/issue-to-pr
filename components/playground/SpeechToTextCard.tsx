@@ -6,4 +6,3 @@ import VoiceDictationCard from "@/components/common/VoiceDictationCard"
 export default function SpeechToTextCard() {
   return <VoiceDictationCard />
 }
-

@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+
 import { useToast } from "@/lib/hooks/use-toast"
 
 // Helper to fully stop an active MediaRecorder & its tracks.
@@ -33,9 +34,7 @@ export function useVoiceDictation(options?: UseVoiceDictationOptions) {
   const { toast } = useToast()
 
   const [isRecording, setIsRecording] = useState(false)
-  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(
-    null
-  )
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
   const audioChunks = useRef<Blob[]>([])
 
   const [transcript, setTranscript] = useState("")
@@ -335,4 +334,3 @@ export function useVoiceDictation(options?: UseVoiceDictationOptions) {
     stopRecording,
   }
 }
-
