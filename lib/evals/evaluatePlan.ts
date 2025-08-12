@@ -77,6 +77,11 @@ export async function evaluatePlan(
   }
 
   const toolCall = response.tool_calls[0]
+
+  if (toolCall.type !== "function") {
+    throw new Error("Tool call should be a function call")
+  }
+
   const toolArgs = plan753EvaluationSchema.parse(
     JSON.parse(toolCall.function.arguments)
   )
