@@ -1,7 +1,7 @@
 // Convenience methods for running git commands in node
 // Returns promises for exec operations
 
-import { exec } from "child_process"
+import { exec, type ExecException } from "child_process"
 import { promises as fs } from "fs"
 import path from "path"
 import util from "util"
@@ -40,7 +40,7 @@ export async function checkIfLocalBranchExists(
     exec(command, { cwd }, (error, stdout, stderr) => {
       // grep returns exit code 1 when no matches are found
       // but other error codes indicate real errors
-      if (error && error.code !== 1) {
+      if (error && (error as ExecException).code !== 1) {
         return reject(new Error(error.message))
       }
       if (stderr) {
@@ -326,6 +326,20 @@ export async function getCurrentBranch(repoPath: string): Promise<string> {
   }
 }
 
+function normalizeError(err: unknown): string {
+  if (!err) return ""
+  if (typeof err === "string") return err
+  if (err instanceof Error) {
+    const e = err as Error & { stderr?: string }
+    return e.stderr || err.message
+  }
+  try {
+    return JSON.stringify(err)
+  } catch {
+    return String(err)
+  }
+}
+
 export async function addWorktree(
   repoDir: string,
   worktreeDir: string,
@@ -334,34 +348,157 @@ export async function addWorktree(
   // Ensure parent directory exists before adding the worktree
   await fs.mkdir(path.dirname(worktreeDir), { recursive: true })
 
-  const execWorktree = (cmd: string) =>
-    new Promise<string>((resolve, reject) => {
-      exec(cmd, { cwd: repoDir }, (error, stdout, stderr) => {
-        if (error) {
-          return reject(error)
-        }
-        if (stderr) {
-          console.warn(`[WARNING] addWorktree produced stderr: ${stderr}`)
-        }
-        resolve(stdout)
-      })
-    })
+  const execWorktree = async (cmd: string) => {
+    const { stdout, stderr } = await execPromise(cmd, { cwd: repoDir })
+    if (stderr) {
+      console.warn(`[WARNING] addWorktree produced stderr: ${stderr}`)
+    }
+    return stdout
+  }
 
-  // First attempt: normal add (may fail if branch already checked out)
+  // Best-effort prune to clean up any stale state from previous crashes
   try {
-    return await execWorktree(`git worktree add "${worktreeDir}" ${branch}`)
+    await execWorktree("git worktree prune")
+  } catch {
+    // non-fatal
+  }
+
+  const add = () =>
+    execWorktree(`git worktree add "${worktreeDir}" ${branch}`)
+
+  // Attempt 1: normal add
+  try {
+    return await add()
   } catch (err: unknown) {
-    // TODO: Handle if any of the below completely fail (how?)
-    // Fallback 1: detached HEAD
+    const msg = normalizeError(err).toLowerCase()
+
+    // If branch is already checked out elsewhere, prefer a detached worktree
+    if (msg.includes("already checked out") || msg.includes("is checked out at")) {
+      try {
+        return await execWorktree(
+          `git worktree add --detach "${worktreeDir}" ${branch}`
+        )
+      } catch (e2: unknown) {
+        // If detach also fails, fall back to force as last resort
+        try {
+          return await execWorktree(
+            `git worktree add --force "${worktreeDir}" ${branch}`
+          )
+        } catch (e3: unknown) {
+          throw new Error(
+            `Failed to add worktree for branch '${branch}'. Initial error: ${msg}. Detach error: ${normalizeError(
+              e2
+            )}. Force error: ${normalizeError(e3)}`
+          )
+        }
+      }
+    }
+
+    // If branch was not found locally, fetch and retry
+    if (
+      msg.includes("not found") ||
+      msg.includes("unknown revision") ||
+      msg.includes("did not match any file")
+    ) {
+      try {
+        await execWorktree(
+          `git fetch origin ${branch}:refs/heads/${branch}`
+        )
+        return await add()
+      } catch (eFetch: unknown) {
+        // As a fallback, try detached at remote ref if it exists
+        try {
+          return await execWorktree(
+            `git worktree add --detach "${worktreeDir}" origin/${branch}`
+          )
+        } catch (e2: unknown) {
+          throw new Error(
+            `Failed to add worktree for missing branch '${branch}'. Fetch error: ${normalizeError(
+              eFetch
+            )}. Detach@origin error: ${normalizeError(e2)}`
+          )
+        }
+      }
+    }
+
+    // If Git suggests pruning or indicates lock/stale worktree, prune and retry
+    if (msg.includes("prune") || msg.includes("locked")) {
+      try {
+        await execWorktree("git worktree prune")
+        return await add()
+      } catch (e2: unknown) {
+        // try detached
+        try {
+          return await execWorktree(
+            `git worktree add --detach "${worktreeDir}" ${branch}`
+          )
+        } catch (e3: unknown) {
+          throw new Error(
+            `Failed to add worktree after prune. Initial error: ${msg}. Retry error: ${normalizeError(
+              e2
+            )}. Detach error: ${normalizeError(e3)}`
+          )
+        }
+      }
+    }
+
+    // If destination path already exists or isn't empty, try to clean it when safe
+    if (
+      msg.includes("already exists") ||
+      msg.includes("not an empty directory") ||
+      msg.includes("file exists")
+    ) {
+      try {
+        // Only remove if directory exists and is empty
+        const entries = await fs
+          .readdir(worktreeDir)
+          .catch(() => [] as string[])
+        if (entries.length === 0) {
+          await fs.rm(worktreeDir, { recursive: true, force: true })
+          return await add()
+        }
+      } catch {
+        // ignore and fallback
+      }
+
+      // As a fallback, try detached to avoid branch conflicts
+      try {
+        return await execWorktree(
+          `git worktree add --detach "${worktreeDir}" ${branch}`
+        )
+      } catch (e3: unknown) {
+        // Final attempt: force
+        try {
+          return await execWorktree(
+            `git worktree add --force "${worktreeDir}" ${branch}`
+          )
+        } catch (e4: unknown) {
+          throw new Error(
+            `Failed to add worktree. Path conflict. Initial error: ${msg}. Detach error: ${normalizeError(
+              e3
+            )}. Force error: ${normalizeError(e4)}`
+          )
+        }
+      }
+    }
+
+    // Unknown failure mode: try a sensible fallback sequence
     try {
       return await execWorktree(
         `git worktree add --detach "${worktreeDir}" ${branch}`
       )
-    } catch {
-      // Fallback 2: force add (should rarely be needed)
-      return await execWorktree(
-        `git worktree add --force "${worktreeDir}" ${branch}`
-      )
+    } catch (e2: unknown) {
+      try {
+        return await execWorktree(
+          `git worktree add --force "${worktreeDir}" ${branch}`
+        )
+      } catch (e3: unknown) {
+        throw new Error(
+          `Failed to add worktree for branch '${branch}'. Error: ${msg}. Detach error: ${normalizeError(
+            e2
+          )}. Force error: ${normalizeError(e3)}`
+        )
+      }
     }
   }
 }
@@ -385,3 +522,4 @@ export async function removeWorktree(
     })
   })
 }
+
