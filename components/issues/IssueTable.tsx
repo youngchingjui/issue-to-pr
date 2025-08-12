@@ -1,8 +1,8 @@
 import { Suspense } from "react"
 
 import IssueRows from "@/components/issues/IssueRows"
+import RowsSkeleton from "@/components/issues/RowsSkeleton"
 import TaskRows from "@/components/issues/TaskRows"
-import TableSkeleton from "@/components/layout/TableSkeleton"
 import { Table, TableBody } from "@/components/ui/table"
 import { RepoFullName } from "@/lib/types/github"
 
@@ -16,11 +16,11 @@ export default async function IssueTable({ repoFullName }: Props) {
       <Table className="table-fixed sm:table-auto">
         <TableBody>
           {/* Render GitHub issues first */}
-          <Suspense fallback={<TableSkeleton />}>
+          <Suspense fallback={<RowsSkeleton rows={5} columns={3} />}>
             <IssueRows repoFullName={repoFullName} />
           </Suspense>
 
-          <Suspense fallback={null}>
+          <Suspense fallback={<RowsSkeleton rows={2} columns={3} />}>
             <TaskRows repoFullName={repoFullName} />
           </Suspense>
         </TableBody>
