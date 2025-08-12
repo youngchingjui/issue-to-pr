@@ -5,6 +5,7 @@ import GithubProvider from "next-auth/providers/github"
 
 import { redis } from "@/lib/redis"
 import { refreshTokenWithLock } from "@/lib/utils/auth"
+import { AUTH_CONFIG } from "@/lib/auth/config"
 
 export const runtime = "nodejs"
 
@@ -35,6 +36,10 @@ function getRedirectBaseUrl() {
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  session: {
+    strategy: "jwt",
+    maxAge: AUTH_CONFIG.sessionMaxAgeSeconds,
+  },
   providers: [
     GithubProvider({
       id: "github-app",
@@ -84,7 +89,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
 
         await redis.set(`token_${token.sub}`, JSON.stringify(newToken), {
-          ex: account.expires_in || 28800,
+          ex: account.expires_in || AUTH_CONFIG.tokenCacheTtlSeconds,
         })
         return newToken
       }
@@ -101,7 +106,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.expires_at &&
         (token.expires_at as number) < Date.now() / 1000
       ) {
-        if (token.provider == "github") {
+        // Try to refresh when we have a refresh token available
+        if (token.refresh_token) {
           try {
             return await refreshTokenWithLock(token)
           } catch (error) {
@@ -126,3 +132,4 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   },
 })
+
