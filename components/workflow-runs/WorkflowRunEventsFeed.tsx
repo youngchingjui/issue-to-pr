@@ -6,6 +6,7 @@ import useSWR from "swr"
 import EventDetailDrawer from "@/components/workflow-runs/EventDetailDrawer"
 import { ErrorEvent } from "@/components/workflow-runs/events/ErrorEvent"
 import { LLMResponseEvent } from "@/components/workflow-runs/events/LLMResponseEvent"
+import { ReasoningEvent } from "@/components/workflow-runs/events/ReasoningEvent"
 import { StatusUpdate } from "@/components/workflow-runs/events/StatusUpdate"
 import { SystemPromptEvent } from "@/components/workflow-runs/events/SystemPromptEvent"
 import { ToolCallEvent } from "@/components/workflow-runs/events/ToolCallEvent"
@@ -45,6 +46,8 @@ function EventRenderer({ event, issue }: { event: AnyEvent; issue?: Issue }) {
       return <StatusUpdate event={event} />
     case "reviewComment":
       return <UserMessageEvent event={event} />
+    case "reasoning":
+      return <ReasoningEvent event={event} />
     case "error":
       return <ErrorEvent event={event} />
     default:
@@ -107,3 +110,4 @@ export default function WorkflowRunEventsFeed({
     </>
   )
 }
+
