@@ -14,9 +14,7 @@
     "jsx": "preserve",
     /* Paths */
     "baseUrl": ".",
-    "paths": {
-      "@/*": ["./*"]
-    },
+
     /* TO SORT */
     "resolveJsonModule": true,
     "isolatedModules": true,
