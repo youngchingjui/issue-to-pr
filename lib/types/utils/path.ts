@@ -16,8 +16,10 @@ import { z } from "zod"
  */
 export const relativePathSchema = z
   .string()
-  .min(1, { message: "Path cannot be empty" })
   // Disallow NUL byte and other ASCII control chars (0x00-0x1F, 0x7F)
+  .min(1, { message: "Path cannot be empty" })
+  // strip trailing slashes
+  .transform((p) => p.replace(/\/+$/, ""))
   .refine((p) => !/[\0-\x1F\x7F]/.test(p), {
     message: "Path contains control characters or null bytes",
   })

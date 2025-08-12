@@ -1,6 +1,6 @@
 import { components } from "@octokit/openapi-types"
 import { RestEndpointMethodTypes } from "@octokit/rest"
-import { Octokit } from "octokit"
+import { Octokit } from "@octokit/rest"
 import { z } from "zod"
 
 // GitHub API Types

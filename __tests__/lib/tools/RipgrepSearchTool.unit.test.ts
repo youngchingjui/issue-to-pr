@@ -58,41 +58,33 @@ describe("RipgrepSearchTool", () => {
 
     const longTool = createRipgrepSearchTool(tmpDir)
 
-    it(
-      "paginates results when output exceeds maxChars",
-      async () => {
-        const result = await longTool.handler({
-          query: "a",
-          maxChars: 200,
-          page: 1,
-        })
+    it("paginates results when output exceeds maxChars", async () => {
+      const result = await longTool.handler({
+        query: "a",
+        maxChars: 200,
+        page: 1,
+      })
 
-        expect(typeof result).toBe("string")
-        expect(result.length).toBeGreaterThan(0)
-        expect(result).toMatch(/\[...truncated/) // indicates pagination
-      },
-      30000
-    )
+      expect(typeof result).toBe("string")
+      expect(result.length).toBeGreaterThan(0)
+      expect(result).toMatch(/\[...truncated/) // indicates pagination
+    }, 30000)
 
-    it(
-      "returns different content for the next page",
-      async () => {
-        const page1 = await longTool.handler({
-          query: "a",
-          maxChars: 200,
-          page: 1,
-        })
-        const page2 = await longTool.handler({
-          query: "a",
-          maxChars: 200,
-          page: 2,
-        })
+    it("returns different content for the next page", async () => {
+      const page1 = await longTool.handler({
+        query: "a",
+        maxChars: 200,
+        page: 1,
+      })
+      const page2 = await longTool.handler({
+        query: "a",
+        maxChars: 200,
+        page: 2,
+      })
 
-        expect(typeof page2).toBe("string")
-        expect(page2).not.toBe("")
-        expect(page1).not.toEqual(page2)
-      },
-      30000
-    )
+      expect(typeof page2).toBe("string")
+      expect(page2).not.toBe("")
+      expect(page1).not.toEqual(page2)
+    }, 30000)
   })
 })
