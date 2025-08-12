@@ -1,27 +1,19 @@
 "use client"
 
-import { Loader2, Mic } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useCallback, useEffect, useRef, useState, useTransition } from "react"
+import { useState, useTransition } from "react"
 
+import VoiceDictationButton from "@/components/common/VoiceDictationButton"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { createIssue } from "@/lib/github/issues"
 import { toast } from "@/lib/hooks/use-toast"
 import { IssueTitleResponseSchema } from "@/lib/types/api/schemas"
-import { RepoFullName } from "@/lib/types/github"
+import type { RepoFullName } from "@/lib/types/github"
 
 interface Props {
   repoFullName: RepoFullName | null
-}
-
-// Helper to fully stop an active MediaRecorder & its tracks.
-function stopRecorder(recorder: MediaRecorder | null) {
-  if (!recorder) return
-  if (recorder.state !== "inactive") {
-    recorder.stop()
-  }
-  recorder.stream?.getTracks().forEach((t) => t.stop())
 }
 
 export default function NewTaskInput({ repoFullName }: Props) {
@@ -35,20 +27,7 @@ export default function NewTaskInput({ repoFullName }: Props) {
   // then transition the UI update.
   const [isPending, startTransition] = useTransition()
 
-  // Recording related state
-  const [isRecording, setIsRecording] = useState(false)
-  const [isTranscribing, setIsTranscribing] = useState(false)
-  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
-  const audioChunks = useRef<Blob[]>([])
-
   const router = useRouter()
-
-  // Cleanup recorder on unmount
-  useEffect(() => {
-    return () => {
-      stopRecorder(mediaRecorder)
-    }
-  }, [mediaRecorder])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -105,7 +84,7 @@ export default function NewTaskInput({ repoFullName }: Props) {
 
     const { repo, owner } = repoFullName
     try {
-      // 1️⃣ Perform the async GitHub call **outside** of startTransition so
+      // 1️⃣ Perform the async GitHub call outside of startTransition so
       //     errors are captured by this try/catch.
       const res = await createIssue({
         repo,
@@ -147,78 +126,6 @@ export default function NewTaskInput({ repoFullName }: Props) {
 
   const isSubmitting = loading || generatingTitle || isPending
 
-  const startRecording = async () => {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      toast({
-        description: "Your browser does not support audio recording.",
-        variant: "destructive",
-      })
-      return
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const recorder = new MediaRecorder(stream)
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunks.current.push(e.data)
-      }
-      recorder.onstop = handleRecordingStop
-      recorder.start()
-      setMediaRecorder(recorder)
-      setIsRecording(true)
-    } catch {
-      toast({
-        description: "Unable to access microphone.",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const stopRecording = () => {
-    stopRecorder(mediaRecorder)
-  }
-
-  const handleRecordingStop = useCallback(async () => {
-    setIsRecording(false)
-
-    // Ensure microphone is released immediately.
-    stopRecorder(mediaRecorder)
-    setMediaRecorder(null)
-
-    const blob = new Blob(audioChunks.current, { type: "audio/webm" })
-    audioChunks.current = []
-
-    const audioFile = new File([blob], "recording.webm", {
-      type: "audio/webm",
-    })
-
-    setIsTranscribing(true)
-    try {
-      const formData = new FormData()
-      formData.append("audio", audioFile)
-
-      const response = await fetch("/api/openai/transcribe", {
-        method: "POST",
-        body: formData,
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || `HTTP ${response.status}`)
-      }
-
-      const data = await response.json()
-      const text: string = data.text || ""
-      if (text) {
-        setDescription((prev) => (prev.trim() ? `${prev}\n${text}` : text))
-      }
-    } catch (err) {
-      toast({ description: String(err), variant: "destructive" })
-    } finally {
-      setIsTranscribing(false)
-    }
-  }, [mediaRecorder])
-
   return (
     <form
       onSubmit={handleSubmit}
@@ -240,8 +147,8 @@ export default function NewTaskInput({ repoFullName }: Props) {
         <Button type="submit" disabled={isSubmitting}>
           {generatingTitle ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating
-              issue title...
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating issue
+              title...
             </>
           ) : loading || isPending ? (
             <>
@@ -251,26 +158,14 @@ export default function NewTaskInput({ repoFullName }: Props) {
             "Create Github Issue"
           )}
         </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={isRecording ? stopRecording : startRecording}
-          disabled={isSubmitting || isTranscribing}
-          className={isRecording ? "animate-pulse" : ""}
-          size={isRecording ? undefined : "icon"}
-        >
-          {isTranscribing ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : isRecording ? (
-            <>
-              <Mic className="mr-2 h-4 w-4" /> Listening...
-            </>
-          ) : (
-            <Mic className="h-4 w-4" />
-          )}
-        </Button>
+
+        <VoiceDictationButton
+          onTranscribed={(text) =>
+            setDescription((prev) => (prev.trim() ? `${prev}\n${text}` : text))
+          }
+          disabled={isSubmitting}
+        />
       </div>
     </form>
   )
 }
-
