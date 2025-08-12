@@ -41,8 +41,13 @@ import {
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
+import { extractImageUrlsFromMarkdown } from "@/lib/utils/markdown"
 
-interface ResolveIssueParams {
+// Minimal content part types for Chat Completions API (text + image_url)
+type TextContentPart = { type: "text"; text: string }
+type ImageUrlContentPart = { type: "image_url"; image_url: { url: string } }
+
+type ResolveIssueParams = {
   issue: GitHubIssue
   repository: GitHubRepository
   apiKey: string
@@ -243,23 +248,51 @@ export const resolveIssue = async ({
     // Track the span for the coder agent on LangFuse
     coder.addSpan({ span, generationName: "Edit Code" })
 
-    // Add issue information as user message
-    await coder.addMessage({
-      role: "user",
-      content: `Github issue title: ${issue.title}\nGithub issue description: ${issue.body}`,
-    })
+    // Add issue information as user message (with images if present)
+    const issueText = `Github issue title: ${issue.title}\nGithub issue description: ${issue.body ?? ""}`
+    const issueImageUrls = extractImageUrlsFromMarkdown(issue.body ?? "")
+    if (issueImageUrls.length > 0) {
+      const contentParts: Array<TextContentPart | ImageUrlContentPart> = [
+        { type: "text", text: issueText },
+        ...issueImageUrls.map((url) => ({
+          type: "image_url" as const,
+          image_url: { url },
+        })),
+      ]
+      await coder.addMessage({ role: "user", content: contentParts })
+    } else {
+      await coder.addMessage({ role: "user", content: issueText })
+    }
 
-    // Add comments if they exist
+    // Add comments if they exist (with images if present)
     if (comments && comments.length > 0) {
-      await coder.addMessage({
-        role: "user",
-        content: `Github issue comments:\n${comments
-          .map(
-            (comment) =>
-              `\n- **User**: ${comment.user?.login}\n- **Created At**: ${new Date(comment.created_at).toLocaleString()}\n- **Reactions**: ${comment.reactions ? comment.reactions.total_count : 0}\n- **Comment**: ${comment.body}\n`
+      const commentsText = `Github issue comments:\n${comments
+        .map(
+          (comment) =>
+            `\n- **User**: ${comment.user?.login}\n- **Created At**: ${new Date(comment.created_at).toLocaleString()}\n- **Reactions**: ${comment.reactions ? comment.reactions.total_count : 0}\n- **Comment**: ${comment.body}\n`
+        )
+        .join("\n")}`
+
+      const commentImageUrls = Array.from(
+        new Set(
+          comments.flatMap((c) =>
+            extractImageUrlsFromMarkdown(c.body ?? "")
           )
-          .join("\n")}`,
-      })
+        )
+      )
+
+      if (commentImageUrls.length > 0) {
+        const contentParts: Array<TextContentPart | ImageUrlContentPart> = [
+          { type: "text", text: commentsText },
+          ...commentImageUrls.map((url) => ({
+            type: "image_url" as const,
+            image_url: { url },
+          })),
+        ]
+        await coder.addMessage({ role: "user", content: contentParts })
+      } else {
+        await coder.addMessage({ role: "user", content: commentsText })
+      }
     }
 
     // Add tree information as user message
@@ -343,3 +376,4 @@ export const resolveIssue = async ({
     }
   }
 }
+

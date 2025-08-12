@@ -61,25 +61,26 @@ export class Agent {
 
     let eventId: string | undefined
 
-    if (message.role === "system" && typeof message.content === "string") {
+    // Normalize content to a string for event storage
+    const normalizeContent = (content: ChatCompletionMessageParam["content"]) =>
+      typeof content === "string" ? content : JSON.stringify(content)
+
+    if (message.role === "system") {
       const event = await createSystemPromptEvent({
         workflowId: this.jobId,
-        content: message.content,
+        content: normalizeContent(message.content),
       })
       eventId = event.id
-    } else if (message.role === "user" && typeof message.content === "string") {
+    } else if (message.role === "user") {
       const event = await createUserResponseEvent({
         workflowId: this.jobId,
-        content: message.content,
+        content: normalizeContent(message.content),
       })
       eventId = event.id
-    } else if (
-      message.role === "assistant" &&
-      typeof message.content === "string"
-    ) {
+    } else if (message.role === "assistant") {
       const event = await createLLMResponseEvent({
         workflowId: this.jobId,
-        content: message.content,
+        content: normalizeContent(message.content),
         model: this.model,
       })
       eventId = event.id
@@ -652,3 +653,4 @@ export class ResponsesAPIAgent extends Agent {
     }
   }
 }
+
