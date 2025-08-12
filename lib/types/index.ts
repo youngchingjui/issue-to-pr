@@ -11,7 +11,7 @@ export interface Tool<Schema extends ZodType, Output> {
     type: "function"
   }
   schema: Schema
-  handler: (params: z.infer<Schema>) => Promise<Output> | Output
+  handler: (params: z.input<Schema>) => Promise<Output> | Output
 }
 
 // Agents
@@ -322,4 +322,3 @@ export type WorkflowRun = z.infer<typeof workflowRunSchema>
 export type WorkflowRunState = z.infer<typeof workflowRunStateSchema>
 export type WorkflowStateEvent = z.infer<typeof workflowStateEventSchema>
 export type WorkflowType = z.infer<typeof workflowTypeEnum>
-
