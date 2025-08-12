@@ -21,6 +21,7 @@ import {
   IssueComment,
   PullRequestReview,
 } from "@/lib/types/github"
+import { extractImageUrlsFromMarkdown } from "@/lib/utils/markdown"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 
 interface ReviewPullRequestParams {
@@ -169,6 +170,11 @@ export async function reviewPullRequest({
       )
       .join("\n\n")
 
+    // Extract image URLs from the linked issue, if present
+    const issueImageUrls = issue
+      ? extractImageUrlsFromMarkdown(issue.body || "")
+      : []
+
     // Provide initial user message with all necessary information
     const message = `
     ## Pull request diff\n
@@ -181,6 +187,12 @@ export async function reviewPullRequest({
       ${issue.title}\n
       ### Description\n
       ${issue.body}\n
+      ${
+        issueImageUrls.length > 0
+          ? `### Issue Image URLs\n
+${issueImageUrls.map((u) => `- ${u}`).join("\n")}\n`
+          : ""
+      }
     `
         : ""
     }
@@ -227,3 +239,4 @@ export async function reviewPullRequest({
     throw error
   }
 }
+

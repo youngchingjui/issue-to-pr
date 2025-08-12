@@ -40,6 +40,7 @@ import {
   createContainerizedDirectoryTree,
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
+import { extractImageUrlsFromMarkdown } from "@/lib/utils/markdown"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 
 interface ResolveIssueParams {
@@ -249,6 +250,15 @@ export const resolveIssue = async ({
       content: `Github issue title: ${issue.title}\nGithub issue description: ${issue.body}`,
     })
 
+    // If there are images in the issue body, include them explicitly for context
+    const issueImageUrls = extractImageUrlsFromMarkdown(issue.body || "")
+    if (issueImageUrls.length > 0) {
+      await coder.addMessage({
+        role: "user",
+        content: `Image URLs referenced in the issue description (for visual context):\n${issueImageUrls.map((u) => `- ${u}`).join("\n")}`,
+      })
+    }
+
     // Add comments if they exist
     if (comments && comments.length > 0) {
       await coder.addMessage({
@@ -343,3 +353,4 @@ export const resolveIssue = async ({
     }
   }
 }
+
