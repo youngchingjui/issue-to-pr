@@ -369,4 +369,3 @@ export function combineRepositories<T extends { id: number }>(
   // Convert the Map values back to an array and sort by id
   return Array.from(repoMap.values()).sort((a, b) => b.id - a.id)
 }
-

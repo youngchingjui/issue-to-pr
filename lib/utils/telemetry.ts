@@ -8,23 +8,27 @@ function nowIso() {
 
 export function logStart(label: string, meta?: LogMeta) {
   const start = Date.now()
-  // eslint-disable-next-line no-console
-  console.log(`[${nowIso()}][START] ${label}${meta ? " " + JSON.stringify(meta) : ""}`)
+  console.log(
+    `[${nowIso()}][START] ${label}${meta ? " " + JSON.stringify(meta) : ""}`
+  )
   return start
 }
 
 export function logEnd(label: string, start: number, meta?: LogMeta) {
   const durationMs = Date.now() - start
-  // eslint-disable-next-line no-console
   console.log(
     `[${nowIso()}][END]   ${label} (${durationMs}ms)` +
       (meta ? ` ${JSON.stringify(meta)}` : "")
   )
 }
 
-export function logError(label: string, start: number | null, error: unknown, meta?: LogMeta) {
+export function logError(
+  label: string,
+  start: number | null,
+  error: unknown,
+  meta?: LogMeta
+) {
   const durationMs = start ? Date.now() - start : undefined
-  // eslint-disable-next-line no-console
   console.error(
     `[${nowIso()}][ERROR] ${label}` +
       (typeof durationMs === "number" ? ` (${durationMs}ms)` : "") +
@@ -48,4 +52,3 @@ export async function withTiming<T>(
     throw err
   }
 }
-

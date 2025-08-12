@@ -143,7 +143,10 @@ export async function getPlanStatusForIssues({
       `Neo4j READ: listPlanStatusForIssues ${repoFullName}`,
       async () =>
         session.executeRead(async (tx: ManagedTransaction) => {
-          return await dbListPlanStatusForIssues(tx, { repoFullName, issueNumbers })
+          return await dbListPlanStatusForIssues(tx, {
+            repoFullName,
+            issueNumbers,
+          })
         }),
       { count: issueNumbers.length }
     )
@@ -178,4 +181,3 @@ export async function getLatestPlanIdsForIssues({
     await session.close()
   }
 }
-

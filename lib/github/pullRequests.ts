@@ -1,11 +1,11 @@
 import getOctokit, { getGraphQLClient } from "@/lib/github"
-import { withTiming, logStart, logEnd } from "@/lib/utils/telemetry"
 import {
   IssueComment,
   PullRequest,
   PullRequestList,
   PullRequestReview,
 } from "@/lib/types/github"
+import { logEnd, logStart, withTiming } from "@/lib/utils/telemetry"
 
 export async function getPullRequestOnBranch({
   repoFullName,
@@ -94,7 +94,8 @@ export async function createPullRequest({
   `
   const repoIdResult = await withTiming(
     `GitHub GraphQL: get repository id ${repoFullName}`,
-    () => graphqlWithAuth<RepositoryIdResponse>(repoIdQuery, { owner, name: repo })
+    () =>
+      graphqlWithAuth<RepositoryIdResponse>(repoIdQuery, { owner, name: repo })
   )
   const repositoryId = repoIdResult.repository.id
 
@@ -350,7 +351,11 @@ export async function getPullRequestReviewCommentsGraphQL({
   }
   const response = await withTiming(
     `GitHub GraphQL: reviews+comments ${repoFullName}#${pullNumber}`,
-    () => graphqlWithAuth<PullRequestReviewCommentsGraphQLResponse>(query, variables)
+    () =>
+      graphqlWithAuth<PullRequestReviewCommentsGraphQLResponse>(
+        query,
+        variables
+      )
   )
   // Defensive: Structure the response for easy UI/LLM consumption
   const reviews =
@@ -461,7 +466,9 @@ export async function getPRLinkedIssuesMap(
   let endCursor: string | null = null
   const issuePRStatus: Record<number, boolean> = {}
 
-  const totalStart = logStart(`GitHub GraphQL: getPRLinkedIssuesMap ${repoFullName}`)
+  const totalStart = logStart(
+    `GitHub GraphQL: getPRLinkedIssuesMap ${repoFullName}`
+  )
   while (hasNextPage) {
     const pageStart = logStart(
       `GitHub GraphQL page getPRLinkedIssuesMap ${repoFullName}`,
@@ -500,10 +507,14 @@ export async function getPRLinkedIssuesMap(
     }
     hasNextPage = response.repository.pullRequests.pageInfo.hasNextPage
     endCursor = response.repository.pullRequests.pageInfo.endCursor
-    logEnd(`GitHub GraphQL page getPRLinkedIssuesMap ${repoFullName}`, pageStart, {
-      after: variables.after,
-      nextAfter: endCursor,
-    })
+    logEnd(
+      `GitHub GraphQL page getPRLinkedIssuesMap ${repoFullName}`,
+      pageStart,
+      {
+        after: variables.after,
+        nextAfter: endCursor,
+      }
+    )
   }
   logEnd(`GitHub GraphQL: getPRLinkedIssuesMap ${repoFullName}`, totalStart)
   return issuePRStatus
@@ -569,10 +580,7 @@ export async function getIssueToPullRequestMap(
       { after: variables.after, nextAfter: endCursor }
     )
   }
-  logEnd(
-    `GitHub GraphQL: getIssueToPullRequestMap ${repoFullName}`,
-    totalStart
-  )
+  logEnd(`GitHub GraphQL: getIssueToPullRequestMap ${repoFullName}`, totalStart)
   return issuePRMap
 }
 
@@ -621,4 +629,3 @@ export async function getLinkedIssuesForPR({
     response.repository?.pullRequest?.closingIssuesReferences?.nodes || []
   return nodes.map((n) => n.number)
 }
-

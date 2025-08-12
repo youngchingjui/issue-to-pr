@@ -194,9 +194,8 @@ export async function getIssueListWithStatus({
   repoFullName: string
 } & Omit<ListForRepoParams, "owner" | "repo">): Promise<IssueWithStatus[]> {
   // 1. Get issues from GitHub
-  const issues = await withTiming(
-    `GitHub: getIssueList ${repoFullName}`,
-    () => getIssueList({ repoFullName, ...rest })
+  const issues = await withTiming(`GitHub: getIssueList ${repoFullName}`, () =>
+    getIssueList({ repoFullName, ...rest })
   )
 
   // 2. Query Neo4j for plans using the service layer
@@ -248,4 +247,3 @@ export async function getIssueListWithStatus({
 
   return withStatus
 }
-

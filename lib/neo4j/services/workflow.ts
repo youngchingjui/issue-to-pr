@@ -168,9 +168,10 @@ export async function getWorkflowRunWithDetails(
   try {
     const { workflow, events, issue } = await withTiming(
       `Neo4j READ: getWorkflowRunWithDetails ${workflowRunId}`,
-      async () => session.executeRead(async (tx) => {
-        return await getWithDetails(tx, workflowRunId)
-      })
+      async () =>
+        session.executeRead(async (tx) => {
+          return await getWithDetails(tx, workflowRunId)
+        })
     )
     return {
       workflow: workflowRunSchema.parse(neo4jToJs(workflow)),
@@ -189,9 +190,10 @@ export async function getWorkflowRunMessages(
   try {
     const dbEvents = await withTiming(
       `Neo4j READ: getWorkflowRunMessages ${workflowRunId}`,
-      async () => session.executeRead(async (tx) => {
-        return await getMessagesForWorkflowRun(tx, workflowRunId)
-      })
+      async () =>
+        session.executeRead(async (tx) => {
+          return await getMessagesForWorkflowRun(tx, workflowRunId)
+        })
     )
     return await Promise.all(
       dbEvents.map((e) => toAppMessageEvent(e, workflowRunId))
@@ -208,13 +210,13 @@ export async function getWorkflowRunEvents(
   try {
     const dbEvents = await withTiming(
       `Neo4j READ: getWorkflowRunEvents ${workflowRunId}`,
-      async () => session.executeRead(async (tx) => {
-        return await getEventsForWorkflowRun(tx, workflowRunId)
-      })
+      async () =>
+        session.executeRead(async (tx) => {
+          return await getEventsForWorkflowRun(tx, workflowRunId)
+        })
     )
     return await Promise.all(dbEvents.map((e) => toAppEvent(e, workflowRunId)))
   } finally {
     await session.close()
   }
 }
-
