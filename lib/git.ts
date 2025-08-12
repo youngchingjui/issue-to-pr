@@ -363,8 +363,7 @@ export async function addWorktree(
     // non-fatal
   }
 
-  const add = () =>
-    execWorktree(`git worktree add "${worktreeDir}" ${branch}`)
+  const add = () => execWorktree(`git worktree add "${worktreeDir}" ${branch}`)
 
   // Attempt 1: normal add
   try {
@@ -373,7 +372,10 @@ export async function addWorktree(
     const msg = normalizeError(err).toLowerCase()
 
     // If branch is already checked out elsewhere, prefer a detached worktree
-    if (msg.includes("already checked out") || msg.includes("is checked out at")) {
+    if (
+      msg.includes("already checked out") ||
+      msg.includes("is checked out at")
+    ) {
       try {
         return await execWorktree(
           `git worktree add --detach "${worktreeDir}" ${branch}`
@@ -401,9 +403,7 @@ export async function addWorktree(
       msg.includes("did not match any file")
     ) {
       try {
-        await execWorktree(
-          `git fetch origin ${branch}:refs/heads/${branch}`
-        )
+        await execWorktree(`git fetch origin ${branch}:refs/heads/${branch}`)
         return await add()
       } catch (eFetch: unknown) {
         // As a fallback, try detached at remote ref if it exists
@@ -522,4 +522,3 @@ export async function removeWorktree(
     })
   })
 }
-
