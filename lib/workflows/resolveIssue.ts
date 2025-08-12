@@ -40,8 +40,8 @@ import {
   createContainerizedDirectoryTree,
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
-import { setupLocalRepository } from "@/lib/utils/utils-server"
 import { extractImageUrlsFromMarkdown } from "@/lib/utils/markdown"
+import { setupLocalRepository } from "@/lib/utils/utils-server"
 
 // Minimal content part types for Chat Completions API (text + image_url)
 type TextContentPart = { type: "text"; text: string }
@@ -275,9 +275,7 @@ export const resolveIssue = async ({
 
       const commentImageUrls = Array.from(
         new Set(
-          comments.flatMap((c) =>
-            extractImageUrlsFromMarkdown(c.body ?? "")
-          )
+          comments.flatMap((c) => extractImageUrlsFromMarkdown(c.body ?? ""))
         )
       )
 
@@ -376,4 +374,3 @@ export const resolveIssue = async ({
     }
   }
 }
-

@@ -62,8 +62,9 @@ export class Agent {
     let eventId: string | undefined
 
     // Normalize content to a string for event storage
-    const normalizeContent = (content: ChatCompletionMessageParam["content"]) =>
-      typeof content === "string" ? content : JSON.stringify(content)
+    const normalizeContent = (
+      content: ChatCompletionMessageParam["content"]
+    ) => (typeof content === "string" ? content : JSON.stringify(content))
 
     if (message.role === "system") {
       const event = await createSystemPromptEvent({
@@ -653,4 +654,3 @@ export class ResponsesAPIAgent extends Agent {
     }
   }
 }
-
