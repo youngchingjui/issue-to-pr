@@ -25,6 +25,7 @@ export const createTool = <Schema extends ZodType, Output>({
       type: "function",
     },
     schema,
-    handler,
+    // Accept input shape and parse to apply defaults before calling the user handler
+    handler: (params: z.input<Schema>) => handler(schema.parse(params)),
   }
 }

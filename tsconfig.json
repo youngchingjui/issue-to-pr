@@ -1,34 +1,37 @@
 {
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@/styles/*": ["styles/*"],
-      "@/components/*": ["components/*"],
-      "@/*": ["./*"]
-    },
-    "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "strictNullChecks": true,
-    "noImplicitAny": false,
-    "noEmit": true,
-    "incremental": true,
+    /* Modules */
     "module": "esnext",
+    "moduleResolution": "bundler",
+    /* Emit */
+    "noEmit": true,
+    /* Interop */
     "esModuleInterop": true,
-    "moduleResolution": "node10",
+    /* Language & Environment */
+    "target": "ES2022",
+    "lib": ["DOM", "DOM.iterable", "ES2022"],
+    "jsx": "preserve",
+    /* Paths */
+    "baseUrl": ".",
+
+    /* TO SORT */
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
     "plugins": [
       {
         "name": "next"
       }
     ]
   },
-  "include": ["**/*", ".next/types/**/*.ts"],
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "app/**/*",
+    "components/**/*",
+    "styles/**/*",
+    "lib/**/*",
+    ".next/types/**/*.ts"
+  ],
   "exclude": ["node_modules"]
 }
