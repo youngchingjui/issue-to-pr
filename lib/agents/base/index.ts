@@ -39,7 +39,7 @@ export class Agent {
   private untrackedMessages: EnhancedMessage[] = [] // Queue for untracked messages
   tools: Tool<ZodType, unknown>[] = []
   llm: OpenAI | null = null
-  model: ChatModel = "gpt-5" as ChatModel
+  model: ChatModel = "gpt-5"
   jobId?: string
 
   constructor({ model, systemPrompt, apiKey }: AgentConstructorParams) {
