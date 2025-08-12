@@ -104,24 +104,6 @@ export async function getInstallationPermissions() {
   }
 }
 
-type OctokitAuthToken = {
-  type: "token"
-  tokenType: "installation" | "user-to-server"
-  token: string
-}
-
-function isOctokitAuthToken(obj: unknown): obj is OctokitAuthToken {
-  if (typeof obj !== "object" || obj == null) {
-    return false
-  }
-  const o = obj as Record<string, unknown>
-  return (
-    o.type === "token" &&
-    (o.tokenType === "installation" || o.tokenType === "user-to-server") &&
-    typeof o.token === "string"
-  )
-}
-
 // TODO: Get rid of
 export async function getTestInstallationOctokit(installationId?: number) {
   // Installation ID for user: "youngchingjui" and Github App: "dev-issue-to-pr"
