@@ -57,6 +57,11 @@ export function useVoiceDictation(options?: UseVoiceDictationOptions) {
     objectUrl?: string
   }>(null)
 
+  // Streaming-specific state
+  const sessionIdRef = useRef<string | null>(null)
+  const seqRef = useRef<number>(0)
+  const sseRef = useRef<EventSource | null>(null)
+
   const pushDebug = useCallback((msg: string) => {
     const line = `${new Date().toISOString()} ${msg}`
     // eslint-disable-next-line no-console
@@ -68,6 +73,10 @@ export function useVoiceDictation(options?: UseVoiceDictationOptions) {
   useEffect(() => {
     return () => {
       stopRecorder(mediaRecorder)
+      if (sseRef.current) {
+        sseRef.current.close()
+        sseRef.current = null
+      }
     }
   }, [audioUrl, mediaRecorder])
 
@@ -120,20 +129,97 @@ export function useVoiceDictation(options?: UseVoiceDictationOptions) {
       )
       setRecordedMimeType(mimeType || "audio/webm")
 
+      // Create a new session id for this recording
+      const sessionId = typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+      sessionIdRef.current = sessionId
+      seqRef.current = 0
+
+      // Start SSE subscription for live transcript updates
+      if (sseRef.current) {
+        try { sseRef.current.close() } catch {}
+      }
+      const es = new EventSource(`/api/workflow/${sessionId}`)
+      sseRef.current = es
+      setServerRawResponse("<SSE: connected>")
+
+      es.onmessage = (ev) => {
+        try {
+          const event = JSON.parse(ev.data)
+          if (
+            event?.type === "status" &&
+            (event?.data?.status === "transcription_update" || event?.data?.status === "completed")
+          ) {
+            const final = event?.data?.final || ""
+            const provisional = event?.data?.provisional || ""
+            const combined = [final, provisional].filter(Boolean).join(" ")
+            setTranscript(combined)
+            if (onTranscribed) onTranscribed(combined)
+            if (event?.data?.status === "completed") {
+              pushDebug("SSE completed")
+              try { es.close() } catch {}
+              sseRef.current = null
+            }
+          }
+        } catch (e) {
+          // ignore non-JSON payloads like the initial connection event
+        }
+      }
+
+      es.onerror = (e) => {
+        pushDebug(`[SSE] error: ${String(e)}`)
+      }
+
       const recorder = mimeType
         ? new MediaRecorder(stream, { mimeType })
         : new MediaRecorder(stream)
 
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunks.current.push(e.data)
+      recorder.ondataavailable = async (e) => {
+        if (!e.data || e.data.size === 0) return
+        audioChunks.current.push(e.data)
+        // Send the slice immediately to the backend for ingestion
+        const currentSeq = seqRef.current++
+        try {
+          await fetch(
+            `/api/transcription/ingest?sessionId=${sessionId}&seq=${currentSeq}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": mimeType || "audio/webm" },
+              body: e.data,
+            }
+          )
+          pushDebug(`Uploaded chunk seq=${currentSeq} size=${e.data.size}`)
+        } catch (err) {
+          pushDebug(`[Chunk Upload] Failed seq=${currentSeq}: ${String(err)}`)
+        }
       }
-      recorder.onstop = handleRecordingStop
-      recorder.start()
+
+      recorder.onstop = async () => {
+        pushDebug("MediaRecorder stopped (onstop)")
+        // Finalize the transcript: tell server to commit provisional into final
+        if (sessionIdRef.current) {
+          try {
+            await fetch(`/api/transcription/finalize?sessionId=${sessionIdRef.current}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+            })
+            pushDebug("Finalize request sent")
+          } catch (e) {
+            pushDebug(`[Finalize] Failed: ${String(e)}`)
+          }
+        }
+        // After stopping, assemble a local blob for playback UI
+        await handleRecordingStop()
+      }
+
+      // Use 3s timeslices to keep chunks small
+      const TIMESLICE_MS = 3000
+      recorder.start(TIMESLICE_MS)
       pushDebug(`MediaRecorder started. state=${recorder.state}`)
       setMediaRecorder(recorder)
       setIsRecording(true)
       setRecordingInfo(null)
-      setServerRawResponse(null)
       setTranscript("")
       setLastError(null)
     } catch (err) {
@@ -153,14 +239,15 @@ export function useVoiceDictation(options?: UseVoiceDictationOptions) {
   }
 
   const handleRecordingStop = useCallback(async () => {
+    // This function now only assembles the playback blob; transcription is streamed incrementally.
     pushDebug(
       `handleRecordingStop invoked – assembling blob from ${audioChunks.current.length} chunks`
     )
-    setIsRecording(false)
 
     // Ensure microphone is released as soon as recording stops.
     stopRecorder(mediaRecorder)
     setMediaRecorder(null)
+    setIsRecording(false)
 
     const actualMimeType = recordedMimeType || "audio/webm"
 
@@ -211,102 +298,9 @@ export function useVoiceDictation(options?: UseVoiceDictationOptions) {
       objectUrl: url || undefined,
     })
 
-    // Send to server for transcription
-    const fileExtension = actualMimeType.includes("mp4")
-      ? "mp4"
-      : actualMimeType.includes("wav")
-        ? "wav"
-        : actualMimeType.includes("webm")
-          ? "webm"
-          : "bin"
-
-    let audioFile: File
-    try {
-      audioFile = new File([blob], `recording.${fileExtension}`, {
-        type: actualMimeType,
-      })
-      pushDebug(
-        `[File] Created name=recording.${fileExtension} type=${actualMimeType} size=${audioFile.size}`
-      )
-    } catch (e) {
-      const msg = `[File] Failed to create: ${String(e)}`
-      setLastError(msg)
-      pushDebug(msg)
-      return
-    }
-
-    setIsTranscribing(true)
-    try {
-      const formData = new FormData()
-      formData.append("audio", audioFile)
-
-      pushDebug("Sending POST /api/openai/transcribe")
-      const response = await fetch("/api/openai/transcribe", {
-        method: "POST",
-        body: formData,
-      })
-
-      pushDebug(`Fetch response received. status=${response.status}`)
-
-      if (!response.ok) {
-        // Try to read raw text to aid debugging
-        const raw = await response.text().catch(() => "<failed to read body>")
-        setServerRawResponse(raw)
-        pushDebug(`[Server] Non-OK response body: ${raw?.slice(0, 500)}`)
-        let errorData: unknown = null
-        try {
-          errorData = JSON.parse(raw)
-        } catch {
-          // ignore
-        }
-        if (
-          errorData &&
-          typeof errorData === "object" &&
-          "error" in errorData &&
-          typeof (errorData as { error: unknown }).error === "string"
-        ) {
-          throw new Error((errorData as { error: string }).error)
-        }
-        throw new Error(`HTTP ${response.status}`)
-      }
-
-      const raw = await response.text()
-      setServerRawResponse(raw)
-      let dataUnknown: unknown
-      try {
-        dataUnknown = JSON.parse(raw)
-      } catch (e) {
-        const msg = `[Client] Failed to parse JSON: ${String(e)} — raw: ${raw?.slice(0, 200)}`
-        setLastError(msg)
-        pushDebug(msg)
-        return
-      }
-
-      if (
-        !dataUnknown ||
-        typeof dataUnknown !== "object" ||
-        !("text" in dataUnknown) ||
-        typeof (dataUnknown as { text: unknown }).text !== "string"
-      ) {
-        const msg = `[Client] Unexpected response shape: ${raw?.slice(0, 200)}`
-        setLastError(msg)
-        pushDebug(msg)
-        return
-      }
-
-      pushDebug("Transcription successful")
-      const text = (dataUnknown as { text: string }).text
-      setTranscript(text)
-      if (onTranscribed) onTranscribed(text)
-    } catch (err) {
-      const msg = `[Transcribe] Failed: ${String(err)}`
-      setLastError(msg)
-      pushDebug(msg)
-      toast({ description: String(err), variant: "destructive" })
-    } finally {
-      setIsTranscribing(false)
-    }
-  }, [mediaRecorder, toast, recordedMimeType, onTranscribed, pushDebug])
+    // Indicate we are not in a single-shot transcription anymore
+    setIsTranscribing(false)
+  }, [mediaRecorder, recordedMimeType, pushDebug])
 
   const iosSafariHint = useMemo(
     () =>
@@ -334,3 +328,4 @@ export function useVoiceDictation(options?: UseVoiceDictationOptions) {
     stopRecording,
   }
 }
+
