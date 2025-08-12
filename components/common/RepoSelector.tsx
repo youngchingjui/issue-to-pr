@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
   Select,
   SelectContent,
@@ -12,7 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
 import { listUserAppRepositories } from "@/lib/github/repos"
 import { useMediaQuery } from "@/lib/hooks/use-media-query"
 import { AuthenticatedUserRepository } from "@/lib/types/github"
@@ -177,4 +177,3 @@ export default function RepoSelector({
     </Select>
   )
 }
-
