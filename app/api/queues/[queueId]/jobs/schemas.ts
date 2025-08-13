@@ -20,6 +20,10 @@ export const enqueueJobsRequestSchema = z.object({
   ),
 })
 
+export type EnqueueJobsRequest = z.infer<typeof enqueueJobsRequestSchema>
+
 export const enqueueJobsResponseSchema = z.object({
   jobIds: z.array(z.string()),
 })
+
+export type EnqueueJobsResponse = z.infer<typeof enqueueJobsResponseSchema>

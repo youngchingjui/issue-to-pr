@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 
+import { type EnqueueJobsRequest } from "@/app/api/queues/[queueId]/jobs/schemas"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -34,7 +35,7 @@ export default function IssueSummaryCard() {
     esRef.current = es
 
     es.onmessage = (event) => {
-      const data = event.data as string
+      const data = event.data
       if (!data) return
       setStatus(data)
 
@@ -74,17 +75,19 @@ export default function IssueSummaryCard() {
     setStatus(null)
 
     try {
-      const res = await fetch(`/api/queues/default/jobs`, {
+      const queueId = "default"
+      const data: EnqueueJobsRequest = {
+        jobs: [
+          {
+            name: "summarizeIssue",
+            data: { title, body },
+          },
+        ],
+      }
+      const res = await fetch(`/api/queues/${queueId}/jobs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          jobs: [
-            {
-              name: "summarizeIssue",
-              data: { title, body },
-            },
-          ],
-        }),
+        body: JSON.stringify(data),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || "Failed to enqueue job")
