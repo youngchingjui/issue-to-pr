@@ -71,6 +71,15 @@ export interface StatusData {
  * @deprecated
  * Use WorkflowEvent from /lib/neo4j/service.ts instead
  */
+export interface ReasoningData {
+  title: string
+  content: string
+}
+
+/**
+ * @deprecated
+ * Use WorkflowEvent from /lib/neo4j/service.ts instead
+ */
 export type WorkflowEventType =
   | "workflow_start"
   | "system_prompt"
@@ -80,6 +89,7 @@ export type WorkflowEventType =
   | "tool_response"
   | "error"
   | "status"
+  | "reasoning"
 
 /**
  * @deprecated
@@ -93,6 +103,7 @@ export type WorkflowEventData =
   | ToolResponseData
   | ErrorData
   | StatusData
+  | ReasoningData
 
 interface BaseEventFields {
   id: string
@@ -141,6 +152,11 @@ export interface StatusEvent extends BaseEventFields {
   data: StatusData
 }
 
+export interface ReasoningEvent extends BaseEventFields {
+  type: "reasoning"
+  data: ReasoningData
+}
+
 /**
  * @deprecated
  * Use WorkflowEvent from /lib/neo4j/service.ts instead
@@ -159,6 +175,7 @@ export type WorkflowEvent =
   | ToolResponseEvent
   | ErrorEvent
   | StatusEvent
+  | ReasoningEvent
 
 /**
  * @deprecated

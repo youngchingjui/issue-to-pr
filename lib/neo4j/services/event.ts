@@ -4,24 +4,24 @@ import { v4 as uuidv4 } from "uuid"
 import { n4j } from "@/lib/neo4j/client"
 import {
   connectToWorkflow,
-  createNext,
-  deleteEventNode,
-  findPrevAndNextEvent,
-  get as repoGet,
-} from "@/lib/neo4j/repositories/event"
-import {
   createErrorEvent as dbCreateErrorEvent,
   createLLMResponseEvent as dbCreateLLMResponseEvent,
+  createNext,
+  createReasoningEvent as dbCreateReasoningEvent,
   createStatusEvent as dbCreateStatusEvent,
   createSystemPromptEvent as dbCreateSystemPromptEvent,
   createToolCallEvent as dbCreateToolCallEvent,
   createToolCallResultEvent as dbCreateToolCallResultEvent,
   createUserResponseEvent as dbCreateUserResponseEvent,
   createWorkflowStateEvent as dbCreateWorkflowStateEvent,
+  deleteEventNode,
+  findPrevAndNextEvent,
+  get as repoGet,
 } from "@/lib/neo4j/repositories/event"
 import {
   ErrorEvent,
   LLMResponse,
+  ReasoningEvent,
   StatusEvent,
   SystemPrompt,
   ToolCall,
@@ -232,6 +232,48 @@ export async function createToolCallResultEvent({
           toolName,
           content,
           type: "toolCallResult",
+        })
+
+        // Attach it to the workflow
+        await connectToWorkflow(tx, workflowId, id, parentId)
+
+        return eventNode
+      }
+    )
+
+    return {
+      ...result,
+      createdAt: result.createdAt.toStandardDate(),
+      workflowId,
+    }
+  } catch (e) {
+    console.error(e)
+    throw e
+  }
+}
+
+export async function createReasoningEvent({
+  id = uuidv4(),
+  workflowId,
+  title,
+  content,
+  parentId,
+}: {
+  id?: string
+  workflowId: string
+  title: string
+  content: string
+  parentId?: string
+}): Promise<ReasoningEvent> {
+  const session = await n4j.getSession()
+  try {
+    const result = await session.executeWrite(
+      async (tx: ManagedTransaction) => {
+        // Create the event node
+        const eventNode = await dbCreateReasoningEvent(tx, {
+          id,
+          title,
+          content,
         })
 
         // Attach it to the workflow
