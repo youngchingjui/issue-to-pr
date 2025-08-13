@@ -271,6 +271,28 @@ importers:
         specifier: ^5.3.4
         version: 5.7.0
 
+  shared:
+    dependencies:
+      '@anthropic-ai/sdk':
+        specifier: ^0.59.0
+        version: 0.59.0
+      bullmq:
+        specifier: ^5.0.0
+        version: 5.56.10
+      ioredis:
+        specifier: ^5.3.2
+        version: 5.7.0
+      zod:
+        specifier: ^3.22.4
+        version: 3.24.2
+    devDependencies:
+      '@types/node':
+        specifier: ^20
+        version: 20.19.10
+      typescript:
+        specifier: ^5
+        version: 5.8.2
+
 packages:
 
   '@adobe/css-tools@4.4.2':
@@ -283,6 +305,10 @@ packages:
   '@ampproject/remapping@2.3.0':
     resolution: {integrity: sha512-30iZtAPgz+LTIYoeivqYo853f02jBYSd5uGnGpkFV0M3xOt9aN73erkgYAmZU43x4VfqcnLxW9Kpg3R5LC4YYw==}
     engines: {node: '>=6.0.0'}
+
+  '@anthropic-ai/sdk@0.59.0':
+    resolution: {integrity: sha512-m9w9tC+N+GUNprwEOhU3VKKSYwXA1fIevRCe7kOFonV4xu5vxqmqyoLy+dkdVvc5W1F4WUTVE/7I4criaF9gnw==}
+    hasBin: true
 
   '@auth/core@0.37.2':
     resolution: {integrity: sha512-kUvzyvkcd6h1vpeMAojK2y7+PAV5H+0Cc9+ZlKYDFhDY31AlvsB+GW5vNO4qE3Y07KeQgvNO9U0QUx/fN62kBw==}
@@ -5009,6 +5035,8 @@ snapshots:
     dependencies:
       '@jridgewell/gen-mapping': 0.3.8
       '@jridgewell/trace-mapping': 0.3.25
+
+  '@anthropic-ai/sdk@0.59.0': {}
 
   '@auth/core@0.37.2':
     dependencies:
