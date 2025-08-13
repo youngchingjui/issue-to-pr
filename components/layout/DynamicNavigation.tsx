@@ -10,6 +10,7 @@ import {
   Menu,
 } from "lucide-react"
 import * as motion from "motion/react-client"
+import Image from "next/image"
 import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
 import { signOut } from "next-auth/react"
@@ -42,7 +43,6 @@ const authenticatedNavItems = (
     { label: "Issues", href: "/issues" },
     { label: "Kanban", href: "/kanban" },
     { label: "Contribute", href: "/contribute" },
-    // NOTE: Settings is intentionally excluded here and added in the second section
   ]
 
   if (isAdmin) {
@@ -151,7 +151,11 @@ export default function DynamicNavigation({
       <div className="flex items-center ml-auto">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="inline-flex items-center justify-center">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="inline-flex items-center justify-center"
+            >
               <Menu className="h-5 w-5" />
               <span className="sr-only">Open Menu</span>
             </Button>
@@ -165,11 +169,12 @@ export default function DynamicNavigation({
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link href="/settings" className="flex items-center gap-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
                   src={avatarUrl || "/next.svg"}
                   alt="Profile"
                   className="w-4 h-4 rounded-full border"
+                  width={24}
+                  height={24}
                 />
                 <span>Settings</span>
               </Link>
@@ -222,4 +227,3 @@ export default function DynamicNavigation({
     </>
   )
 }
-
