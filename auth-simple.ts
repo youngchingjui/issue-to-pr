@@ -1,9 +1,14 @@
-import { NextResponse } from "next/server"
 import NextAuth from "next-auth"
 import { JWT } from "next-auth/jwt"
 import GithubProvider from "next-auth/providers/github"
 
 // A minimal NextAuth config without Redis/locking for experimentation
+
+declare module "next-auth" {
+  interface Session {
+    token?: JWT
+  }
+}
 
 async function refreshAccessToken(token: JWT): Promise<JWT> {
   try {
@@ -70,7 +75,7 @@ export const {
     }),
   ],
   callbacks: {
-    async jwt({ token, account }) {
+    async jwt({ token, account }): Promise<JWT> {
       if (account) {
         const newToken: JWT = {
           ...token,
@@ -90,11 +95,8 @@ export const {
         if (token.refresh_token) {
           return await refreshAccessToken(token)
         }
-        const url = new URL(
-          "/",
-          process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
-        )
-        return NextResponse.redirect(url)
+        // Cannot redirect from a JWT callback; signal failure instead
+        throw new Error("Token expired")
       }
       return token
     },
