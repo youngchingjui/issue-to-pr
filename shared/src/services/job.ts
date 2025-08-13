@@ -16,9 +16,8 @@ export async function addJob<T extends Record<string, unknown>>(
   jobName: string,
   data: T,
   opts: JobsOptions = {}
-): Promise<string> {
+): Promise<string | undefined> {
   const queue = getQueue(queueName)
   const job = await queue.add(jobName, data, opts)
-  return job.id as string
+  return job.id
 }
-

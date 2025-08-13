@@ -104,4 +104,3 @@ events.on("failed", ({ jobId, failedReason }) => {
 })
 
 console.log("Worker started and listening for jobs on the 'default' queue…")
-

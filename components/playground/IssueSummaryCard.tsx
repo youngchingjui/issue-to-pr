@@ -48,7 +48,11 @@ export default function IssueSummaryCard() {
       } else if (data.startsWith("Failed:")) {
         const message = data.replace(/^Failed:\s*/, "")
         setError(message)
-        toast({ title: "Issue summary failed", description: message, variant: "destructive" })
+        toast({
+          title: "Issue summary failed",
+          description: message,
+          variant: "destructive",
+        })
         es.close()
         esRef.current = null
         setIsRunning(false)
@@ -91,7 +95,11 @@ export default function IssueSummaryCard() {
     } catch (err) {
       const message = String(err)
       setError(message)
-      toast({ title: "Failed to enqueue job", description: message, variant: "destructive" })
+      toast({
+        title: "Failed to enqueue job",
+        description: message,
+        variant: "destructive",
+      })
       setIsRunning(false)
     }
   }
@@ -141,4 +149,3 @@ export default function IssueSummaryCard() {
     </Card>
   )
 }
-

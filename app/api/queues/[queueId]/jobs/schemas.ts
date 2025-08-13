@@ -23,4 +23,3 @@ export const enqueueJobsRequestSchema = z.object({
 export const enqueueJobsResponseSchema = z.object({
   jobIds: z.array(z.string()),
 })
-
