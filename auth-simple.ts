@@ -1,25 +1,28 @@
-import NextAuth from "next-auth"
-import GithubProvider from "next-auth/providers/github"
 import { NextResponse } from "next/server"
+import NextAuth from "next-auth"
 import { JWT } from "next-auth/jwt"
+import GithubProvider from "next-auth/providers/github"
 
 // A minimal NextAuth config without Redis/locking for experimentation
 
 async function refreshAccessToken(token: JWT): Promise<JWT> {
   try {
-    const response = await fetch("https://github.com/login/oauth/access_token", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        Accept: "application/json",
-      },
-      body: new URLSearchParams({
-        client_id: process.env.GITHUB_APP_CLIENT_ID ?? "",
-        client_secret: process.env.GITHUB_APP_CLIENT_SECRET ?? "",
-        refresh_token: (token.refresh_token as string) ?? "",
-        grant_type: "refresh_token",
-      }),
-    })
+    const response = await fetch(
+      "https://github.com/login/oauth/access_token",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Accept: "application/json",
+        },
+        body: new URLSearchParams({
+          client_id: process.env.GITHUB_APP_CLIENT_ID ?? "",
+          client_secret: process.env.GITHUB_APP_CLIENT_SECRET ?? "",
+          refresh_token: (token.refresh_token as string) ?? "",
+          grant_type: "refresh_token",
+        }),
+      }
+    )
 
     const data = await response.json()
     if (!response.ok) {
