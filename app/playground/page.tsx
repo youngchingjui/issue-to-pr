@@ -18,6 +18,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 
 import { auth } from "@/auth"
+import { simpleAuth } from "@/auth-simple"
 import OAuthTokenCard from "@/components/auth/OAuthTokenCard"
 import RepoSelector from "@/components/common/RepoSelector"
 import AgentWorkflowClient from "@/components/playground/AgentWorkflowClient"
@@ -36,8 +37,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getGithubUser } from "@/lib/github/users"
 import { getUserRoles } from "@/lib/neo4j/services/user"
 
-export default async function PlaygroundPage() {
-  const session = await auth()
+export default async function PlaygroundPage({
+  searchParams,
+}: {
+  searchParams?: { [key: string]: string | string[] | undefined }
+}) {
+  const useSimple = searchParams?.simple === "1"
+  const session = await (useSimple ? simpleAuth() : auth())
   if (!session?.user) {
     redirect("/")
   }
