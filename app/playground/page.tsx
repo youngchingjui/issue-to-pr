@@ -21,6 +21,7 @@ import { auth } from "@/auth"
 import OAuthTokenCard from "@/components/auth/OAuthTokenCard"
 import RepoSelector from "@/components/common/RepoSelector"
 import AgentWorkflowClient from "@/components/playground/AgentWorkflowClient"
+import AnthropicIssueTitleCard from "@/components/playground/AnthropicIssueTitleCard"
 import ApplyPatchCard from "@/components/playground/ApplyPatchCard"
 import DockerodeExecCard from "@/components/playground/DockerodeExecCard"
 import IssueSummaryCard from "@/components/playground/IssueSummaryCard"
@@ -78,12 +79,13 @@ export default async function PlaygroundPage() {
             </CardHeader>
             <CardContent>
               Use this component to test the RepoSelector component. It should
-              show a button to install the Github App if no repos are
-              available. Uninstall the Github App to test the installation CTA.
+              show a button to install the Github App if no repos are available.
+              Uninstall the Github App to test the installation CTA.
               <RepoSelector selectedRepo="issue-to-pr/test-repo" />
             </CardContent>
           </Card>
           <IssueTitleCard />
+          <AnthropicIssueTitleCard />
           <IssueSummaryCard />
           <RipgrepSearchCard />
           <WriteFileCard />
