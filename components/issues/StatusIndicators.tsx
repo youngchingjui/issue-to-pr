@@ -1,6 +1,7 @@
-import { GitPullRequest, Loader2, NotebookPen } from "lucide-react"
+import { Loader2, NotebookPen } from "lucide-react"
 import Link from "next/link"
 
+import PRStatusIndicator from "@/components/issues/PRStatusIndicator"
 import {
   Tooltip,
   TooltipContent,
@@ -14,9 +15,7 @@ interface Props {
     IssueWithStatus,
     | "hasActiveWorkflow"
     | "hasPlan"
-    | "hasPR"
     | "planId"
-    | "prNumber"
     | "number"
   >
   repoFullName: string
@@ -59,27 +58,8 @@ export default function StatusIndicators({ issue, repoFullName }: Props) {
             </Tooltip>
           ) : null}
         </div>
-        {/* PR Icon Slot */}
-        <div style={{ width: 24, display: "flex", justifyContent: "center" }}>
-          {issue.hasPR && issue.prNumber ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <a
-                  href={`https://github.com/${repoFullName}/pull/${issue.prNumber}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="cursor-pointer"
-                >
-                  <GitPullRequest
-                    className="inline align-text-bottom text-green-600"
-                    size={18}
-                  />
-                </a>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">PR ready</TooltipContent>
-            </Tooltip>
-          ) : null}
-        </div>
+        {/* PR Icon Slot - lazily fetched on the client */}
+        <PRStatusIndicator repoFullName={repoFullName} issueNumber={issue.number} />
       </div>
     </TooltipProvider>
   )

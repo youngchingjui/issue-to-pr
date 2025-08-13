@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 
-import { getIssueToPullRequestMap } from "@/lib/github/pullRequests"
+import { getLinkedPRNumberForIssue } from "@/lib/github/issues"
 
 export const dynamic = "force-dynamic"
 
@@ -22,8 +22,10 @@ export async function GET(
       return NextResponse.json({ error: "Invalid issue id" }, { status: 400 })
     }
 
-    const map = await getIssueToPullRequestMap(repo)
-    const prNumber = map[issueNumber] ?? null
+    const prNumber = await getLinkedPRNumberForIssue({
+      repoFullName: repo,
+      issueNumber,
+    })
     return NextResponse.json({ prNumber })
   } catch (err) {
     console.error("Error fetching PR for issue:", err)
@@ -33,3 +35,4 @@ export async function GET(
     )
   }
 }
+
