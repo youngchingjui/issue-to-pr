@@ -3,6 +3,11 @@
  *
  * To start the worker locally:
  *   pnpm dev:worker
+ *
+ *  This is a "controller" level file. It can identify the adapters to use and route jobs
+ *  to appropriate processors and services, inject dependencies into the processors and services,
+ *
+ *  It should not define service-level helpers or define adapters to databases or 3rd party services.
  */
 import { Job, QueueEvents, Worker } from "bullmq"
 import dotenv from "dotenv"
@@ -24,6 +29,10 @@ dotenv.config({ path: path.join(repoRoot, envFilename) })
 // Optional: also load base .env as a fallback if present
 dotenv.config({ path: path.join(repoRoot, ".env") })
 
+// TODO: We should be using redis and openai adapters from /shared/src/adapters
+// to follow clean architecture principles, instead of importing
+// directly from these 3rd party libraries.
+
 const redisUrl = process.env.REDIS_URL
 const openaiApiKey = process.env.OPENAI_API_KEY
 
@@ -38,6 +47,8 @@ const connection = new IORedis(redisUrl, { maxRetriesPerRequest: null })
 
 const openai = new OpenAI({ apiKey: openaiApiKey })
 
+// TODO: This is a service-level helper, and should be defined in /shared/src/services/job.ts
+// to follow clean architecture principles.
 async function publishStatus(jobId: string, status: string) {
   try {
     await connection.publish(
@@ -49,6 +60,8 @@ async function publishStatus(jobId: string, status: string) {
   }
 }
 
+// TODO: This is a service-level helper, and should be defined in /shared/src/services/issue.ts
+// to follow clean architecture principles.
 async function summarizeIssue(job: Job): Promise<string> {
   const { title, body } = job.data as { title?: string; body?: string }
   const systemPrompt =
