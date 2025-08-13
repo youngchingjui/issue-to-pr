@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 
-import { IssueTitleRequestSchema, IssueTitleResponseSchema } from "@/lib/types/api/schemas"
+import {
+  IssueTitleRequestSchema,
+  IssueTitleResponseSchema,
+} from "@/lib/types/api/schemas"
 import { AnthropicAdapter } from "@/shared/src/adapters/anthropic"
 import { generateIssueTitle } from "@/shared/src/services/issue-title"
 
@@ -11,7 +14,7 @@ export async function POST(req: NextRequest) {
     if (!validation.success) {
       return NextResponse.json(
         { error: "Invalid request body", details: validation.error.errors },
-        { status: 400 },
+        { status: 400 }
       )
     }
 
@@ -29,7 +32,7 @@ export async function POST(req: NextRequest) {
     if (!responseValidation.success) {
       return NextResponse.json(
         { error: "Invalid response format" },
-        { status: 500 },
+        { status: 500 }
       )
     }
 
@@ -44,7 +47,7 @@ export async function POST(req: NextRequest) {
               ? err.message
               : "Unknown error",
       },
-      { status: 500 },
+      { status: 500 }
     )
   }
 }

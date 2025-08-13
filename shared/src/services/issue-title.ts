@@ -16,7 +16,7 @@ Return ONLY the title text with no additional commentary.`
 export async function generateIssueTitle(
   llm: LLMPort,
   description: string,
-  options: { model?: string; maxTokens?: number } = {},
+  options: { model?: string; maxTokens?: number } = {}
 ): Promise<string> {
   const { model, maxTokens } = options
   const response = await llm.createCompletion({
