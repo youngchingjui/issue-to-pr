@@ -21,6 +21,7 @@ import { auth } from "@/auth"
 import OAuthTokenCard from "@/components/auth/OAuthTokenCard"
 import RepoSelector from "@/components/common/RepoSelector"
 import AgentWorkflowClient from "@/components/playground/AgentWorkflowClient"
+import AnthropicIssueTitleCard from "@/components/playground/AnthropicIssueTitleCard"
 import ApplyPatchCard from "@/components/playground/ApplyPatchCard"
 import DockerodeExecCard from "@/components/playground/DockerodeExecCard"
 import IssueSummaryCard from "@/components/playground/IssueSummaryCard"
@@ -81,6 +82,7 @@ export default async function PlaygroundPage() {
         </CardContent>
       </Card>
       <IssueTitleCard />
+      <AnthropicIssueTitleCard />
       <IssueSummaryCard />
       <SpeechToTextCard />
       <UserRolesCard />
