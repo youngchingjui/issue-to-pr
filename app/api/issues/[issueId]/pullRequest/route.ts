@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
+import { z } from "zod"
 
-import { getIssueToPullRequestMap } from "@/lib/github/pullRequests"
+import { getLinkedPRNumberForIssue } from "@/lib/github/issues"
+
+import {
+  getLinkedPrParamsSchema,
+  getLinkedPrQuerySchema,
+  getLinkedPrResponseSchema,
+} from "./schemas"
 
 export const dynamic = "force-dynamic"
 
@@ -11,22 +18,50 @@ export async function GET(
   try {
     const search = request.nextUrl.searchParams
     const repo = search.get("repo")
-    if (!repo) {
+
+    const { data: queryData, error: queryError } =
+      getLinkedPrQuerySchema.safeParse({
+        repo,
+      })
+    if (queryError) {
       return NextResponse.json(
-        { error: "Missing 'repo' query parameter" },
+        {
+          error: repo
+            ? "Invalid query parameters"
+            : "Missing 'repo' query parameter",
+          details: queryError.flatten(),
+        },
         { status: 400 }
       )
     }
-    const issueNumber = parseInt(params.issueId)
-    if (Number.isNaN(issueNumber)) {
-      return NextResponse.json({ error: "Invalid issue id" }, { status: 400 })
+
+    const { data: paramsData, error: paramsError } =
+      getLinkedPrParamsSchema.safeParse(params)
+    if (paramsError) {
+      return NextResponse.json(
+        { error: "Invalid issue id", details: paramsError.flatten() },
+        { status: 400 }
+      )
     }
 
-    const map = await getIssueToPullRequestMap(repo)
-    const prNumber = map[issueNumber] ?? null
-    return NextResponse.json({ prNumber })
+    const prNumber = await getLinkedPRNumberForIssue({
+      repoFullName: queryData.repo,
+      issueNumber: paramsData.issueId,
+    })
+
+    const response = getLinkedPrResponseSchema.parse({ prNumber })
+    return NextResponse.json(response)
   } catch (err) {
     console.error("Error fetching PR for issue:", err)
+    if (err instanceof z.ZodError) {
+      return NextResponse.json(
+        {
+          error: "Invalid response format",
+          details: err.flatten?.() ?? err.issues,
+        },
+        { status: 500 }
+      )
+    }
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }

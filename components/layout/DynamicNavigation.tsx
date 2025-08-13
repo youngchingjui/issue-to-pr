@@ -10,6 +10,7 @@ import {
   Menu,
 } from "lucide-react"
 import * as motion from "motion/react-client"
+import Image from "next/image"
 import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
 import { signOut } from "next-auth/react"
@@ -42,7 +43,6 @@ const authenticatedNavItems = (
     { label: "Issues", href: "/issues" },
     { label: "Kanban", href: "/kanban" },
     { label: "Contribute", href: "/contribute" },
-    { label: "Settings", href: "/settings" },
   ]
 
   if (isAdmin) {
@@ -151,22 +151,34 @@ export default function DynamicNavigation({
       <div className="flex items-center ml-auto">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="inline-flex items-center justify-center focus:outline-none">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={avatarUrl || "/next.svg"}
-                alt="Profile"
-                className="w-8 h-8 rounded-full border"
-              />
-            </button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="inline-flex items-center justify-center"
+            >
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">Open Menu</span>
+            </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuContent align="end" className="w-56">
             {navItems.map((item) => (
               <DropdownMenuItem key={item.href} asChild>
                 <Link href={item.href}>{item.label}</Link>
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/settings" className="flex items-center gap-2">
+                <Image
+                  src={avatarUrl || "/next.svg"}
+                  alt="Profile"
+                  className="w-4 h-4 rounded-full border"
+                  width={24}
+                  height={24}
+                />
+                <span>Settings</span>
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuItem
               onSelect={handleSignOut}
               className="cursor-pointer"
