@@ -1,5 +1,6 @@
-import { GitPullRequest, Loader2, NotebookPen } from "lucide-react"
+import { Loader2, NotebookPen } from "lucide-react"
 import Link from "next/link"
+import React from "react"
 
 import {
   Tooltip,
@@ -12,21 +13,20 @@ import type { IssueWithStatus } from "@/lib/github/issues"
 interface Props {
   issue: Pick<
     IssueWithStatus,
-    | "hasActiveWorkflow"
-    | "hasPlan"
-    | "hasPR"
-    | "planId"
-    | "prNumber"
-    | "number"
+    "hasActiveWorkflow" | "hasPlan" | "planId" | "number"
   >
   repoFullName: string
+  prSlot?: React.ReactNode
 }
 
-export default function StatusIndicators({ issue, repoFullName }: Props) {
+export default function StatusIndicators({
+  issue,
+  repoFullName,
+  prSlot,
+}: Props) {
   return (
     <TooltipProvider delayDuration={200}>
       <div className="flex flex-row gap-2">
-        {/* Active Workflow Spinner Slot */}
         <div style={{ width: 24, display: "flex", justifyContent: "center" }}>
           {issue.hasActiveWorkflow ? (
             <Tooltip>
@@ -40,7 +40,6 @@ export default function StatusIndicators({ issue, repoFullName }: Props) {
             </Tooltip>
           ) : null}
         </div>
-        {/* Plan Icon Slot */}
         <div style={{ width: 24, display: "flex", justifyContent: "center" }}>
           {issue.hasPlan && issue.planId ? (
             <Tooltip>
@@ -59,29 +58,8 @@ export default function StatusIndicators({ issue, repoFullName }: Props) {
             </Tooltip>
           ) : null}
         </div>
-        {/* PR Icon Slot */}
-        <div style={{ width: 24, display: "flex", justifyContent: "center" }}>
-          {issue.hasPR && issue.prNumber ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <a
-                  href={`https://github.com/${repoFullName}/pull/${issue.prNumber}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="cursor-pointer"
-                >
-                  <GitPullRequest
-                    className="inline align-text-bottom text-green-600"
-                    size={18}
-                  />
-                </a>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">PR ready</TooltipContent>
-            </Tooltip>
-          ) : null}
-        </div>
+        {prSlot}
       </div>
     </TooltipProvider>
   )
 }
-
