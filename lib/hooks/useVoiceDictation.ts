@@ -130,15 +130,18 @@ export function useVoiceDictation(options?: UseVoiceDictationOptions) {
       setRecordedMimeType(mimeType || "audio/webm")
 
       // Create a new session id for this recording
-      const sessionId = typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+      const sessionId =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}`
       sessionIdRef.current = sessionId
       seqRef.current = 0
 
       // Start SSE subscription for live transcript updates
       if (sseRef.current) {
-        try { sseRef.current.close() } catch {}
+        try {
+          sseRef.current.close()
+        } catch {}
       }
       const es = new EventSource(`/api/workflow/${sessionId}`)
       sseRef.current = es
@@ -149,7 +152,8 @@ export function useVoiceDictation(options?: UseVoiceDictationOptions) {
           const event = JSON.parse(ev.data)
           if (
             event?.type === "status" &&
-            (event?.data?.status === "transcription_update" || event?.data?.status === "completed")
+            (event?.data?.status === "transcription_update" ||
+              event?.data?.status === "completed")
           ) {
             const final = event?.data?.final || ""
             const provisional = event?.data?.provisional || ""
@@ -158,7 +162,9 @@ export function useVoiceDictation(options?: UseVoiceDictationOptions) {
             if (onTranscribed) onTranscribed(combined)
             if (event?.data?.status === "completed") {
               pushDebug("SSE completed")
-              try { es.close() } catch {}
+              try {
+                es.close()
+              } catch {}
               sseRef.current = null
             }
           }
@@ -200,10 +206,13 @@ export function useVoiceDictation(options?: UseVoiceDictationOptions) {
         // Finalize the transcript: tell server to commit provisional into final
         if (sessionIdRef.current) {
           try {
-            await fetch(`/api/transcription/finalize?sessionId=${sessionIdRef.current}`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-            })
+            await fetch(
+              `/api/transcription/finalize?sessionId=${sessionIdRef.current}`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+              }
+            )
             pushDebug("Finalize request sent")
           } catch (e) {
             pushDebug(`[Finalize] Failed: ${String(e)}`)
@@ -328,4 +337,3 @@ export function useVoiceDictation(options?: UseVoiceDictationOptions) {
     stopRecording,
   }
 }
-

@@ -5,12 +5,16 @@ import { publishEvent } from "@/lib/services/redis-stream"
 
 export const dynamic = "force-dynamic"
 
-const rKey = (sessionId: string, suffix: string) => `transcribe:${sessionId}:${suffix}`
+const rKey = (sessionId: string, suffix: string) =>
+  `transcribe:${sessionId}:${suffix}`
 
 export async function POST(req: NextRequest) {
   try {
     const url = new URL(req.url)
-    const sessionId = url.searchParams.get("sessionId") || req.headers.get("x-session-id") || undefined
+    const sessionId =
+      url.searchParams.get("sessionId") ||
+      req.headers.get("x-session-id") ||
+      undefined
 
     if (!sessionId) {
       return NextResponse.json({ error: "Missing sessionId" }, { status: 400 })
@@ -25,7 +29,10 @@ export async function POST(req: NextRequest) {
         redis.get(rKey(sessionId, "provisional")),
       ])
 
-      const newFinal = [finalText || "", provisional || ""].filter(Boolean).join(" ").trim()
+      const newFinal = [finalText || "", provisional || ""]
+        .filter(Boolean)
+        .join(" ")
+        .trim()
 
       await Promise.all([
         redis.set(rKey(sessionId, "final"), newFinal),
@@ -34,7 +41,11 @@ export async function POST(req: NextRequest) {
 
       await publishEvent(sessionId, {
         type: "status",
-        data: { status: "transcription_update", final: newFinal, provisional: "" },
+        data: {
+          status: "transcription_update",
+          final: newFinal,
+          provisional: "",
+        },
         timestamp: new Date(),
       })
 
@@ -53,4 +64,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }
-

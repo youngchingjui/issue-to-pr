@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "redis"
 
-import { publishEvent } from "@/lib/services/redis-stream"
 import { transcribeAudio } from "@/lib/openai"
+import { publishEvent } from "@/lib/services/redis-stream"
 
 // This route accepts small audio chunks (3-5s) and appends them to a per-session buffer.
 // It also performs a naive incremental transcription for live updates and publishes them via SSE
@@ -10,14 +10,22 @@ import { transcribeAudio } from "@/lib/openai"
 
 export const dynamic = "force-dynamic"
 
-const rKey = (sessionId: string, suffix: string) => `transcribe:${sessionId}:${suffix}`
+const rKey = (sessionId: string, suffix: string) =>
+  `transcribe:${sessionId}:${suffix}`
 
 export async function POST(req: NextRequest) {
   try {
     const url = new URL(req.url)
-    const sessionId = url.searchParams.get("sessionId") || req.headers.get("x-session-id") || undefined
-    const seqParam = url.searchParams.get("seq") || req.headers.get("x-seq") || undefined
-    const finalizeFlag = url.searchParams.get("finalize") || req.headers.get("x-finalize") || undefined
+    const sessionId =
+      url.searchParams.get("sessionId") ||
+      req.headers.get("x-session-id") ||
+      undefined
+    const seqParam =
+      url.searchParams.get("seq") || req.headers.get("x-seq") || undefined
+    const finalizeFlag =
+      url.searchParams.get("finalize") ||
+      req.headers.get("x-finalize") ||
+      undefined
 
     if (!sessionId) {
       return NextResponse.json({ error: "Missing sessionId" }, { status: 400 })
@@ -34,7 +42,10 @@ export async function POST(req: NextRequest) {
           redis.get(rKey(sessionId, "final")),
           redis.get(rKey(sessionId, "provisional")),
         ])
-        const newFinal = [finalText || "", provisional || ""].filter(Boolean).join(" ").trim()
+        const newFinal = [finalText || "", provisional || ""]
+          .filter(Boolean)
+          .join(" ")
+          .trim()
         await Promise.all([
           redis.set(rKey(sessionId, "final"), newFinal),
           redis.set(rKey(sessionId, "provisional"), ""),
@@ -42,7 +53,11 @@ export async function POST(req: NextRequest) {
 
         await publishEvent(sessionId, {
           type: "status",
-          data: { status: "transcription_update", final: newFinal, provisional: "" },
+          data: {
+            status: "transcription_update",
+            final: newFinal,
+            provisional: "",
+          },
           timestamp: new Date(),
         })
         await publishEvent(sessionId, {
@@ -75,7 +90,9 @@ export async function POST(req: NextRequest) {
       const chunkKey = rKey(sessionId, `chunk:${seq}`)
       await Promise.all([
         redis.set(chunkKey, buf.toString("base64")),
-        redis.zAdd(rKey(sessionId, "chunks"), [{ score: seq, value: String(seq) }]),
+        redis.zAdd(rKey(sessionId, "chunks"), [
+          { score: seq, value: String(seq) },
+        ]),
         redis.setNX(rKey(sessionId, "mime"), contentType),
       ])
 
@@ -87,7 +104,9 @@ export async function POST(req: NextRequest) {
         redis.get(rKey(sessionId, "provisional")),
       ])
 
-      const baseFinal = [prevFinal || "", prevProvisional || ""].filter(Boolean).join(" ")
+      const baseFinal = [prevFinal || "", prevProvisional || ""]
+        .filter(Boolean)
+        .join(" ")
 
       // Build a File from the buffer so we can reuse transcribeAudio()
       // Note: Next.js (Node 18+) supports File/Blob in the server runtime.
@@ -126,4 +145,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }
-
