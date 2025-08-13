@@ -1,7 +1,7 @@
 import { Loader2, NotebookPen } from "lucide-react"
 import Link from "next/link"
+import React from "react"
 
-import PRStatusIndicator from "@/components/issues/PRStatusIndicator"
 import {
   Tooltip,
   TooltipContent,
@@ -16,13 +16,17 @@ interface Props {
     "hasActiveWorkflow" | "hasPlan" | "planId" | "number"
   >
   repoFullName: string
+  prSlot?: React.ReactNode
 }
 
-export default function StatusIndicators({ issue, repoFullName }: Props) {
+export default function StatusIndicators({
+  issue,
+  repoFullName,
+  prSlot,
+}: Props) {
   return (
     <TooltipProvider delayDuration={200}>
       <div className="flex flex-row gap-2">
-        {/* Active Workflow Spinner Slot */}
         <div style={{ width: 24, display: "flex", justifyContent: "center" }}>
           {issue.hasActiveWorkflow ? (
             <Tooltip>
@@ -36,7 +40,6 @@ export default function StatusIndicators({ issue, repoFullName }: Props) {
             </Tooltip>
           ) : null}
         </div>
-        {/* Plan Icon Slot */}
         <div style={{ width: 24, display: "flex", justifyContent: "center" }}>
           {issue.hasPlan && issue.planId ? (
             <Tooltip>
@@ -55,11 +58,7 @@ export default function StatusIndicators({ issue, repoFullName }: Props) {
             </Tooltip>
           ) : null}
         </div>
-        {/* PR Icon Slot - lazily fetched on the client */}
-        <PRStatusIndicator
-          repoFullName={repoFullName}
-          issueNumber={issue.number}
-        />
+        {prSlot}
       </div>
     </TooltipProvider>
   )
