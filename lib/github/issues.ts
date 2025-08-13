@@ -266,7 +266,7 @@ export async function getLinkedPRNumberForIssue({
               __typename
               ... on CrossReferencedEvent {
                 isCrossRepository
-                willClose
+                 willCloseTarget
                 source {
                   __typename
                   ... on PullRequest {
@@ -291,7 +291,7 @@ export async function getLinkedPRNumberForIssue({
     | {
         __typename: "CrossReferencedEvent"
         isCrossRepository: boolean
-        willClose: boolean
+        willCloseTarget: boolean
         source: { __typename: string; number?: number } | null
       }
     | {
@@ -317,7 +317,7 @@ export async function getLinkedPRNumberForIssue({
 
   // Prefer PRs that will close this issue when merged
   for (const n of nodes) {
-    if (n.__typename === "CrossReferencedEvent" && n.willClose) {
+    if (n.__typename === "CrossReferencedEvent" && n.willCloseTarget) {
       if (n.source?.__typename === "PullRequest" && n.source.number) {
         return n.source.number
       }

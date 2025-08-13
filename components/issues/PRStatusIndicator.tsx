@@ -4,6 +4,10 @@ import { GitPullRequest, Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import {
+  getLinkedPrQuerySchema,
+  getLinkedPrResponseSchema,
+} from "@/app/api/issues/[issueId]/pullRequest/schemas"
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -27,13 +31,15 @@ export default function PRStatusIndicator({
     async function load() {
       try {
         setLoading(true)
+        const { repo } = getLinkedPrQuerySchema.parse({ repo: repoFullName })
         const res = await fetch(
-          `/api/issues/${issueNumber}/pullRequest?repo=${encodeURIComponent(repoFullName)}`
+          `/api/issues/${issueNumber}/pullRequest?repo=${encodeURIComponent(repo)}`
         )
         if (!res.ok)
           throw new Error(`Failed to fetch PR for issue #${issueNumber}`)
-        const data = (await res.json()) as { prNumber: number | null }
-        if (!cancelled) setPrNumber(data.prNumber ?? null)
+        const json = await res.json()
+        const data = getLinkedPrResponseSchema.parse(json)
+        if (!cancelled) setPrNumber(data.prNumber)
       } catch {
         if (!cancelled) setPrNumber(null)
       } finally {
