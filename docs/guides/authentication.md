@@ -50,6 +50,16 @@ GithubProvider({
 5. Update Redis cache
 6. Release lock
 
+### Simple Auth (Experimental)
+
+For local testing there is a minimal `NextAuth` configuration that skips
+Redis caching and locking. It lives in [`auth-simple.ts`](../../auth-simple.ts)
+with its own API route at `/api/auth-simple`.
+
+- Visit `/playground?simple=1` to use the simple auth session.
+- Useful for experimenting with the built-in token refresh logic without the
+  additional Redis complexity.
+
 ## Configuration
 
 ### Environment Variables
