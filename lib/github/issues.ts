@@ -339,4 +339,3 @@ export async function getLinkedPRNumberForIssue({
 
   return null
 }
-

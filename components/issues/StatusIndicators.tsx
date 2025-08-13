@@ -13,10 +13,7 @@ import type { IssueWithStatus } from "@/lib/github/issues"
 interface Props {
   issue: Pick<
     IssueWithStatus,
-    | "hasActiveWorkflow"
-    | "hasPlan"
-    | "planId"
-    | "number"
+    "hasActiveWorkflow" | "hasPlan" | "planId" | "number"
   >
   repoFullName: string
 }
@@ -59,9 +56,11 @@ export default function StatusIndicators({ issue, repoFullName }: Props) {
           ) : null}
         </div>
         {/* PR Icon Slot - lazily fetched on the client */}
-        <PRStatusIndicator repoFullName={repoFullName} issueNumber={issue.number} />
+        <PRStatusIndicator
+          repoFullName={repoFullName}
+          issueNumber={issue.number}
+        />
       </div>
     </TooltipProvider>
   )
 }
-
