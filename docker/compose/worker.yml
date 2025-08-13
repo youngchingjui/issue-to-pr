@@ -1,5 +1,6 @@
 services:
   worker:
+    # TODO: The build process does not activate when there are new updates to the worker code
     build:
       context: ../../
       dockerfile: apps/workers/Dockerfile
