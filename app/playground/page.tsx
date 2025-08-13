@@ -21,6 +21,7 @@ import { auth } from "@/auth"
 import OAuthTokenCard from "@/components/auth/OAuthTokenCard"
 import RepoSelector from "@/components/common/RepoSelector"
 import AgentWorkflowClient from "@/components/playground/AgentWorkflowClient"
+import AnthropicIssueTitleCard from "@/components/playground/AnthropicIssueTitleCard"
 import ApplyPatchCard from "@/components/playground/ApplyPatchCard"
 import DockerodeExecCard from "@/components/playground/DockerodeExecCard"
 import IssueSummaryCard from "@/components/playground/IssueSummaryCard"
@@ -69,26 +70,37 @@ export default async function PlaygroundPage() {
         <TestGithubUserFunctionsCard />
       </div>
       <AgentWorkflowClient defaultTools={DEFAULT_TOOLS} />
-      <Card>
-        <CardHeader>
-          <CardTitle>Test Repo Selector Component</CardTitle>
-        </CardHeader>
-        <CardContent>
-          Use this component to test the RepoSelector component. It should show
-          a button to install the Github App if no repos are available.
-          Uninstall the Github App to test the installation CTA.
-          <RepoSelector selectedRepo="issue-to-pr/test-repo" />
-        </CardContent>
-      </Card>
-      <IssueTitleCard />
-      <IssueSummaryCard />
-      <SpeechToTextCard />
-      <UserRolesCard />
-      <RipgrepSearchCard />
-      <DockerodeExecCard />
-      <WriteFileCard />
-      <ApplyPatchCard />
-      {token ? <OAuthTokenCard token={token} /> : null}
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold">Repository & Issue Tools</h2>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Test Repo Selector Component</CardTitle>
+            </CardHeader>
+            <CardContent>
+              Use this component to test the RepoSelector component. It should
+              show a button to install the Github App if no repos are available.
+              Uninstall the Github App to test the installation CTA.
+              <RepoSelector selectedRepo="issue-to-pr/test-repo" />
+            </CardContent>
+          </Card>
+          <IssueTitleCard />
+          <AnthropicIssueTitleCard />
+          <IssueSummaryCard />
+          <RipgrepSearchCard />
+          <WriteFileCard />
+          <ApplyPatchCard />
+          <DockerodeExecCard />
+        </div>
+      </section>
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold">User & Misc Tools</h2>
+        <div className="grid gap-4 md:grid-cols-2">
+          <SpeechToTextCard />
+          <UserRolesCard />
+          {token ? <OAuthTokenCard token={token} /> : null}
+        </div>
+      </section>
       <div>
         <Link href="/playground/evals">
           <Button variant="outline" size="sm">
