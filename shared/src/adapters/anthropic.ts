@@ -1,8 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk"
 
-import type { LLMAdapter, LLMMessage } from "@/shared/src/core/ports/llm"
+import type { LLMMessage, LLMPort } from "@/shared/src/core/ports/llm"
 
-export class AnthropicAdapter implements LLMAdapter {
+export class AnthropicAdapter implements LLMPort {
   private client: Anthropic
 
   constructor(apiKey: string | undefined = process.env.ANTHROPIC_API_KEY) {

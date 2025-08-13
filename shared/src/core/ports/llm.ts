@@ -1,13 +1,13 @@
 export interface LLMMessage {
-  role: "user" | "assistant";
-  content: string;
+  role: "user" | "assistant"
+  content: string
 }
 
-export interface LLMAdapter {
+export interface LLMPort {
   createCompletion(params: {
-    system?: string;
-    messages: LLMMessage[];
-    model?: string;
-    maxTokens?: number;
-  }): Promise<string>;
+    system?: string
+    messages: LLMMessage[]
+    model?: string
+    maxTokens?: number
+  }): Promise<string>
 }
