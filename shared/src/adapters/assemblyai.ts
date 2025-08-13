@@ -59,7 +59,9 @@ export class AssemblyAIAdapter implements SpeechPort {
     })
 
     if (!response.ok) {
-      throw new Error(`AssemblyAI text-to-speech failed: ${response.statusText}`)
+      throw new Error(
+        `AssemblyAI text-to-speech failed: ${response.statusText}`
+      )
     }
 
     return await response.arrayBuffer()
@@ -77,17 +79,17 @@ export class AssemblyAIAdapter implements SpeechPort {
     // AssemblyAI allows passing the key as a query parameter for simple clients
     url.searchParams.set("token", this.apiKey)
 
-    const WS = (globalThis as any).WebSocket
+    const WS = globalThis.WebSocket
     if (!WS) {
       throw new Error("WebSocket is not supported in this environment")
     }
     const ws = new WS(url)
 
-    ws.onmessage = (event: any) => {
+    ws.onmessage = (event: MessageEvent) => {
       try {
-        const data = JSON.parse(event.data as string)
+        const data = JSON.parse(event.data)
         if (data.text) {
-          onTranscription(data.text as string)
+          onTranscription(data.text)
         }
       } catch {
         // ignore malformed messages
