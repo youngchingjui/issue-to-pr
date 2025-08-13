@@ -11,3 +11,10 @@ export function getQueue(name: string): Queue {
 
   return queue
 }
+
+// TODO: Define a core entity Queue in src/core/entities/queue.ts
+// To follow clean architecture principles
+// It'll probably need some sort of redis connection, so that Connection object
+// should be defined as well.
+// Of course bullmq only supports ioredis library, so we can bake those into the
+// entities for now.

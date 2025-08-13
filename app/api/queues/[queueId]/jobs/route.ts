@@ -20,7 +20,9 @@ export async function POST(
 
   const { jobs } = data
 
-  const jobIds = await Promise.all(jobs.map((job) => addJob(queueId, job)))
+  const jobIds = await Promise.all(
+    jobs.map((job) => addJob(queueId, job.name, job.data ?? {}, job.opts))
+  )
 
   return NextResponse.json({ success: true, jobIds })
 }
