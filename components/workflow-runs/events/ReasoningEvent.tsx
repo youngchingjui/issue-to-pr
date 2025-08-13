@@ -40,4 +40,3 @@ export function ReasoningEvent({ event }: Props) {
     </CollapsibleContent>
   )
 }
-
