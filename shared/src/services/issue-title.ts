@@ -13,6 +13,10 @@ Guidelines:
 
 Return ONLY the title text with no additional commentary.`
 
+// TODO: `model` and `maxTokens` belongs to the `Agent` core entity (not defined yet).
+// I don't know how clean architecture works, but there's a relationship between `Agent` and `LLMPort` (or `AgentPort`)
+// So somewhere between those 2, the `model` and `maxTokens` should be defined, not in this service-level function.
+
 export async function generateIssueTitle(
   llm: LLMPort,
   description: string,
