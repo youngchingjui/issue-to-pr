@@ -1,11 +1,11 @@
-import getOctokit from "@/lib/github"
-import { getGraphQLClient } from "@/lib/github"
+import getOctokit, { getGraphQLClient } from "@/lib/github"
 import {
   IssueComment,
   PullRequest,
   PullRequestList,
   PullRequestReview,
 } from "@/lib/types/github"
+import { logEnd, logStart, withTiming } from "@/lib/utils/telemetry"
 
 export async function getPullRequestOnBranch({
   repoFullName,
@@ -24,11 +24,15 @@ export async function getPullRequestOnBranch({
     throw new Error("No octokit found")
   }
 
-  const pr = await octokit.rest.pulls.list({
-    owner,
-    repo,
-    head: `${owner}:${branch}`,
-  })
+  const pr = await withTiming(
+    `GitHub REST: pulls.list head=${owner}:${branch}`,
+    () =>
+      octokit.rest.pulls.list({
+        owner,
+        repo,
+        head: `${owner}:${branch}`,
+      })
+  )
 
   if (pr.data.length > 0) {
     return pr.data[0]
@@ -88,12 +92,10 @@ export async function createPullRequest({
       }
     }
   `
-  const repoIdResult = await graphqlWithAuth<RepositoryIdResponse>(
-    repoIdQuery,
-    {
-      owner,
-      name: repo,
-    }
+  const repoIdResult = await withTiming(
+    `GitHub GraphQL: get repository id ${repoFullName}`,
+    () =>
+      graphqlWithAuth<RepositoryIdResponse>(repoIdQuery, { owner, name: repo })
   )
   const repositoryId = repoIdResult.repository.id
 
@@ -130,9 +132,9 @@ export async function createPullRequest({
     },
   }
 
-  const response = await graphqlWithAuth<CreatePRGraphQLResponse>(
-    createPRMutation,
-    variables
+  const response = await withTiming(
+    `GitHub GraphQL: createPullRequest ${repoFullName} ${branch}`,
+    () => graphqlWithAuth<CreatePRGraphQLResponse>(createPRMutation, variables)
   )
 
   const pr = response.createPullRequest.pullRequest
@@ -158,14 +160,18 @@ export async function getPullRequestDiff({
 
     const [owner, repo] = repoFullName.split("/")
 
-    const response = await octokit.rest.pulls.get({
-      owner,
-      repo,
-      pull_number: pullNumber,
-      mediaType: {
-        format: "diff",
-      },
-    })
+    const response = await withTiming(
+      `GitHub REST: pulls.get(diff) ${repoFullName}#${pullNumber}`,
+      () =>
+        octokit.rest.pulls.get({
+          owner,
+          repo,
+          pull_number: pullNumber,
+          mediaType: {
+            format: "diff",
+          },
+        })
+    )
 
     // Check if response.data is a string
     if (typeof response.data !== "string") {
@@ -193,10 +199,14 @@ export async function getPullRequestList({
 
   const [owner, repo] = repoFullName.split("/")
 
-  const pullRequests = await octokit.rest.pulls.list({
-    owner,
-    repo,
-  })
+  const pullRequests = await withTiming(
+    `GitHub REST: pulls.list ${repoFullName}`,
+    () =>
+      octokit.rest.pulls.list({
+        owner,
+        repo,
+      })
+  )
 
   return pullRequests.data
 }
@@ -215,11 +225,15 @@ export async function getPullRequestComments({
     throw new Error("No octokit found")
   }
 
-  const commentsResponse = await octokit.rest.issues.listComments({
-    owner,
-    repo,
-    issue_number: pullNumber,
-  })
+  const commentsResponse = await withTiming(
+    `GitHub REST: issues.listComments PR ${repoFullName}#${pullNumber}`,
+    () =>
+      octokit.rest.issues.listComments({
+        owner,
+        repo,
+        issue_number: pullNumber,
+      })
+  )
 
   return commentsResponse.data
 }
@@ -238,11 +252,15 @@ export async function getPullRequestReviews({
     throw new Error("No octokit found")
   }
 
-  const reviewsResponse = await octokit.rest.pulls.listReviews({
-    owner,
-    repo,
-    pull_number: pullNumber,
-  })
+  const reviewsResponse = await withTiming(
+    `GitHub REST: pulls.listReviews ${repoFullName}#${pullNumber}`,
+    () =>
+      octokit.rest.pulls.listReviews({
+        owner,
+        repo,
+        pull_number: pullNumber,
+      })
+  )
 
   return reviewsResponse.data
 }
@@ -331,11 +349,14 @@ export async function getPullRequestReviewCommentsGraphQL({
     reviewsLimit,
     commentsPerReview,
   }
-  const response =
-    await graphqlWithAuth<PullRequestReviewCommentsGraphQLResponse>(
-      query,
-      variables
-    )
+  const response = await withTiming(
+    `GitHub GraphQL: reviews+comments ${repoFullName}#${pullNumber}`,
+    () =>
+      graphqlWithAuth<PullRequestReviewCommentsGraphQLResponse>(
+        query,
+        variables
+      )
+  )
   // Defensive: Structure the response for easy UI/LLM consumption
   const reviews =
     response?.repository?.pullRequest?.reviews?.nodes?.map((r) => ({
@@ -374,11 +395,15 @@ export async function getPullRequest({
     throw new Error("No octokit found")
   }
 
-  const response = await octokit.rest.pulls.get({
-    owner,
-    repo,
-    pull_number: pullNumber,
-  })
+  const response = await withTiming(
+    `GitHub REST: pulls.get ${repoFullName}#${pullNumber}`,
+    () =>
+      octokit.rest.pulls.get({
+        owner,
+        repo,
+        pull_number: pullNumber,
+      })
+  )
 
   return response.data
 }
@@ -400,12 +425,16 @@ export async function addLabelsToPullRequest({
   if (!owner || !repo) {
     throw new Error("Invalid repository format. Expected 'owner/repo'")
   }
-  await octokit.rest.issues.addLabels({
-    owner,
-    repo,
-    issue_number: pullNumber,
-    labels,
-  })
+  await withTiming(
+    `GitHub REST: issues.addLabels ${repoFullName}#${pullNumber}`,
+    () =>
+      octokit.rest.issues.addLabels({
+        owner,
+        repo,
+        issue_number: pullNumber,
+        labels,
+      })
+  )
 }
 
 // Minimal type for the GraphQL response
@@ -437,7 +466,14 @@ export async function getPRLinkedIssuesMap(
   let endCursor: string | null = null
   const issuePRStatus: Record<number, boolean> = {}
 
+  const totalStart = logStart(
+    `GitHub GraphQL: getPRLinkedIssuesMap ${repoFullName}`
+  )
   while (hasNextPage) {
+    const pageStart = logStart(
+      `GitHub GraphQL page getPRLinkedIssuesMap ${repoFullName}`,
+      { after: endCursor }
+    )
     const query = `
       query($owner: String!, $repo: String!, $after: String) {
         repository(owner: $owner, name: $repo) {
@@ -471,7 +507,16 @@ export async function getPRLinkedIssuesMap(
     }
     hasNextPage = response.repository.pullRequests.pageInfo.hasNextPage
     endCursor = response.repository.pullRequests.pageInfo.endCursor
+    logEnd(
+      `GitHub GraphQL page getPRLinkedIssuesMap ${repoFullName}`,
+      pageStart,
+      {
+        after: variables.after,
+        nextAfter: endCursor,
+      }
+    )
   }
+  logEnd(`GitHub GraphQL: getPRLinkedIssuesMap ${repoFullName}`, totalStart)
   return issuePRStatus
 }
 
@@ -486,7 +531,14 @@ export async function getIssueToPullRequestMap(
   let endCursor: string | null = null
   const issuePRMap: Record<number, number> = {}
 
+  const totalStart = logStart(
+    `GitHub GraphQL: getIssueToPullRequestMap ${repoFullName}`
+  )
   while (hasNextPage) {
+    const pageStart = logStart(
+      `GitHub GraphQL page getIssueToPullRequestMap ${repoFullName}`,
+      { after: endCursor }
+    )
     const query = `
       query($owner: String!, $repo: String!, $after: String) {
         repository(owner: $owner, name: $repo) {
@@ -522,7 +574,13 @@ export async function getIssueToPullRequestMap(
     }
     hasNextPage = response.repository.pullRequests.pageInfo.hasNextPage
     endCursor = response.repository.pullRequests.pageInfo.endCursor
+    logEnd(
+      `GitHub GraphQL page getIssueToPullRequestMap ${repoFullName}`,
+      pageStart,
+      { after: variables.after, nextAfter: endCursor }
+    )
   }
+  logEnd(`GitHub GraphQL: getIssueToPullRequestMap ${repoFullName}`, totalStart)
   return issuePRMap
 }
 
@@ -563,9 +621,9 @@ export async function getLinkedIssuesForPR({
       } | null
     } | null
   }
-  const response = (await graphqlWithAuth(
-    query,
-    variables
+  const response = (await withTiming(
+    `GitHub GraphQL: getLinkedIssuesForPR ${repoFullName}#${pullNumber}`,
+    () => graphqlWithAuth(query, variables)
   )) as LinkedIssuesResponse
   const nodes =
     response.repository?.pullRequest?.closingIssuesReferences?.nodes || []
