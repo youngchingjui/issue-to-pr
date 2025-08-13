@@ -23,6 +23,7 @@ import RepoSelector from "@/components/common/RepoSelector"
 import AgentWorkflowClient from "@/components/playground/AgentWorkflowClient"
 import ApplyPatchCard from "@/components/playground/ApplyPatchCard"
 import DockerodeExecCard from "@/components/playground/DockerodeExecCard"
+import IssueSummaryCard from "@/components/playground/IssueSummaryCard"
 import IssueTitleCard from "@/components/playground/IssueTitleCard"
 import NewLocalTaskInput from "@/components/playground/NewLocalTaskInput"
 import RipgrepSearchCard from "@/components/playground/RipgrepSearchCard"
@@ -80,6 +81,7 @@ export default async function PlaygroundPage() {
         </CardContent>
       </Card>
       <IssueTitleCard />
+      <IssueSummaryCard />
       <SpeechToTextCard />
       <UserRolesCard />
       <RipgrepSearchCard />

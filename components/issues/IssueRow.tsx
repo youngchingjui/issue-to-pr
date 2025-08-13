@@ -23,9 +23,14 @@ import type { IssueWithStatus } from "@/lib/github/issues"
 interface IssueRowProps {
   issue: IssueWithStatus
   repoFullName: string
+  prSlot?: React.ReactNode
 }
 
-export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
+export default function IssueRow({
+  issue,
+  repoFullName,
+  prSlot,
+}: IssueRowProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [activeWorkflow, setActiveWorkflow] = useState<string | null>(null)
 
@@ -114,7 +119,11 @@ export default function IssueRow({ issue, repoFullName }: IssueRowProps) {
         </div>
       </TableCell>
       <TableCell className="text-center align-middle w-full sm:w-12 mb-2 sm:mb-0">
-        <StatusIndicators issue={issue} repoFullName={repoFullName} />
+        <StatusIndicators
+          issue={issue}
+          repoFullName={repoFullName}
+          prSlot={prSlot}
+        />
       </TableCell>
       <TableCell className="text-right">
         <DropdownMenu>
