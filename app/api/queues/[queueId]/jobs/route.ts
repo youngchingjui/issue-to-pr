@@ -20,6 +20,19 @@ export async function POST(
 
   const { jobs } = data
 
+  // Proactively validate OpenAI API key for summarize jobs to provide a clear error
+  const requiresOpenAI = jobs.some((j) => j.name === "summarizeIssue")
+  if (requiresOpenAI && !process.env.OPENAI_API_KEY) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          "OpenAI API key is missing. Please set OPENAI_API_KEY to use issue summarization.",
+      },
+      { status: 401 }
+    )
+  }
+
   const jobIds = await Promise.all(
     jobs.map((job) => addJob(queueId, job.name, job.data ?? {}, job.opts))
   )
@@ -34,3 +47,4 @@ export async function GET(
   // TODO: Implement this.
   return NextResponse.json({ success: false, status: "not implemented yet" })
 }
+
