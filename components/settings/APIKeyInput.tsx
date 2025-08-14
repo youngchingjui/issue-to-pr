@@ -1,7 +1,7 @@
 "use client"
 
 import { Loader2 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,16 +19,17 @@ const ApiKeyInput = ({ initialKey = "" }: Props) => {
   const [maskedKey, setMaskedKey] = useState(
     initialKey ? maskApiKey(initialKey) : ""
   )
-  const [isEditing, setIsEditing] = useState(false)
+  // If there's no initial key, start in editing mode so the user can type immediately
+  const [isEditing, setIsEditing] = useState(!initialKey)
   const [isVerifying, setIsVerifying] = useState(false)
 
   const { toast } = useToast()
 
   useEffect(() => {
-    if (initialKey) {
-      setApiKey(initialKey)
-      setMaskedKey(maskApiKey(initialKey))
-    }
+    // Keep local state in sync with prop changes
+    setApiKey(initialKey)
+    setMaskedKey(initialKey ? maskApiKey(initialKey) : "")
+    setIsEditing(!initialKey)
   }, [initialKey])
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,6 +76,11 @@ const ApiKeyInput = ({ initialKey = "" }: Props) => {
     }
   }
 
+  const isSaveDisabled = useMemo(() => {
+    // Disable save when verifying or when there's no input yet
+    return isVerifying || apiKey.trim().length === 0
+  }, [apiKey, isVerifying])
+
   return (
     <div className="flex items-end justify-end gap-2">
       <div>
@@ -95,7 +101,7 @@ const ApiKeyInput = ({ initialKey = "" }: Props) => {
         />
       </div>
       {isEditing ? (
-        <Button onClick={handleSave} disabled={isVerifying}>
+        <Button onClick={handleSave} disabled={isSaveDisabled}>
           {isVerifying ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
         </Button>
       ) : (
@@ -108,3 +114,4 @@ const ApiKeyInput = ({ initialKey = "" }: Props) => {
 }
 
 export default ApiKeyInput
+
