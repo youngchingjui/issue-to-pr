@@ -43,6 +43,9 @@ export function useVoiceDictation(options?: UseVoiceDictationOptions) {
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   const [recordedMimeType, setRecordedMimeType] = useState<string | null>(null)
 
+  // Keep the last recorded Blob so we can retry transcription without re-recording
+  const lastRecordedBlobRef = useRef<Blob | null>(null)
+
   // Debugging state for visibility on mobile Safari where console isn't accessible
   const [debugLog, setDebugLog] = useState<string[]>([])
   const [lastError, setLastError] = useState<string | null>(null)
@@ -91,6 +94,8 @@ export function useVoiceDictation(options?: UseVoiceDictationOptions) {
         }
         setAudioUrl(null)
       }
+      // Reset last recorded blob so a new recording is required for retry
+      lastRecordedBlobRef.current = null
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
 
@@ -152,6 +157,86 @@ export function useVoiceDictation(options?: UseVoiceDictationOptions) {
     stopRecorder(mediaRecorder)
   }
 
+  const sendForTranscription = useCallback(
+    async (audioFile: File) => {
+      setIsTranscribing(true)
+      try {
+        const formData = new FormData()
+        formData.append("audio", audioFile)
+
+        pushDebug("Sending POST /api/openai/transcribe")
+        const response = await fetch("/api/openai/transcribe", {
+          method: "POST",
+          body: formData,
+        })
+
+        pushDebug(`Fetch response received. status=${response.status}`)
+
+        if (!response.ok) {
+          // Try to read raw text to aid debugging
+          const raw = await response.text().catch(() => "<failed to read body>")
+          setServerRawResponse(raw)
+          pushDebug(`[Server] Non-OK response body: ${raw?.slice(0, 500)}`)
+          let errorData: unknown = null
+          try {
+            errorData = JSON.parse(raw)
+          } catch {
+            // ignore
+          }
+          if (
+            errorData &&
+            typeof errorData === "object" &&
+            "error" in errorData &&
+            typeof (errorData as { error: unknown }).error === "string"
+          ) {
+            throw new Error((errorData as { error: string }).error)
+          }
+          throw new Error(`HTTP ${response.status}`)
+        }
+
+        const raw = await response.text()
+        setServerRawResponse(raw)
+        let dataUnknown: unknown
+        try {
+          dataUnknown = JSON.parse(raw)
+        } catch (e) {
+          const msg = `[Client] Failed to parse JSON: ${String(e)} — raw: ${raw?.slice(0, 200)}`
+          setLastError(msg)
+          pushDebug(msg)
+          toast({ description: msg, variant: "destructive" })
+          return
+        }
+
+        if (
+          !dataUnknown ||
+          typeof dataUnknown !== "object" ||
+          !("text" in dataUnknown) ||
+          typeof (dataUnknown as { text: unknown }).text !== "string"
+        ) {
+          const msg = `[Client] Unexpected response shape: ${raw?.slice(0, 200)}`
+          setLastError(msg)
+          pushDebug(msg)
+          toast({ description: msg, variant: "destructive" })
+          return
+        }
+
+        pushDebug("Transcription successful")
+        const text = (dataUnknown as { text: string }).text
+        setTranscript(text)
+        setLastError(null)
+        if (onTranscribed) onTranscribed(text)
+      } catch (err) {
+        const msg = `[Transcribe] Failed: ${String(err)}`
+        setLastError(msg)
+        pushDebug(msg)
+        toast({ description: String(err), variant: "destructive" })
+      } finally {
+        setIsTranscribing(false)
+      }
+    },
+    [onTranscribed, pushDebug, toast]
+  )
+
   const handleRecordingStop = useCallback(async () => {
     pushDebug(
       `handleRecordingStop invoked – assembling blob from ${audioChunks.current.length} chunks`
@@ -187,6 +272,9 @@ export function useVoiceDictation(options?: UseVoiceDictationOptions) {
     audioChunks.current = []
 
     pushDebug(`[Blob] Created. mimeType=${actualMimeType}, size=${blob.size}`)
+
+    // Save blob so we can retry later if needed
+    lastRecordedBlobRef.current = blob
 
     // Allow playback of the recorded audio
     let urlOk = true
@@ -235,78 +323,45 @@ export function useVoiceDictation(options?: UseVoiceDictationOptions) {
       return
     }
 
-    setIsTranscribing(true)
+    await sendForTranscription(audioFile)
+  }, [mediaRecorder, recordedMimeType, pushDebug, sendForTranscription])
+
+  const retryTranscription = useCallback(async () => {
+    if (!lastRecordedBlobRef.current) {
+      const msg = "No recorded audio available to retry. Please record again."
+      setLastError(msg)
+      toast({ description: msg, variant: "destructive" })
+      return
+    }
+
+    const actualMimeType = recordedMimeType || lastRecordedBlobRef.current.type || "audio/webm"
+
+    const fileExtension = actualMimeType.includes("mp4")
+      ? "mp4"
+      : actualMimeType.includes("wav")
+        ? "wav"
+        : actualMimeType.includes("webm")
+          ? "webm"
+          : "bin"
+
+    let audioFile: File
     try {
-      const formData = new FormData()
-      formData.append("audio", audioFile)
-
-      pushDebug("Sending POST /api/openai/transcribe")
-      const response = await fetch("/api/openai/transcribe", {
-        method: "POST",
-        body: formData,
+      audioFile = new File([lastRecordedBlobRef.current], `recording.${fileExtension}`, {
+        type: actualMimeType,
       })
-
-      pushDebug(`Fetch response received. status=${response.status}`)
-
-      if (!response.ok) {
-        // Try to read raw text to aid debugging
-        const raw = await response.text().catch(() => "<failed to read body>")
-        setServerRawResponse(raw)
-        pushDebug(`[Server] Non-OK response body: ${raw?.slice(0, 500)}`)
-        let errorData: unknown = null
-        try {
-          errorData = JSON.parse(raw)
-        } catch {
-          // ignore
-        }
-        if (
-          errorData &&
-          typeof errorData === "object" &&
-          "error" in errorData &&
-          typeof (errorData as { error: unknown }).error === "string"
-        ) {
-          throw new Error((errorData as { error: string }).error)
-        }
-        throw new Error(`HTTP ${response.status}`)
-      }
-
-      const raw = await response.text()
-      setServerRawResponse(raw)
-      let dataUnknown: unknown
-      try {
-        dataUnknown = JSON.parse(raw)
-      } catch (e) {
-        const msg = `[Client] Failed to parse JSON: ${String(e)} — raw: ${raw?.slice(0, 200)}`
-        setLastError(msg)
-        pushDebug(msg)
-        return
-      }
-
-      if (
-        !dataUnknown ||
-        typeof dataUnknown !== "object" ||
-        !("text" in dataUnknown) ||
-        typeof (dataUnknown as { text: unknown }).text !== "string"
-      ) {
-        const msg = `[Client] Unexpected response shape: ${raw?.slice(0, 200)}`
-        setLastError(msg)
-        pushDebug(msg)
-        return
-      }
-
-      pushDebug("Transcription successful")
-      const text = (dataUnknown as { text: string }).text
-      setTranscript(text)
-      if (onTranscribed) onTranscribed(text)
-    } catch (err) {
-      const msg = `[Transcribe] Failed: ${String(err)}`
+      pushDebug(
+        `[Retry] Created File name=recording.${fileExtension} type=${actualMimeType} size=${audioFile.size}`
+      )
+    } catch (e) {
+      const msg = `[Retry] Failed to create File: ${String(e)}`
       setLastError(msg)
       pushDebug(msg)
-      toast({ description: String(err), variant: "destructive" })
-    } finally {
-      setIsTranscribing(false)
+      toast({ description: msg, variant: "destructive" })
+      return
     }
-  }, [mediaRecorder, toast, recordedMimeType, onTranscribed, pushDebug])
+
+    await sendForTranscription(audioFile)
+  }, [recordedMimeType, sendForTranscription, toast, pushDebug])
 
   const iosSafariHint = useMemo(
     () =>
@@ -332,5 +387,7 @@ export function useVoiceDictation(options?: UseVoiceDictationOptions) {
     // actions
     startRecording,
     stopRecording,
+    retryTranscription,
   }
 }
+
