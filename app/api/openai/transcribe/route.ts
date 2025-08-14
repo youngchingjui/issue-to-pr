@@ -29,7 +29,10 @@ export async function POST(request: NextRequest) {
     if (!apiKey) {
       console.warn("[Transcribe API] Missing OpenAI API key for user")
       return NextResponse.json(
-        { error: "Missing OpenAI API key" },
+        {
+          error:
+            "OpenAI API key is missing. Please add your key in Settings to enable transcription.",
+        },
         { status: 401 }
       )
     }
@@ -56,3 +59,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
