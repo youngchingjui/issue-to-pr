@@ -126,6 +126,14 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+  /* Apply accent color to all h1 headers by default */
+  h1 {
+    @apply text-accent;
+  }
+  /* Ensure h1 inside typography (prose) also use accent */
+  .prose :where(h1) {
+    @apply text-accent;
+  }
 }
 
 .moving-border-card {
@@ -163,3 +171,4 @@ body {
     background-position: 0% 50%;
   }
 }
+
