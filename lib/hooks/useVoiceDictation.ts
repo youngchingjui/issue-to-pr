@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import { useToast } from "@/lib/hooks/use-toast"
+import { ToastAction } from "@/components/ui/toast"
 
 // Helper to fully stop an active MediaRecorder & its tracks.
 function stopRecorder(recorder: MediaRecorder | null) {
@@ -42,6 +43,9 @@ export function useVoiceDictation(options?: UseVoiceDictationOptions) {
   // Store the recorded audio so we can allow playback
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   const [recordedMimeType, setRecordedMimeType] = useState<string | null>(null)
+
+  // Keep the last audio file to allow retrying transcription without re-recording
+  const [lastAudioFile, setLastAudioFile] = useState<File | null>(null)
 
   // Debugging state for visibility on mobile Safari where console isn't accessible
   const [debugLog, setDebugLog] = useState<string[]>([])
@@ -136,6 +140,7 @@ export function useVoiceDictation(options?: UseVoiceDictationOptions) {
       setServerRawResponse(null)
       setTranscript("")
       setLastError(null)
+      setLastAudioFile(null)
     } catch (err) {
       const msg = `[startRecording] Error: ${String(err)}`
       setLastError(msg)
@@ -151,6 +156,104 @@ export function useVoiceDictation(options?: UseVoiceDictationOptions) {
     pushDebug("stopRecording invoked")
     stopRecorder(mediaRecorder)
   }
+
+  const doTranscribe = useCallback(
+    async (audioFile: File) => {
+      setIsTranscribing(true)
+      try {
+        const formData = new FormData()
+        formData.append("audio", audioFile)
+
+        pushDebug("Sending POST /api/openai/transcribe")
+        const response = await fetch("/api/openai/transcribe", {
+          method: "POST",
+          body: formData,
+        })
+
+        pushDebug(`Fetch response received. status=${response.status}`)
+
+        if (!response.ok) {
+          // Try to read raw text to aid debugging
+          const raw = await response.text().catch(() => "<failed to read body>")
+          setServerRawResponse(raw)
+          pushDebug(`[Server] Non-OK response body: ${raw?.slice(0, 500)}`)
+          let errorData: unknown = null
+          try {
+            errorData = JSON.parse(raw)
+          } catch {
+            // ignore
+          }
+          if (
+            errorData &&
+            typeof errorData === "object" &&
+            "error" in errorData &&
+            typeof (errorData as { error: unknown }).error === "string"
+          ) {
+            throw new Error((errorData as { error: string }).error)
+          }
+          throw new Error(`HTTP ${response.status}`)
+        }
+
+        const raw = await response.text()
+        setServerRawResponse(raw)
+        let dataUnknown: unknown
+        try {
+          dataUnknown = JSON.parse(raw)
+        } catch (e) {
+          const msg = `[Client] Failed to parse JSON: ${String(e)} — raw: ${raw?.slice(0, 200)}`
+          setLastError(msg)
+          pushDebug(msg)
+          return
+        }
+
+        if (
+          !dataUnknown ||
+          typeof dataUnknown !== "object" ||
+          !("text" in dataUnknown) ||
+          typeof (dataUnknown as { text: unknown }).text !== "string"
+        ) {
+          const msg = `[Client] Unexpected response shape: ${raw?.slice(0, 200)}`
+          setLastError(msg)
+          pushDebug(msg)
+          return
+        }
+
+        pushDebug("Transcription successful")
+        const text = (dataUnknown as { text: string }).text
+        setTranscript(text)
+        if (onTranscribed) onTranscribed(text)
+        setLastError(null)
+      } catch (err) {
+        const msg = `[Transcribe] Failed: ${String(err)}`
+        setLastError(msg)
+        pushDebug(msg)
+        toast({
+          description: String(err),
+          variant: "destructive",
+          action:
+            lastAudioFile != null ? (
+              <ToastAction
+                altText="Retry transcription"
+                onClick={() => {
+                  if (lastAudioFile) doTranscribe(lastAudioFile)
+                }}
+              >
+                Retry
+              </ToastAction>
+            ) : undefined,
+        })
+      } finally {
+        setIsTranscribing(false)
+      }
+    },
+    [lastAudioFile, onTranscribed, pushDebug, toast]
+  )
+
+  const retryTranscription = useCallback(async () => {
+    if (!lastAudioFile) return
+    pushDebug("Retrying transcription with last recorded audio file")
+    await doTranscribe(lastAudioFile)
+  }, [doTranscribe, lastAudioFile, pushDebug])
 
   const handleRecordingStop = useCallback(async () => {
     pushDebug(
@@ -235,78 +338,9 @@ export function useVoiceDictation(options?: UseVoiceDictationOptions) {
       return
     }
 
-    setIsTranscribing(true)
-    try {
-      const formData = new FormData()
-      formData.append("audio", audioFile)
-
-      pushDebug("Sending POST /api/openai/transcribe")
-      const response = await fetch("/api/openai/transcribe", {
-        method: "POST",
-        body: formData,
-      })
-
-      pushDebug(`Fetch response received. status=${response.status}`)
-
-      if (!response.ok) {
-        // Try to read raw text to aid debugging
-        const raw = await response.text().catch(() => "<failed to read body>")
-        setServerRawResponse(raw)
-        pushDebug(`[Server] Non-OK response body: ${raw?.slice(0, 500)}`)
-        let errorData: unknown = null
-        try {
-          errorData = JSON.parse(raw)
-        } catch {
-          // ignore
-        }
-        if (
-          errorData &&
-          typeof errorData === "object" &&
-          "error" in errorData &&
-          typeof (errorData as { error: unknown }).error === "string"
-        ) {
-          throw new Error((errorData as { error: string }).error)
-        }
-        throw new Error(`HTTP ${response.status}`)
-      }
-
-      const raw = await response.text()
-      setServerRawResponse(raw)
-      let dataUnknown: unknown
-      try {
-        dataUnknown = JSON.parse(raw)
-      } catch (e) {
-        const msg = `[Client] Failed to parse JSON: ${String(e)} — raw: ${raw?.slice(0, 200)}`
-        setLastError(msg)
-        pushDebug(msg)
-        return
-      }
-
-      if (
-        !dataUnknown ||
-        typeof dataUnknown !== "object" ||
-        !("text" in dataUnknown) ||
-        typeof (dataUnknown as { text: unknown }).text !== "string"
-      ) {
-        const msg = `[Client] Unexpected response shape: ${raw?.slice(0, 200)}`
-        setLastError(msg)
-        pushDebug(msg)
-        return
-      }
-
-      pushDebug("Transcription successful")
-      const text = (dataUnknown as { text: string }).text
-      setTranscript(text)
-      if (onTranscribed) onTranscribed(text)
-    } catch (err) {
-      const msg = `[Transcribe] Failed: ${String(err)}`
-      setLastError(msg)
-      pushDebug(msg)
-      toast({ description: String(err), variant: "destructive" })
-    } finally {
-      setIsTranscribing(false)
-    }
-  }, [mediaRecorder, toast, recordedMimeType, onTranscribed, pushDebug])
+    setLastAudioFile(audioFile)
+    await doTranscribe(audioFile)
+  }, [mediaRecorder, recordedMimeType, pushDebug, doTranscribe])
 
   const iosSafariHint = useMemo(
     () =>
@@ -329,8 +363,11 @@ export function useVoiceDictation(options?: UseVoiceDictationOptions) {
     serverRawResponse,
     recordingInfo,
     iosSafariHint,
+    hasRecording: !!lastAudioFile,
     // actions
     startRecording,
     stopRecording,
+    retryTranscription,
   }
 }
+
