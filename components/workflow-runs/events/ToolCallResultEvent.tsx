@@ -2,6 +2,7 @@
 
 import { ArrowDownLeft } from "lucide-react"
 
+import { Button } from "@/components/ui/button"
 import { CollapsibleContent } from "@/components/ui/collapsible-content"
 import { EventTime } from "@/components/workflow-runs/events/EventTime"
 import { ToolCallResult } from "@/lib/types"
@@ -25,14 +26,41 @@ export function ToolCallResultEvent({ event }: Props) {
     </div>
   )
 
+  // Attempt to parse the tool response content to detect PR creation success
+  let prUrl: string | null = null
+  try {
+    const parsed = JSON.parse(event.content || "{}") as any
+    if (
+      event.toolName === "create_pull_request" &&
+      parsed?.status === "success" &&
+      parsed?.pullRequest?.data?.url
+    ) {
+      prUrl = String(parsed.pullRequest.data.url)
+    }
+  } catch {
+    // Ignore parse errors; we'll just render the raw content below
+  }
+
   return (
     <CollapsibleContent
       headerContent={headerContent}
       className="border-l-2 border-green-500 dark:border-green-400 hover:bg-muted/50"
     >
-      <div className="font-mono text-sm overflow-x-auto">
-        <div className="whitespace-pre-wrap">{event.content}</div>
+      <div className="space-y-3">
+        {prUrl && (
+          <div>
+            <Button asChild size="sm" variant="default">
+              <a href={prUrl} target="_blank" rel="noopener noreferrer">
+                View PR
+              </a>
+            </Button>
+          </div>
+        )}
+        <div className="font-mono text-sm overflow-x-auto">
+          <div className="whitespace-pre-wrap">{event.content}</div>
+        </div>
       </div>
     </CollapsibleContent>
   )
 }
+
