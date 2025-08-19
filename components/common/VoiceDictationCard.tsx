@@ -25,8 +25,10 @@ export default function VoiceDictationCard() {
     serverRawResponse,
     recordingInfo,
     iosSafariHint,
+    hasRecording,
     startRecording,
     stopRecording,
+    retryTranscription,
   } = useVoiceDictation()
 
   const { toast } = useToast()
@@ -88,7 +90,7 @@ export default function VoiceDictationCard() {
           </div>
         )}
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
           {isRecording ? (
             <Button
               variant="destructive"
@@ -104,6 +106,13 @@ export default function VoiceDictationCard() {
           )}
           <Button variant="outline" onClick={handleCopy} disabled={!transcript}>
             Copy
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={retryTranscription}
+            disabled={!hasRecording || isRecording || isTranscribing}
+          >
+            Retry Transcription
           </Button>
         </div>
 
@@ -150,3 +159,4 @@ export default function VoiceDictationCard() {
     </Card>
   )
 }
+
