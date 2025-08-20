@@ -1,7 +1,7 @@
 "use client"
 
 import { AlertTriangle, CheckCircle2, Loader2 } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -41,36 +41,7 @@ const ApiKeyInput = ({ initialKey = "" }: Props) => {
   const [verificationState, setVerificationState] =
     useState<VerificationState>("idle")
 
-  useEffect(() => {
-    // Keep local state in sync with prop changes
-    setApiKey(initialKey)
-    setMaskedKey(initialKey ? maskApiKey(initialKey) : "")
-    setIsEditing(!initialKey)
-    setLastSavedKey(initialKey)
-    setVerificationState("idle")
-    setValidationMessage(null)
-  }, [initialKey])
-
-  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newKey = event.target.value
-    setApiKey(newKey)
-    setMaskedKey(maskApiKey(newKey))
-    if (validationMessage) setValidationMessage(null)
-    if (verificationState !== "idle") setVerificationState("idle")
-  }
-
-  const handlePaste: React.ClipboardEventHandler<HTMLInputElement> = (e) => {
-    const pasted = e.clipboardData.getData("text")
-    if (!pasted) return
-    e.preventDefault()
-    const cleaned = pasted.trim()
-    setApiKey(cleaned)
-    setMaskedKey(maskApiKey(cleaned))
-    setValidationMessage(null)
-    setVerificationState("idle")
-  }
-
-  const verifyKey = async (keyToVerify: string) => {
+  const verifyKey = useCallback(async (keyToVerify: string) => {
     try {
       setVerificationState("verifying")
       const response = await fetch("/api/openai/check", {
@@ -105,6 +76,40 @@ const ApiKeyInput = ({ initialKey = "" }: Props) => {
       setValidationMessage("Network issue. Please try again later.")
     } finally {
     }
+  }, [])
+
+  useEffect(() => {
+    // Keep local state in sync with prop changes
+    setApiKey(initialKey)
+    setMaskedKey(initialKey ? maskApiKey(initialKey) : "")
+    setIsEditing(!initialKey)
+    setLastSavedKey(initialKey)
+    setVerificationState("idle")
+    setValidationMessage(null)
+    // Verify on load (and whenever initialKey changes) if a key exists
+    if (initialKey && initialKey.trim().length > 0) {
+      setVerificationState("verifying")
+      void verifyKey(initialKey)
+    }
+  }, [initialKey, verifyKey])
+
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newKey = event.target.value
+    setApiKey(newKey)
+    setMaskedKey(maskApiKey(newKey))
+    if (validationMessage) setValidationMessage(null)
+    if (verificationState !== "idle") setVerificationState("idle")
+  }
+
+  const handlePaste: React.ClipboardEventHandler<HTMLInputElement> = (e) => {
+    const pasted = e.clipboardData.getData("text")
+    if (!pasted) return
+    e.preventDefault()
+    const cleaned = pasted.trim()
+    setApiKey(cleaned)
+    setMaskedKey(maskApiKey(cleaned))
+    setValidationMessage(null)
+    setVerificationState("idle")
   }
 
   const handleSave = async () => {
