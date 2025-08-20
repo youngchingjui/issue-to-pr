@@ -157,111 +157,126 @@ const ApiKeyInput = ({ initialKey = "" }: Props) => {
   }
 
   return (
-    <div className="flex items-end justify-end gap-2">
-      <div>
-        <Label
-          htmlFor="openai-api-key"
-          className="text-xs text-muted-foreground font-light"
-        >
-          OpenAI API Key
-        </Label>
-        <div className="relative">
-          <Input
-            type={isEditing && showApiKey ? "text" : "password"}
-            id="openai-api-key"
-            placeholder={isEditing ? "Enter your OpenAI API key" : ""}
-            value={isEditing ? apiKey : maskedKey}
-            onChange={handleInputChange}
-            onPaste={handlePaste}
-            onKeyDown={handleKeyDown}
-            readOnly={!isEditing}
-            className={!isEditing ? "bg-gray-100 text-gray-500 pr-8" : "pr-8"}
-          />
-          {isEditing ? (
-            <button
-              type="button"
-              onClick={() => setShowApiKey((s) => !s)}
-              className="absolute inset-y-0 right-2 flex items-center text-muted-foreground"
-              aria-label={showApiKey ? "Hide API key" : "Show API key"}
-            >
-              {showApiKey ? (
-                <EyeOff className="h-4 w-4" aria-hidden="true" />
-              ) : (
-                <Eye className="h-4 w-4" aria-hidden="true" />
-              )}
-            </button>
-          ) : null}
-        </div>
-        <div className="mt-1 text-xs" role="status" aria-live="polite">
-          {verificationState === "verifying" ? (
-            <span className="inline-flex items-center gap-1 text-muted-foreground">
-              <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
-              Verifying API key
-            </span>
-          ) : verificationState === "verified" ? (
-            <span className="inline-flex items-center gap-1 text-green-600">
-              <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
-              Verified
-            </span>
-          ) : verificationState === "unverified" ? (
-            <span className="inline-flex items-center gap-1 text-amber-600">
-              <AlertTriangle className="h-3 w-3" aria-hidden="true" />
-              Couldn&apos;t verify
-            </span>
-          ) : verificationState === "error" ? (
-            <span className="inline-flex items-center gap-1 text-red-600">
-              <AlertTriangle className="h-3 w-3" aria-hidden="true" />
-              Verification error
-            </span>
-          ) : null}
-          {validationMessage ? (
-            <div className="mt-1 text-amber-700">
-              {validationMessage}{" "}
-              <a
-                href="https://platform.openai.com/api-keys"
-                target="_blank"
-                rel="noreferrer"
-                className="underline"
-              >
-                Get an API key
-              </a>
-              {" · "}
-              <a
-                href="https://platform.openai.com/account/billing"
-                target="_blank"
-                rel="noreferrer"
-                className="underline"
-              >
-                Check billing
-              </a>
-            </div>
-          ) : null}
-        </div>
-      </div>
-      {isEditing ? (
-        <div className="flex items-center gap-2">
-          <Button onClick={handleSave} disabled={isSaveDisabled}>
-            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
-          </Button>
-          <Button
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_auto_auto] items-start gap-x-3 gap-y-0">
+      <Label
+        htmlFor="openai-api-key"
+        className="text-xs text-muted-foreground font-light col-start-1 row-start-1"
+      >
+        OpenAI API Key
+      </Label>
+
+      <div className="relative col-start-1 row-start-2">
+        <Input
+          type={isEditing && showApiKey ? "text" : "password"}
+          id="openai-api-key"
+          placeholder={isEditing ? "Enter your OpenAI API key" : ""}
+          value={isEditing ? apiKey : maskedKey}
+          onChange={handleInputChange}
+          onPaste={handlePaste}
+          onKeyDown={handleKeyDown}
+          readOnly={!isEditing}
+          className={!isEditing ? "bg-gray-100 text-gray-500 pr-8" : "pr-8"}
+        />
+        {isEditing ? (
+          <button
             type="button"
-            variant="secondary"
-            onClick={() => {
-              setApiKey(lastSavedKey)
-              setMaskedKey(lastSavedKey ? maskApiKey(lastSavedKey) : "")
-              setIsEditing(false)
-              setValidationMessage(null)
-              setVerificationState("idle")
-            }}
+            onClick={() => setShowApiKey((s) => !s)}
+            className="absolute inset-y-0 right-2 flex items-center text-muted-foreground"
+            aria-label={showApiKey ? "Hide API key" : "Show API key"}
           >
-            Cancel
-          </Button>
-        </div>
-      ) : (
-        <Button onClick={() => setIsEditing(!isEditing)} variant="secondary">
-          Edit
-        </Button>
-      )}
+            {showApiKey ? (
+              <EyeOff className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              <Eye className="h-4 w-4" aria-hidden="true" />
+            )}
+          </button>
+        ) : null}
+      </div>
+
+      <div
+        className="mt-1 text-xs min-h-[1.25rem] col-start-1 row-start-3"
+        role="status"
+        aria-live="polite"
+      >
+        {verificationState === "verifying" ? (
+          <span className="inline-flex items-center gap-1 text-muted-foreground">
+            <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
+            Verifying API key
+          </span>
+        ) : verificationState === "verified" ? (
+          <span className="inline-flex items-center gap-1 text-green-600">
+            <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
+            Verified
+          </span>
+        ) : verificationState === "unverified" ? (
+          <span className="inline-flex items-center gap-1 text-amber-600">
+            <AlertTriangle className="h-3 w-3" aria-hidden="true" />
+            Couldn&apos;t verify
+          </span>
+        ) : verificationState === "error" ? (
+          <span className="inline-flex items-center gap-1 text-red-600">
+            <AlertTriangle className="h-3 w-3" aria-hidden="true" />
+            Verification error
+          </span>
+        ) : (
+          <span className="invisible">placeholder</span>
+        )}
+        {validationMessage ? (
+          <div className="mt-1 text-amber-700">
+            {validationMessage}{" "}
+            <a
+              href="https://platform.openai.com/api-keys"
+              target="_blank"
+              rel="noreferrer"
+              className="underline"
+            >
+              Get an API key
+            </a>
+            {" · "}
+            <a
+              href="https://platform.openai.com/account/billing"
+              target="_blank"
+              rel="noreferrer"
+              className="underline"
+            >
+              Check billing
+            </a>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="col-start-2 row-start-2 self-center min-w-[180px]">
+        {isEditing ? (
+          <div className="flex items-center justify-end gap-2">
+            <Button onClick={handleSave} disabled={isSaveDisabled}>
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setApiKey(lastSavedKey)
+                setMaskedKey(lastSavedKey ? maskApiKey(lastSavedKey) : "")
+                setIsEditing(false)
+                setValidationMessage(null)
+                setVerificationState("idle")
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
+        ) : (
+          <div className="flex justify-end">
+            <Button
+              onClick={() => setIsEditing(!isEditing)}
+              variant="secondary"
+              className="w-full"
+            >
+              Edit
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
