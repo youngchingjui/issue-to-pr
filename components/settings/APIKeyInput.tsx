@@ -6,6 +6,12 @@ import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { setUserOpenAIApiKey } from "@/lib/neo4j/services/user"
 import { maskApiKey } from "@/lib/utils/client"
 
@@ -78,7 +84,7 @@ const ApiKeyInput = ({ initialKey = "" }: Props) => {
       if (!response.ok) {
         setVerificationState("error")
         setValidationMessage(
-          "We couldn't verify this API key due to a network or server error."
+          "We couldn't verify this API key, please double check your key or create a new one."
         )
         return
       }
@@ -90,15 +96,13 @@ const ApiKeyInput = ({ initialKey = "" }: Props) => {
       } else {
         setVerificationState("unverified")
         setValidationMessage(
-          "We couldn't verify this API key. It has been saved, but features may not work until it's valid."
+          "We couldn't verify this API key, please double check your key or create a new one."
         )
       }
     } catch (error) {
       console.error("Failed to verify API key:", error)
       setVerificationState("error")
-      setValidationMessage(
-        "We couldn't verify this API key due to a network issue."
-      )
+      setValidationMessage("Network issue. Please try again later.")
     } finally {
     }
   }
@@ -174,59 +178,53 @@ const ApiKeyInput = ({ initialKey = "" }: Props) => {
           onPaste={handlePaste}
           onKeyDown={handleKeyDown}
           readOnly={!isEditing}
-          className={!isEditing ? "bg-gray-100 text-gray-500" : ""}
+          className={`${!isEditing ? "bg-gray-100 text-gray-500" : ""} ${
+            verificationState !== "idle" ? "pr-9" : ""
+          }`}
         />
-      </div>
-
-      <div
-        className="mt-1 text-xs min-h-[1.25rem] col-start-1 row-start-3"
-        role="status"
-        aria-live="polite"
-      >
-        {verificationState === "verifying" ? (
-          <span className="inline-flex items-center gap-1 text-muted-foreground">
-            <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
-            Verifying API key
-          </span>
-        ) : verificationState === "verified" ? (
-          <span className="inline-flex items-center gap-1 text-green-600">
-            <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
-            Verified
-          </span>
-        ) : verificationState === "unverified" ? (
-          <span className="inline-flex items-center gap-1 text-amber-600">
-            <AlertTriangle className="h-3 w-3" aria-hidden="true" />
-            Couldn&apos;t verify
-          </span>
-        ) : verificationState === "error" ? (
-          <span className="inline-flex items-center gap-1 text-red-600">
-            <AlertTriangle className="h-3 w-3" aria-hidden="true" />
-            Verification error
-          </span>
-        ) : (
-          <span className="invisible">placeholder</span>
-        )}
-        {validationMessage ? (
-          <div className="mt-1 text-amber-700">
-            {validationMessage}{" "}
-            <a
-              href="https://platform.openai.com/api-keys"
-              target="_blank"
-              rel="noreferrer"
-              className="underline"
-            >
-              Get an API key
-            </a>
-            {" · "}
-            <a
-              href="https://platform.openai.com/account/billing"
-              target="_blank"
-              rel="noreferrer"
-              className="underline"
-            >
-              Check billing
-            </a>
-          </div>
+        {verificationState !== "idle" ? (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div
+                  className="absolute inset-y-0 right-2 flex items-center"
+                  aria-live="polite"
+                >
+                  {verificationState === "verifying" ? (
+                    <Loader2
+                      className="h-4 w-4 animate-spin text-muted-foreground"
+                      aria-label="Verifying"
+                    />
+                  ) : verificationState === "verified" ? (
+                    <CheckCircle2
+                      className="h-4 w-4 text-green-600"
+                      aria-label="Verified"
+                    />
+                  ) : verificationState === "error" ? (
+                    <AlertTriangle
+                      className="h-4 w-4 text-red-600"
+                      aria-label="Verification error"
+                    />
+                  ) : (
+                    <AlertTriangle
+                      className="h-4 w-4 text-amber-600"
+                      aria-label="Couldn't verify"
+                    />
+                  )}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                {verificationState === "verifying"
+                  ? "Verifying API key…"
+                  : verificationState === "verified"
+                    ? "Verified"
+                    : (validationMessage ??
+                      (verificationState === "error"
+                        ? "Verification error"
+                        : "Couldn't verify"))}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         ) : null}
       </div>
 
