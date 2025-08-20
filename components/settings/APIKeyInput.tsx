@@ -150,9 +150,9 @@ const ApiKeyInput = ({ initialKey = "" }: Props) => {
   }
 
   const isSaveDisabled = useMemo(() => {
-    // Disable save only while saving
-    return isSaving
-  }, [isSaving])
+    // Disable save while saving, or when there are no changes
+    return isSaving || apiKey === lastSavedKey
+  }, [isSaving, apiKey, lastSavedKey])
 
   const handleKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
     if (!isEditing) return
@@ -245,19 +245,21 @@ const ApiKeyInput = ({ initialKey = "" }: Props) => {
             <Button onClick={handleSave} disabled={isSaveDisabled}>
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
             </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => {
-                setApiKey(lastSavedKey)
-                setMaskedKey(lastSavedKey ? maskApiKey(lastSavedKey) : "")
-                setIsEditing(false)
-                setValidationMessage(null)
-                setVerificationState("idle")
-              }}
-            >
-              Cancel
-            </Button>
+            {lastSavedKey ? (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setApiKey(lastSavedKey)
+                  setMaskedKey(lastSavedKey ? maskApiKey(lastSavedKey) : "")
+                  setIsEditing(false)
+                  setValidationMessage(null)
+                  setVerificationState("idle")
+                }}
+              >
+                Cancel
+              </Button>
+            ) : null}
           </div>
         ) : (
           <div className="flex">
