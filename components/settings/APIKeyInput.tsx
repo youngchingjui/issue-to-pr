@@ -245,9 +245,9 @@ const ApiKeyInput = ({ initialKey = "" }: Props) => {
         ) : null}
       </div>
 
-      <div className="col-start-2 row-start-2 self-center min-w-[180px]">
+      <div className="col-start-2 row-start-2 min-w-[180px]">
         {isEditing ? (
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex items-center gap-2">
             <Button onClick={handleSave} disabled={isSaveDisabled}>
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
             </Button>
@@ -266,11 +266,11 @@ const ApiKeyInput = ({ initialKey = "" }: Props) => {
             </Button>
           </div>
         ) : (
-          <div className="flex justify-end">
+          <div className="flex">
             <Button
               onClick={() => setIsEditing(!isEditing)}
               variant="secondary"
-              className="w-full"
+              className=""
             >
               Edit
             </Button>
