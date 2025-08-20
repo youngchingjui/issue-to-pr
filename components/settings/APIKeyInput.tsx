@@ -114,11 +114,17 @@ const ApiKeyInput = ({ initialKey = "" }: Props) => {
       await setUserOpenAIApiKey(apiKey)
       setLastSavedKey(apiKey)
       setIsEditing(false)
-      // Show an inline "Saved" state and then verify in the background
-      setVerificationState("verifying")
-      setValidationMessage(null)
-      // B) Verify key in the background; don't block the button return
-      void verifyKey(apiKey)
+      if (apiKey.trim().length === 0) {
+        // If the key is empty, treat as cleared and skip verification
+        setVerificationState("idle")
+        setValidationMessage(null)
+      } else {
+        // Show an inline "Saved" state and then verify in the background
+        setVerificationState("verifying")
+        setValidationMessage(null)
+        // B) Verify key in the background; don't block the button return
+        void verifyKey(apiKey)
+      }
     } catch (error) {
       console.error("Failed to verify API key:", error)
       // Try to still save so user doesn't lose edits
@@ -139,9 +145,9 @@ const ApiKeyInput = ({ initialKey = "" }: Props) => {
   }
 
   const isSaveDisabled = useMemo(() => {
-    // Disable save when verifying or when there's no input yet
-    return isSaving || apiKey.trim().length === 0
-  }, [apiKey, isSaving])
+    // Disable save only while saving
+    return isSaving
+  }, [isSaving])
 
   const handleKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
     if (!isEditing) return
