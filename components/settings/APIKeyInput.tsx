@@ -157,7 +157,7 @@ const ApiKeyInput = ({ initialKey = "" }: Props) => {
   }
 
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_auto_auto] items-start gap-x-3 gap-y-0">
+    <div className="grid grid-cols-[1fr_max-content] grid-rows-[auto_auto_auto] items-start gap-x-3 gap-y-0">
       <Label
         htmlFor="openai-api-key"
         className="text-xs text-muted-foreground font-light col-start-1 row-start-1"
@@ -245,7 +245,7 @@ const ApiKeyInput = ({ initialKey = "" }: Props) => {
         ) : null}
       </div>
 
-      <div className="col-start-2 row-start-2 min-w-[180px]">
+      <div className="col-start-2 row-start-2">
         {isEditing ? (
           <div className="flex items-center gap-2">
             <Button onClick={handleSave} disabled={isSaveDisabled}>
