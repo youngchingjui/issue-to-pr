@@ -1,6 +1,6 @@
 "use client"
 
-import { AlertTriangle, CheckCircle2, Eye, EyeOff, Loader2 } from "lucide-react"
+import { AlertTriangle, CheckCircle2, Loader2 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -21,7 +21,6 @@ const ApiKeyInput = ({ initialKey = "" }: Props) => {
   // If there's no initial key, start in editing mode so the user can type immediately
   const [isEditing, setIsEditing] = useState(!initialKey)
   const [isSaving, setIsSaving] = useState(false)
-  const [showApiKey, setShowApiKey] = useState(false)
   const [lastSavedKey, setLastSavedKey] = useState(initialKey)
   const [validationMessage, setValidationMessage] = useState<string | null>(
     null
@@ -167,7 +166,7 @@ const ApiKeyInput = ({ initialKey = "" }: Props) => {
 
       <div className="relative col-start-1 row-start-2">
         <Input
-          type={isEditing && showApiKey ? "text" : "password"}
+          type={isEditing ? "text" : "password"}
           id="openai-api-key"
           placeholder={isEditing ? "Enter your OpenAI API key" : ""}
           value={isEditing ? apiKey : maskedKey}
@@ -175,22 +174,8 @@ const ApiKeyInput = ({ initialKey = "" }: Props) => {
           onPaste={handlePaste}
           onKeyDown={handleKeyDown}
           readOnly={!isEditing}
-          className={!isEditing ? "bg-gray-100 text-gray-500 pr-8" : "pr-8"}
+          className={!isEditing ? "bg-gray-100 text-gray-500" : ""}
         />
-        {isEditing ? (
-          <button
-            type="button"
-            onClick={() => setShowApiKey((s) => !s)}
-            className="absolute inset-y-0 right-2 flex items-center text-muted-foreground"
-            aria-label={showApiKey ? "Hide API key" : "Show API key"}
-          >
-            {showApiKey ? (
-              <EyeOff className="h-4 w-4" aria-hidden="true" />
-            ) : (
-              <Eye className="h-4 w-4" aria-hidden="true" />
-            )}
-          </button>
-        ) : null}
       </div>
 
       <div
