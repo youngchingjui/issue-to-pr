@@ -17,9 +17,10 @@ import { maskApiKey } from "@/lib/utils/client"
 
 interface Props {
   initialKey?: string
+  onVerified?: () => void
 }
 
-const ApiKeyInput = ({ initialKey = "" }: Props) => {
+const ApiKeyInput = ({ initialKey = "", onVerified }: Props) => {
   const [apiKey, setApiKey] = useState(initialKey)
   const [maskedKey, setMaskedKey] = useState(
     initialKey ? maskApiKey(initialKey) : ""
@@ -41,42 +42,46 @@ const ApiKeyInput = ({ initialKey = "" }: Props) => {
   const [verificationState, setVerificationState] =
     useState<VerificationState>("idle")
 
-  const verifyKey = useCallback(async (keyToVerify: string) => {
-    try {
-      setVerificationState("verifying")
-      const response = await fetch("/api/openai/check", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ apiKey: keyToVerify }),
-      })
+  const verifyKey = useCallback(
+    async (keyToVerify: string) => {
+      try {
+        setVerificationState("verifying")
+        const response = await fetch("/api/openai/check", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ apiKey: keyToVerify }),
+        })
 
-      if (!response.ok) {
+        if (!response.ok) {
+          setVerificationState("error")
+          setValidationMessage(
+            "We couldn't verify this API key, please double check your key or create a new one."
+          )
+          return
+        }
+
+        const result = await response.json()
+        if (result?.success) {
+          setVerificationState("verified")
+          setValidationMessage(null)
+          onVerified?.()
+        } else {
+          setVerificationState("unverified")
+          setValidationMessage(
+            "We couldn't verify this API key, please double check your key or create a new one."
+          )
+        }
+      } catch (error) {
+        console.error("Failed to verify API key:", error)
         setVerificationState("error")
-        setValidationMessage(
-          "We couldn't verify this API key, please double check your key or create a new one."
-        )
-        return
+        setValidationMessage("Network issue. Please try again later.")
+      } finally {
       }
-
-      const result = await response.json()
-      if (result?.success) {
-        setVerificationState("verified")
-        setValidationMessage(null)
-      } else {
-        setVerificationState("unverified")
-        setValidationMessage(
-          "We couldn't verify this API key, please double check your key or create a new one."
-        )
-      }
-    } catch (error) {
-      console.error("Failed to verify API key:", error)
-      setVerificationState("error")
-      setValidationMessage("Network issue. Please try again later.")
-    } finally {
-    }
-  }, [])
+    },
+    [onVerified]
+  )
 
   useEffect(() => {
     // Keep local state in sync with prop changes
@@ -183,7 +188,7 @@ const ApiKeyInput = ({ initialKey = "" }: Props) => {
         <Input
           type={isEditing ? "text" : "password"}
           id="openai-api-key"
-          placeholder={isEditing ? "Enter your OpenAI API key" : ""}
+          placeholder={isEditing ? "sk-..." : ""}
           value={isEditing ? apiKey : maskedKey}
           onChange={handleInputChange}
           onPaste={handlePaste}
