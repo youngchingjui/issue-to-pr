@@ -17,9 +17,10 @@ import { maskApiKey } from "@/lib/utils/client"
 
 interface Props {
   initialKey?: string
+  onVerified?: () => void
 }
 
-const ApiKeyInput = ({ initialKey = "" }: Props) => {
+const ApiKeyInput = ({ initialKey = "", onVerified }: Props) => {
   const [apiKey, setApiKey] = useState(initialKey)
   const [maskedKey, setMaskedKey] = useState(
     initialKey ? maskApiKey(initialKey) : ""
@@ -64,6 +65,7 @@ const ApiKeyInput = ({ initialKey = "" }: Props) => {
       if (result?.success) {
         setVerificationState("verified")
         setValidationMessage(null)
+        onVerified?.()
       } else {
         setVerificationState("unverified")
         setValidationMessage(
@@ -76,7 +78,7 @@ const ApiKeyInput = ({ initialKey = "" }: Props) => {
       setValidationMessage("Network issue. Please try again later.")
     } finally {
     }
-  }, [])
+  }, [onVerified])
 
   useEffect(() => {
     // Keep local state in sync with prop changes
