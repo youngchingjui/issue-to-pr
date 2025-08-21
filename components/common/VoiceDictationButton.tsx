@@ -57,7 +57,6 @@ export default function VoiceDictationButton({
           >
             <RotateCcw className="h-4 w-4" /> Retry transcribe
           </Button>
-          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
           <audio controls src={audioUrl} className="h-9" />
         </>
       ) : null}
