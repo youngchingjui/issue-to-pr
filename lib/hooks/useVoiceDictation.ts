@@ -334,7 +334,8 @@ export function useVoiceDictation(options?: UseVoiceDictationOptions) {
       return
     }
 
-    const actualMimeType = recordedMimeType || lastRecordedBlobRef.current.type || "audio/webm"
+    const actualMimeType =
+      recordedMimeType || lastRecordedBlobRef.current.type || "audio/webm"
 
     const fileExtension = actualMimeType.includes("mp4")
       ? "mp4"
@@ -346,9 +347,13 @@ export function useVoiceDictation(options?: UseVoiceDictationOptions) {
 
     let audioFile: File
     try {
-      audioFile = new File([lastRecordedBlobRef.current], `recording.${fileExtension}`, {
-        type: actualMimeType,
-      })
+      audioFile = new File(
+        [lastRecordedBlobRef.current],
+        `recording.${fileExtension}`,
+        {
+          type: actualMimeType,
+        }
+      )
       pushDebug(
         `[Retry] Created File name=recording.${fileExtension} type=${actualMimeType} size=${audioFile.size}`
       )
@@ -390,4 +395,3 @@ export function useVoiceDictation(options?: UseVoiceDictationOptions) {
     retryTranscription,
   }
 }
-
