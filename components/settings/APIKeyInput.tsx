@@ -42,43 +42,46 @@ const ApiKeyInput = ({ initialKey = "", onVerified }: Props) => {
   const [verificationState, setVerificationState] =
     useState<VerificationState>("idle")
 
-  const verifyKey = useCallback(async (keyToVerify: string) => {
-    try {
-      setVerificationState("verifying")
-      const response = await fetch("/api/openai/check", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ apiKey: keyToVerify }),
-      })
+  const verifyKey = useCallback(
+    async (keyToVerify: string) => {
+      try {
+        setVerificationState("verifying")
+        const response = await fetch("/api/openai/check", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ apiKey: keyToVerify }),
+        })
 
-      if (!response.ok) {
+        if (!response.ok) {
+          setVerificationState("error")
+          setValidationMessage(
+            "We couldn't verify this API key, please double check your key or create a new one."
+          )
+          return
+        }
+
+        const result = await response.json()
+        if (result?.success) {
+          setVerificationState("verified")
+          setValidationMessage(null)
+          onVerified?.()
+        } else {
+          setVerificationState("unverified")
+          setValidationMessage(
+            "We couldn't verify this API key, please double check your key or create a new one."
+          )
+        }
+      } catch (error) {
+        console.error("Failed to verify API key:", error)
         setVerificationState("error")
-        setValidationMessage(
-          "We couldn't verify this API key, please double check your key or create a new one."
-        )
-        return
+        setValidationMessage("Network issue. Please try again later.")
+      } finally {
       }
-
-      const result = await response.json()
-      if (result?.success) {
-        setVerificationState("verified")
-        setValidationMessage(null)
-        onVerified?.()
-      } else {
-        setVerificationState("unverified")
-        setValidationMessage(
-          "We couldn't verify this API key, please double check your key or create a new one."
-        )
-      }
-    } catch (error) {
-      console.error("Failed to verify API key:", error)
-      setVerificationState("error")
-      setValidationMessage("Network issue. Please try again later.")
-    } finally {
-    }
-  }, [onVerified])
+    },
+    [onVerified]
+  )
 
   useEffect(() => {
     // Keep local state in sync with prop changes
