@@ -183,7 +183,7 @@ const ApiKeyInput = ({ initialKey = "" }: Props) => {
         <Input
           type={isEditing ? "text" : "password"}
           id="openai-api-key"
-          placeholder={isEditing ? "Enter your OpenAI API key" : ""}
+          placeholder={isEditing ? "sk-..." : ""}
           value={isEditing ? apiKey : maskedKey}
           onChange={handleInputChange}
           onPaste={handlePaste}

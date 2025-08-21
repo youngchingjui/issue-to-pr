@@ -1,4 +1,5 @@
 import nextDynamic from "next/dynamic"
+
 import { auth } from "@/auth"
 import IssueDashboard from "@/components/home/IssueDashboard"
 import AgentArchitecture from "@/components/landing-page/AgentArchitecture"
@@ -31,12 +32,13 @@ export default async function LandingPage() {
           {!existingKey && (
             <Card className="max-w-2xl">
               <CardHeader>
-                <CardTitle>Set your OpenAI API Key</CardTitle>
+                <CardTitle>OpenAI API Key</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground mb-1">
-                    You need an OpenAI API key to generate plans and code. Create a key {""}
+                    Set your OpenAI API key to run the agents. You can create an
+                    API key {""}
                     <a
                       href="https://platform.openai.com/api-keys"
                       target="_blank"
@@ -77,4 +79,3 @@ export default async function LandingPage() {
     </div>
   )
 }
-
