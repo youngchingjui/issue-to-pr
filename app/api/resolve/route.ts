@@ -4,7 +4,7 @@ import { z } from "zod"
 
 import { getRepoFromString } from "@/lib/github/content"
 import { getIssue } from "@/lib/github/issues"
-import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
+import { getEffectiveOpenAIApiKey } from "@/lib/neo4j/services/openai"
 import { ResolveRequestSchema } from "@/lib/schemas/api"
 import { resolveIssue } from "@/lib/workflows/resolveIssue"
 
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       planId,
     } = ResolveRequestSchema.parse(body)
 
-    const apiKey = await getUserOpenAIApiKey()
+    const apiKey = await getEffectiveOpenAIApiKey()
     if (!apiKey) {
       return NextResponse.json(
         { error: "Missing OpenAI API key" },
@@ -70,3 +70,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+

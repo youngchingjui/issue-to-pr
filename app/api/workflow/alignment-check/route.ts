@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 
-import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
+import { getEffectiveOpenAIApiKey } from "@/lib/neo4j/services/openai"
 import { AlignmentCheckRequestSchema } from "@/lib/types/api/schemas"
 import { alignmentCheck } from "@/lib/workflows/alignmentCheck"
 
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
       )
     }
     const { repoFullName, pullNumber } = parseResult.data
-    const apiKey = await getUserOpenAIApiKey()
+    const apiKey = await getEffectiveOpenAIApiKey()
     if (!apiKey) {
       return NextResponse.json(
         { error: "Missing OpenAI API key" },
@@ -40,3 +40,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+

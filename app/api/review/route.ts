@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { v4 as uuidv4 } from "uuid"
 
 import { createIssueComment } from "@/lib/github/issues"
-import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
+import { getEffectiveOpenAIApiKey } from "@/lib/neo4j/services/openai"
 import { reviewPullRequest } from "@/lib/workflows/reviewPullRequest"
 
 // Type definition for the request body
@@ -14,7 +14,7 @@ type RequestBody = {
 
 export async function POST(request: NextRequest) {
   const { pullNumber, repoFullName }: RequestBody = await request.json()
-  const apiKey = await getUserOpenAIApiKey()
+  const apiKey = await getEffectiveOpenAIApiKey()
   if (!apiKey) {
     return NextResponse.json(
       { error: "Missing OpenAI API key" },
@@ -57,3 +57,4 @@ export async function POST(request: NextRequest) {
   // Immediately return the job ID to the client
   return NextResponse.json({ jobId })
 }
+

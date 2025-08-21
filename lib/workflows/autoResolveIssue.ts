@@ -10,7 +10,7 @@ import {
   createStatusEvent,
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
-import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
+import { getEffectiveOpenAIApiKey } from "@/lib/neo4j/services/openai"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
 import { RepoEnvironment } from "@/lib/types"
 import { GitHubIssue, GitHubRepository } from "@/lib/types/github"
@@ -34,7 +34,7 @@ export const autoResolveIssue = async ({
   jobId,
 }: Params) => {
   if (!apiKey) {
-    const apiKeyFromSettings = await getUserOpenAIApiKey()
+    const apiKeyFromSettings = await getEffectiveOpenAIApiKey()
 
     if (!apiKeyFromSettings) {
       throw new Error("No API key provided and no user settings found")
@@ -160,3 +160,4 @@ export const autoResolveIssue = async ({
 }
 
 export default autoResolveIssue
+
