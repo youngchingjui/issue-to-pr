@@ -10,6 +10,7 @@ import PlanningFeature from "@/components/landing-page/PlanningFeature"
 import Pricing from "@/components/landing-page/Pricing"
 import Steps from "@/components/landing-page/Steps"
 import GridBackground from "@/components/ui/grid-background"
+
 import OpenAIApiKeyCard from "./OpenAIApiKeyCard"
 
 export default async function LandingPage() {
