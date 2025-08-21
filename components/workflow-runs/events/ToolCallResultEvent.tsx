@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowDownLeft } from "lucide-react"
+import { ArrowDownLeft, XCircle } from "lucide-react"
 
 import CreatedPullRequestCard from "@/components/pull-requests/CreatedPullRequestCard"
 import { CollapsibleContent } from "@/components/ui/collapsible-content"
@@ -33,6 +33,7 @@ export function ToolCallResultEvent({ event }: Props) {
     body?: string | null
     url: string
   } | null = null
+  let prError: string | null = null
   try {
     const parsed = JSON.parse(event.content || "{}")
     if (
@@ -49,10 +50,30 @@ export function ToolCallResultEvent({ event }: Props) {
           url: String(pr.url),
         }
       }
+    } else if (
+      event.toolName === "create_pull_request" &&
+      parsed?.status === "error" &&
+      parsed?.message
+    ) {
+      prError = String(parsed.message)
     }
   } catch {
     // Ignore parse errors; we'll just render the raw content below
   }
+
+  const errorHeaderContent = (
+    <div className="flex items-center justify-between w-full">
+      <div className="flex items-center gap-2">
+        <XCircle className="h-3.5 w-3.5 text-destructive" />
+        <div className="flex items-center gap-1.5 text-xs">
+          <span className="font-medium text-destructive">Tool Error</span>
+          <span className="text-muted-foreground">/</span>
+          <span className="font-medium">{event.toolName}</span>
+        </div>
+      </div>
+      <EventTime timestamp={event.createdAt} />
+    </div>
+  )
 
   return (
     <>
@@ -65,6 +86,17 @@ export function ToolCallResultEvent({ event }: Props) {
             url={prData.url}
           />
         </div>
+      ) : prError ? (
+        <CollapsibleContent
+          headerContent={errorHeaderContent}
+          className="border-l-2 border-destructive hover:bg-muted/50"
+        >
+          <div className="space-y-3">
+            <div className="font-mono text-sm text-destructive whitespace-pre-wrap">
+              {prError}
+            </div>
+          </div>
+        </CollapsibleContent>
       ) : (
         <CollapsibleContent
           headerContent={headerContent}
