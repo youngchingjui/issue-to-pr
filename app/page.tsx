@@ -1,5 +1,3 @@
-import nextDynamic from "next/dynamic"
-
 import { auth } from "@/auth"
 import IssueDashboard from "@/components/home/IssueDashboard"
 import AgentArchitecture from "@/components/landing-page/AgentArchitecture"
