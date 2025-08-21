@@ -69,4 +69,3 @@ export async function getChatCompletion({
   })
   return res.choices[0]?.message?.content || ""
 }
-

@@ -47,4 +47,3 @@ export async function GET(
   // TODO: Implement this.
   return NextResponse.json({ success: false, status: "not implemented yet" })
 }
-
