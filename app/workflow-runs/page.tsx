@@ -1,27 +1,16 @@
-import { formatDistanceToNow } from "date-fns"
-import Link from "next/link"
 import { Suspense } from "react"
 
 import { auth } from "@/auth"
 import TableSkeleton from "@/components/layout/TableSkeleton"
-import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
+import { Table, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+  IssueTitlesTableBody,
+  TableBodyFallback,
+} from "@/components/workflow-runs/WorkflowRunsIssueTitlesTableBody"
 import { listUserRepositories } from "@/lib/github/graphql/queries/listUserRepositories"
 import { listWorkflowRuns } from "@/lib/neo4j/services/workflow"
-import {
-  fetchIssueTitles,
-  GitHubGraphQLAdapter,
-  TimedGitHubIssuesPort,
-  withTiming,
-} from "@/shared/src"
+import { withTiming } from "@/shared/src"
 
 /**
  * Filter workflow runs so that only runs which belong to repositories the
@@ -72,35 +61,13 @@ export default async function WorkflowRunsPage() {
       () => Promise.all([runsPromise, authPromise])
     )
 
-    // Best-effort: fetch latest titles from GitHub for linked issues
-    let issueTitleMap = new Map<string, string | null>()
-    try {
-      const refs = workflows
-        .filter((w) => !!w.issue)
-        .map((w) => ({
-          repoFullName: w.issue!.repoFullName,
-          number: w.issue!.number,
-        }))
-
-      const token =
-        typeof session?.token === "object" &&
-        session?.token &&
-        "access_token" in session.token
-          ? String((session.token as Record<string, unknown>)["access_token"])
-          : undefined
-
-      if (refs.length > 0 && token) {
-        const baseAdapter = new GitHubGraphQLAdapter({ token })
-        const adapter = new TimedGitHubIssuesPort(baseAdapter)
-        const results = await fetchIssueTitles(adapter, refs)
-        issueTitleMap = new Map(
-          results.map((r) => [`${r.repoFullName}#${r.number}`, r.title])
-        )
-      }
-    } catch (err) {
-      // Missing token or GitHub failure – silently ignore and fall back to stored titles
-      console.error("[WorkflowRunsPage] Failed to fetch issue titles:", err)
-    }
+    // Extract token for lazy, batched issue title fetch in a child component
+    const token =
+      typeof session?.token === "object" &&
+      session?.token &&
+      "access_token" in session.token
+        ? String((session.token as Record<string, unknown>)["access_token"])
+        : undefined
 
     return (
       <main className="container mx-auto p-4">
@@ -128,62 +95,12 @@ export default async function WorkflowRunsPage() {
                     </TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody>
-                  {workflows.map((workflow) => (
-                    <TableRow key={workflow.id}>
-                      <TableCell className="py-4">
-                        <Link
-                          href={`/workflow-runs/${workflow.id}`}
-                          className="text-blue-600 hover:underline font-medium"
-                        >
-                          {workflow.id.slice(0, 8)}
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            workflow.state === "completed"
-                              ? "default"
-                              : workflow.state === "error"
-                                ? "destructive"
-                                : "secondary"
-                          }
-                        >
-                          {workflow.state}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="py-4 text-muted-foreground">
-                        {workflow.createdAt
-                          ? formatDistanceToNow(workflow.createdAt, {
-                              addSuffix: true,
-                            })
-                          : "N/A"}
-                      </TableCell>
-                      <TableCell className="py-4">
-                        {workflow.issue ? (
-                          <a
-                            href={`https://github.com/${workflow.issue.repoFullName}/issues/${workflow.issue.number}`}
-                            className="text-blue-700 hover:underline"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            {(() => {
-                              const key = `${workflow.issue!.repoFullName}#${workflow.issue!.number}`
-                              const fetched = issueTitleMap.get(key)
-                              const title = fetched ?? workflow.issue!.title
-                              return title
-                                ? `#${workflow.issue!.number} ${title}`
-                                : `${workflow.issue!.repoFullName}#${workflow.issue!.number}`
-                            })()}
-                          </a>
-                        ) : (
-                          <span className="text-zinc-400">N/A</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="py-4">{workflow.type}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
+                {/* Render immediately with stored titles; stream fetched titles via Suspense */}
+                <Suspense
+                  fallback={<TableBodyFallback workflows={workflows} />}
+                >
+                  <IssueTitlesTableBody workflows={workflows} token={token} />
+                </Suspense>
               </Table>
             </CardContent>
           </Card>
