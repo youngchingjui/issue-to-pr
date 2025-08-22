@@ -28,13 +28,10 @@ export class GitHubGraphQLAdapter implements GitHubIssuesPort {
   private readonly token: string
   private readonly fetchImpl: FetchFn
 
-  constructor(params?: { token?: string; fetchImpl?: FetchFn }) {
-    const token = params?.token ?? process.env.GITHUB_TOKEN
-    if (!token) {
-      throw new Error("GitHub token is required for GitHubGraphQLAdapter")
-    }
+  constructor(params: { token: string; fetchImpl?: FetchFn }) {
+    const token = params.token
     this.token = token
-    this.fetchImpl = params?.fetchImpl ?? (globalThis.fetch as FetchFn)
+    this.fetchImpl = params.fetchImpl ?? (globalThis.fetch as FetchFn)
     if (!this.fetchImpl) {
       throw new Error(
         "A fetch implementation must be available in this runtime"
