@@ -478,14 +478,10 @@ export class ResponsesAPIAgent extends Agent {
         return event.id
 
       case "reasoning":
-        for (const summary of message.summary as Array<{
-          text: string
-          title?: string
-        }>) {
+        for (const summary of message.summary) {
           await createReasoningEvent({
             workflowId: this.jobId,
-            title: summary.title ?? "Reasoning",
-            content: summary.text,
+            summary: summary.text,
           })
         }
         return undefined

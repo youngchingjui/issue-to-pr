@@ -255,14 +255,12 @@ export async function createToolCallResultEvent({
 export async function createReasoningEvent({
   id = uuidv4(),
   workflowId,
-  title,
-  content,
+  summary,
   parentId,
 }: {
   id?: string
   workflowId: string
-  title: string
-  content: string
+  summary: string
   parentId?: string
 }): Promise<ReasoningEvent> {
   const session = await n4j.getSession()
@@ -272,8 +270,7 @@ export async function createReasoningEvent({
         // Create the event node
         const eventNode = await dbCreateReasoningEvent(tx, {
           id,
-          title,
-          content,
+          summary,
         })
 
         // Attach it to the workflow

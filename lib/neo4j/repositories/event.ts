@@ -120,13 +120,13 @@ export async function createReasoningEvent(
   tx: ManagedTransaction,
   event: Omit<ReasoningEvent, "createdAt" | "workflowId" | "type">
 ): Promise<ReasoningEvent> {
-  const { id, title, content } = event
+  const { id, summary } = event
   const result = await tx.run<{ e: Node<Integer, ReasoningEvent, "Event"> }>(
     `
-      CREATE (e:Event:Message {id: $id, createdAt: datetime(), type: 'reasoning', title: $title, content: $content})
+      CREATE (e:Event:Message {id: $id, createdAt: datetime(), type: 'reasoning', summary: $summary})
       RETURN e
       `,
-    { id, title, content }
+    { id, summary }
   )
   return reasoningEventSchema.parse(result.records[0]?.get("e")?.properties)
 }
