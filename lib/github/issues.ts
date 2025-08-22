@@ -12,7 +12,7 @@ import {
   GitHubIssueComment,
   ListForRepoParams,
 } from "@/lib/types/github"
-import { withTiming } from "@/lib/utils/telemetry"
+import { withTiming } from "@/shared/src"
 
 type CreateIssueParams = {
   repo: string

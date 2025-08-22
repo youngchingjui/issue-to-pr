@@ -5,7 +5,7 @@ import {
   PullRequestList,
   PullRequestReview,
 } from "@/lib/types/github"
-import { logEnd, logStart, withTiming } from "@/lib/utils/telemetry"
+import { logEnd, logStart, withTiming } from "@/shared/src"
 
 export async function getPullRequestOnBranch({
   repoFullName,
