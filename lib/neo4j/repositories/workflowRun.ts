@@ -13,21 +13,24 @@ import {
   WorkflowRunState,
   workflowRunStateSchema,
 } from "@/lib/types/db/neo4j"
+import { withTiming } from "@/shared/src"
 
 export async function create(
   tx: ManagedTransaction,
   workflowRun: Omit<WorkflowRun, "createdAt">
 ): Promise<WorkflowRun> {
-  const result = await tx.run<{ w: Node<Integer, WorkflowRun, "WorkflowRun"> }>(
-    `
+  const result = await withTiming("Neo4j QUERY: create WorkflowRun", () =>
+    tx.run<{ w: Node<Integer, WorkflowRun, "WorkflowRun"> }>(
+      `
     CREATE (w:WorkflowRun {id: $id, type: $type, createdAt: datetime(), postToGithub: $postToGithub}) 
     RETURN w
     `,
-    {
-      id: workflowRun.id,
-      type: workflowRun.type,
-      postToGithub: workflowRun.postToGithub ?? null,
-    }
+      {
+        id: workflowRun.id,
+        type: workflowRun.type,
+        postToGithub: workflowRun.postToGithub ?? null,
+      }
+    )
   )
   return workflowRunSchema.parse(result.records[0].get("w").properties)
 }
@@ -36,9 +39,11 @@ export async function get(
   tx: ManagedTransaction,
   id: string
 ): Promise<WorkflowRun | null> {
-  const result = await tx.run<{ w: Node<Integer, WorkflowRun, "WorkflowRun"> }>(
-    `MATCH (w:WorkflowRun {id: $id}) RETURN w LIMIT 1`,
-    { id }
+  const result = await withTiming("Neo4j QUERY: get WorkflowRun", () =>
+    tx.run<{ w: Node<Integer, WorkflowRun, "WorkflowRun"> }>(
+      `MATCH (w:WorkflowRun {id: $id}) RETURN w LIMIT 1`,
+      { id }
+    )
   )
   const raw = result.records[0]?.get("w")?.properties
   return raw ? workflowRunSchema.parse(raw) : null
@@ -52,12 +57,13 @@ export async function listAll(tx: ManagedTransaction): Promise<
     issue?: Issue
   }[]
 > {
-  const result = await tx.run<{
-    w: Node<Integer, WorkflowRun, "WorkflowRun">
-    state: WorkflowRunState
-    i: Node<Integer, Issue, "Issue"> | null
-  }>(
-    `MATCH (w:WorkflowRun)
+  const result = await withTiming("Neo4j QUERY: listAll WorkflowRuns", () =>
+    tx.run<{
+      w: Node<Integer, WorkflowRun, "WorkflowRun">
+      state: WorkflowRunState
+      i: Node<Integer, Issue, "Issue"> | null
+    }>(
+      `MATCH (w:WorkflowRun)
     OPTIONAL MATCH (w)-[:STARTS_WITH|NEXT*]->(e:Event {type: 'workflowState'})
     OPTIONAL MATCH (w)-[:BASED_ON_ISSUE]->(i:Issue)
     WITH w, e, i
@@ -65,6 +71,7 @@ export async function listAll(tx: ManagedTransaction): Promise<
     WITH w, collect(e)[0] as latestWorkflowState, collect(i)[0] as issue
     RETURN w, latestWorkflowState.state AS state, issue as i
     `
+    )
   )
 
   return result.records.map((record) => {
@@ -95,19 +102,23 @@ export async function listForIssue(
     issue: Issue
   }[]
 > {
-  const result = await tx.run<{
-    w: Node<Integer, WorkflowRun, "WorkflowRun">
-    state: WorkflowRunState
-    i: Node<Integer, Issue, "Issue">
-  }>(
-    `MATCH (w:WorkflowRun)-[:BASED_ON_ISSUE]->(i:Issue {number: $issue.number, repoFullName: $issue.repoFullName})
+  const result = await withTiming(
+    `Neo4j QUERY: listForIssue ${issue.repoFullName}#${issue.number}`,
+    () =>
+      tx.run<{
+        w: Node<Integer, WorkflowRun, "WorkflowRun">
+        state: WorkflowRunState
+        i: Node<Integer, Issue, "Issue">
+      }>(
+        `MATCH (w:WorkflowRun)-[:BASED_ON_ISSUE]->(i:Issue {number: $issue.number, repoFullName: $issue.repoFullName})
     OPTIONAL MATCH (w)-[:STARTS_WITH|NEXT*]->(e:Event {type: 'workflowState'})
     WITH w, e, i
     ORDER BY e.createdAt DESC
     WITH w, collect(e)[0] as latestWorkflowState, i
     RETURN w, latestWorkflowState.state AS state, i
     `,
-    { issue }
+        { issue }
+      )
   )
 
   return result.records.map((record) => {
@@ -134,13 +145,17 @@ export async function linkToIssue(
     repoFullName,
   }: { workflowId: string; issueId: number; repoFullName: string }
 ) {
-  const result = await tx.run(
-    `
+  const result = await withTiming(
+    `Neo4j QUERY: linkToIssue ${repoFullName}#${issueId}`,
+    () =>
+      tx.run(
+        `
     MATCH (w:WorkflowRun {id: $workflowId}), (i:Issue {number: $issueId, repoFullName: $repoFullName}) 
     CREATE (w)-[:BASED_ON_ISSUE]->(i)
     RETURN w, i
     `,
-    { workflowId, issueId: int(issueId), repoFullName }
+        { workflowId, issueId: int(issueId), repoFullName }
+      )
   )
   return result
 }
@@ -172,19 +187,23 @@ export async function getWithDetails(
   issue?: Issue
   events: (AnyEvent | LLMResponseWithPlan)[]
 }> {
-  const result = await tx.run<{
-    w: Node<Integer, WorkflowRun, "WorkflowRun">
-    i: Node<Integer, Issue, "Issue">
-    events: Node<Integer, AnyEvent | LLMResponseWithPlan, "Event">[]
-  }>(
-    `
+  const result = await withTiming(
+    `Neo4j QUERY: getWithDetails ${workflowRunId}`,
+    () =>
+      tx.run<{
+        w: Node<Integer, WorkflowRun, "WorkflowRun">
+        i: Node<Integer, Issue, "Issue">
+        events: Node<Integer, AnyEvent | LLMResponseWithPlan, "Event">[]
+      }>(
+        `
       MATCH (w:WorkflowRun {id: $workflowRunId})
       OPTIONAL MATCH (i:Issue)<-[:BASED_ON_ISSUE]-(w)
       OPTIONAL MATCH (w)-[:STARTS_WITH|NEXT*]-(e:Event)
       WITH w, i, collect(e) as events
       RETURN w, i, events
       `,
-    { workflowRunId }
+        { workflowRunId }
+      )
   )
   const record = result.records[0]
   return {
@@ -208,18 +227,22 @@ export async function mergeIssueLink(
     issue: Issue
   }
 ): Promise<{ run: WorkflowRun; issue: Issue }> {
-  const result = await tx.run(
-    `
+  const result = await withTiming(
+    `Neo4j QUERY: mergeIssueLink ${issue.repoFullName}#${issue.number}`,
+    () =>
+      tx.run(
+        `
     MERGE (w:WorkflowRun {id: $workflowRun.id})
       ON CREATE SET w.type = $workflowRun.type, w.createdAt = datetime(), w.postToGithub = $workflowRun.postToGithub
     MERGE (i:Issue {repoFullName: $issue.repoFullName, number: $issue.number})
     MERGE (w)-[:BASED_ON_ISSUE]->(i)
     RETURN w, i
     `,
-    {
-      workflowRun,
-      issue,
-    }
+        {
+          workflowRun,
+          issue,
+        }
+      )
   )
   const run = workflowRunSchema.parse(result.records[0].get("w").properties)
   const parsedIssue = issueSchema.parse(result.records[0].get("i").properties)
