@@ -16,6 +16,7 @@ import {
   createErrorEvent,
   createLLMResponseEvent,
   createReasoningEvent,
+  createStatusEvent,
   createSystemPromptEvent,
   createToolCallEvent,
   createToolCallResultEvent,
