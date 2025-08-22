@@ -570,7 +570,9 @@ export class ResponsesAPIAgent extends Agent {
         store: true,
         tools: functionTools,
         input: inputSnapshot,
-        ...(reasoningEnabled ? { reasoning: { summary: "auto" as const } } : {}),
+        ...(reasoningEnabled
+          ? { reasoning: { summary: "auto" as const } }
+          : {}),
       }
 
       if (previousResponseId) {
@@ -687,4 +689,3 @@ export class ResponsesAPIAgent extends Agent {
     }
   }
 }
-
