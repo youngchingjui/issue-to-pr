@@ -42,6 +42,13 @@ export async function withTiming<T>(
   fn: () => Promise<T>,
   meta?: LogMeta
 ): Promise<T> {
+  // Environment-gated: only log when ENABLE_TIMING=1
+  const enabled = process.env.ENABLE_TIMING === "1"
+
+  if (!enabled) {
+    return await fn()
+  }
+
   const start = logStart(label, meta)
   try {
     const result = await fn()

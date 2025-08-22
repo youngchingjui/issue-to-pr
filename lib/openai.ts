@@ -27,6 +27,15 @@ export async function transcribeAudio(
       return { success: false, error: "Missing or empty audio file" }
     }
 
+    // Ensure API key exists to avoid cryptic upstream errors
+    if (!process.env.OPENAI_API_KEY) {
+      return {
+        success: false,
+        error:
+          "OpenAI API key is not configured on the server. Set OPENAI_API_KEY or add your key in Settings.",
+      }
+    }
+
     // Create the transcription
     const transcription = await openai.audio.transcriptions.create({
       file: audioFile,
@@ -54,6 +63,13 @@ export async function getChatCompletion({
     { role: "system", content: systemPrompt },
     { role: "user", content: userPrompt },
   ]
+
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error(
+      "OpenAI API key is not configured on the server. Set OPENAI_API_KEY to use chat completions."
+    )
+  }
+
   const res = await openai.chat.completions.create({
     model: "gpt-5",
     messages,
