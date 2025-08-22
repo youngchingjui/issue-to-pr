@@ -3,6 +3,7 @@
 import { z } from "zod"
 
 import { getUserOctokit } from "@/lib/github"
+import { withTiming } from "@/shared/src"
 
 /**
  * GraphQL document for listing the current viewer's repositories ordered by last update.
@@ -59,8 +60,8 @@ export async function listUserRepositories(): Promise<RepoSelectorItem[]> {
     throw new Error("Could not initialize GraphQL client")
   }
 
-  const data = await graphqlWithAuth<ListUserRepositoriesResponse>(
-    LIST_USER_REPOSITORIES_QUERY
+  const data = await withTiming("GitHub GraphQL: listUserRepositories", () =>
+    graphqlWithAuth<ListUserRepositoriesResponse>(LIST_USER_REPOSITORIES_QUERY)
   )
 
   const parsed = ResponseSchema.parse(data)

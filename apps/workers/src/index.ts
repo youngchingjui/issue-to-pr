@@ -63,6 +63,12 @@ async function publishStatus(jobId: string, status: string) {
 // TODO: This is a service-level helper, and should be defined in /shared/src/services/issue.ts
 // to follow clean architecture principles.
 async function summarizeIssue(job: Job): Promise<string> {
+  if (!openaiApiKey) {
+    throw new Error(
+      "OpenAI API key is missing. Please set OPENAI_API_KEY on the worker server to enable issue summarization."
+    )
+  }
+
   const { title, body } = job.data as { title?: string; body?: string }
   const systemPrompt =
     "You are an expert GitHub assistant. Given an issue title and body, produce a concise, actionable summary (2-4 sentences) highlighting the problem, scope, and desired outcome."
