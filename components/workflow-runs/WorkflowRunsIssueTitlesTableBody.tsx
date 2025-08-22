@@ -61,16 +61,10 @@ export function TableBodyFallback({
           </TableCell>
           <TableCell className="py-4">
             {workflow.issue ? (
-              <a
-                href={`https://github.com/${workflow.issue.repoFullName}/issues/${workflow.issue.number}`}
-                className="text-blue-700 hover:underline"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {workflow.issue.title
-                  ? `#${workflow.issue.number} ${workflow.issue.title}`
-                  : `${workflow.issue.repoFullName}#${workflow.issue.number}`}
-              </a>
+              <div className="animate-pulse space-y-2">
+                <div className="h-3 w-3/4 rounded bg-muted" />
+                <div className="h-3 w-2/3 rounded bg-muted" />
+              </div>
             ) : (
               <span className="text-zinc-400">N/A</span>
             )}
