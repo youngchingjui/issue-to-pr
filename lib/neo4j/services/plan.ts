@@ -19,7 +19,7 @@ import {
   WorkflowRun,
   workflowRunSchema,
 } from "@/lib/types"
-import { withTiming } from "@/lib/utils/telemetry"
+import { withTiming } from "@/shared/src"
 
 export async function listPlansForIssue({
   repoFullName,

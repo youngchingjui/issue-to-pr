@@ -3,7 +3,7 @@ import {
   AuthenticatedUserRepository,
   GitHubRepository,
 } from "@/lib/types/github"
-import { withTiming } from "@/lib/utils/telemetry"
+import { withTiming } from "@/shared/src"
 
 export class GitHubError extends Error {
   constructor(
