@@ -11,11 +11,20 @@ import Pricing from "@/components/landing-page/Pricing"
 import Steps from "@/components/landing-page/Steps"
 import GridBackground from "@/components/ui/grid-background"
 
+import OpenAIApiKeyCard from "./OpenAIApiKeyCard"
+
 export default async function LandingPage() {
   const session = await auth()
 
   if (session?.user) {
-    return <IssueDashboard />
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-4">
+          <OpenAIApiKeyCard />
+          <IssueDashboard />
+        </main>
+      </div>
+    )
   }
 
   return (
