@@ -2,6 +2,7 @@ import { formatDistanceToNow } from "date-fns"
 import Link from "next/link"
 import { Suspense } from "react"
 
+import { auth } from "@/auth"
 import TableSkeleton from "@/components/layout/TableSkeleton"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/table"
 import { listUserRepositories } from "@/lib/github/graphql/queries/listUserRepositories"
 import { listWorkflowRuns } from "@/lib/neo4j/services/workflow"
+import { fetchIssueTitles, GitHubGraphQLAdapter } from "@/shared/src"
 
 /**
  * Filter workflow runs so that only runs which belong to repositories the
@@ -48,7 +50,39 @@ async function getPermittedWorkflowRuns() {
 }
 
 export default async function WorkflowRunsPage() {
-  const workflows = await getPermittedWorkflowRuns()
+  const [workflows, session] = await Promise.all([
+    getPermittedWorkflowRuns(),
+    auth(),
+  ])
+
+  // Best-effort: fetch latest titles from GitHub for linked issues
+  let issueTitleMap = new Map<string, string | null>()
+  try {
+    const refs = workflows
+      .filter((w) => !!w.issue)
+      .map((w) => ({
+        repoFullName: w.issue!.repoFullName,
+        number: w.issue!.number,
+      }))
+
+    const token =
+      typeof session?.token === "object" &&
+      session?.token &&
+      "access_token" in session.token
+        ? String((session.token as Record<string, unknown>)["access_token"])
+        : undefined
+
+    if (refs.length > 0 && token) {
+      const adapter = new GitHubGraphQLAdapter({ token })
+      const results = await fetchIssueTitles(adapter, refs)
+      issueTitleMap = new Map(
+        results.map((r) => [`${r.repoFullName}#${r.number}`, r.title])
+      )
+    }
+  } catch (err) {
+    // Missing token or GitHub failure – silently ignore and fall back to stored titles
+    console.error("[WorkflowRunsPage] Failed to fetch issue titles:", err)
+  }
 
   return (
     <main className="container mx-auto p-4">
@@ -109,12 +143,21 @@ export default async function WorkflowRunsPage() {
                     </TableCell>
                     <TableCell className="py-4">
                       {workflow.issue ? (
-                        <Link
-                          href={`/${workflow.issue.repoFullName}/issues/${workflow.issue.number}`}
+                        <a
+                          href={`https://github.com/${workflow.issue.repoFullName}/issues/${workflow.issue.number}`}
                           className="text-blue-700 hover:underline"
+                          target="_blank"
+                          rel="noopener noreferrer"
                         >
-                          {workflow.issue.repoFullName}#{workflow.issue.number}
-                        </Link>
+                          {(() => {
+                            const key = `${workflow.issue!.repoFullName}#${workflow.issue!.number}`
+                            const fetched = issueTitleMap.get(key)
+                            const title = fetched ?? workflow.issue!.title
+                            return title
+                              ? `#${workflow.issue!.number} ${title}`
+                              : `${workflow.issue!.repoFullName}#${workflow.issue!.number}`
+                          })()}
+                        </a>
                       ) : (
                         <span className="text-zinc-400">N/A</span>
                       )}

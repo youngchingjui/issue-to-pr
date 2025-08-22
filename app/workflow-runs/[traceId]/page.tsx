@@ -50,7 +50,7 @@ export default async function WorkflowRunDetailPage({
 
   // Prefer live GitHub title if available, otherwise fall back to stored issue title or a generic label
   const headerTitle =
-    (githubIssue && (githubIssue as any).issue?.title) ||
+    (githubIssue && githubIssue.issue?.title) ||
     issue?.title ||
     `Workflow Run: ${traceId}`
 

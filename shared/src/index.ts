@@ -1,0 +1,5 @@
+export { AnthropicAdapter } from "@/shared/src/adapters/anthropic"
+export { GitHubGraphQLAdapter } from "@/shared/src/adapters/github-graphql"
+export * from "@/shared/src/core/ports/github"
+export * from "@/shared/src/core/ports/llm"
+export { fetchIssueTitles } from "@/shared/src/services/github/issues"
