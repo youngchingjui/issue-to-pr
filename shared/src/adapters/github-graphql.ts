@@ -2,7 +2,7 @@ import type {
   GitHubIssuesPort,
   IssueRef,
   IssueTitleResult,
-} from "@/shared/src/core/ports/github"
+} from "@/shared/src/ports/github"
 
 // Minimal fetch signature to avoid DOM lib dependency in shared package
 type FetchResponse = {

@@ -4,11 +4,11 @@ export {
   TimedGitHubIssuesPort,
 } from "@/shared/src/adapters/decorators/timing"
 export { GitHubGraphQLAdapter } from "@/shared/src/adapters/github-graphql"
-export * from "@/shared/src/core/entities/container"
-export * from "@/shared/src/core/entities/agent"
-export * from "@/shared/src/core/ports/agent"
-export * from "@/shared/src/core/ports/github"
-export * from "@/shared/src/core/ports/llm"
+export * from "@/shared/src/entities/agent"
+export * from "@/shared/src/entities/container"
+export * from "@/shared/src/ports/agent"
+export * from "@/shared/src/ports/github"
+export * from "@/shared/src/ports/llm"
 export { fetchIssueTitles } from "@/shared/src/services/github/issues"
 export type { LogMeta } from "@/shared/src/utils/telemetry"
 export {
@@ -17,4 +17,3 @@ export {
   logStart,
   withTiming,
 } from "@/shared/src/utils/telemetry"
-

@@ -65,4 +65,3 @@ export interface AgentPlannerPort {
     tools: ToolDefinition[]
   }): Promise<NextAction>
 }
-

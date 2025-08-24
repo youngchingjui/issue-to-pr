@@ -5,8 +5,8 @@ import type {
   ToolDefinition,
   ToolInvokerPort,
   ToolMessage,
-} from "@/shared/src/core/ports/agent"
-import type { LLMMessage, LLMPort } from "@/shared/src/core/ports/llm"
+} from "@/shared/src/ports/agent"
+import type { LLMMessage, LLMPort } from "@/shared/src/ports/llm"
 
 export interface AgentProps {
   id?: string
