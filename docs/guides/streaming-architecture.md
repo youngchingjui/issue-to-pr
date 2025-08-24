@@ -242,13 +242,14 @@ interface TokenEvent extends BaseEvent {
 ## Related Documentation
 
 - [Redis Setup](../setup/redis-setup.md)
-- [API Endpoints](../api/sse.md)
-- [Database Architecture](database-architecture.md)
 - [AI Integration](ai-integration.md)
+- [Neo4j Architecture](databases/neo4j-architecture.md)
+- [Redis Architecture](databases/redis-architecture.md)
+- [PostgreSQL Architecture](databases/postgresql-architecture.md)
+- [Data Flow](databases/data-flow.md)
 
 For implementation details:
 
-- [Event Types](../api/events.md)
 - [Client Components](../components/streaming-components.md)
 - [Error Handling](error-handling.md)
 
