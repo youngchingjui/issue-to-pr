@@ -4,6 +4,9 @@ export {
   TimedGitHubIssuesPort,
 } from "@/shared/src/adapters/decorators/timing"
 export { GitHubGraphQLAdapter } from "@/shared/src/adapters/github-graphql"
+export * from "@/shared/src/core/entities/container"
+export * from "@/shared/src/core/entities/agent"
+export * from "@/shared/src/core/ports/agent"
 export * from "@/shared/src/core/ports/github"
 export * from "@/shared/src/core/ports/llm"
 export { fetchIssueTitles } from "@/shared/src/services/github/issues"
@@ -14,3 +17,4 @@ export {
   logStart,
   withTiming,
 } from "@/shared/src/utils/telemetry"
+
