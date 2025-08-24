@@ -1,7 +1,6 @@
 "use server"
 
-import getOctokit, { getUserOctokit } from "@/lib/github"
-import { getIssueToPullRequestMap } from "@/lib/github/pullRequests"
+import getOctokit, { getGraphQLClient, getUserOctokit } from "@/lib/github"
 import {
   getLatestPlanIdsForIssues,
   getPlanStatusForIssues,
@@ -13,6 +12,7 @@ import {
   GitHubIssueComment,
   ListForRepoParams,
 } from "@/lib/types/github"
+import { withTiming } from "@/shared/src"
 
 type CreateIssueParams = {
   repo: string
@@ -55,15 +55,16 @@ export async function getIssue({
       issue_number: issueNumber,
     })
     return { type: "success", issue: issue.data }
-  } catch (error) {
+  } catch (error: unknown) {
     if (!error) {
       return { type: "other_error", error: "Unknown error" }
     }
-    if (typeof error === "object" && "status" in error) {
-      if (error.status === 404) {
+    const http = error as { status?: number }
+    if (typeof http === "object" && http && "status" in http) {
+      if (http.status === 404) {
         return { type: "not_found" }
       }
-      if (error.status === 403) {
+      if (http.status === 403) {
         return { type: "forbidden" }
       }
     }
@@ -130,13 +131,17 @@ export async function getIssueList({
     throw new Error("No octokit found")
   }
 
-  const issues = await octokit.rest.issues.listForRepo({
-    owner,
-    repo,
-    ...rest,
-  })
+  const issuesResponse = await withTiming(
+    `GitHub REST: issues.listForRepo ${repoFullName}`,
+    async () =>
+      await octokit.rest.issues.listForRepo({
+        owner,
+        repo,
+        ...rest,
+      })
+  )
   // Filter out pull requests from the list of issues
-  return issues.data.filter((issue) => !issue.pull_request)
+  return issuesResponse.data.filter((issue) => !issue.pull_request)
 }
 
 export async function updateIssueComment({
@@ -188,27 +193,34 @@ export async function getIssueListWithStatus({
   repoFullName: string
 } & Omit<ListForRepoParams, "owner" | "repo">): Promise<IssueWithStatus[]> {
   // 1. Get issues from GitHub
-  const issues = await getIssueList({ repoFullName, ...rest })
+  const issues = await withTiming(`GitHub: getIssueList ${repoFullName}`, () =>
+    getIssueList({ repoFullName, ...rest })
+  )
 
   // 2. Query Neo4j for plans using the service layer
   const issueNumbers = issues.map((issue) => issue.number)
   const [issuePlanStatus, issuePlanIds] = await Promise.all([
-    getPlanStatusForIssues({ repoFullName, issueNumbers }),
-    getLatestPlanIdsForIssues({ repoFullName, issueNumbers }),
+    withTiming(`Neo4j: getPlanStatusForIssues ${repoFullName}`, () =>
+      getPlanStatusForIssues({ repoFullName, issueNumbers })
+    ),
+    withTiming(`Neo4j: getLatestPlanIdsForIssues ${repoFullName}`, () =>
+      getLatestPlanIdsForIssues({ repoFullName, issueNumbers })
+    ),
   ])
 
-  // 3. Get PRs from GitHub using GraphQL, and find for each issue if it has a PR referencing it.
-  const issuePRMap = await getIssueToPullRequestMap(repoFullName)
-
-  // 4. Determine active workflows for each issue (simple sequential for now)
+  // 3. Determine active workflows for each issue (simple sequential for now)
   const withStatus: IssueWithStatus[] = await Promise.all(
     issues.map(async (issue) => {
       let hasActiveWorkflow = false
       try {
-        const runs = await listWorkflowRuns({
-          repoFullName,
-          issueNumber: issue.number,
-        })
+        const runs = await withTiming(
+          `Neo4j: listWorkflowRuns ${repoFullName}#${issue.number}`,
+          () =>
+            listWorkflowRuns({
+              repoFullName,
+              issueNumber: issue.number,
+            })
+        )
         // Only consider a workflow "active" if it is still running (ignore timedOut)
         hasActiveWorkflow = runs.some((r) => r.state === "running")
       } catch (err) {
@@ -218,13 +230,242 @@ export async function getIssueListWithStatus({
       return {
         ...issue,
         hasPlan: issuePlanStatus[issue.number] || false,
-        hasPR: Boolean(issuePRMap[issue.number]),
+        // Lazily load PR info on the client to avoid heavy initial GraphQL scans
+        hasPR: false,
         hasActiveWorkflow,
         planId: issuePlanIds[issue.number] || null,
-        prNumber: issuePRMap[issue.number],
+        prNumber: undefined,
       }
     })
   )
 
   return withStatus
+}
+
+/**
+ * Lightweight GraphQL call to find a PR linked to a specific issue number.
+ * This avoids scanning all PRs in the repository.
+ */
+export async function getLinkedPRNumberForIssue({
+  repoFullName,
+  issueNumber,
+}: {
+  repoFullName: string
+  issueNumber: number
+}): Promise<number | null> {
+  const [owner, repo] = repoFullName.split("/")
+  const graphqlWithAuth = await getGraphQLClient()
+  if (!graphqlWithAuth) throw new Error("Could not initialize GraphQL client")
+
+  const query = `
+    query($owner: String!, $repo: String!, $issueNumber: Int!) {
+      repository(owner: $owner, name: $repo) {
+        issue(number: $issueNumber) {
+          timelineItems(first: 100, itemTypes: [CROSS_REFERENCED_EVENT, REFERENCED_EVENT]) {
+            nodes {
+              __typename
+              ... on CrossReferencedEvent {
+                isCrossRepository
+                 willCloseTarget
+                source {
+                  __typename
+                  ... on PullRequest {
+                    number
+                  }
+                }
+              }
+              ... on ReferencedEvent {
+                subject {
+                  __typename
+                  ... on PullRequest { number }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  `
+
+  type Node =
+    | {
+        __typename: "CrossReferencedEvent"
+        isCrossRepository: boolean
+        willCloseTarget: boolean
+        source: { __typename: string; number?: number } | null
+      }
+    | {
+        __typename: "ReferencedEvent"
+        subject: { __typename: string; number?: number } | null
+      }
+
+  interface Resp {
+    repository: {
+      issue: {
+        timelineItems: { nodes: Node[] }
+      } | null
+    } | null
+  }
+
+  const variables = { owner, repo, issueNumber }
+  const resp = (await withTiming(
+    `GitHub GraphQL: getLinkedPRNumberForIssue ${repoFullName}#${issueNumber}`,
+    () => graphqlWithAuth<Resp>(query, variables)
+  )) as Resp
+
+  const nodes = resp.repository?.issue?.timelineItems?.nodes || []
+
+  // Prefer PRs that will close this issue when merged
+  for (const n of nodes) {
+    if (n.__typename === "CrossReferencedEvent" && n.willCloseTarget) {
+      if (n.source?.__typename === "PullRequest" && n.source.number) {
+        return n.source.number
+      }
+    }
+  }
+  // Fallback: any PR reference
+  for (const n of nodes) {
+    if (n.__typename === "ReferencedEvent") {
+      if (n.subject?.__typename === "PullRequest" && n.subject.number) {
+        return n.subject.number
+      }
+    }
+    if (n.__typename === "CrossReferencedEvent") {
+      if (n.source?.__typename === "PullRequest" && n.source.number) {
+        return n.source.number
+      }
+    }
+  }
+
+  return null
+}
+
+export async function getLinkedPRNumbersForIssues({
+  repoFullName,
+  issueNumbers,
+}: {
+  repoFullName: string
+  issueNumbers: number[]
+}): Promise<Record<number, number | null>> {
+  const [owner, repo] = repoFullName.split("/")
+  const graphqlWithAuth = await getGraphQLClient()
+  if (!graphqlWithAuth) throw new Error("Could not initialize GraphQL client")
+
+  // Build a single query with field aliases, one per issueNumber
+  // Example alias: i_123: issue(number: 123) { ... }
+  const issueFields = issueNumbers
+    .map(
+      (n) => `
+        i_${n}: issue(number: ${n}) {
+          timelineItems(first: 100, itemTypes: [CROSS_REFERENCED_EVENT, REFERENCED_EVENT]) {
+            nodes {
+              __typename
+              ... on CrossReferencedEvent {
+                isCrossRepository
+                willCloseTarget
+                source {
+                  __typename
+                  ... on PullRequest { number }
+                }
+              }
+              ... on ReferencedEvent {
+                subject {
+                  __typename
+                  ... on PullRequest { number }
+                }
+              }
+            }
+          }
+        }
+      `
+    )
+    .join("\n")
+
+  const query = `
+    query($owner: String!, $repo: String!) {
+      repository(owner: $owner, name: $repo) {
+        ${issueFields}
+      }
+    }
+  `
+
+  type Node =
+    | {
+        __typename: "CrossReferencedEvent"
+        isCrossRepository: boolean
+        willCloseTarget: boolean
+        source: { __typename: string; number?: number } | null
+      }
+    | {
+        __typename: "ReferencedEvent"
+        subject: { __typename: string; number?: number } | null
+      }
+
+  type Resp = {
+    repository: Record<
+      string,
+      {
+        timelineItems: { nodes: Node[] }
+      } | null
+    > | null
+  }
+
+  const variables = { owner, repo }
+  const resp = (await withTiming(
+    `GitHub GraphQL: getLinkedPRNumbersForIssues ${repoFullName} [${issueNumbers.join(",")}]`,
+    () => graphqlWithAuth<Resp>(query, variables)
+  )) as Resp
+
+  const repository = resp.repository || {}
+  const result: Record<number, number | null> = {}
+
+  for (const issueNumber of issueNumbers) {
+    const key = `i_${issueNumber}`
+    const issue = repository[key]
+    if (!issue) {
+      result[issueNumber] = null
+      continue
+    }
+    const nodes = issue.timelineItems?.nodes || []
+
+    // Prefer PRs that will close this issue when merged
+    let found: number | null = null
+    for (const n of nodes) {
+      if (n.__typename === "CrossReferencedEvent" && n.willCloseTarget) {
+        const prNum =
+          n.source?.__typename === "PullRequest" ? n.source.number : undefined
+        if (typeof prNum === "number") {
+          found = prNum
+          break
+        }
+      }
+    }
+    // Fallback: any PR reference
+    if (found == null) {
+      for (const n of nodes) {
+        if (n.__typename === "ReferencedEvent") {
+          const prNum =
+            n.subject?.__typename === "PullRequest"
+              ? n.subject.number
+              : undefined
+          if (typeof prNum === "number") {
+            found = prNum
+            break
+          }
+        }
+        if (n.__typename === "CrossReferencedEvent") {
+          const prNum =
+            n.source?.__typename === "PullRequest" ? n.source.number : undefined
+          if (typeof prNum === "number") {
+            found = prNum
+            break
+          }
+        }
+      }
+    }
+
+    result[issueNumber] = found
+  }
+
+  return result
 }
