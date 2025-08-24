@@ -1,4 +1,3 @@
-import type { LLMMessage, LLMPort } from "@/shared/src/core/ports/llm"
 import type {
   AgentMessage,
   AgentPlannerPort,
@@ -7,6 +6,7 @@ import type {
   ToolInvokerPort,
   ToolMessage,
 } from "@/shared/src/core/ports/agent"
+import type { LLMMessage, LLMPort } from "@/shared/src/core/ports/llm"
 
 export interface AgentProps {
   id?: string
@@ -147,7 +147,10 @@ export class Agent {
   /**
    * Perform a single completion using the provided LLM port.
    */
-  async completeOnce(llm: LLMPort, params?: { model?: string; maxTokens?: number }): Promise<string> {
+  async completeOnce(
+    llm: LLMPort,
+    params?: { model?: string; maxTokens?: number }
+  ): Promise<string> {
     const { system, messages } = this.toLLMMessages()
     const content = await llm.createCompletion({
       system,
@@ -163,7 +166,10 @@ export class Agent {
    * Run a tool-using loop governed by a planner and tool invoker.
    * The loop ends when the planner returns a "respond" action or when maxSteps is reached.
    */
-  async run(planner: AgentPlannerPort, tools: ToolInvokerPort): Promise<AgentRunResult> {
+  async run(
+    planner: AgentPlannerPort,
+    tools: ToolInvokerPort
+  ): Promise<AgentRunResult> {
     let steps = 0
 
     while (steps < this._maxSteps) {
@@ -190,4 +196,3 @@ export class Agent {
 }
 
 export default Agent
-
