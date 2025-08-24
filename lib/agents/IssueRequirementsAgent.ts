@@ -11,7 +11,6 @@ Given a GitHub issue's title and body, produce a concise list of actionable requ
 
 Strict rules:
 - Output ONLY a bullet list using "- " at the start of each line
-- 5 to 10 bullets max (be succinct)
 - Each bullet must be a single short line, imperative voice
 - No preamble, headers, code fences, or extra commentary
 - Do not invent details that aren't present; if a key detail is missing, omit it rather than guessing
@@ -26,4 +25,3 @@ export class IssueRequirementsAgent extends Agent {
 }
 
 export default IssueRequirementsAgent
-

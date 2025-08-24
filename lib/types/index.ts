@@ -42,6 +42,7 @@ export const workflowTypeEnum = z.enum([
   "identifyPRGoal",
   "reviewPullRequest",
   "alignmentCheck",
+  "issueRequirements",
 ])
 
 export const workflowRunSchema = z.object({
