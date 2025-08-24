@@ -123,8 +123,10 @@ export const llmResponseWithPlanSchema = baseEventSchema.merge(
 
 export const reasoningEventSchema = baseEventSchema.extend({
   type: z.literal("reasoning"),
-  title: z.string(),
-  content: z.string(),
+  // New field for all new events
+  summary: z.string().optional(),
+  // Legacy support: allow old events that used `content`
+  content: z.string().optional(),
 })
 
 export const statusEventSchema = baseEventSchema.extend({

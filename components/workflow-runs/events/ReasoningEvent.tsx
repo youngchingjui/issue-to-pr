@@ -20,7 +20,7 @@ export function ReasoningEvent({ event }: Props) {
         </div>
         <EventTime timestamp={event.createdAt} />
       </div>
-      <CopyMarkdownButton content={`${event.title}\n\n${event.content}`} />
+      <CopyMarkdownButton content={(event.summary || event.content) ?? ""} />
     </div>
   )
 
@@ -30,11 +30,8 @@ export function ReasoningEvent({ event }: Props) {
       className="hover:bg-muted/50 border-l-2 border-muted-foreground/40"
     >
       <div className="space-y-2">
-        <div className="text-sm font-semibold text-muted-foreground">
-          {event.title}
-        </div>
         <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground">
-          <ReactMarkdown>{event.content}</ReactMarkdown>
+          <ReactMarkdown>{event.summary || event.content || ""}</ReactMarkdown>
         </div>
       </div>
     </CollapsibleContent>
