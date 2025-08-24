@@ -80,12 +80,7 @@ export class Agent {
     this._messages.push({ role: "assistant", content })
   }
 
-  addToolMessage(name: string, content: string): void {
-    const msg: Message = { role: "tool", name, content }
-    this._messages.push(msg)
-  }
-
-  registerTool(def: Tool): void {
+  addTool(def: Tool): void {
     if (this._tools.find((t) => t.name === def.name)) {
       throw new Error(`Tool already registered: ${def.name}`)
     }
