@@ -9,6 +9,8 @@ import {
   llmResponseSchema,
   MessageEvent,
   messageEventSchema,
+  ReasoningEvent,
+  reasoningEventSchema,
   StatusEvent,
   statusEventSchema,
   SystemPrompt,
@@ -112,6 +114,21 @@ export async function createToolCallResultEvent(
     { id, type, toolCallId, toolName, content }
   )
   return toolCallResultSchema.parse(result.records[0]?.get("e")?.properties)
+}
+
+export async function createReasoningEvent(
+  tx: ManagedTransaction,
+  event: Omit<ReasoningEvent, "createdAt" | "workflowId" | "type">
+): Promise<ReasoningEvent> {
+  const { id, summary } = event
+  const result = await tx.run<{ e: Node<Integer, ReasoningEvent, "Event"> }>(
+    `
+      CREATE (e:Event:Message {id: $id, createdAt: datetime(), type: 'reasoning', summary: $summary})
+      RETURN e
+      `,
+    { id, summary }
+  )
+  return reasoningEventSchema.parse(result.records[0]?.get("e")?.properties)
 }
 
 export async function createStatusEvent(

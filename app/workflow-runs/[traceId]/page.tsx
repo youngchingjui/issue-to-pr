@@ -48,6 +48,12 @@ export default async function WorkflowRunDetailPage({
   const containerName = containerNameForTrace(traceId)
   const containerStatus = await getContainerStatus(containerName)
 
+  // Prefer live GitHub title if available, otherwise fall back to stored issue title or a generic label
+  const headerTitle =
+    (githubIssue && githubIssue.issue?.title) ||
+    issue?.title ||
+    `Workflow Run: ${traceId}`
+
   return (
     <main className="container mx-auto p-4">
       <div className="flex flex-col gap-6 max-w-4xl mx-auto">
@@ -64,7 +70,7 @@ export default async function WorkflowRunDetailPage({
         {/* Page Header */}
         <div className="space-y-2">
           <h1 className="text-2xl font-bold flex items-center gap-3 flex-wrap">
-            {issue?.title || `Workflow Run: ${traceId}`}
+            {headerTitle}
           </h1>
           {/* Container actions & status */}
           <ContainerManager
