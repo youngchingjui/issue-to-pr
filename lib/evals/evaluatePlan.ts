@@ -9,7 +9,7 @@ import {
   plan753EvaluationSchema,
 } from "@/lib/evals/evalTool"
 import { langfuse } from "@/lib/langfuse"
-import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
+import { getEffectiveOpenAIApiKey } from "@/lib/neo4j/services/openai"
 
 export interface PlanEvaluationResultFull {
   result?: PlanEvaluationResult // the parsed grade/score etc.
@@ -34,7 +34,7 @@ export async function evaluatePlan(
     type?: string
   }
 ) {
-  const apiKey = await getUserOpenAIApiKey()
+  const apiKey = await getEffectiveOpenAIApiKey()
   if (!apiKey) {
     throw new Error("Missing OpenAI API key")
   }
@@ -95,3 +95,4 @@ export async function evaluatePlan(
     message: response,
   }
 }
+
