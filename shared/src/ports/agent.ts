@@ -1,21 +1,34 @@
 export type AgentRole = "user" | "assistant" | "tool"
 
 export interface AgentMessageBase {
-  content: string
+  content?: string
+}
+
+export interface ToolCall {
+  id: string
+  function: { arguments: string; name: string }
+  type: "function"
 }
 
 export interface UserMessage extends AgentMessageBase {
   role: "user"
+  content: string
 }
 
 export interface AssistantMessage extends AgentMessageBase {
   role: "assistant"
+  content: string
+  name?: string
+  toolCalls?: ToolCall[]
 }
 
 export interface ToolMessage extends AgentMessageBase {
   role: "tool"
-  /** Name of the tool that produced this message */
-  name: string
+  content: string
+  /** Name of the tool that produced this message (optional, used by some providers) */
+  name?: string
+  /** ID linking this tool result back to the originating assistant tool call */
+  toolCallId: string
 }
 
 export type AgentMessage = UserMessage | AssistantMessage | ToolMessage
@@ -65,3 +78,16 @@ export interface AgentPlannerPort {
     tools: ToolDefinition[]
   }): Promise<NextAction>
 }
+
+export interface AgentPort {
+  chatCompletion(params: {
+    prompt?: { role: "system" | "developer"; content: string }
+    messages: AgentMessage[]
+    model?: string
+    maxTokens?: number
+  }): Promise<string>
+}
+
+// TODO: Not sure what AgentPlannerPort is for
+// Not sure what NextAction is for
+// In fact, most of the stuff in this file doesn't feel right.

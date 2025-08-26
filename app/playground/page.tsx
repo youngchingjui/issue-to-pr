@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 
+import SimpleChatButton from "@/app/playground/components/SimpleChatButton"
 import { auth } from "@/auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -71,6 +72,18 @@ export default async function PlaygroundHubPage() {
             <Link href="/playground/evals">
               <Button size="sm">Open Evals</Button>
             </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Simple OpenAI Chat</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2">
+            <p className="text-sm text-muted-foreground">
+              Click to call OpenAI via our shared LLM port.
+            </p>
+            <SimpleChatButton />
           </CardContent>
         </Card>
       </div>
