@@ -74,7 +74,7 @@ export default async function PlaygroundHubPage() {
             </Link>
           </CardContent>
         </Card>
-
+        {/* TODO: This doesn't fit into the existing organization above.*/}
         <Card>
           <CardHeader>
             <CardTitle>Simple OpenAI Chat</CardTitle>
