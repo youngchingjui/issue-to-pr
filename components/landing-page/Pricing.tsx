@@ -5,6 +5,7 @@ import { Check } from "lucide-react"
 import Link from "next/link"
 import React from "react"
 
+import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import MovingBorderCard from "@/components/ui/moving-border-card"
 import ShineButton from "@/components/ui/shine-button"
@@ -12,7 +13,7 @@ import TextLg from "@/components/ui/text-lg"
 import TextMd from "@/components/ui/text-md"
 
 const Pricing = () => {
-  const features = [
+  const individualFeatures = [
     "Production-ready code that matches your codebase style",
     "Thorough code review with bug detection",
     "Performance and maintainability improvements",
@@ -21,6 +22,15 @@ const Pricing = () => {
     "Full control over PR review and merging",
     "Personalized support",
     "Unlimited PR generations",
+  ]
+
+  const enterpriseFeatures = [
+    "SLA and priority support",
+    "SSO/SAML, SCIM provisioning",
+    "Role-based access controls",
+    "Security review and SOC 2 documentation",
+    "Custom integrations and workflows",
+    "Self-hosted / VPC deployment options",
   ]
 
   return (
@@ -61,68 +71,132 @@ const Pricing = () => {
         </TextLg>
       </motion.div>
 
-      {/* Single plan */}
-      <motion.div
-        initial={{
-          opacity: 0,
-          y: 20,
-        }}
-        whileInView={{
-          opacity: 1,
-          y: 0,
-        }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.7, ease: "easeOut", delay: 0.3 }}
-        className="w-full max-w-[340px] md:max-w-xl relative z-10"
-      >
-        <MovingBorderCard wrapperClassName="mt-6 rounded-3xl">
-          <Card className="shadow-xl rounded-3xl overflow-hidden bg-white/95 backdrop-blur-sm border border-accent/20 h-full">
-            <CardHeader className="py-6 pb-4 text-center bg-gradient-to-r from-accent to-accent/80 relative overflow-hidden">
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 py-2 text-accent-foreground">
-                $10/<span className="italic font-light">Month</span>
-              </h2>
-            </CardHeader>
-            <div className="w-full flex items-center justify-center mt-6 px-6">
-              {/* Replace stripe link with placeholder or your payment link */}
-              <Link href="#join" className="w-full">
-                <ShineButton className="text-base w-full sm:text-lg py-3.5 bg-gradient-to-r from-accent to-accent/80 text-accent-foreground hover:from-accent/90 hover:to-accent/70 border-none font-medium">
-                  Get Started
-                </ShineButton>
-              </Link>
-            </div>
-            <CardContent className="p-6 sm:p-8">
-              <p className="text-muted-foreground mb-4 text-center font-medium">
-                Bring&nbsp;Your&nbsp;Own&nbsp;OpenAI&nbsp;API&nbsp;Key
-              </p>
-              <p className="text-muted-foreground mb-4 text-center">
-                Everything you need to ship faster:
-              </p>
-              <div className="flex flex-col items-start justify-start space-y-3">
-                {features.map((feature, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, x: -5 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.1 * index, duration: 0.3 }}
-                    className="flex items-start"
-                  >
-                    <div className="min-w-[24px] h-6 flex items-center justify-center bg-accent/20 rounded-full mr-3">
-                      <Check
-                        size={14}
-                        strokeWidth={3}
-                        className="text-accent"
-                      />
-                    </div>
-                    <p className="text-sm sm:text-base text-foreground">
-                      {feature}
-                    </p>
-                  </motion.div>
-                ))}
+      {/* Plans grid */}
+      <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-3 gap-8 px-4 md:px-0 relative z-10">
+        {/* Individual */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7, ease: "easeOut", delay: 0.1 }}
+          className="w-full"
+        >
+          <MovingBorderCard wrapperClassName="mt-6 rounded-3xl h-full">
+            <Card className="shadow-xl rounded-3xl overflow-hidden bg-white/95 backdrop-blur-sm border border-accent/20 h-full flex flex-col">
+              <CardHeader className="py-6 pb-4 text-center bg-gradient-to-r from-accent to-accent/80 relative overflow-hidden">
+                <p className="uppercase tracking-wide text-xs font-semibold text-accent-foreground/80">Individual</p>
+                <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-1 py-2 text-accent-foreground">
+                  $5/<span className="italic font-light">Month</span>
+                </h2>
+                <p className="text-xs text-accent-foreground/90">+ token usage</p>
+              </CardHeader>
+              <div className="w-full flex items-center justify-center mt-6 px-6">
+                <Link href="#join" className="w-full">
+                  <ShineButton className="text-base w-full sm:text-lg py-3.5 bg-gradient-to-r from-accent to-accent/80 text-accent-foreground hover:from-accent/90 hover:to-accent/70 border-none font-medium">
+                    Get Started
+                  </ShineButton>
+                </Link>
               </div>
-            </CardContent>
-          </Card>
-        </MovingBorderCard>
-      </motion.div>
+              <CardContent className="p-6 sm:p-8">
+                <p className="text-muted-foreground mb-4 text-center font-medium">
+                  Bring&nbsp;Your&nbsp;Own&nbsp;OpenAI&nbsp;API&nbsp;Key
+                </p>
+                <div className="flex flex-col items-start justify-start space-y-3">
+                  {individualFeatures.map((feature, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, x: -5 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.05 * index, duration: 0.25 }}
+                      className="flex items-start"
+                    >
+                      <div className="min-w-[24px] h-6 flex items-center justify-center bg-accent/20 rounded-full mr-3">
+                        <Check size={14} strokeWidth={3} className="text-accent" />
+                      </div>
+                      <p className="text-sm sm:text-base text-foreground">{feature}</p>
+                    </motion.div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </MovingBorderCard>
+        </motion.div>
+
+        {/* Teams - Coming Soon */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7, ease: "easeOut", delay: 0.2 }}
+          className="w-full"
+        >
+          <MovingBorderCard wrapperClassName="mt-6 rounded-3xl h-full">
+            <Card className="shadow-xl rounded-3xl overflow-hidden bg-white/95 backdrop-blur-sm border border-accent/20 h-full flex flex-col">
+              <CardHeader className="py-6 pb-4 text-center bg-gradient-to-r from-accent to-accent/80 relative overflow-hidden">
+                <Badge className="absolute top-3 right-3 bg-black/80 text-white border-transparent">Coming soon</Badge>
+                <p className="uppercase tracking-wide text-xs font-semibold text-accent-foreground/80">Teams</p>
+                <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-1 py-2 text-accent-foreground">
+                  $10/<span className="italic font-light">User</span>
+                </h2>
+                <p className="text-xs text-accent-foreground/90">per month + token usage</p>
+              </CardHeader>
+              <div className="w-full flex items-center justify-center mt-6 px-6">
+                <ShineButton className="text-base w-full sm:text-lg py-3.5 bg-muted text-foreground/70 border-none font-medium" disabled>
+                  Join Waitlist
+                </ShineButton>
+              </div>
+              <CardContent className="p-6 sm:p-8">
+                <p className="text-muted-foreground text-center">
+                  Built for collaboration. Role-based access, shared settings, and more.
+                </p>
+              </CardContent>
+            </Card>
+          </MovingBorderCard>
+        </motion.div>
+
+        {/* Enterprise - Coming Soon */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7, ease: "easeOut", delay: 0.3 }}
+          className="w-full"
+        >
+          <MovingBorderCard wrapperClassName="mt-6 rounded-3xl h-full">
+            <Card className="shadow-xl rounded-3xl overflow-hidden bg-white/95 backdrop-blur-sm border border-accent/20 h-full flex flex-col">
+              <CardHeader className="py-6 pb-4 text-center bg-gradient-to-r from-accent to-accent/80 relative overflow-hidden">
+                <Badge className="absolute top-3 right-3 bg-black/80 text-white border-transparent">Coming soon</Badge>
+                <p className="uppercase tracking-wide text-xs font-semibold text-accent-foreground/80">Enterprise</p>
+              </CardHeader>
+              <div className="w-full flex items-center justify-center mt-6 px-6">
+                <Link href="#contact" className="w-full">
+                  <ShineButton className="text-base w-full sm:text-lg py-3.5 bg-gradient-to-r from-accent to-accent/80 text-accent-foreground hover:from-accent/90 hover:to-accent/70 border-none font-medium">
+                    Contact Us
+                  </ShineButton>
+                </Link>
+              </div>
+              <CardContent className="p-6 sm:p-8">
+                <div className="flex flex-col items-start justify-start space-y-3">
+                  {enterpriseFeatures.map((feature, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, x: -5 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.05 * index, duration: 0.25 }}
+                      className="flex items-start"
+                    >
+                      <div className="min-w-[24px] h-6 flex items-center justify-center bg-accent/20 rounded-full mr-3">
+                        <Check size={14} strokeWidth={3} className="text-accent" />
+                      </div>
+                      <p className="text-sm sm:text-base text-foreground">{feature}</p>
+                    </motion.div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </MovingBorderCard>
+        </motion.div>
+      </div>
 
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -139,3 +213,4 @@ const Pricing = () => {
 }
 
 export default Pricing
+
