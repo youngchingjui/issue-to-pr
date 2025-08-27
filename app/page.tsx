@@ -6,6 +6,7 @@ import Features from "@/components/landing-page/Features"
 import Footer from "@/components/landing-page/Footer"
 import GetStarted from "@/components/landing-page/GetStarted"
 import Hero from "@/components/landing-page/Hero"
+import NonDeveloperBenefits from "@/components/landing-page/NonDeveloperBenefits"
 import PlanningFeature from "@/components/landing-page/PlanningFeature"
 import Pricing from "@/components/landing-page/Pricing"
 import Steps from "@/components/landing-page/Steps"
@@ -36,6 +37,7 @@ export default async function LandingPage() {
           <PlanningFeature />
           <Steps />
           <Features />
+          <NonDeveloperBenefits />
           <ComparisonToIDEAgents />
           <Pricing />
           <GetStarted />
@@ -45,3 +47,4 @@ export default async function LandingPage() {
     </div>
   )
 }
+
