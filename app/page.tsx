@@ -9,6 +9,7 @@ import Hero from "@/components/landing-page/Hero"
 import PlanningFeature from "@/components/landing-page/PlanningFeature"
 import Pricing from "@/components/landing-page/Pricing"
 import Steps from "@/components/landing-page/Steps"
+import TechnicalOverview from "@/components/landing-page/TechnicalOverview"
 import GridBackground from "@/components/ui/grid-background"
 
 import OpenAIApiKeyCard from "./OpenAIApiKeyCard"
@@ -35,6 +36,7 @@ export default async function LandingPage() {
           <AgentArchitecture />
           <PlanningFeature />
           <Steps />
+          <TechnicalOverview />
           <Features />
           <ComparisonToIDEAgents />
           <Pricing />
@@ -45,3 +47,4 @@ export default async function LandingPage() {
     </div>
   )
 }
+
