@@ -1,11 +1,13 @@
 import { auth } from "@/auth"
 import IssueDashboard from "@/components/home/IssueDashboard"
 import AgentArchitecture from "@/components/landing-page/AgentArchitecture"
+import Benefits from "@/components/landing-page/Benefits"
 import ComparisonToIDEAgents from "@/components/landing-page/ComparisonToIDEAgents"
 import Features from "@/components/landing-page/Features"
 import Footer from "@/components/landing-page/Footer"
 import GetStarted from "@/components/landing-page/GetStarted"
 import Hero from "@/components/landing-page/Hero"
+import NonDeveloperBenefits from "@/components/landing-page/NonDeveloperBenefits"
 import PlanningFeature from "@/components/landing-page/PlanningFeature"
 import Pricing from "@/components/landing-page/Pricing"
 import Steps from "@/components/landing-page/Steps"
@@ -35,7 +37,9 @@ export default async function LandingPage() {
           <AgentArchitecture />
           <PlanningFeature />
           <Steps />
+          <Benefits />
           <Features />
+          <NonDeveloperBenefits />
           <ComparisonToIDEAgents />
           <Pricing />
           <GetStarted />
@@ -45,3 +49,4 @@ export default async function LandingPage() {
     </div>
   )
 }
+
