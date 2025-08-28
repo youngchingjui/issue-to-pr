@@ -1,6 +1,7 @@
 import * as motion from "motion/react-client"
 
 import AuthButton from "@/components/landing-page/AuthButton"
+import WebsitePreview from "@/components/landing-page/WebsitePreview"
 
 export default async function Hero() {
   return (
@@ -51,22 +52,8 @@ export default async function Hero() {
             </p>
           </div>
         </div>
-        {/* Browser window mock */}
-        <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 overflow-hidden shadow-sm bg-white/50 dark:bg-neutral-900/40">
-          {/* Window header */}
-          <div className="flex items-center gap-2 px-3 py-2 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/60">
-            <span className="h-3 w-3 rounded-full bg-red-400" />
-            <span className="h-3 w-3 rounded-full bg-yellow-400" />
-            <span className="h-3 w-3 rounded-full bg-green-400" />
-            <div className="ml-3 h-5 flex-1 rounded bg-neutral-200/70 dark:bg-neutral-800/70" />
-          </div>
-          {/* Window content that responds to the prompt */}
-          <div className="min-h-[220px] sm:min-h-[280px] md:min-h-[360px] bg-blue-600/80 flex items-center justify-center">
-            <div className="text-white/95 text-xl sm:text-2xl md:text-3xl font-semibold">
-              Your Website
-            </div>
-          </div>
-        </div>
+        {/* Website preview diagram */}
+        <WebsitePreview />
       </motion.div>
       <motion.div
         initial={{ y: 20, opacity: 0 }}
@@ -81,3 +68,4 @@ export default async function Hero() {
     </motion.section>
   )
 }
+
