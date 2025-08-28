@@ -42,11 +42,14 @@ export default function Benefits() {
     <section className="relative py-14 px-5 bg-white border-t-2 border-black flex flex-col items-center">
       <TextLg className="text-center max-w-5xl">
         <span className="block sm:inline">Have a large list of tasks</span>{" "}
-        <span className="block sm:inline">and don&apos;t know how to get started?</span>
+        <span className="block sm:inline">
+          and don&apos;t know how to get started?
+        </span>
       </TextLg>
 
       <p className="text-muted-foreground text-base sm:text-lg max-w-3xl text-center">
-        HTTPR turns your backlog into momentum—making it easy to start, review, and ship.
+        Issue To PR turns your backlog into momentum—making it easy to start,
+        review, and ship.
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 max-w-6xl w-full mt-10">
@@ -56,14 +59,22 @@ export default function Benefits() {
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-50px" }}
-            transition={{ duration: 0.5, ease: "easeOut", delay: 0.05 * (idx % 3) }}
+            transition={{
+              duration: 0.5,
+              ease: "easeOut",
+              delay: 0.05 * (idx % 3),
+            }}
             className="group relative rounded-xl border-2 border-black/10 bg-gradient-to-br from-white to-transparent p-6 hover:border-black/20 transition-colors"
           >
             <div className="flex items-start gap-4">
               <CheckCircle2 className="h-6 w-6 text-accent mt-1 shrink-0" />
               <div>
-                <h3 className="text-lg font-semibold leading-snug">{b.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{b.description}</p>
+                <h3 className="text-lg font-semibold leading-snug">
+                  {b.title}
+                </h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {b.description}
+                </p>
               </div>
             </div>
           </motion.div>
@@ -72,4 +83,3 @@ export default function Benefits() {
     </section>
   )
 }
-

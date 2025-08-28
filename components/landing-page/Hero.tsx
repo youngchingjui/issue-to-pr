@@ -35,17 +35,6 @@ export default async function Hero() {
         </p>
       </motion.div>
 
-      <motion.div
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.35 }}
-        className="mt-2 sm:mt-4 flex flex-col items-center relative z-10"
-      >
-        <div className="relative isolate">
-          <AuthButton />
-        </div>
-      </motion.div>
-
       {/* Visual placeholder under the CTA */}
       <motion.div
         initial={{ y: 20, opacity: 0 }}
@@ -74,12 +63,21 @@ export default async function Hero() {
           {/* Window content that responds to the prompt */}
           <div className="min-h-[220px] sm:min-h-[280px] md:min-h-[360px] bg-blue-600/80 flex items-center justify-center">
             <div className="text-white/95 text-xl sm:text-2xl md:text-3xl font-semibold">
-              Jazzy Blue Background
+              Your Website
             </div>
           </div>
+        </div>
+      </motion.div>
+      <motion.div
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.35 }}
+        className="mt-20 mb-20 sm:mt-4 flex flex-col items-center relative z-10"
+      >
+        <div className="relative isolate">
+          <AuthButton />
         </div>
       </motion.div>
     </motion.section>
   )
 }
-

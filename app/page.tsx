@@ -34,19 +34,11 @@ export default async function LandingPage() {
       <main>
         <GridBackground>
           <Hero />
-          <AgentArchitecture />
-          <PlanningFeature />
-          <Steps />
           <Benefits />
-          <Features />
           <NonDeveloperBenefits />
-          <ComparisonToIDEAgents />
-          <Pricing />
-          <GetStarted />
         </GridBackground>
       </main>
       <Footer />
     </div>
   )
 }
-
