@@ -84,11 +84,15 @@ const Pricing = () => {
           <MovingBorderCard wrapperClassName="mt-6 rounded-3xl h-full">
             <Card className="shadow-xl rounded-3xl overflow-hidden bg-white/95 backdrop-blur-sm border border-accent/20 h-full flex flex-col">
               <CardHeader className="py-6 pb-4 text-center bg-gradient-to-r from-accent to-accent/80 relative overflow-hidden">
-                <p className="uppercase tracking-wide text-xs font-semibold text-accent-foreground/80">Individual</p>
+                <p className="uppercase tracking-wide text-xs font-semibold text-accent-foreground/80">
+                  Individual
+                </p>
                 <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-1 py-2 text-accent-foreground">
                   $5/<span className="italic font-light">Month</span>
                 </h2>
-                <p className="text-xs text-accent-foreground/90">+ token usage</p>
+                <p className="text-xs text-accent-foreground/90">
+                  + token usage
+                </p>
               </CardHeader>
               <div className="w-full flex items-center justify-center mt-6 px-6">
                 <Link href="#join" className="w-full">
@@ -111,9 +115,15 @@ const Pricing = () => {
                       className="flex items-start"
                     >
                       <div className="min-w-[24px] h-6 flex items-center justify-center bg-accent/20 rounded-full mr-3">
-                        <Check size={14} strokeWidth={3} className="text-accent" />
+                        <Check
+                          size={14}
+                          strokeWidth={3}
+                          className="text-accent"
+                        />
                       </div>
-                      <p className="text-sm sm:text-base text-foreground">{feature}</p>
+                      <p className="text-sm sm:text-base text-foreground">
+                        {feature}
+                      </p>
                     </motion.div>
                   ))}
                 </div>
@@ -133,21 +143,31 @@ const Pricing = () => {
           <MovingBorderCard wrapperClassName="mt-6 rounded-3xl h-full">
             <Card className="shadow-xl rounded-3xl overflow-hidden bg-white/95 backdrop-blur-sm border border-accent/20 h-full flex flex-col">
               <CardHeader className="py-6 pb-4 text-center bg-gradient-to-r from-accent to-accent/80 relative overflow-hidden">
-                <Badge className="absolute top-3 right-3 bg-black/80 text-white border-transparent">Coming soon</Badge>
-                <p className="uppercase tracking-wide text-xs font-semibold text-accent-foreground/80">Teams</p>
+                <Badge className="absolute top-3 right-3 bg-black/80 text-white border-transparent">
+                  Coming soon
+                </Badge>
+                <p className="uppercase tracking-wide text-xs font-semibold text-accent-foreground/80">
+                  Teams
+                </p>
                 <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-1 py-2 text-accent-foreground">
                   $10/<span className="italic font-light">User</span>
                 </h2>
-                <p className="text-xs text-accent-foreground/90">per month + token usage</p>
+                <p className="text-xs text-accent-foreground/90">
+                  per month + token usage
+                </p>
               </CardHeader>
               <div className="w-full flex items-center justify-center mt-6 px-6">
-                <ShineButton className="text-base w-full sm:text-lg py-3.5 bg-muted text-foreground/70 border-none font-medium" disabled>
+                <ShineButton
+                  className="text-base w-full sm:text-lg py-3.5 bg-muted text-foreground/70 border-none font-medium"
+                  disabled
+                >
                   Join Waitlist
                 </ShineButton>
               </div>
               <CardContent className="p-6 sm:p-8">
                 <p className="text-muted-foreground text-center">
-                  Built for collaboration. Role-based access, shared settings, and more.
+                  Built for collaboration. Role-based access, shared settings,
+                  and more.
                 </p>
               </CardContent>
             </Card>
@@ -165,8 +185,12 @@ const Pricing = () => {
           <MovingBorderCard wrapperClassName="mt-6 rounded-3xl h-full">
             <Card className="shadow-xl rounded-3xl overflow-hidden bg-white/95 backdrop-blur-sm border border-accent/20 h-full flex flex-col">
               <CardHeader className="py-6 pb-4 text-center bg-gradient-to-r from-accent to-accent/80 relative overflow-hidden">
-                <Badge className="absolute top-3 right-3 bg-black/80 text-white border-transparent">Coming soon</Badge>
-                <p className="uppercase tracking-wide text-xs font-semibold text-accent-foreground/80">Enterprise</p>
+                <Badge className="absolute top-3 right-3 bg-black/80 text-white border-transparent">
+                  Coming soon
+                </Badge>
+                <p className="uppercase tracking-wide text-xs font-semibold text-accent-foreground/80">
+                  Enterprise
+                </p>
               </CardHeader>
               <div className="w-full flex items-center justify-center mt-6 px-6">
                 <Link href="#contact" className="w-full">
@@ -186,9 +210,15 @@ const Pricing = () => {
                       className="flex items-start"
                     >
                       <div className="min-w-[24px] h-6 flex items-center justify-center bg-accent/20 rounded-full mr-3">
-                        <Check size={14} strokeWidth={3} className="text-accent" />
+                        <Check
+                          size={14}
+                          strokeWidth={3}
+                          className="text-accent"
+                        />
                       </div>
-                      <p className="text-sm sm:text-base text-foreground">{feature}</p>
+                      <p className="text-sm sm:text-base text-foreground">
+                        {feature}
+                      </p>
                     </motion.div>
                   ))}
                 </div>
@@ -213,4 +243,3 @@ const Pricing = () => {
 }
 
 export default Pricing
-
