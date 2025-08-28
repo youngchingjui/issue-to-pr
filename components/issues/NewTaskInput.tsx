@@ -7,7 +7,7 @@ import { useState, useTransition } from "react"
 import VoiceDictationButton from "@/components/common/VoiceDictationButton"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { createIssue } from "@/lib/github/issues"
+import { createIssueAction } from "@/lib/actions/createIssue"
 import { toast } from "@/lib/hooks/use-toast"
 import { IssueTitleResponseSchema } from "@/lib/types/api/schemas"
 import type { RepoFullName } from "@/lib/types/github"
@@ -84,31 +84,29 @@ export default function NewTaskInput({ repoFullName }: Props) {
 
     const { repo, owner } = repoFullName
     try {
-      // 1️⃣ Perform the async GitHub call outside of startTransition so
-      //     errors are captured by this try/catch.
-      const res = await createIssue({
+      // Perform the async GitHub call outside of startTransition so
+      // errors are captured by this try/catch.
+      const result = await createIssueAction({
         repo,
         owner,
         title: taskTitle,
         body: description,
       })
 
-      if (res.status === 201) {
+      if (result.status === "success") {
         toast({
           title: "Task synced to GitHub",
           description: `Created: ${taskTitle}`,
           variant: "default",
         })
         setDescription("")
-        // 2️⃣ Then transition any UI updates (like router.refresh) that can be
-        //     deferred without blocking user feedback.
         startTransition(() => {
           router.refresh()
         })
       } else {
         toast({
           title: "Error creating task",
-          description: res.status || "Failed to create GitHub issue.",
+          description: result.message,
           variant: "destructive",
         })
       }
@@ -169,3 +167,4 @@ export default function NewTaskInput({ repoFullName }: Props) {
     </form>
   )
 }
+
