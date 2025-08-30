@@ -42,6 +42,8 @@ export const workflowTypeEnum = z.enum([
   "identifyPRGoal",
   "reviewPullRequest",
   "alignmentCheck",
+  // New workflow type for merge-conflict detection and resolution context
+  "resolveMergeConflicts",
 ])
 
 export const workflowRunSchema = z.object({
@@ -324,3 +326,4 @@ export type WorkflowRun = z.infer<typeof workflowRunSchema>
 export type WorkflowRunState = z.infer<typeof workflowRunStateSchema>
 export type WorkflowStateEvent = z.infer<typeof workflowStateEventSchema>
 export type WorkflowType = z.infer<typeof workflowTypeEnum>
+

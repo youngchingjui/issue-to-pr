@@ -1,26 +1,60 @@
 "use client"
 
 import { formatDistanceToNow } from "date-fns"
-import { ChevronDown, Loader2, PlayCircle } from "lucide-react"
+import { AlertTriangle, ChevronDown, Loader2, PlayCircle } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 import AlignmentCheckController from "@/components/pull-requests/controllers/AlignmentCheckController"
 import AnalyzePRController from "@/components/pull-requests/controllers/AnalyzePRController"
+import ResolveMergeConflictsController from "@/components/pull-requests/controllers/ResolveMergeConflictsController"
 import ReviewPRController from "@/components/pull-requests/controllers/ReviewPRController"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { TableCell, TableRow } from "@/components/ui/table"
-import { PullRequest } from "@/lib/types/github"
+import { PullRequest, PullRequestSingle } from "@/lib/types/github"
 
 export default function PullRequestRow({ pr }: { pr: PullRequest }) {
   const [isLoading, setIsLoading] = useState(false)
   const [activeWorkflow, setActiveWorkflow] = useState<string | null>(null)
+  const [mergeableState, setMergeableState] = useState<string | null>(null)
+  const [hasConflicts, setHasConflicts] = useState(false)
+
+  // Fetch single-PR details to detect merge conflicts
+  useEffect(() => {
+    const fetchDetails = async () => {
+      try {
+        const response = await fetch("/api/github/fetch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "pullRequest",
+            number: pr.number,
+            fullName: pr.head.repo.full_name,
+          }),
+        })
+        if (!response.ok) return
+        const data = (await response.json()) as PullRequestSingle & {
+          type: string
+        }
+        const state = data.mergeable_state ?? null
+        const mergeable = data.mergeable ?? null
+        setMergeableState(state)
+        setHasConflicts(mergeable === false || state === "dirty")
+      } catch {
+        // ignore
+      }
+    }
+    fetchDetails()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pr.number])
 
   const analyzeWorkflow = AnalyzePRController({
     repoFullName: pr.head.repo.full_name,
@@ -73,11 +107,28 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
     },
   })
 
+  const resolveConflictsWorkflow = ResolveMergeConflictsController({
+    repoFullName: pr.head.repo.full_name,
+    pullNumber: pr.number,
+    onStart: () => {
+      setIsLoading(true)
+      setActiveWorkflow("Collecting context...")
+    },
+    onComplete: () => {
+      setIsLoading(false)
+      setActiveWorkflow(null)
+    },
+    onError: () => {
+      setIsLoading(false)
+      setActiveWorkflow(null)
+    },
+  })
+
   return (
     <TableRow>
       <TableCell className="py-4">
         <div className="flex flex-col gap-1">
-          <div className="font-medium text-base">
+          <div className="font-medium text-base flex items-center gap-2 flex-wrap">
             <Link
               href={`https://github.com/${pr.head.repo.full_name}/pull/${pr.number}`}
               target="_blank"
@@ -86,8 +137,14 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
             >
               {pr.title}
             </Link>
+            {hasConflicts && (
+              <Badge variant="destructive" className="flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                Merge conflicts
+              </Badge>
+            )}
           </div>
-          <div className="text-sm text-muted-foreground flex items-center gap-2">
+          <div className="text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
             <span>#{pr.number}</span>
             {pr.user?.login && (
               <>
@@ -97,9 +154,15 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
             )}
             <span>•</span>
             <span>{pr.state}</span>
+            {mergeableState && (
+              <>
+                <span>•</span>
+                <span>mergeable: {mergeableState}</span>
+              </>
+            )}
             <span>•</span>
             <span>
-              Updated{" "}
+              Updated {" "}
               {formatDistanceToNow(new Date(pr.updated_at), {
                 addSuffix: true,
               })}
@@ -126,7 +189,20 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
               )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-[220px]">
+          <DropdownMenuContent align="end" className="w-[240px]">
+            {hasConflicts && (
+              <>
+                <DropdownMenuItem onClick={resolveConflictsWorkflow.execute}>
+                  <div>
+                    <div>Resolve Merge Conflicts</div>
+                    <div className="text-xs text-muted-foreground">
+                      Gather context and start resolution flow
+                    </div>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
             <DropdownMenuItem onClick={reviewWorkflow.execute}>
               <div>
                 <div>Review Pull Request</div>
@@ -157,3 +233,4 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
     </TableRow>
   )
 }
+
