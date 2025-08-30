@@ -7,12 +7,13 @@ This document outlines the organization and purpose of each directory in the pro
 ```
 /
 ├── app/                    # Next.js App Router pages and layouts
+├── apps/                  # Apps in monorepo structure, including /apps/workers and any future additional apps. NextJS should be in here too, but for legacy reasons, NextJS lives in root.
 ├── components/            # Reusable React components
-├── lib/                   # Core application logic and utilities
-├── public/               # Static assets
+├── lib/                   # (deprecated) Most should be moved to `shared/`. Remaining is mostly for NextJS app.
+├── shared/                # Framework-agnostic domain + ports/adapters/services/utils
+├── public/               # Static assets for NextJS app
 ├── docs/                 # Project documentation
 ├── scripts/              # Utility and automation scripts
-├── test-utils/          # Testing utilities and helpers
 ├── __tests__/           # Test files
 └── docker/              # Docker configuration files
 ```
@@ -21,52 +22,37 @@ This document outlines the organization and purpose of each directory in the pro
 
 ### `/app`
 
-Contains Next.js App Router pages, layouts, and API routes. This is where the main application routing and page components live.
+Contains Next.js App Router pages, layouts, and API routes. This is where the NextJS application routing and page components live.
 
 ### `/components`
 
 Reusable React components used throughout the application. These are shared UI elements that can be imported and used across different pages.
 
-Key component patterns:
-
-- `/ui`: Base UI components and design system
-
-  - Core interactive elements (button, input, textarea, etc.)
-  - Layout components (card, grid-background, etc.)
-  - Navigation elements (navigation-menu, breadcrumb, etc.)
-  - Feedback components (toast, tooltip, etc.)
-  - Overlay components (sheet, popover, dropdown-menu)
-  - Typography components (text-sm, text-md, text-lg)
-  - Utility components (collapsible-content, scroll-area)
-  - Custom styled components (shine-button, moving-border-card)
-
-- `/workflow-runs`: Workflow visualization components
-  - `/events`: Event-specific components
-    - Event type definitions and shared types
-    - Specialized event displays (LLM, User Message, Status, etc.)
-    - Event card layouts and details views
-    - Common event utilities and patterns
-
 ### `/lib`
 
-Core application logic, utilities, and services. Contains multiple subdirectories:
+Deprecated. We're trying to move most of this functionality to `/shared`, so that both NextJS, workers, and other applications can use them. Anything remaining will be NextJS-specific.
+
+### `/shared`
+
+Framework-agnostic code that is reused across apps. Tries to best follow "clean architecture" and "hexagonal architecture" principles.
 
 ```
-/lib
-├── actions/             # Server actions for Next.js
-├── agents/             # AI agent implementations
-├── auth/               # Authentication-related logic
-├── github/            # GitHub API integration and utilities
-├── hooks/             # React custom hooks
-├── neo4j/             # Neo4j database integration
-├── prompts/           # AI prompt templates and configurations
-├── schemas/           # Data validation schemas
-├── services/          # Core service implementations
-├── tools/             # Utility tools and helpers
-├── types/             # TypeScript type definitions
-├── utils/             # General utility functions
-└── workflows/         # Complex business logic workflows
+/shared
+└── src
+    ├── entities/    # Domain entities (state + invariants + pure behavior). No imports from ports/services/adapters.
+    ├── ports/       # Interfaces for external systems (LLM, GitHub, tools, storage). Can only import from entities.
+    ├── services/    # Application services orchestrating entities via ports. Can only import from entities and ports.
+    ├── adapters/    # Implementations of ports (OpenAI/Anthropic/GitHub/etc.)
+    └── utils/       # Pure, side-effect-free functions; no IO
 ```
+
+Guidelines:
+
+- Entities must not import from `ports`, `services`, or `adapters`.
+- Services may depend on `entities` and `ports`, but not `adapters` or provider SDKs.
+- Adapters implement `ports` and may depend on provider SDKs; they must not import `services`.
+- utils can be used anywhere, but must remain pure (no IO, no framework imports).
+- Avoid barrel files; import from concrete modules for clear dependency graphs.
 
 ### `/docs`
 
@@ -86,12 +72,9 @@ Utility scripts for:
 - Database management
 - Testing helpers
 
-### `/test-utils` and `/__tests__`
+### `/__tests__`
 
-Test-related files:
-
-- `test-utils/`: Testing utilities, helpers, and mock data
-- `__tests__/`: Actual test files and test suites
+Should follow the same structure as the file being tested. i.e. if you have a file in `/shared/src/entities/agent.ts`, you should have a test file in `/__tests__/shared/entities/agent.test.ts`.
 
 ### `/docker`
 
@@ -130,25 +113,19 @@ Docker-related configuration:
    - Use Tailwind's utility classes for consistent spacing
    - Minimize wrapper div nesting for simpler component structure
 
-2. **Library Structure**
+2. **Testing**
 
-   - Keep business logic in `/lib`
-   - Separate concerns into appropriate subdirectories
-   - Use clear, descriptive names for files and directories
-   - Create shared functions only when they provide clear value
-   - Prioritize code clarity over excessive modularization
-
-3. **Testing**
-
-   - Place tests close to the code they test
-   - Use `test-utils` for shared testing utilities
+   - Place all tests in the `__tests__` directory.
    - Follow the testing patterns established in `__tests__`
    - Test complex logic thoroughly
    - Keep test structure simple for straightforward code
 
-4. **Documentation**
+3. **Documentation**
    - Keep documentation up-to-date in `/docs`
    - Document complex workflows and architecture decisions
-   - Include examples where appropriate
    - Document the reasoning behind architectural decisions
    - Update documentation when implementation patterns change
+
+```
+
+```

@@ -217,3 +217,15 @@ For detailed information, see our [Observability Guide](observability.md)
 ### User Documentation
 
 - [Workflow Visualization](user-stories/workflow-visualization.md)
+
+### Shared Package (Clean/Hexagonal)
+
+The `shared/` package follows Clean/Hexagonal architecture:
+
+- Entities (`shared/src/entities`): Domain models with state, invariants, and pure behavior.
+- Ports (`shared/src/ports`): Interfaces that describe what the domain needs from external systems (LLM, GitHub, tools, storage).
+- Services (`shared/src/services`): Application services that coordinate entities via ports.
+- Adapters (`shared/src/adapters`): Implementations of ports using provider SDKs and infrastructure details.
+- Utils (`shared/src/utils`): Pure helpers with zero side effects; safe across layers.
+
+Dependency direction: adapters → ports → services → entities. Utils are pure and reusable. No Next.js runtime directives belong in `shared/`.

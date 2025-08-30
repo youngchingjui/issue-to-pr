@@ -1,4 +1,4 @@
-import type { LLMPort } from "@/shared/src/core/ports/llm"
+import type { LLMPort } from "@/shared/src/ports/llm"
 
 const SYSTEM_PROMPT = `You are an expert technical writer tasked with crafting clear, concise GitHub issue titles.
 
