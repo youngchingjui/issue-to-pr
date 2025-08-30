@@ -21,6 +21,17 @@ Prepare code changes and a PR that you think has the highest chance of being app
 Therefore, you'll probably consider running linting and testing if they exist.
 Also generally it'll mean the code changes should be small and focused, and exist squarely within the scope of the issue.
 
+PRIMARY QUALITY GOAL — Linting must pass before PR
+- Identify all lint/type/style checks configured in the repo.
+  - Inspect package.json (scripts like: check:all, lint, lint:eslint, lint:prettier, lint:tsc, typecheck, format:check) and config files (.eslintrc.json, .prettierrc, tsconfig*.json).
+- You MUST run these linting checks and ensure they all pass prior to opening a PR.
+  - If a composite script exists (e.g., pnpm run check:all), prefer that.
+  - Otherwise run each relevant command (e.g., pnpm run lint; pnpm run lint:prettier; pnpm run lint:tsc).
+- Use setup_repo first to install dependencies (e.g., pnpm install) if needed.
+- Use file_check to execute read-only code-quality commands (eslint, tsc --noEmit, prettier --check). Do NOT use --fix or --write flags via CLI; fix issues by editing files.
+- If any check fails, iterate on code changes and re-run checks until exitCode 0 for all.
+- Immediately before creating the PR, re-run the full lint suite and confirm success. Mention the commands run and that they passed in the PR description.
+
 IMPORTANT: Before you finish, YOU MUST create a pull request by calling the create_pull_request tool. Do NOT end the conversation until this tool has been successfully invoked.
 `
 
@@ -117,3 +128,4 @@ export class PlanAndCodeAgent extends ResponsesAPIAgent {
 }
 
 export default PlanAndCodeAgent
+
