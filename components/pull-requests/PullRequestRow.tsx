@@ -1,26 +1,48 @@
 "use client"
 
 import { formatDistanceToNow } from "date-fns"
-import { ChevronDown, Loader2, PlayCircle } from "lucide-react"
+import { AlertTriangle, ChevronDown, Loader2, PlayCircle } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import AlignmentCheckController from "@/components/pull-requests/controllers/AlignmentCheckController"
 import AnalyzePRController from "@/components/pull-requests/controllers/AnalyzePRController"
+import ResolveMergeConflictsController from "@/components/pull-requests/controllers/ResolveMergeConflictsController"
 import ReviewPRController from "@/components/pull-requests/controllers/ReviewPRController"
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { TableCell, TableRow } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
 import { PullRequest } from "@/lib/types/github"
 
 export default function PullRequestRow({ pr }: { pr: PullRequest }) {
   const [isLoading, setIsLoading] = useState(false)
   const [activeWorkflow, setActiveWorkflow] = useState<string | null>(null)
+  const [mergeableState, setMergeableState] = useState<string | null>(null)
+
+  // lazily fetch PR details to get mergeable_state
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+        const res = await fetch("/api/github/fetch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "pull", number: pr.number, fullName: pr.head.repo.full_name }),
+        })
+        if (!res.ok) return
+        const data = await res.json()
+        if (mounted && data && typeof data.mergeable_state === "string") {
+          setMergeableState(data.mergeable_state)
+        }
+      } catch (e) {
+        // ignore
+      }
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [pr.number, pr.head.repo.full_name])
 
   const analyzeWorkflow = AnalyzePRController({
     repoFullName: pr.head.repo.full_name,
@@ -73,11 +95,30 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
     },
   })
 
+  const resolveConflictsWorkflow = ResolveMergeConflictsController({
+    repoFullName: pr.head.repo.full_name,
+    pullNumber: pr.number,
+    onStart: () => {
+      setIsLoading(true)
+      setActiveWorkflow("Resolving conflicts...")
+    },
+    onComplete: () => {
+      setIsLoading(false)
+      setActiveWorkflow(null)
+    },
+    onError: () => {
+      setIsLoading(false)
+      setActiveWorkflow(null)
+    },
+  })
+
+  const hasConflicts = useMemo(() => mergeableState === "dirty", [mergeableState])
+
   return (
     <TableRow>
       <TableCell className="py-4">
         <div className="flex flex-col gap-1">
-          <div className="font-medium text-base">
+          <div className="font-medium text-base flex items-center gap-2">
             <Link
               href={`https://github.com/${pr.head.repo.full_name}/pull/${pr.number}`}
               target="_blank"
@@ -86,6 +127,11 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
             >
               {pr.title}
             </Link>
+            {hasConflicts && (
+              <Badge variant="destructive" className="flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" /> Merge conflicts
+              </Badge>
+            )}
           </div>
           <div className="text-sm text-muted-foreground flex items-center gap-2">
             <span>#{pr.number}</span>
@@ -126,7 +172,17 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
               )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-[220px]">
+          <DropdownMenuContent align="end" className="w-[260px]">
+            {hasConflicts && (
+              <DropdownMenuItem onClick={resolveConflictsWorkflow.execute}>
+                <div>
+                  <div>Resolve Merge Conflicts</div>
+                  <div className="text-xs text-muted-foreground">
+                    Analyze PR and auto-resolve conflicts on {pr.head.ref}
+                  </div>
+                </div>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={reviewWorkflow.execute}>
               <div>
                 <div>Review Pull Request</div>
@@ -157,3 +213,4 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
     </TableRow>
   )
 }
+
