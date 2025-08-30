@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 
-import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
+import { getEffectiveOpenAIApiKey } from "@/lib/neo4j/services/openai"
 import { transcribeAudio } from "@/lib/openai"
 
 export async function POST(request: NextRequest) {
@@ -24,8 +24,8 @@ export async function POST(request: NextRequest) {
       size: audioFile.size,
     })
 
-    // Get user's OpenAI API key
-    const apiKey = await getUserOpenAIApiKey()
+    // Get effective OpenAI API key
+    const apiKey = await getEffectiveOpenAIApiKey()
     if (!apiKey) {
       console.warn("[Transcribe API] Missing OpenAI API key for user")
       return NextResponse.json(
@@ -38,8 +38,8 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("[Transcribe API] Calling transcribeAudio()")
-    // Transcribe the audio using the existing function
-    const result = await transcribeAudio(audioFile)
+    // Transcribe the audio using the provided API key
+    const result = await transcribeAudio(audioFile, apiKey)
 
     if (result.success) {
       console.log(
@@ -59,3 +59,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+

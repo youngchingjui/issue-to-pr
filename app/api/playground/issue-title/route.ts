@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 
 import IssueTitleAgent from "@/lib/agents/IssueTitleAgent"
-import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
+import { getEffectiveOpenAIApiKey } from "@/lib/neo4j/services/openai"
 import {
   IssueTitleRequestSchema,
   IssueTitleResponseSchema,
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
 
     const { description } = validationResult.data
 
-    const apiKey = await getUserOpenAIApiKey()
+    const apiKey = await getEffectiveOpenAIApiKey()
     if (!apiKey) {
       return NextResponse.json(
         { error: "Missing OpenAI API key" },
@@ -75,3 +75,4 @@ export async function POST(req: NextRequest) {
     )
   }
 }
+
