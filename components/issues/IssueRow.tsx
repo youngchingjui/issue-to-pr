@@ -1,7 +1,7 @@
 "use client"
 
 import { formatDistanceToNow } from "date-fns"
-import { ChevronDown, Loader2, PlayCircle } from "lucide-react"
+import { ChevronDown, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useMemo, useState } from "react"
 import React from "react"
@@ -44,7 +44,7 @@ export default function IssueRow({
     repoFullName,
     onStart: () => {
       setIsLoading(true)
-      setActiveWorkflow("Creating PR...")
+      setActiveWorkflow("Launching agent...")
     },
     onComplete: () => {
       setIsLoading(false)
@@ -61,7 +61,7 @@ export default function IssueRow({
     repoFullName,
     onStart: () => {
       setIsLoading(true)
-      setActiveWorkflow("Auto Resolving...")
+      setActiveWorkflow("Launching agent...")
     },
     onComplete: () => {
       setIsLoading(false)
@@ -78,7 +78,7 @@ export default function IssueRow({
     repoFullName,
     onStart: () => {
       setIsLoading(true)
-      setActiveWorkflow("Generating Plan...")
+      setActiveWorkflow("Launching agent...")
     },
     onComplete: () => {
       setIsLoading(false)
@@ -94,18 +94,19 @@ export default function IssueRow({
   const actions = useMemo(
     () => ({
       autoResolve: {
-        label: "Auto Resolve Issue",
+        label: "Generate PR",
         execute: autoResolveIssue,
       },
       plan: {
-        label: "Generate Resolution Plan",
+        label: "Create Plan",
         execute: generateResolutionPlan,
       },
       createPR: {
         label: "Fix Issue and Create PR",
         execute: createPRController.execute,
       },
-    }), [autoResolveIssue, generateResolutionPlan, createPRController.execute]
+    }),
+    [autoResolveIssue, generateResolutionPlan, createPRController.execute]
   )
 
   const mainLabel = actions[mainAction].label
@@ -154,11 +155,11 @@ export default function IssueRow({
       <TableCell className="text-right">
         <div className="inline-flex w-full sm:w-auto">
           <Button
-            variant="default"
+            variant="outline"
             size="sm"
             disabled={isLoading}
             onClick={runMain}
-            className="rounded-r-none border-r-0"
+            className="rounded-r-none border-r-0 p-5"
           >
             {isLoading ? (
               <>
@@ -166,10 +167,7 @@ export default function IssueRow({
                 {activeWorkflow}
               </>
             ) : (
-              <>
-                <PlayCircle className="mr-2 h-4 w-4" />
-                {mainLabel}
-              </>
+              <>{mainLabel}</>
             )}
           </Button>
           <DropdownMenu>
@@ -178,7 +176,7 @@ export default function IssueRow({
                 variant="outline"
                 size="sm"
                 disabled={isLoading}
-                className="rounded-l-none border-l-0 px-2"
+                className="rounded-l-none border-l-0 px-2 py-5"
                 aria-label="Change main action"
               >
                 <ChevronDown className="h-4 w-4" />
@@ -207,4 +205,3 @@ export default function IssueRow({
     </TableRow>
   )
 }
-
