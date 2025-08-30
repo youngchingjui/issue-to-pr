@@ -1,9 +1,10 @@
 "use server"
 
-import { getUserOctokit } from "@/lib/github"
+import { getUserOctokit, GitHubTokenError } from "@/lib/github"
 import { listUserRepositories } from "@/lib/github/graphql/queries/listUserRepositories"
 import { listUserAppRepositories } from "@/lib/github/repos"
 import { GitHubUser, RepoPermissions } from "@/lib/types/github"
+import { signOut } from "@/auth"
 
 export async function getGithubUser(): Promise<GitHubUser | null> {
   try {
@@ -17,6 +18,9 @@ export async function getGithubUser(): Promise<GitHubUser | null> {
     return user
   } catch (e) {
     console.error(e)
+    if (e instanceof GitHubTokenError) {
+      await signOut({ redirectTo: "/?error=invalid-token" })
+    }
     return null
   }
 }
