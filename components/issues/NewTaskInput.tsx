@@ -94,11 +94,43 @@ export default function NewTaskInput({ repoFullName }: Props) {
       })
 
       if (res.status === 201) {
+        const issueNumber = res.data?.number
+        const fullName = `${owner}/${repo}`
+
         toast({
           title: "Task synced to GitHub",
           description: `Created: ${taskTitle}`,
           variant: "default",
         })
+
+        // Immediately launch the auto resolve workflow so the user sees it start
+        try {
+          const wfRes = await fetch("/api/workflow/autoResolveIssue", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ issueNumber, repoFullName: fullName }),
+          })
+
+          if (!wfRes.ok) {
+            const data = await wfRes.json().catch(() => ({}))
+            throw new Error(data.error || "Failed to run workflow")
+          }
+
+          toast({
+            title: "Workflow Started",
+            description: "Auto resolve issue workflow launched.",
+          })
+        } catch (wfErr) {
+          toast({
+            title: "Workflow Failed",
+            description:
+              wfErr instanceof Error
+                ? wfErr.message
+                : "An unexpected error occurred",
+            variant: "destructive",
+          })
+        }
+
         setDescription("")
         // 2️⃣ Then transition any UI updates (like router.refresh) that can be
         //     deferred without blocking user feedback.
@@ -152,10 +184,10 @@ export default function NewTaskInput({ repoFullName }: Props) {
             </>
           ) : loading || isPending ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Resolving...
             </>
           ) : (
-            "Create Github Issue"
+            "Resolve task"
           )}
         </Button>
 
@@ -169,3 +201,4 @@ export default function NewTaskInput({ repoFullName }: Props) {
     </form>
   )
 }
+
