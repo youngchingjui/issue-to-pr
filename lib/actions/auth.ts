@@ -9,6 +9,13 @@ export async function signInWithGithub(redirectTo?: string) {
   })
 }
 
+export async function signInWithGithub2(redirectTo?: string) {
+  await signIn("github-app-2", {
+    redirectTo: redirectTo || "/redirect",
+  })
+}
+
 export async function signOutAndRedirect() {
   await signOut({ redirectTo: "/" })
 }
+

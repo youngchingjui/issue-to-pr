@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useSession } from "next-auth/react"
 
 import ShineButton from "@/components/ui/shine-button"
-import { signInWithGithub } from "@/lib/actions/auth"
+import { signInWithGithub, signInWithGithub2 } from "@/lib/actions/auth"
 
 export default function AuthButton() {
   const { data: session } = useSession()
@@ -20,12 +20,20 @@ export default function AuthButton() {
           </ShineButton>
         </Link>
       ) : (
-        <form action={signInWithGithub.bind(null, "/issues")}>
-          <ShineButton className="text-base sm:text-lg px-4 sm:px-5 md:px-6 py-3 bg-accent text-accent-foreground hover:bg-accent/70">
-            <Github size={20} />
-            Connect your code base to start
-          </ShineButton>
-        </form>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <form action={signInWithGithub.bind(null, "/issues")}>
+            <ShineButton className="text-base sm:text-lg px-4 sm:px-5 md:px-6 py-3 bg-accent text-accent-foreground hover:bg-accent/70">
+              <Github size={20} />
+              Connect your code base to start
+            </ShineButton>
+          </form>
+          <form action={signInWithGithub2.bind(null, "/issues")}>
+            <ShineButton className="text-base sm:text-lg px-4 sm:px-5 md:px-6 py-3 bg-secondary text-secondary-foreground hover:bg-secondary/70">
+              <Github size={20} />
+              Login with GitHub App 2
+            </ShineButton>
+          </form>
+        </div>
       )}
     </>
   )
