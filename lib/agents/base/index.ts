@@ -25,6 +25,7 @@ import {
 import { AgentConstructorParams, AnyEvent, Tool } from "@/lib/types"
 import { EnhancedMessage } from "@/lib/types/chat"
 import { convertToolToFunctionTool } from "@/lib/utils/chat"
+import { rateLimitOpenAI } from "@shared/services/rateLimiter"
 
 interface RunResponse {
   jobId?: string
@@ -217,6 +218,10 @@ export class Agent {
     if (this.tools.length > 0) {
       params.tools = this.tools
     }
+
+    // Enforce per-minute call rate limit before making the API call
+    await rateLimitOpenAI("chat")
+
     const response = await this.llm.chat.completions.create(params)
     console.log(
       `[DEBUG] response: ${JSON.stringify(response.choices[0].message)}`
@@ -354,6 +359,9 @@ export class Agent {
     if (this.tools.length > 0) {
       params.tools = this.tools
     }
+
+    // Enforce per-minute call rate limit before making the API call
+    await rateLimitOpenAI("chat")
 
     const response = await this.llm.chat.completions.create(params)
 
@@ -562,7 +570,8 @@ export class ResponsesAPIAgent extends Agent {
         params.previous_response_id = previousResponseId
       }
 
-      // Make the API call
+      // Make the API call (rate-limited)
+      await rateLimitOpenAI("responses")
       const response = await this.llm.responses.create(params)
 
       previousResponseId = response.id
@@ -651,3 +660,4 @@ export class ResponsesAPIAgent extends Agent {
     }
   }
 }
+
