@@ -58,3 +58,14 @@ export const IssueTitleResponseSchema = z.object({
   title: z.string().trim().min(1),
 })
 export type IssueTitleResponse = z.infer<typeof IssueTitleResponseSchema>
+
+// POST /api/workflow/resolve-merge-conflicts request body
+export const ResolveMergeConflictsRequestSchema = z.object({
+  repoFullName: z.string().min(1),
+  pullNumber: z.number(),
+  jobId: z.string().optional(),
+})
+export type ResolveMergeConflictsRequest = z.infer<
+  typeof ResolveMergeConflictsRequestSchema
+>
+
