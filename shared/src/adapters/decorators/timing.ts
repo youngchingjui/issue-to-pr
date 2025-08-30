@@ -2,7 +2,7 @@ import type {
   GitHubIssuesPort,
   IssueRef,
   IssueTitleResult,
-} from "@/shared/src/core/ports/github"
+} from "@/shared/src/ports/github"
 import { withTiming } from "@/shared/src/utils/telemetry"
 
 /**
