@@ -2,6 +2,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 
 import { auth } from "@/auth"
+import MicrophoneRecordingDraft from "@/components/playground/MicrophoneRecordingDraft"
 import CreatedPullRequestCard from "@/components/pull-requests/CreatedPullRequestCard"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -114,6 +115,14 @@ export default async function ComponentsLibraryPage() {
           </Card>
         </div>
       </section>
+
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold">Voice / Recording</h2>
+        <div className="grid gap-4 md:grid-cols-2">
+          <MicrophoneRecordingDraft />
+        </div>
+      </section>
     </div>
   )
 }
+
