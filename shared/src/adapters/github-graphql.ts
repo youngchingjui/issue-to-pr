@@ -1,48 +1,29 @@
+import { graphql } from "@octokit/graphql"
+
 import type {
+  CreateIssueInput,
+  GithubIssueErrors,
   GitHubIssuesPort,
+  Issue,
   IssueRef,
   IssueTitleResult,
 } from "@/shared/src/core/ports/github"
-
-// Minimal fetch signature to avoid DOM lib dependency in shared package
-type FetchResponse = {
-  ok: boolean
-  status: number
-  text: () => Promise<string>
-  json: () => Promise<unknown>
-}
-
-type FetchInit = {
-  method?: string
-  headers?: Record<string, string>
-  body?: string
-}
-
-type FetchFn = (input: string | URL, init?: FetchInit) => Promise<FetchResponse>
+import { err, ok, type Result } from "@/shared/src/entities/result"
 
 /**
- * Minimal GitHub GraphQL adapter implementing GitHubIssuesPort.
- * Does not use any Next.js specific features so it can run in any environment.
+ * Factory to create a GraphQL-based GitHub adapter implementing GitHubIssuesPort.
  */
-export class GitHubGraphQLAdapter implements GitHubIssuesPort {
-  private readonly token: string
-  private readonly fetchImpl: FetchFn
+export function makeGitHubGraphQLAdapter(params: {
+  token: string
+}): GitHubIssuesPort {
+  const token = params.token
+  const client = graphql.defaults({
+    headers: { authorization: `token ${token}` },
+  })
 
-  constructor(params: { token: string; fetchImpl?: FetchFn }) {
-    const token = params.token
-    this.token = token
-    this.fetchImpl = params.fetchImpl ?? (globalThis.fetch as FetchFn)
-    if (!this.fetchImpl) {
-      throw new Error(
-        "A fetch implementation must be available in this runtime"
-      )
-    }
-  }
-
-  async getIssueTitles(refs: IssueRef[]): Promise<IssueTitleResult[]> {
+  async function getIssueTitles(refs: IssueRef[]): Promise<IssueTitleResult[]> {
     if (refs.length === 0) return []
 
-    // Build dynamic GraphQL query with aliases per issue to preserve input order
     const queries = refs.map((ref, idx) => {
       const [owner, name] = ref.repoFullName.split("/")
       const alias = `i${idx}`
@@ -50,39 +31,14 @@ export class GitHubGraphQLAdapter implements GitHubIssuesPort {
     })
     const query = `query BatchIssues { ${queries.join(" ")} }`
 
-    const response = await this.fetchImpl("https://api.github.com/graphql", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ query }),
-    })
+    type IssueNode = { number: number; title: string; state: "OPEN" | "CLOSED" }
+    type QueryResponse = Record<string, { issue: IssueNode | null } | null>
 
-    if (!response.ok) {
-      const text = await response.text()
-      throw new Error(`GitHub GraphQL error: ${response.status} ${text}`)
-    }
+    const data = await client<QueryResponse>(query)
 
-    const json = (await response.json()) as {
-      data?: Record<
-        string,
-        {
-          issue: {
-            number: number
-            title: string
-            state: "OPEN" | "CLOSED"
-          } | null
-        } | null
-      >
-      errors?: unknown
-    }
-
-    // Map results back to input order
     const results: IssueTitleResult[] = refs.map((ref, idx) => {
       const alias = `i${idx}`
-      const repo = json.data?.[alias]
-      const issue = repo?.issue
+      const issue = data?.[alias]?.issue
       return {
         repoFullName: ref.repoFullName,
         number: ref.number,
@@ -90,9 +46,87 @@ export class GitHubGraphQLAdapter implements GitHubIssuesPort {
         state: issue?.state,
       }
     })
-
     return results
   }
+
+  async function createIssue(
+    input: CreateIssueInput
+  ): Promise<Result<Issue, GithubIssueErrors>> {
+    try {
+      const repoResult = await client<{ repository: { id: string } | null }>(
+        `query RepoId($owner: String!, $name: String!) { repository(owner: $owner, name: $name) { id } }`,
+        { owner: input.owner, name: input.repo }
+      )
+
+      const repositoryId = repoResult.repository?.id
+      if (!repositoryId) {
+        return err("RepoNotFound")
+      }
+
+      const createResult = await client<{
+        createIssue: {
+          issue: { databaseId: number; number: number; url: string }
+        }
+      }>(
+        `mutation CreateIssue($repositoryId: ID!, $title: String!, $body: String) {
+            createIssue(input: { repositoryId: $repositoryId, title: $title, body: $body }) {
+              issue { databaseId number url }
+            }
+          }`,
+        { repositoryId, title: input.title, body: input.body ?? null }
+      )
+
+      const issue = createResult.createIssue.issue
+      return ok({ id: issue.databaseId, number: issue.number, url: issue.url })
+    } catch (e: unknown) {
+      let message: string | undefined
+      let status: number | undefined
+
+      const errObj = e as Record<string, unknown> | null
+      if (errObj && typeof errObj === "object") {
+        if (typeof errObj.message === "string") {
+          message = errObj.message
+        }
+        if (typeof errObj.status === "number") {
+          status = errObj.status
+        } else if (
+          errObj.response &&
+          typeof (errObj.response as Record<string, unknown>).status ===
+            "number"
+        ) {
+          status = (errObj.response as Record<string, unknown>).status as number
+        }
+      }
+
+      if (status === 401 || status === 403) {
+        return err("AuthRequired", { message, status })
+      }
+
+      if (
+        typeof message === "string" &&
+        /issues?\s+.*disabled/i.test(message)
+      ) {
+        return err("IssuesDisabled", { message })
+      }
+
+      if (typeof message === "string" && /rate\s*limit/i.test(message)) {
+        return err("RateLimited", { message })
+      }
+
+      if (
+        status === 422 ||
+        (typeof message === "string" && /validation/i.test(message))
+      ) {
+        return err("ValidationFailed", { message, status })
+      }
+
+      return err("Unknown", { message, status })
+    }
+  }
+
+  return { getIssueTitles, createIssue }
 }
 
-export default GitHubGraphQLAdapter
+// Backwards-compatible alias used elsewhere in the app
+export const makeGithubGraphQLAdapter = (token: string): GitHubIssuesPort =>
+  makeGitHubGraphQLAdapter({ token })

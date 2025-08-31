@@ -25,6 +25,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@octokit/graphql": "^8.2.1",
+    "@octokit/rest": "^21.1.0",
     "@anthropic-ai/sdk": "^0.59.0",
     "bullmq": "^5.0.0",
     "ioredis": "^5.3.2",

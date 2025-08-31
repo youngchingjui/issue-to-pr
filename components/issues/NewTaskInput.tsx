@@ -11,6 +11,7 @@ import { createIssueAction } from "@/lib/actions/createIssue"
 import { toast } from "@/lib/hooks/use-toast"
 import { IssueTitleResponseSchema } from "@/lib/types/api/schemas"
 import type { RepoFullName } from "@/lib/types/github"
+import { mapGithubErrorToCopy } from "@/lib/ui/errorMessages"
 
 interface Props {
   repoFullName: RepoFullName | null
@@ -84,8 +85,6 @@ export default function NewTaskInput({ repoFullName }: Props) {
 
     const { repo, owner } = repoFullName
     try {
-      // Perform the async GitHub call outside of startTransition so
-      // errors are captured by this try/catch.
       const result = await createIssueAction({
         repo,
         owner,
@@ -104,9 +103,10 @@ export default function NewTaskInput({ repoFullName }: Props) {
           router.refresh()
         })
       } else {
+        const message = mapGithubErrorToCopy(result)
         toast({
           title: "Error creating task",
-          description: result.message,
+          description: message,
           variant: "destructive",
         })
       }
@@ -167,4 +167,3 @@ export default function NewTaskInput({ repoFullName }: Props) {
     </form>
   )
 }
-
