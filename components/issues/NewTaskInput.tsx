@@ -6,6 +6,7 @@ import { useState, useTransition } from "react"
 
 import VoiceDictationButton from "@/components/common/VoiceDictationButton"
 import { Button } from "@/components/ui/button"
+import { ToastAction } from "@/components/ui/toast"
 import { Textarea } from "@/components/ui/textarea"
 import { createIssueAction } from "@/lib/actions/createIssue"
 import { toast } from "@/lib/hooks/use-toast"
@@ -104,10 +105,29 @@ export default function NewTaskInput({ repoFullName }: Props) {
         })
       } else {
         const message = mapGithubErrorToCopy(result)
+        const descriptionNode =
+          result.code === "IssuesDisabled" ? (
+            <span>
+              {message}{" "}
+              <a
+                href={`https://github.com/${owner}/${repo}/settings`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                Open repository settings
+              </a>
+              .
+            </span>
+          ) : (
+            message
+          )
+
         toast({
           title: "Error creating task",
-          description: message,
+          description: descriptionNode,
           variant: "destructive",
+          action: <ToastAction altText="Dismiss">Dismiss</ToastAction>,
         })
       }
     } catch (err) {
