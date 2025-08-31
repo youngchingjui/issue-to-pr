@@ -11,6 +11,8 @@ interface BottomToolbarProps {
   handleTalkButtonUp: () => void;
   isEventsPaneExpanded: boolean;
   setIsEventsPaneExpanded: (val: boolean) => void;
+  isLiveTranscriptionPaneExpanded: boolean;
+  setIsLiveTranscriptionPaneExpanded: (val: boolean) => void;
   isAudioPlaybackEnabled: boolean;
   setIsAudioPlaybackEnabled: (val: boolean) => void;
   codec: string;
@@ -27,6 +29,8 @@ function BottomToolbar({
   handleTalkButtonUp,
   isEventsPaneExpanded,
   setIsEventsPaneExpanded,
+  isLiveTranscriptionPaneExpanded,
+  setIsLiveTranscriptionPaneExpanded,
   isAudioPlaybackEnabled,
   setIsAudioPlaybackEnabled,
   codec,
@@ -130,6 +134,19 @@ function BottomToolbar({
       </div>
 
       <div className="flex flex-row items-center gap-2">
+        <input
+          id="live-transcription"
+          type="checkbox"
+          checked={isLiveTranscriptionPaneExpanded}
+          onChange={(e) => setIsLiveTranscriptionPaneExpanded(e.target.checked)}
+          className="w-4 h-4"
+        />
+        <label htmlFor="live-transcription" className="flex items-center cursor-pointer">
+          Live transcript
+        </label>
+      </div>
+
+      <div className="flex flex-row items-center gap-2">
         <div>Codec:</div>
         {/*
           Codec selector – Lets you force the WebRTC track to use 8 kHz 
@@ -155,3 +172,4 @@ function BottomToolbar({
 }
 
 export default BottomToolbar;
+
