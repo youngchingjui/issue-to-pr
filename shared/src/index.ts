@@ -14,4 +14,5 @@ export {
 } from "@/shared/src/utils/telemetry"
 export * from "@/shared/src/ui/IssueRow"
 export * from "@/shared/src/ui/Microphone"
+export * from "@/shared/src/ui/button"
 
