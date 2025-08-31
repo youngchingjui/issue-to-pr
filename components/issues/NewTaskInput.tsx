@@ -6,6 +6,7 @@ import { useState, useTransition } from "react"
 
 import VoiceDictationButton from "@/components/common/VoiceDictationButton"
 import { Button } from "@/components/ui/button"
+import { ToastAction } from "@/components/ui/toast"
 import { Textarea } from "@/components/ui/textarea"
 import { createIssueAction } from "@/lib/actions/createIssue"
 import { toast } from "@/lib/hooks/use-toast"
@@ -107,7 +108,7 @@ export default function NewTaskInput({ repoFullName }: Props) {
         const descriptionNode =
           result.code === "IssuesDisabled" ? (
             <span>
-              {message} {" "}
+              {message}{" "}
               <a
                 href={`https://github.com/${owner}/${repo}/settings`}
                 target="_blank"
@@ -126,6 +127,7 @@ export default function NewTaskInput({ repoFullName }: Props) {
           title: "Error creating task",
           description: descriptionNode,
           variant: "destructive",
+          action: <ToastAction altText="Dismiss">Dismiss</ToastAction>,
         })
       }
     } catch (err) {
@@ -185,4 +187,3 @@ export default function NewTaskInput({ repoFullName }: Props) {
     </form>
   )
 }
-

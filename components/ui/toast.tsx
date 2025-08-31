@@ -88,26 +88,6 @@ const ToastClose = React.forwardRef<
 ))
 ToastClose.displayName = ToastPrimitives.Close.displayName
 
-// A dismiss button that closes the toast and matches the ToastAction styling
-const ToastDismiss = React.forwardRef<
-  React.ElementRef<typeof ToastPrimitives.Close>,
-  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Close> & {
-    label?: React.ReactNode
-  }
->(({ className, label = "Dismiss", ...props }, ref) => (
-  <ToastPrimitives.Close ref={ref} asChild {...props}>
-    <button
-      className={cn(
-        "inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium transition-colors hover:bg-secondary focus:outline-none focus:ring-1 focus:ring-ring disabled:pointer-events-none disabled:opacity-50 group-[.destructive]:border-muted/40 group-[.destructive]:hover:border-destructive/30 group-[.destructive]:hover:bg-destructive group-[.destructive]:hover:text-destructive-foreground group-[.destructive]:focus:ring-destructive",
-        className
-      )}
-    >
-      {label}
-    </button>
-  </ToastPrimitives.Close>
-))
-ToastDismiss.displayName = "ToastDismiss"
-
 const ToastTitle = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Title>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Title>
@@ -141,11 +121,9 @@ export {
   ToastAction,
   type ToastActionElement,
   ToastClose,
-  ToastDismiss,
   ToastDescription,
   type ToastProps,
   ToastProvider,
   ToastTitle,
   ToastViewport,
 }
-
