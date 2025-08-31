@@ -4,7 +4,8 @@
     "next/core-web-vitals",
     "next/typescript",
     "prettier",
-    "plugin:react-hooks/recommended-legacy"
+    "plugin:react-hooks/recommended-legacy",
+    "plugin:storybook/recommended"
   ],
   "rules": {
     "@typescript-eslint/no-unused-vars": [

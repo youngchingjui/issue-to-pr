@@ -12,3 +12,4 @@ export {
   logStart,
   withTiming,
 } from "@/shared/src/utils/telemetry"
+export * from "@/shared/src/ui/IssueRow"

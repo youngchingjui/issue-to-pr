@@ -54,3 +54,6 @@ next-env.d.ts
 # Ignore large mock message fixtures
 # Mainly so ripgrep search stops searching these files
 /__tests__/mocks/messages*.json
+
+*storybook.log
+storybook-static
