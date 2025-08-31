@@ -13,3 +13,5 @@ export {
   withTiming,
 } from "@/shared/src/utils/telemetry"
 export * from "@/shared/src/ui/IssueRow"
+export * from "@/shared/src/ui/Microphone"
+
