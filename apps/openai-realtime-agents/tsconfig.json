@@ -13,8 +13,10 @@
     "isolatedModules": true,
     "incremental": true,
     /* Paths */
+    "baseUrl": "./src",
     "paths": {
-      "@/*": ["./src/*"],
+      "@/*": ["./*"],
+      "@realtime/*": ["./*"],
       "@shared/*": ["../../shared/src/*"],
       "@workers/*": ["../workers/src/*"]
     },

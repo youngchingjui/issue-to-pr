@@ -25,13 +25,11 @@
     ]
   },
   "include": [
-    "**/*.ts",
-    "**/*.tsx",
     "app/**/*",
     "components/**/*",
     "styles/**/*",
     "lib/**/*",
     ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "apps/**", "shared/**"]
 }

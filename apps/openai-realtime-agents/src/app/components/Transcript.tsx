@@ -1,19 +1,19 @@
-"use-client";
+"use-client"
 
-import React, { useEffect, useRef, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import { TranscriptItem } from "@/app/types";
-import Image from "next/image";
-import { useTranscript } from "@/app/contexts/TranscriptContext";
-import { DownloadIcon, ClipboardCopyIcon } from "@radix-ui/react-icons";
-import { GuardrailChip } from "./GuardrailChip";
+import React, { useEffect, useRef, useState } from "react"
+import ReactMarkdown from "react-markdown"
+import { TranscriptItem } from "@/app/types"
+import Image from "next/image"
+import { useTranscript } from "@/app/contexts/TranscriptContext"
+import { DownloadIcon, ClipboardCopyIcon } from "@radix-ui/react-icons"
+import { GuardrailChip } from "./GuardrailChip"
 
 export interface TranscriptProps {
-  userText: string;
-  setUserText: (val: string) => void;
-  onSendMessage: () => void;
-  canSend: boolean;
-  downloadRecording: () => void;
+  userText: string
+  setUserText: (val: string) => void
+  onSendMessage: () => void
+  canSend: boolean
+  downloadRecording: () => void
 }
 
 function Transcript({
@@ -23,52 +23,52 @@ function Transcript({
   canSend,
   downloadRecording,
 }: TranscriptProps) {
-  const { transcriptItems, toggleTranscriptItemExpand } = useTranscript();
-  const transcriptRef = useRef<HTMLDivElement | null>(null);
-  const [prevLogs, setPrevLogs] = useState<TranscriptItem[]>([]);
-  const [justCopied, setJustCopied] = useState(false);
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const { transcriptItems, toggleTranscriptItemExpand } = useTranscript()
+  const transcriptRef = useRef<HTMLDivElement | null>(null)
+  const [prevLogs, setPrevLogs] = useState<TranscriptItem[]>([])
+  const [justCopied, setJustCopied] = useState(false)
+  const inputRef = useRef<HTMLInputElement | null>(null)
 
   function scrollToBottom() {
     if (transcriptRef.current) {
-      transcriptRef.current.scrollTop = transcriptRef.current.scrollHeight;
+      transcriptRef.current.scrollTop = transcriptRef.current.scrollHeight
     }
   }
 
   useEffect(() => {
-    const hasNewMessage = transcriptItems.length > prevLogs.length;
+    const hasNewMessage = transcriptItems.length > prevLogs.length
     const hasUpdatedMessage = transcriptItems.some((newItem, index) => {
-      const oldItem = prevLogs[index];
+      const oldItem = prevLogs[index]
       return (
         oldItem &&
         (newItem.title !== oldItem.title || newItem.data !== oldItem.data)
-      );
-    });
+      )
+    })
 
     if (hasNewMessage || hasUpdatedMessage) {
-      scrollToBottom();
+      scrollToBottom()
     }
 
-    setPrevLogs(transcriptItems);
-  }, [transcriptItems]);
+    setPrevLogs(transcriptItems)
+  }, [transcriptItems])
 
   // Autofocus on text box input on load
   useEffect(() => {
     if (canSend && inputRef.current) {
-      inputRef.current.focus();
+      inputRef.current.focus()
     }
-  }, [canSend]);
+  }, [canSend])
 
   const handleCopyTranscript = async () => {
-    if (!transcriptRef.current) return;
+    if (!transcriptRef.current) return
     try {
-      await navigator.clipboard.writeText(transcriptRef.current.innerText);
-      setJustCopied(true);
-      setTimeout(() => setJustCopied(false), 1500);
+      await navigator.clipboard.writeText(transcriptRef.current.innerText)
+      setJustCopied(true)
+      setTimeout(() => setJustCopied(false), 1500)
     } catch (error) {
-      console.error("Failed to copy transcript:", error);
+      console.error("Failed to copy transcript:", error)
     }
-  };
+  }
 
   return (
     <div className="flex flex-col flex-1 bg-white min-h-0 rounded-xl">
@@ -111,102 +111,104 @@ function Transcript({
                 title = "",
                 isHidden,
                 guardrailResult,
-              } = item;
+              } = item
 
-            if (isHidden) {
-              return null;
-            }
+              if (isHidden) {
+                return null
+              }
 
-            if (type === "MESSAGE") {
-              const isUser = role === "user";
-              const containerClasses = `flex justify-end flex-col ${
-                isUser ? "items-end" : "items-start"
-              }`;
-              const bubbleBase = `max-w-lg p-3 ${
-                isUser ? "bg-gray-900 text-gray-100" : "bg-gray-100 text-black"
-              }`;
-              const isBracketedMessage =
-                title.startsWith("[") && title.endsWith("]");
-              const messageStyle = isBracketedMessage
-                ? 'italic text-gray-400'
-                : '';
-              const displayTitle = isBracketedMessage
-                ? title.slice(1, -1)
-                : title;
+              if (type === "MESSAGE") {
+                const isUser = role === "user"
+                const containerClasses = `flex justify-end flex-col ${
+                  isUser ? "items-end" : "items-start"
+                }`
+                const bubbleBase = `max-w-lg p-3 ${
+                  isUser
+                    ? "bg-gray-900 text-gray-100"
+                    : "bg-gray-100 text-black"
+                }`
+                const isBracketedMessage =
+                  title.startsWith("[") && title.endsWith("]")
+                const messageStyle = isBracketedMessage
+                  ? "italic text-gray-400"
+                  : ""
+                const displayTitle = isBracketedMessage
+                  ? title.slice(1, -1)
+                  : title
 
-              return (
-                <div key={itemId} className={containerClasses}>
-                  <div className="max-w-lg">
-                    <div
-                      className={`${bubbleBase} rounded-t-xl ${
-                        guardrailResult ? "" : "rounded-b-xl"
-                      }`}
-                    >
+                return (
+                  <div key={itemId} className={containerClasses}>
+                    <div className="max-w-lg">
                       <div
-                        className={`text-xs ${
-                          isUser ? "text-gray-400" : "text-gray-500"
-                        } font-mono`}
-                      >
-                        {timestamp}
-                      </div>
-                      <div className={`whitespace-pre-wrap ${messageStyle}`}>
-                        <ReactMarkdown>{displayTitle}</ReactMarkdown>
-                      </div>
-                    </div>
-                    {guardrailResult && (
-                      <div className="bg-gray-200 px-3 py-2 rounded-b-xl">
-                        <GuardrailChip guardrailResult={guardrailResult} />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            } else if (type === "BREADCRUMB") {
-              return (
-                <div
-                  key={itemId}
-                  className="flex flex-col justify-start items-start text-gray-500 text-sm"
-                >
-                  <span className="text-xs font-mono">{timestamp}</span>
-                  <div
-                    className={`whitespace-pre-wrap flex items-center font-mono text-sm text-gray-800 ${
-                      data ? "cursor-pointer" : ""
-                    }`}
-                    onClick={() => data && toggleTranscriptItemExpand(itemId)}
-                  >
-                    {data && (
-                      <span
-                        className={`text-gray-400 mr-1 transform transition-transform duration-200 select-none font-mono ${
-                          expanded ? "rotate-90" : "rotate-0"
+                        className={`${bubbleBase} rounded-t-xl ${
+                          guardrailResult ? "" : "rounded-b-xl"
                         }`}
                       >
-                        ▶
-                      </span>
-                    )}
-                    {title}
-                  </div>
-                  {expanded && data && (
-                    <div className="text-gray-800 text-left">
-                      <pre className="border-l-2 ml-1 border-gray-200 whitespace-pre-wrap break-words font-mono text-xs mb-2 mt-2 pl-2">
-                        {JSON.stringify(data, null, 2)}
-                      </pre>
+                        <div
+                          className={`text-xs ${
+                            isUser ? "text-gray-400" : "text-gray-500"
+                          } font-mono`}
+                        >
+                          {timestamp}
+                        </div>
+                        <div className={`whitespace-pre-wrap ${messageStyle}`}>
+                          <ReactMarkdown>{displayTitle}</ReactMarkdown>
+                        </div>
+                      </div>
+                      {guardrailResult && (
+                        <div className="bg-gray-200 px-3 py-2 rounded-b-xl">
+                          <GuardrailChip guardrailResult={guardrailResult} />
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              );
-            } else {
-              // Fallback if type is neither MESSAGE nor BREADCRUMB
-              return (
-                <div
-                  key={itemId}
-                  className="flex justify-center text-gray-500 text-sm italic font-mono"
-                >
-                  Unknown item type: {type}{" "}
-                  <span className="ml-2 text-xs">{timestamp}</span>
-                </div>
-              );
-            }
-          })}
+                  </div>
+                )
+              } else if (type === "BREADCRUMB") {
+                return (
+                  <div
+                    key={itemId}
+                    className="flex flex-col justify-start items-start text-gray-500 text-sm"
+                  >
+                    <span className="text-xs font-mono">{timestamp}</span>
+                    <div
+                      className={`whitespace-pre-wrap flex items-center font-mono text-sm text-gray-800 ${
+                        data ? "cursor-pointer" : ""
+                      }`}
+                      onClick={() => data && toggleTranscriptItemExpand(itemId)}
+                    >
+                      {data && (
+                        <span
+                          className={`text-gray-400 mr-1 transform transition-transform duration-200 select-none font-mono ${
+                            expanded ? "rotate-90" : "rotate-0"
+                          }`}
+                        >
+                          ▶
+                        </span>
+                      )}
+                      {title}
+                    </div>
+                    {expanded && data && (
+                      <div className="text-gray-800 text-left">
+                        <pre className="border-l-2 ml-1 border-gray-200 whitespace-pre-wrap break-words font-mono text-xs mb-2 mt-2 pl-2">
+                          {JSON.stringify(data, null, 2)}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
+                )
+              } else {
+                // Fallback if type is neither MESSAGE nor BREADCRUMB
+                return (
+                  <div
+                    key={itemId}
+                    className="flex justify-center text-gray-500 text-sm italic font-mono"
+                  >
+                    Unknown item type: {type}{" "}
+                    <span className="ml-2 text-xs">{timestamp}</span>
+                  </div>
+                )
+              }
+            })}
         </div>
       </div>
 
@@ -218,7 +220,7 @@ function Transcript({
           onChange={(e) => setUserText(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && canSend) {
-              onSendMessage();
+              onSendMessage()
             }
           }}
           className="flex-1 px-4 py-2 focus:outline-none"
@@ -233,7 +235,7 @@ function Transcript({
         </button>
       </div>
     </div>
-  );
+  )
 }
 
-export default Transcript;
+export default Transcript
