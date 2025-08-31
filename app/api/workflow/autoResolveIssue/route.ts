@@ -11,7 +11,7 @@ import autoResolveIssue from "@/lib/workflows/autoResolveIssue"
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { issueNumber, repoFullName } =
+    const { issueNumber, repoFullName, branch } =
       AutoResolveIssueRequestSchema.parse(body)
 
     const apiKey = await getUserOpenAIApiKey()
@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
           repository: repo,
           apiKey,
           jobId,
+          branch,
         })
       } catch (error) {
         console.error(error)
@@ -62,3 +63,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+

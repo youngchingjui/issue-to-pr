@@ -33,6 +33,7 @@ export default function IssueActions({
   const { execute: executeAutoResolve } = AutoResolveIssueController({
     issueNumber: issue.number,
     repoFullName,
+    branch: selectedRef,
     onStart: () => {
       onWorkflowStart("Auto Resolving...")
     },
@@ -125,3 +126,4 @@ export default function IssueActions({
     </div>
   )
 }
+
