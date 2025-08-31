@@ -45,4 +45,3 @@ export async function sendServerError(payload: ServerErrorPayload) {
     console.error("[telemetry]", body)
   }
 }
-
