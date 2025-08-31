@@ -1,6 +1,6 @@
 import { TimedGitHubIssuesPort } from "@shared/adapters/decorators/timing"
 import { makeGitHubGraphQLAdapter } from "@shared/adapters/github-graphql"
-import fetchIssueTitles from "@shared/services/github/issues"
+import { fetchIssueTitles } from "@shared/services/github/issues"
 import { withTiming } from "@shared/utils/telemetry"
 import { formatDistanceToNow } from "date-fns"
 import Link from "next/link"

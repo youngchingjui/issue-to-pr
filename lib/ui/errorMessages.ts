@@ -1,4 +1,4 @@
-import type { CreateIssueActionResult } from "../actions/createIssue"
+import type { CreateIssueActionResult } from "../actions/schemas"
 
 const friendly: Record<
   Exclude<CreateIssueActionResult, { status: "success" }> extends infer E
