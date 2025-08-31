@@ -104,9 +104,27 @@ export default function NewTaskInput({ repoFullName }: Props) {
         })
       } else {
         const message = mapGithubErrorToCopy(result)
+        const descriptionNode =
+          result.code === "IssuesDisabled" ? (
+            <span>
+              {message} {" "}
+              <a
+                href={`https://github.com/${owner}/${repo}/settings`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                Open repository settings
+              </a>
+              .
+            </span>
+          ) : (
+            message
+          )
+
         toast({
           title: "Error creating task",
-          description: message,
+          description: descriptionNode,
           variant: "destructive",
         })
       }
@@ -167,3 +185,4 @@ export default function NewTaskInput({ repoFullName }: Props) {
     </form>
   )
 }
+
