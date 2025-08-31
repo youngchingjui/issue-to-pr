@@ -1,9 +1,13 @@
 import type {
+  CreateIssueInput,
+  GithubIssueErrors,
   GitHubIssuesPort,
+  Issue,
   IssueRef,
   IssueTitleResult,
-} from "@/shared/src/core/ports/github"
-import { withTiming } from "@/shared/src/utils/telemetry"
+} from "@shared/core/ports/github"
+import type { Result } from "@shared/entities/result"
+import { withTiming } from "@shared/utils/telemetry"
 
 /**
  * Timing decorator for GitHubIssuesPort that adds telemetry to all methods.
@@ -25,6 +29,18 @@ export class TimedGitHubIssuesPort implements GitHubIssuesPort {
       `${this.labelPrefix}: getIssueTitles`,
       () => this.inner.getIssueTitles(refs),
       { batchSize: refs.length }
+    )
+  }
+
+  async createIssue(
+    input: CreateIssueInput
+  ): Promise<Result<Issue, GithubIssueErrors>> {
+    if (!this.enabled) {
+      return this.inner.createIssue(input)
+    }
+
+    return withTiming(`${this.labelPrefix}: createIssue`, () =>
+      this.inner.createIssue(input)
     )
   }
 }

@@ -16,7 +16,18 @@
     ],
     "no-unused-vars": "off",
     "simple-import-sort/imports": "warn",
-    "simple-import-sort/exports": "warn"
+    "simple-import-sort/exports": "warn",
+    "no-restricted-imports": [
+      "warn",
+      {
+        "paths": [
+          {
+            "name": "@/shared/src",
+            "message": "Import from explicit subpaths (entities, ports, adapters, services)."
+          }
+        ]
+      }
+    ]
   },
   "parserOptions": {
     "sourceType": "module",
