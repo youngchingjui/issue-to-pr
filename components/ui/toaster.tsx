@@ -4,6 +4,7 @@ import {
   Toast,
   ToastClose,
   ToastDescription,
+  ToastDismiss,
   ToastProvider,
   ToastTitle,
   ToastViewport,
@@ -24,7 +25,10 @@ export function Toaster() {
                 <ToastDescription>{description}</ToastDescription>
               )}
             </div>
-            {action}
+            <div className="flex items-center gap-2">
+              {action}
+              <ToastDismiss label="Dismiss" />
+            </div>
             <ToastClose />
           </Toast>
         )
@@ -33,3 +37,4 @@ export function Toaster() {
     </ToastProvider>
   )
 }
+
