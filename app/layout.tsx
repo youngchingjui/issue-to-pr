@@ -6,6 +6,7 @@ import { SessionProvider } from "next-auth/react"
 
 import { auth } from "@/auth"
 import Navigation from "@/components/layout/Navigation"
+import ErrorListener from "@/components/system/ErrorListener"
 import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -31,6 +32,7 @@ export default async function RootLayout({
       >
         <SessionProvider session={session}>
           <Navigation />
+          <ErrorListener />
           {children}
           <Toaster />
         </SessionProvider>
@@ -38,3 +40,4 @@ export default async function RootLayout({
     </html>
   )
 }
+
