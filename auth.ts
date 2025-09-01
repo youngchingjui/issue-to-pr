@@ -22,19 +22,6 @@ declare module "next-auth/jwt" {
   }
 }
 
-function getRedirectBaseUrl() {
-  // Vercel staging
-  switch (process.env.VERCEL_ENV) {
-    case "production":
-    case "development":
-      return process.env.NEXT_PUBLIC_BASE_URL
-    case "preview":
-      return `https://${process.env.NEXT_PUBLIC_VERCEL_BRANCH_URL}`
-    default:
-      return "http://localhost:3000"
-  }
-}
-
 export const { handlers, signIn, signOut, auth } = NextAuth({
   session: {
     strategy: "jwt",
@@ -46,13 +33,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       name: "GitHub App",
       clientId: process.env.GITHUB_APP_CLIENT_ID, // GitHub App credentials
       clientSecret: process.env.GITHUB_APP_CLIENT_SECRET,
-      authorization: {
-        url: "https://github.com/login/oauth/authorize",
-        params: {
-          client_id: process.env.GITHUB_APP_CLIENT_ID,
-          redirect_uri: `${getRedirectBaseUrl()}/api/auth/callback/github-app`,
-        },
-      },
+      // Let NextAuth compute the correct redirect_uri based on the incoming request.
+      // Overriding redirect_uri can break PKCE if the domain does not match the actual host handling the callback.
       userinfo: {
         url: "https://api.github.com/user",
         params: { installation_id: process.env.GITHUB_APP_INSTALLATION_ID },
@@ -132,3 +114,4 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   },
 })
+
