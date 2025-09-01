@@ -1,8 +1,10 @@
 import IssueRow from "@/components/issues/IssueRow"
 import PRStatusIndicator from "@/components/issues/PRStatusIndicator"
+import PreviewDeploymentIndicator from "@/components/issues/PreviewDeploymentIndicator"
 import {
   getIssueListWithStatus,
   getLinkedPRNumbersForIssues,
+  getPreviewLinksForPRs,
 } from "@/lib/github/issues"
 import { RepoFullName } from "@/lib/types/github"
 
@@ -24,6 +26,11 @@ export default async function IssueRows({ repoFullName }: Props) {
     issueNumbers,
   })
 
+  const previewMap = await getPreviewLinksForPRs({
+    repoFullName: repoFullName.fullName,
+    prNumbersByIssue: prMap,
+  })
+
   return (
     <>
       {issues.map((issue) => (
@@ -37,8 +44,12 @@ export default async function IssueRows({ repoFullName }: Props) {
               prNumber={prMap[issue.number]}
             />
           }
+          previewSlot={
+            <PreviewDeploymentIndicator previewUrl={previewMap[issue.number]} />
+          }
         />
       ))}
     </>
   )
 }
+

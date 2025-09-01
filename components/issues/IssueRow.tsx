@@ -26,6 +26,7 @@ interface IssueRowProps {
   issue: IssueWithStatus
   repoFullName: string
   prSlot?: React.ReactNode
+  previewSlot?: React.ReactNode
 }
 
 type MainActionId = "autoResolve" | "plan" | "createPR"
@@ -34,6 +35,7 @@ export default function IssueRow({
   issue,
   repoFullName,
   prSlot,
+  previewSlot,
 }: IssueRowProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [activeWorkflow, setActiveWorkflow] = useState<string | null>(null)
@@ -150,6 +152,7 @@ export default function IssueRow({
           issue={issue}
           repoFullName={repoFullName}
           prSlot={prSlot}
+          previewSlot={previewSlot}
         />
       </TableCell>
       <TableCell className="text-right">
@@ -205,3 +208,4 @@ export default function IssueRow({
     </TableRow>
   )
 }
+
