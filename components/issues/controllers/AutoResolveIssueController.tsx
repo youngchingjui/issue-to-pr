@@ -5,6 +5,7 @@ import { toast } from "@/lib/hooks/use-toast"
 interface Props {
   issueNumber: number
   repoFullName: string
+  branch?: string
   onStart: () => void
   onComplete: () => void
   onError: () => void
@@ -13,6 +14,7 @@ interface Props {
 export default function AutoResolveIssueController({
   issueNumber,
   repoFullName,
+  branch,
   onStart,
   onComplete,
   onError,
@@ -23,7 +25,7 @@ export default function AutoResolveIssueController({
       const response = await fetch("/api/workflow/autoResolveIssue", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ issueNumber, repoFullName }),
+        body: JSON.stringify({ issueNumber, repoFullName, branch }),
       })
 
       if (!response.ok) {
@@ -53,3 +55,4 @@ export default function AutoResolveIssueController({
 
   return { execute }
 }
+

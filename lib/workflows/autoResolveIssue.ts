@@ -25,6 +25,7 @@ interface Params {
   repository: GitHubRepository
   apiKey?: string
   jobId?: string
+  branch?: string
 }
 
 export const autoResolveIssue = async ({
@@ -32,6 +33,7 @@ export const autoResolveIssue = async ({
   repository,
   apiKey,
   jobId,
+  branch,
 }: Params) => {
   if (!apiKey) {
     const apiKeyFromSettings = await getUserOpenAIApiKey()
@@ -72,14 +74,16 @@ export const autoResolveIssue = async ({
       })
     }
 
+    const selectedBranch = branch && branch.length > 0 ? branch : repository.default_branch
+
     const hostRepoPath = await setupLocalRepository({
       repoFullName: repository.full_name,
-      workingBranch: repository.default_branch,
+      workingBranch: selectedBranch,
     })
 
     const { containerName } = await createContainerizedWorkspace({
       repoFullName: repository.full_name,
-      branch: repository.default_branch,
+      branch: selectedBranch,
       workflowId,
       hostRepoPath,
     })
@@ -160,3 +164,4 @@ export const autoResolveIssue = async ({
 }
 
 export default autoResolveIssue
+
