@@ -8,6 +8,7 @@ import VoiceDictationButton from "@/components/common/VoiceDictationButton"
 import { Button } from "@/components/ui/button"
 import { ToastAction } from "@/components/ui/toast"
 import { Textarea } from "@/components/ui/textarea"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { createIssueAction } from "@/lib/actions/createIssue"
 import { toast } from "@/lib/hooks/use-toast"
 import { IssueTitleResponseSchema } from "@/lib/types/api/schemas"
@@ -16,9 +17,10 @@ import { mapGithubErrorToCopy } from "@/lib/ui/errorMessages"
 
 interface Props {
   repoFullName: RepoFullName | null
+  issuesEnabled?: boolean
 }
 
-export default function NewTaskInput({ repoFullName }: Props) {
+export default function NewTaskInput({ repoFullName, issuesEnabled = true }: Props) {
   const [description, setDescription] = useState("")
   const [loading, setLoading] = useState(false)
   const [generatingTitle, setGeneratingTitle] = useState(false)
@@ -38,6 +40,29 @@ export default function NewTaskInput({ repoFullName }: Props) {
       toast({
         title: "No repository selected",
         description: "Please select a repository to create an issue.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!issuesEnabled) {
+      const { owner, repo } = repoFullName
+      toast({
+        title: "Issues are disabled",
+        description: (
+          <span>
+            GitHub Issues are disabled for this repository. {" "}
+            <a
+              href={`https://github.com/${owner}/${repo}/settings#features`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              Enable in GitHub settings
+            </a>
+            .
+          </span>
+        ),
         variant: "destructive",
       })
       return
@@ -110,12 +135,12 @@ export default function NewTaskInput({ repoFullName }: Props) {
             <span>
               {message}{" "}
               <a
-                href={`https://github.com/${owner}/${repo}/settings`}
+                href={`https://github.com/${owner}/${repo}/settings#features`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline"
               >
-                Open repository settings
+                Open GitHub settings
               </a>
               .
             </span>
@@ -143,47 +168,77 @@ export default function NewTaskInput({ repoFullName }: Props) {
   }
 
   const isSubmitting = loading || generatingTitle || isPending
+  const isDisabled = isSubmitting || !issuesEnabled
+
+  const tooltipMessage = !issuesEnabled
+    ? "Issues are disabled for this repository. Enable them in GitHub settings."
+    : undefined
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="mb-6 grid gap-4 border-b border-muted pb-6"
-    >
-      <div className="grid gap-2">
-        <Textarea
-          id="description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Describe a task or use the microphone to speak..."
-          required
-          disabled={isSubmitting}
-          // Height tweaks: 50% viewport on mobile, 40% on md+ screens
-          className="h-[50vh] md:h-[40vh]"
-        />
-      </div>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <Button type="submit" disabled={isSubmitting}>
-          {generatingTitle ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating issue
-              title...
-            </>
-          ) : loading || isPending ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...
-            </>
-          ) : (
-            "Create Github Issue"
-          )}
-        </Button>
+    <TooltipProvider>
+      <form
+        onSubmit={handleSubmit}
+        className="mb-6 grid gap-4 border-b border-muted pb-6"
+      >
+        <div className="grid gap-2">
+          <Tooltip open={!issuesEnabled ? undefined : false}>
+            <TooltipTrigger asChild>
+              <div>
+                <Textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder={
+                    !issuesEnabled
+                      ? "Issues are disabled for this repository. Enable them in GitHub settings."
+                      : "Describe a task or use the microphone to speak..."
+                  }
+                  required
+                  disabled={isDisabled}
+                  // Height tweaks: 50% viewport on mobile, 40% on md+ screens
+                  className="h-[50vh] md:h-[40vh]"
+                />
+              </div>
+            </TooltipTrigger>
+            {!issuesEnabled && tooltipMessage ? (
+              <TooltipContent>{tooltipMessage}</TooltipContent>
+            ) : null}
+          </Tooltip>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <Tooltip open={!issuesEnabled ? undefined : false}>
+            <TooltipTrigger asChild>
+              <div>
+                <Button type="submit" disabled={isDisabled}>
+                  {generatingTitle ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating issue
+                      title...
+                    </>
+                  ) : loading || isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...
+                    </>
+                  ) : (
+                    "Create Github Issue"
+                  )}
+                </Button>
+              </div>
+            </TooltipTrigger>
+            {!issuesEnabled && tooltipMessage ? (
+              <TooltipContent>{tooltipMessage}</TooltipContent>
+            ) : null}
+          </Tooltip>
 
-        <VoiceDictationButton
-          onTranscribed={(text) =>
-            setDescription((prev) => (prev.trim() ? `${prev}\n${text}` : text))
-          }
-          disabled={isSubmitting}
-        />
-      </div>
-    </form>
+          <VoiceDictationButton
+            onTranscribed={(text) =>
+              setDescription((prev) => (prev.trim() ? `${prev}\n${text}` : text))
+            }
+            disabled={isDisabled}
+          />
+        </div>
+      </form>
+    </TooltipProvider>
   )
 }
+
