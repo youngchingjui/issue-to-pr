@@ -14,6 +14,16 @@ You must run this application on a VM, dedicated server, or persistent cloud ins
 
 For more information about running with Docker, see [docker/README.md](./docker/README.md).
 
+### Required Docker Network
+
+Agent workflows attach containers to a user-defined Docker bridge network named `preview`. If this network does not exist, container startup will fail. Create it once per host machine:
+
+```bash
+docker network create preview
+```
+
+On failure, the server logs will include guidance. The client will display a generic configuration error message asking you to check server logs.
+
 ## Documentation
 
 For detailed documentation, please visit:
@@ -36,6 +46,7 @@ Before you begin, ensure you have the following installed:
   - Strict dependency management preventing phantom dependencies
   - Dramatically improved CI/CD build times
 - Redis server
+- Docker (for containerized workflows) and the `preview` network (see above)
 
 For detailed setup instructions, see our [Getting Started Guide](docs/setup/getting-started.md).
 
@@ -112,3 +123,4 @@ Please read our [Contributing Guide](docs/guides/contributing.md) for details on
 ## Server Actions
 
 We keep server functions alongside other helpers under `lib/`. Any file can become a server action simply by including the `"use server"` directive at the top. There is no separate `actions` directory—functions defined in `lib` can be imported directly in client components and invoked as server actions. Workflow buttons should call these helpers and handle their own loading state; since workflows are long‑running, they execute in the background without additional context providers.
+
