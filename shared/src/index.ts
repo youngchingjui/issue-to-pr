@@ -8,9 +8,14 @@ export {
   buildPreviewSubdomainSlug,
   toKebabSlug,
 } from "@/shared/src/core/entities/previewSlug"
+export {
+  makeGitHubPRGraphQLAdapter,
+  makeGithubPRGraphQLAdapter,
+} from "@/shared/src/adapters/github-pullrequest-graphql"
 export * from "@/shared/src/core/ports/github"
 export * from "@/shared/src/core/ports/llm"
 export * from "@/shared/src/core/ports/refs"
+export * from "@/shared/src/core/ports/pullRequests"
 export * from "@/shared/src/core/usecases/generateBranchName"
 export * from "@/shared/src/ui/button"
 export * from "@/shared/src/ui/IssueRow"
@@ -22,3 +27,4 @@ export {
   logStart,
   withTiming,
 } from "@/shared/src/utils/telemetry"
+
