@@ -291,12 +291,20 @@ export async function createContainerizedWorkspace({
     // Git "dubious ownership" warnings caused by mismatched host UIDs.
     await exec(`chown -R root:root ${mountPath}`)
 
-    // Reset to desired branch in case copied repo isn't on it
-    await exec(`git fetch origin && git checkout ${branch}`)
+    // Ensure we are on the desired branch, create it if it doesn't exist
+    await exec(`git fetch origin || true`)
+    const checkoutRes = await exec(`git checkout ${branch}`)
+    if (checkoutRes.exitCode !== 0) {
+      await exec(`git checkout -b ${branch}`)
+    }
   } else {
     // 5. Clone the repository and checkout the requested branch
     await exec(`git clone https://github.com/${repoFullName} ${mountPath}`)
-    await exec(`git checkout ${branch}`)
+    await exec(`git fetch origin || true`)
+    const checkoutRes = await exec(`git checkout ${branch}`)
+    if (checkoutRes.exitCode !== 0) {
+      await exec(`git checkout -b ${branch}`)
+    }
   }
 
   // 6. Cleanup helper
