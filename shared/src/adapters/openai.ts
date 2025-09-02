@@ -2,21 +2,16 @@ import OpenAI from "openai"
 
 import type { LLMMessage, LLMPort } from "@/shared/src/core/ports/llm"
 
-export class OpenAIAdapter implements LLMPort {
-  private client: OpenAI
+export function makeOpenAIAdapter(params: { apiKey: string }): LLMPort {
+  const { apiKey } = params
 
-  constructor(apiKey: string | undefined = process.env.OPENAI_API_KEY) {
-    if (!apiKey) {
-      throw new Error("OpenAI API key is missing")
-    }
-    this.client = new OpenAI({ apiKey })
-  }
+  const client = new OpenAI({ apiKey })
 
-  async createCompletion({
+  async function createCompletion({
     system,
     messages,
     model = "gpt-5",
-    maxTokens = 1024,
+    maxTokens = 150000,
   }: {
     system?: string
     messages: LLMMessage[]
@@ -28,7 +23,7 @@ export class OpenAIAdapter implements LLMPort {
       ...messages.map((m) => ({ role: m.role, content: m.content })),
     ]
 
-    const res = await this.client.chat.completions.create({
+    const res = await client.chat.completions.create({
       model,
       messages: chatMessages,
       max_tokens: maxTokens,
@@ -36,7 +31,10 @@ export class OpenAIAdapter implements LLMPort {
 
     return res.choices[0]?.message?.content?.trim() ?? ""
   }
+
+  return {
+    createCompletion,
+  }
 }
 
-export default OpenAIAdapter
-
+export default makeOpenAIAdapter
