@@ -84,6 +84,47 @@ async function summarizeIssue(job: Job): Promise<string> {
   return completion.choices[0]?.message?.content?.trim() ?? ""
 }
 
+// --- Auto Resolve Issue job handler ---
+import { runWithInstallationId } from "@/lib/utils/utils-server"
+import { getRepoFromString } from "@/lib/github/content"
+import { getIssue } from "@/lib/github/issues"
+import autoResolveIssue from "@/lib/workflows/autoResolveIssue"
+
+async function handleAutoResolveIssue(job: Job) {
+  const { repoFullName, issueNumber, installationId } = job.data as {
+    repoFullName: string
+    issueNumber: number
+    installationId: number
+  }
+
+  if (!repoFullName || typeof issueNumber !== "number" || !installationId) {
+    throw new Error("Invalid job payload for autoResolveIssue")
+  }
+
+  await publishStatus(String(job.id), "Starting auto-resolve workflow")
+
+  return await runWithInstallationId(String(installationId), async () => {
+    const repo = await getRepoFromString(repoFullName)
+    const issueResult = await getIssue({ fullName: repoFullName, issueNumber })
+
+    if (issueResult.type !== "success") {
+      throw new Error(
+        `Failed to fetch issue: ${JSON.stringify(issueResult, null, 2)}`
+      )
+    }
+
+    await autoResolveIssue({
+      issue: issueResult.issue,
+      repository: repo,
+      apiKey: openaiApiKey, // Use worker OpenAI key
+      jobId: String(job.id),
+    })
+
+    await publishStatus(String(job.id), "Auto-resolve workflow completed")
+    return { status: "ok" }
+  })
+}
+
 async function processor(job: Job) {
   console.log(`Processing job ${job.id}: ${job.name}`)
   await publishStatus(String(job.id), "Started: processing job")
@@ -95,6 +136,9 @@ async function processor(job: Job) {
         const final = summary || "No summary generated"
         await publishStatus(String(job.id), `Completed: ${final}`)
         return { summary: final }
+      }
+      case "autoResolveIssue": {
+        return await handleAutoResolveIssue(job)
       }
       default: {
         const msg = `Unknown job name: ${job.name}`
@@ -123,3 +167,4 @@ events.on("failed", ({ jobId, failedReason }) => {
 })
 
 console.log("Worker started and listening for jobs on the 'default' queue…")
+

@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { v4 as uuidv4 } from "uuid"
 import { z } from "zod"
 
-import { getRepoFromString } from "@/lib/github/content"
-import { getIssue } from "@/lib/github/issues"
-import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
 import { AutoResolveIssueRequestSchema } from "@/lib/schemas/api"
-import autoResolveIssue from "@/lib/workflows/autoResolveIssue"
+import { getInstallationFromRepo } from "@/lib/github/repos"
+import { addJob } from "@/shared/src/services/job"
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,38 +11,36 @@ export async function POST(request: NextRequest) {
     const { issueNumber, repoFullName } =
       AutoResolveIssueRequestSchema.parse(body)
 
-    const apiKey = await getUserOpenAIApiKey()
-    if (!apiKey) {
+    // Determine installation id for the repo so the worker can use the App token
+    const [owner, repo] = repoFullName.split("/")
+    if (!owner || !repo) {
       return NextResponse.json(
-        { error: "Missing OpenAI API key" },
-        { status: 401 }
+        { error: "Invalid repository full name" },
+        { status: 400 }
       )
     }
 
-    const jobId = uuidv4()
+    let installationId: number | undefined
+    try {
+      const installation = await getInstallationFromRepo({ owner, repo })
+      installationId = installation.data.id
+    } catch (e) {
+      console.error(
+        `[autoResolveIssue] Failed to get installation for ${repoFullName}:`,
+        e
+      )
+      return NextResponse.json(
+        { error: "GitHub App is not installed on this repository" },
+        { status: 403 }
+      )
+    }
 
-    ;(async () => {
-      try {
-        const repo = await getRepoFromString(repoFullName)
-        const issueResult = await getIssue({
-          fullName: repoFullName,
-          issueNumber,
-        })
-
-        if (issueResult.type !== "success") {
-          throw new Error(JSON.stringify(issueResult))
-        }
-
-        await autoResolveIssue({
-          issue: issueResult.issue,
-          repository: repo,
-          apiKey,
-          jobId,
-        })
-      } catch (error) {
-        console.error(error)
-      }
-    })()
+    // Enqueue job for the worker to process
+    const jobId = await addJob("default", "autoResolveIssue", {
+      repoFullName,
+      issueNumber,
+      installationId,
+    })
 
     return NextResponse.json({ jobId })
   } catch (error) {
@@ -62,3 +57,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
