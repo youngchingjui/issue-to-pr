@@ -4,9 +4,11 @@ export {
   TimedGitHubIssuesPort,
 } from "@/shared/src/adapters/decorators/timing"
 export { makeOpenAIAdapter } from "@/shared/src/adapters/openai"
+export { makeGitHubPRGraphQLAdapter, makeGithubPRGraphQLAdapter } from "@/shared/src/adapters/github-pullrequest-graphql"
 export * from "@/shared/src/core/ports/github"
 export * from "@/shared/src/core/ports/llm"
 export * from "@/shared/src/core/ports/refs"
+export * from "@/shared/src/core/ports/pullRequests"
 export * from "@/shared/src/core/usecases/generateBranchName"
 export * from "@/shared/src/ui/IssueRow"
 export * from "@/shared/src/ui/Microphone"
@@ -18,3 +20,4 @@ export {
   logStart,
   withTiming,
 } from "@/shared/src/utils/telemetry"
+
