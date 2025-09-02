@@ -1,13 +1,14 @@
 // Jest tests for generateNonConflictingBranchName use case
 
-import { generateNonConflictingBranchName } from "@/shared/src/core/usecases/generateBranchName"
-import type { LLMPort } from "@/shared/src/core/ports/llm"
-import type { GitHubRefsPort } from "@/shared/src/core/ports/refs"
+import type { LLMPort } from "@shared/core/ports/llm"
+import type { GitHubRefsPort } from "@shared/core/ports/refs"
+import { generateNonConflictingBranchName } from "@shared/core/usecases/generateBranchName"
 
-function mockPorts(overrides?: {
-  llmText?: string
-  branches?: string[]
-}): { llm: LLMPort; refs: GitHubRefsPort; spies: { llm: jest.SpyInstance; refs: jest.SpyInstance } } {
+function mockPorts(overrides?: { llmText?: string; branches?: string[] }): {
+  llm: LLMPort
+  refs: GitHubRefsPort
+  spies: { llm: jest.SpyInstance; refs: jest.SpyInstance }
+} {
   const llmResp = overrides?.llmText ?? "sample-branch"
   const list = overrides?.branches ?? []
 
@@ -51,7 +52,12 @@ describe("generateNonConflictingBranchName", () => {
   it("increments numeric suffix until a unique branch is found", async () => {
     const base = "fix-login-bug"
     const candidate = `fix/${base}`
-    const conflicts = [candidate, `${candidate}-2`, `${candidate}-3`, `${candidate}-4`]
+    const conflicts = [
+      candidate,
+      `${candidate}-2`,
+      `${candidate}-3`,
+      `${candidate}-4`,
+    ]
 
     const { llm, refs } = mockPorts({ llmText: base })
 
@@ -95,7 +101,9 @@ describe("generateNonConflictingBranchName", () => {
   })
 
   it("cleans noisy LLM output and returns a kebab-case slug without prefix when not provided", async () => {
-    const { llm, refs } = mockPorts({ llmText: "Feature: Add / Payment flow!!!" })
+    const { llm, refs } = mockPorts({
+      llmText: "Feature: Add / Payment flow!!!",
+    })
 
     const result = await generateNonConflictingBranchName(
       { llm, refs },
@@ -126,7 +134,10 @@ describe("generateNonConflictingBranchName", () => {
   })
 
   it("uses refs.listBranches when existingBranches not provided", async () => {
-    const { llm, refs, spies } = mockPorts({ llmText: "refactor-components", branches: ["main"] })
+    const { llm, refs, spies } = mockPorts({
+      llmText: "refactor-components",
+      branches: ["main"],
+    })
 
     const result = await generateNonConflictingBranchName(
       { llm, refs },
@@ -160,4 +171,3 @@ describe("generateNonConflictingBranchName", () => {
     expect(result.startsWith("feature/")).toBe(true)
   })
 })
-
