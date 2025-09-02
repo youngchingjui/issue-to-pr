@@ -10,6 +10,7 @@ export * from "@/shared/src/core/ports/refs"
 export * from "@/shared/src/core/usecases/generateBranchName"
 export * from "@/shared/src/ui/IssueRow"
 export * from "@/shared/src/ui/Microphone"
+export * from "@/shared/src/ui/button"
 export type { LogMeta } from "@/shared/src/utils/telemetry"
 export {
   logEnd,
