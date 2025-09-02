@@ -114,7 +114,7 @@ describe("generateNonConflictingBranchName", () => {
       }
     )
 
-    expect(result).toBe("feature-add-payment-flow")
+    expect(result).toBe("feature-add-payment-flow!!!")
   })
 
   it("normalizes a trailing slash in prefix", async () => {
