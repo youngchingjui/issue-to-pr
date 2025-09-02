@@ -390,6 +390,9 @@ importers:
       ioredis:
         specifier: ^5.3.2
         version: 5.7.0
+      openai:
+        specifier: ^5.12.2
+        version: 5.12.2(ws@8.18.3)(zod@3.24.2)
       zod:
         specifier: ^3.22.4
         version: 3.24.2
