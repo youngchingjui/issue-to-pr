@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from "uuid"
 
-import PlanAndCodeAgent from "@/lib/agents/PlanAndCodeAgent"
+import FixPullRequestAgent from "@/lib/agents/FixPullRequestAgent"
 import { getInstallationTokenFromRepo } from "@/lib/github/installation"
 import { getIssue } from "@/lib/github/issues"
 import {
@@ -103,9 +103,9 @@ export async function autoFixPullRequest({
     const sessionToken = await getInstallationTokenFromRepo({ owner, repo })
 
     const trace = langfuse.trace({ name: "autoFixPullRequest" })
-    const span = trace.span({ name: "PlanAndCodeAgent" })
+    const span = trace.span({ name: "FixPullRequestAgent" })
 
-    const agent = new PlanAndCodeAgent({
+    const agent = new FixPullRequestAgent({
       apiKey,
       env,
       defaultBranch: repository.default_branch,
@@ -232,4 +232,3 @@ Constraints and requirements:
 }
 
 export default autoFixPullRequest
-

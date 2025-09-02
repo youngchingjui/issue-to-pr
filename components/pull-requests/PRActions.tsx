@@ -1,6 +1,6 @@
+import AutoFixPRController from "@/components/pull-requests/controllers/AutoFixPRController"
 import IdentifyPRGoalController from "@/components/pull-requests/controllers/IdentifyPRGoalController"
 import ReviewPRController from "@/components/pull-requests/controllers/ReviewPRController"
-import AutoFixPRController from "@/components/pull-requests/controllers/AutoFixPRController"
 import { Button } from "@/components/ui/button"
 import { GitHubIssue, WorkflowType } from "@/lib/types/github"
 import { getRepoFullNameFromIssue } from "@/lib/utils/utils-common"
@@ -78,9 +78,10 @@ export default function PRActions({
         }}
         disabled={isLoading}
       >
-        {activeWorkflow === "Auto-fixing PR..." ? "Auto-fixing..." : "Auto-fix PR"}
+        {activeWorkflow === "Auto-fixing PR..."
+          ? "Auto-fixing..."
+          : "Auto-fix PR"}
       </Button>
     </div>
   )
 }
-
