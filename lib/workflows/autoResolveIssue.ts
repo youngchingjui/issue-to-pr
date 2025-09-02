@@ -1,8 +1,9 @@
+import { generateNonConflictingBranchName } from "@shared/core/usecases/generateBranchName"
 import { v4 as uuidv4 } from "uuid"
 
-import PlanAndCodeAgent from "@/lib/agents/PlanAndCodeAgent"
-import { GitHubRefsAdapter } from "@/lib/adapters/GitHubRefsAdapter"
 import { BasicLLMAdapter } from "@/lib/adapters/BasicLLMAdapter"
+import { GitHubRefsAdapter } from "@/lib/adapters/GitHubRefsAdapter"
+import PlanAndCodeAgent from "@/lib/agents/PlanAndCodeAgent"
 import { getInstallationTokenFromRepo } from "@/lib/github/installation"
 import { getIssueComments } from "@/lib/github/issues"
 import { checkRepoPermissions } from "@/lib/github/users"
@@ -21,7 +22,6 @@ import {
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
-import { generateNonConflictingBranchName } from "@shared/core/usecases/generateBranchName"
 
 interface Params {
   issue: GitHubIssue
@@ -190,4 +190,3 @@ export const autoResolveIssue = async ({
 }
 
 export default autoResolveIssue
-

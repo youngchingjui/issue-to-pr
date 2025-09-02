@@ -15,7 +15,13 @@ function toKebab(input: string): string {
  * LLMPort contract sufficiently for our generateNonConflictingBranchName use case.
  */
 export class BasicLLMAdapter implements LLMPort {
-  async createCompletion({ system, messages }: { system?: string; messages: LLMMessage[] }): Promise<string> {
+  async createCompletion({
+    system,
+    messages,
+  }: {
+    system?: string
+    messages: LLMMessage[]
+  }): Promise<string> {
     // Prefer the latest user message content
     const lastUser = [...messages].reverse().find((m) => m.role === "user")
     const base = lastUser?.content ?? messages.map((m) => m.content).join(" ")
@@ -31,4 +37,3 @@ export class BasicLLMAdapter implements LLMPort {
 }
 
 export default BasicLLMAdapter
-
