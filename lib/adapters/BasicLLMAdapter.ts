@@ -1,3 +1,7 @@
+// TODO: This is not the right implementation.
+// Later we will make an OpenAI/Anthropic specific adapter
+// And it'll be in the @shared folder instead of /lib
+
 import type { LLMMessage, LLMPort } from "@shared/core/ports/llm"
 
 function toKebab(input: string): string {
