@@ -1,4 +1,5 @@
 export { AnthropicAdapter } from "@/shared/src/adapters/anthropic"
+export { OpenAIAdapter } from "@/shared/src/adapters/openai"
 export {
   decorateWithTiming,
   TimedGitHubIssuesPort,
@@ -16,3 +17,4 @@ export {
   logStart,
   withTiming,
 } from "@/shared/src/utils/telemetry"
+
