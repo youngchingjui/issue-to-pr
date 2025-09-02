@@ -1,0 +1,9 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["jest", "node"],
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true
+  },
+  "include": ["__tests__/**/*", "lib/**/*", "components/**/*", "app/**/*"]
+}
