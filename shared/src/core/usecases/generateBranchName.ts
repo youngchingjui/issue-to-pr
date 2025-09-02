@@ -34,8 +34,13 @@ export async function generateNonConflictingBranchName(
 
   // 1) Load existing branches
   const existing = new Set(
-    (params.existingBranches ??
-      (await ports.refs.listBranches({ owner: params.owner, repo: params.repo })))
+    (
+      params.existingBranches ??
+      (await ports.refs.listBranches({
+        owner: params.owner,
+        repo: params.repo,
+      }))
+    )
       .map((b) => b.trim())
       .filter(Boolean)
   )
@@ -49,9 +54,12 @@ export async function generateNonConflictingBranchName(
 
   const user = `Context:\n${trimToMax(params.context, 2000)}\n\nRespond with only a short kebab-case slug suitable for a branch name. Example: add-dismiss-button-to-toasts`
 
-  const raw = (await ports.llm.createCompletion({ system, messages: [
-    { role: "user", content: user },
-  ] })).trim()
+  const raw = (
+    await ports.llm.createCompletion({
+      system,
+      messages: [{ role: "user", content: user }],
+    })
+  ).trim()
 
   // 3) Sanitize and format candidate
   const baseSlug = sanitizeToSlug(raw) || "new-branch"
@@ -73,7 +81,10 @@ export async function generateNonConflictingBranchName(
   if (!existing.has(fallback)) return fallback
 
   // Extremely unlikely path: random suffix
-  return trimToMax(`${candidate}-${Math.random().toString(36).slice(2, 8)}`, 200)
+  return trimToMax(
+    `${candidate}-${Math.random().toString(36).slice(2, 8)}`,
+    200
+  )
 }
 
 function sanitizeToSlug(input: string): string {
@@ -95,4 +106,3 @@ function trimToMax(input: string, max: number): string {
   if (input.length <= max) return input
   return input.slice(0, max)
 }
-

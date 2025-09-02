@@ -5,4 +5,3 @@ export interface GitHubRefsPort {
    */
   listBranches(params: { owner: string; repo: string }): Promise<string[]>
 }
-
