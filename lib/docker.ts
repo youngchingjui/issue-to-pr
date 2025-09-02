@@ -81,7 +81,7 @@ export async function startContainer({
 
   // 2. Build environment variable flags: -e "KEY=value"
   const envFlags = Object.entries(env).map(
-    ([key, value]) => `-e \"${key}=${value.replace(/"/g, '\\\"')}\"`
+    ([key, value]) => `-e \"${key}=${value.replace(/"/g, '\\\\"')}\"`
   )
 
   // 3. Build label flags: --label key=value
@@ -237,7 +237,7 @@ export async function execInContainer({
   cwd?: string
 }): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const workdirFlag = cwd ? `--workdir \"${cwd}\"` : ""
-  const execCmd = `docker exec ${workdirFlag} ${name} sh -c '${command.replace(/'/g, "'\\\''")}'`
+  const execCmd = `docker exec ${workdirFlag} ${name} sh -c '${command.replace(/'/g, "'\\\\\''")}'`
   try {
     const { stdout, stderr } = await execPromise(execCmd)
     return { stdout, stderr, exitCode: 0 }
@@ -294,6 +294,35 @@ export async function listRunningContainers(): Promise<RunningContainer[]> {
     })
   } catch (error) {
     console.error("[ERROR] Failed to list running containers:", error)
+    return []
+  }
+}
+
+/**
+ * List container names matching a set of Docker label filters. Includes stopped containers.
+ */
+export async function listContainersByLabels(labels: Record<string, string>): Promise<string[]> {
+  const filters: string[] = []
+  for (const [key, value] of Object.entries(labels)) {
+    if (value !== undefined && value !== null) {
+      filters.push(`--filter \"label=${key}=${value}\"`)
+    }
+  }
+  const cmd = [
+    "docker ps -a",
+    ...filters,
+    "--format '{{.Names}}'",
+  ].join(" ")
+
+  try {
+    const { stdout } = await execPromise(cmd)
+    return stdout
+      .trim()
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean)
+  } catch (error) {
+    console.error("[ERROR] Failed to list containers by labels:", error)
     return []
   }
 }

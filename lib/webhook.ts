@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from "uuid"
 
 import { getRepoFromString } from "@/lib/github/content"
 import { getIssue } from "@/lib/github/issues"
+import { listContainersByLabels, stopAndRemoveContainer } from "@/lib/docker"
 import { updateJobStatus } from "@/lib/redis-old"
 import { resolveIssue } from "@/lib/workflows/resolveIssue"
 
@@ -95,6 +96,52 @@ export const routeWebhookHandler = async ({
     if (action === "opened") {
       // No-op: we intentionally do not launch any workflow on new issue creation.
       return
+    }
+  } else if (event === GitHubEvent.PullRequest) {
+    const action = payload["action"]
+
+    // We only care when a PR is closed AND merged
+    if (action === "closed" && payload["pull_request"]?.["merged"]) {
+      try {
+        const repo = payload["repository"]?.["name"]
+        const owner = payload["repository"]?.["owner"]?.["login"]
+        const branch = payload["pull_request"]?.["head"]?.["ref"]
+
+        if (!repo || !owner || !branch) {
+          console.warn(
+            "[Webhook] Missing repo/owner/branch in pull_request payload; skipping container cleanup"
+          )
+          return
+        }
+
+        // Find containers created for this PR branch via labels. Also require preview=true for safety.
+        const containerNames = await listContainersByLabels({
+          preview: "true",
+          owner,
+          repo,
+          branch,
+        })
+
+        if (!containerNames.length) {
+          console.log(
+            `[Webhook] No matching containers found for ${owner}/${repo}@${branch}`
+          )
+          return
+        }
+
+        await Promise.all(
+          containerNames.map((name) => stopAndRemoveContainer(name))
+        )
+
+        console.log(
+          `[Webhook] Cleaned up ${containerNames.length} container(s) for merged PR ${owner}/${repo}@${branch}`
+        )
+      } catch (e) {
+        console.error(
+          "[Webhook] Failed to clean up containers on PR merge:",
+          e
+        )
+      }
     }
   } else {
     const repository =
