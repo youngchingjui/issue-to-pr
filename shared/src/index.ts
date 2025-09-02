@@ -3,6 +3,7 @@ export {
   decorateWithTiming,
   TimedGitHubIssuesPort,
 } from "@/shared/src/adapters/decorators/timing"
+export { makeOpenAIAdapter } from "@/shared/src/adapters/openai"
 export * from "@/shared/src/core/ports/github"
 export * from "@/shared/src/core/ports/llm"
 export * from "@/shared/src/core/ports/refs"
