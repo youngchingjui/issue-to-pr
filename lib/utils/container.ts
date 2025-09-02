@@ -50,6 +50,14 @@ interface ContainerizedWorktreeOptions {
 export const DEFAULT_GIT_USER_NAME = "Issue To PR agent"
 export const DEFAULT_GIT_USER_EMAIL = "agent@issuetopr.dev"
 
+function toSlug(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "-")
+    .replace(/-{2,}/g, "-")
+    .replace(/^-|-$/g, "")
+}
+
 /**
  * Creates a directory tree listing from within a container, replicating the logic
  * from lib/fs.ts createDirectoryTree but executing in the containerized environment.
@@ -135,6 +143,16 @@ export async function createContainerizedWorktree({
 
   const containerName = containerNameForTrace(workflowId)
 
+  // Metadata for labels and network alias
+  const [ownerRaw, repoRaw] = repoFullName.split("/")
+  const owner = ownerRaw ?? ""
+  const repo = repoRaw ?? ""
+  const branchSlug = toSlug(branch)
+  const ownerSlug = toSlug(owner)
+  const repoSlug = toSlug(repo)
+  const subdomain = [branchSlug, ownerSlug, repoSlug].filter(Boolean).join("-")
+  const ttlHours = Number.parseInt(process.env.CONTAINER_TTL_HOURS ?? "24", 10)
+
   // 4. Start detached container mounting both the *clone* (read-only) and the *worktree* (rw)
   await startContainer({
     image,
@@ -144,6 +162,18 @@ export async function createContainerizedWorktree({
       { hostPath: worktreeDir, containerPath: worktreeDir },
     ],
     workdir: worktreeDir,
+    labels: {
+      preview: "true",
+      repo,
+      owner,
+      branch,
+      ...(Number.isFinite(ttlHours) ? { "ttl-hours": String(ttlHours) } : {}),
+      subdomain,
+    },
+    network: {
+      name: "preview",
+      aliases: subdomain ? [subdomain] : [],
+    },
   })
 
   // Helper functions
@@ -193,11 +223,19 @@ export async function createContainerizedWorkspace({
   mountPath = "/workspace",
   hostRepoPath,
 }: ContainerizedWorktreeOptions): Promise<ContainerizedWorktreeResult> {
-  const [owner, repo] = repoFullName.split("/")
+  const [ownerRaw, repoRaw] = repoFullName.split("/")
+  const owner = ownerRaw ?? ""
+  const repo = repoRaw ?? ""
   const token = await getInstallationTokenFromRepo({ owner, repo })
 
   // 2. Start a detached container with GITHUB_TOKEN env set
   const containerName = containerNameForTrace(workflowId)
+
+  const branchSlug = toSlug(branch)
+  const ownerSlug = toSlug(owner)
+  const repoSlug = toSlug(repo)
+  const subdomain = [branchSlug, ownerSlug, repoSlug].filter(Boolean).join("-")
+  const ttlHours = Number.parseInt(process.env.CONTAINER_TTL_HOURS ?? "24", 10)
 
   await startContainer({
     image,
@@ -207,6 +245,18 @@ export async function createContainerizedWorkspace({
       GITHUB_TOKEN: token,
     },
     workdir: mountPath,
+    labels: {
+      preview: "true",
+      repo,
+      owner,
+      branch,
+      ...(Number.isFinite(ttlHours) ? { "ttl-hours": String(ttlHours) } : {}),
+      subdomain,
+    },
+    network: {
+      name: "preview",
+      aliases: subdomain ? [subdomain] : [],
+    },
   })
 
   // 3. Helper exec wrapper
@@ -320,3 +370,4 @@ export async function copyRepoToExistingContainer({
     throw new Error(`Failed to copy repository to container: ${e}`)
   }
 }
+
