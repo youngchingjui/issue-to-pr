@@ -1,6 +1,7 @@
 import { Suspense } from "react"
 
 import IssueRows from "@/components/issues/IssueRows"
+import LoadMoreIssues from "@/components/issues/LoadMoreIssues"
 import RowsSkeleton from "@/components/issues/RowsSkeleton"
 import TaskRows from "@/components/issues/TaskRows"
 import { Table, TableBody } from "@/components/ui/table"
@@ -20,6 +21,9 @@ export default async function IssueTable({ repoFullName }: Props) {
             <IssueRows repoFullName={repoFullName} />
           </Suspense>
 
+          {/* Load more button and dynamically loaded issues */}
+          <LoadMoreIssues repoFullName={repoFullName.fullName} />
+
           <Suspense fallback={<RowsSkeleton rows={2} columns={3} />}>
             <TaskRows repoFullName={repoFullName} />
           </Suspense>
@@ -28,3 +32,4 @@ export default async function IssueTable({ repoFullName }: Props) {
     </div>
   )
 }
+
