@@ -11,15 +11,24 @@ import type { IssueWithStatus } from "@/lib/github/issues"
 interface Props {
   repoFullName: string
   perPage?: number
+  // Whether the initial server-rendered page indicates more results exist.
+  // If false, we will not show the load more button initially.
+  initialHasMore?: boolean
 }
 
-export default function LoadMoreIssues({ repoFullName, perPage = 25 }: Props) {
+export default function LoadMoreIssues({
+  repoFullName,
+  perPage = 25,
+  initialHasMore,
+}: Props) {
   const [page, setPage] = useState(1) // initial server rendered page is 1; next fetch will be 2
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [issues, setIssues] = useState<IssueWithStatus[]>([])
   const [prMap, setPrMap] = useState<Record<number, number | null>>({})
-  const [hasMore, setHasMore] = useState<boolean | null>(null)
+  const [hasMore, setHasMore] = useState<boolean | null>(
+    typeof initialHasMore === "boolean" ? initialHasMore : null
+  )
 
   const loadMore = async () => {
     if (loading) return

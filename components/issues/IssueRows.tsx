@@ -1,5 +1,6 @@
 import IssueRow from "@/components/issues/IssueRow"
 import PRStatusIndicator from "@/components/issues/PRStatusIndicator"
+import LoadMoreIssues from "@/components/issues/LoadMoreIssues"
 import {
   getIssueListWithStatus,
   getLinkedPRNumbersForIssues,
@@ -11,9 +12,10 @@ interface Props {
 }
 
 export default async function IssueRows({ repoFullName }: Props) {
+  const perPage = 25
   const issues = await getIssueListWithStatus({
     repoFullName: repoFullName.fullName,
-    per_page: 25,
+    per_page: perPage,
   })
 
   if (issues.length === 0) return null
@@ -39,6 +41,14 @@ export default async function IssueRows({ repoFullName }: Props) {
           }
         />
       ))}
+
+      {/* Load more button and dynamically loaded issues: only show if the first page was full */}
+      <LoadMoreIssues
+        repoFullName={repoFullName.fullName}
+        perPage={perPage}
+        initialHasMore={issues.length === perPage}
+      />
     </>
   )
 }
+
