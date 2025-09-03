@@ -78,8 +78,8 @@ export async function generateNonConflictingBranchName(
 
   // 3) Parse and format candidate
   const baseSlug = baseBranchSlugSchema.parse(raw)
-  let candidate = prefix ? `${prefix}/${baseSlug}` : baseSlug
-  candidate = trimToMax(candidate, MAX_BRANCH_NAME_LENGTH)
+  const trimmedSlug = trimToMax(baseSlug, MAX_BRANCH_NAME_LENGTH)
+  const candidate = prefix ? `${prefix}/${trimmedSlug}` : trimmedSlug
 
   // 4) Ensure uniqueness by appending numeric suffixes
   if (!existing.has(candidate)) return candidate
