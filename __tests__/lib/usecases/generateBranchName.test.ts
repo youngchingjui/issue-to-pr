@@ -172,4 +172,3 @@ describe("generateNonConflictingBranchName", () => {
     expect(result.startsWith("feature/")).toBe(true)
   })
 })
-
