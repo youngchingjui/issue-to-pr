@@ -75,7 +75,7 @@ describe("generateNonConflictingBranchName", () => {
     expect(result).toBe(`${candidate}-5`)
   })
 
-  it("falls back to timestamp when maxAttempts is exhausted (and trims to max length)", async () => {
+  it("falls back to timestamp when maxAttempts is exhausted (no hard trimming)", async () => {
     const fixedNow = 1_725_000_000_000
     jest.spyOn(Date, "now").mockReturnValue(fixedNow)
 
@@ -97,8 +97,7 @@ describe("generateNonConflictingBranchName", () => {
       }
     )
 
-    expect(result.startsWith(`${candidate}-`)).toBe(true)
-    expect(result.length).toBeLessThanOrEqual(30)
+    expect(result).toBe(`${candidate}-${fixedNow}`)
   })
 
   it("cleans noisy LLM output and returns a kebab-case slug without prefix when not provided", async () => {
@@ -154,7 +153,7 @@ describe("generateNonConflictingBranchName", () => {
     expect(result).toBe("chore/refactor-components")
   })
 
-  it("trims the final branch name to the max length", async () => {
+  it("does not trim the final branch name to a hard limit", async () => {
     const long = "a".repeat(500)
     const { llm, refs } = mockPorts({ llmText: long })
 
@@ -168,7 +167,7 @@ describe("generateNonConflictingBranchName", () => {
       }
     )
 
-    expect(result.length).toBeLessThanOrEqual(30 + "feature/".length)
-    expect(result.startsWith("feature/")).toBe(true)
+    expect(result).toBe(`feature/${long}`)
   })
 })
+
