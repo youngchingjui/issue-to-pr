@@ -4,7 +4,8 @@
     "next/core-web-vitals",
     "next/typescript",
     "prettier",
-    "plugin:react-hooks/recommended-legacy"
+    "plugin:react-hooks/recommended-legacy",
+    "plugin:storybook/recommended"
   ],
   "rules": {
     "@typescript-eslint/no-unused-vars": [
@@ -16,7 +17,18 @@
     ],
     "no-unused-vars": "off",
     "simple-import-sort/imports": "warn",
-    "simple-import-sort/exports": "warn"
+    "simple-import-sort/exports": "warn",
+    "no-restricted-imports": [
+      "warn",
+      {
+        "paths": [
+          {
+            "name": "@/shared/src",
+            "message": "Import from explicit subpaths (entities, ports, adapters, services)."
+          }
+        ]
+      }
+    ]
   },
   "parserOptions": {
     "sourceType": "module",

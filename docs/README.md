@@ -2,7 +2,7 @@
 
 ## Overview
 
-Issue-to-PR is a Next.js application that automates GitHub issue resolution using AI. This documentation provides comprehensive information about the application's architecture, features, and implementation details.
+Issue-to-PR is a Next.js application that automates GitHub issue resolution using AI. This documentation provides information about the application's architecture, features, and implementation details.
 
 ## Documentation Structure
 
