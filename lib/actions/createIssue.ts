@@ -1,6 +1,6 @@
 "use server"
 
-import { makeGithubGraphQLAdapter } from "@shared/adapters/github-graphql"
+import { makeIssuesWriterAdapter } from "@shared/adapters/github/octokit/graphql/issue.writer"
 import { createIssueForRepo } from "@shared/services/github/issues"
 
 import { auth } from "@/auth"
@@ -40,7 +40,7 @@ export async function createIssueAction(
     }
   }
 
-  const githubAdapter = makeGithubGraphQLAdapter(token)
+  const githubAdapter = makeIssuesWriterAdapter({ token })
   const res = await createIssueForRepo(githubAdapter, parsed.data)
 
   if (res.ok) {

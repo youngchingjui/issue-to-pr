@@ -1,23 +1,26 @@
-import type {
-  CreateIssueInput,
-  GetIssueErrors,
-  GithubIssueErrors,
-  GitHubIssuesPort,
-  Issue,
-  IssueDetails,
-  IssueRef,
-  IssueTitleResult,
-} from "@shared/core/ports/github"
 import type { Result } from "@shared/entities/result"
 import { withTiming } from "@shared/utils/telemetry"
+
+import {
+  GetIssueErrors,
+  IssueDetails,
+  IssueReaderPort,
+  IssueRef,
+  IssueTitleResult,
+} from "../../core/ports/github/issue.reader"
+import {
+  CreateIssueInput,
+  GithubIssueErrors,
+  Issue,
+} from "../../core/ports/github/issue.writer"
 
 /**
  * Timing decorator for GitHubIssuesPort that adds telemetry to all methods.
  * Only instruments when ENABLE_TIMING=1, otherwise delegates directly to the inner adapter.
  */
-export class TimedGitHubIssuesPort implements GitHubIssuesPort {
+export class TimedGitHubIssuesPort implements IssueReaderPort {
   constructor(
-    private inner: GitHubIssuesPort,
+    private inner: IssueReaderPort,
     private labelPrefix = "GitHub",
     private enabled = process.env.ENABLE_TIMING === "1"
   ) {}
@@ -77,4 +80,3 @@ export function decorateWithTiming<T extends object>(
     },
   })
 }
-
