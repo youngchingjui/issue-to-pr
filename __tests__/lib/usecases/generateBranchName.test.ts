@@ -75,7 +75,7 @@ describe("generateNonConflictingBranchName", () => {
     expect(result).toBe(`${candidate}-5`)
   })
 
-  it("falls back to timestamp when maxAttempts is exhausted", async () => {
+  it("falls back to timestamp when maxAttempts is exhausted (no hard trimming)", async () => {
     const fixedNow = 1_725_000_000_000
     jest.spyOn(Date, "now").mockReturnValue(fixedNow)
 
@@ -153,7 +153,7 @@ describe("generateNonConflictingBranchName", () => {
     expect(result).toBe("chore/refactor-components")
   })
 
-  it("trims the final branch name to the max length", async () => {
+  it("does not trim the final branch name to a hard limit", async () => {
     const long = "a".repeat(500)
     const { llm, refs } = mockPorts({ llmText: long })
 
@@ -167,7 +167,7 @@ describe("generateNonConflictingBranchName", () => {
       }
     )
 
-    expect(result.length).toBeLessThanOrEqual(200)
-    expect(result.startsWith("feature/")).toBe(true)
+    expect(result).toBe(`feature/${long}`)
   })
 })
+

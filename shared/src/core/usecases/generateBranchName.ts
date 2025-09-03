@@ -6,7 +6,6 @@ import type { LLMPort } from "@shared/core/ports/llm"
 import type { GitHubRefsPort } from "@shared/core/ports/refs"
 
 const MAX_CONTEXT_LENGTH = 100000
-const MAX_BRANCH_NAME_LENGTH = 200
 const MAX_ATTEMPTS = 10
 
 export type GenerateBranchNameParams = {
@@ -61,7 +60,7 @@ export async function generateNonConflictingBranchName(
   // 2) Ask LLM for a candidate slug from the context
   const system = [
     "You generate short, descriptive Git branch names in kebab-case.",
-    "Prefer 3-6 words max.",
+    "Keep it short (ideally 3-6 words).",
     "Return ONLY the branch path (no code blocks, no quotes).",
     `${prefix ? `Do NOT provide a prefix in the branch path, we will add this manually.` : ""}`,
   ].join(" ")
@@ -78,31 +77,24 @@ export async function generateNonConflictingBranchName(
 
   // 3) Parse and format candidate
   const baseSlug = baseBranchSlugSchema.parse(raw)
-  let candidate = prefix ? `${prefix}/${baseSlug}` : baseSlug
-  candidate = trimToMax(candidate, MAX_BRANCH_NAME_LENGTH)
+  const candidate = prefix ? `${prefix}/${baseSlug}` : baseSlug
 
   // 4) Ensure uniqueness by appending numeric suffixes
   if (!existing.has(candidate)) return candidate
 
   let attempt = 2
   while (attempt <= maxAttempts) {
-    const next = trimToMax(`${candidate}-${attempt}`, MAX_BRANCH_NAME_LENGTH)
+    const next = `${candidate}-${attempt}`
     if (!existing.has(next)) return next
     attempt++
   }
 
   // 5) As a last resort, include a timestamp suffix
-  const fallback = trimToMax(
-    `${candidate}-${Date.now()}`,
-    MAX_BRANCH_NAME_LENGTH
-  )
+  const fallback = `${candidate}-${Date.now()}`
   if (!existing.has(fallback)) return fallback
 
   // Extremely unlikely path: random suffix
-  return trimToMax(
-    `${candidate}-${Math.random().toString(36).slice(2, 8)}`,
-    MAX_BRANCH_NAME_LENGTH
-  )
+  return `${candidate}-${Math.random().toString(36).slice(2, 8)}`
 }
 
 function trimToMax(input: string, max: number): string {
