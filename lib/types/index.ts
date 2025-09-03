@@ -50,6 +50,9 @@ export const workflowRunSchema = z.object({
   type: workflowTypeEnum,
   createdAt: z.date(),
   postToGithub: z.boolean().optional(),
+  // Optional preview information for linking to running containers
+  previewSubdomain: z.string().optional(),
+  previewUrl: z.string().url().optional(),
 })
 
 // Plans

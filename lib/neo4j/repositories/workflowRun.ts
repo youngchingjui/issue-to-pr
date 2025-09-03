@@ -248,3 +248,28 @@ export async function mergeIssueLink(
   const parsedIssue = issueSchema.parse(result.records[0].get("i").properties)
   return { run, issue: parsedIssue }
 }
+
+export async function setPreviewInfo(
+  tx: ManagedTransaction,
+  {
+    workflowId,
+    previewSubdomain,
+    previewUrl,
+  }: { workflowId: string; previewSubdomain?: string | null; previewUrl?: string | null }
+): Promise<WorkflowRun> {
+  const result = await withTiming(
+    `Neo4j QUERY: setPreviewInfo ${workflowId}`,
+    () =>
+      tx.run<{ w: Node<Integer, WorkflowRun, "WorkflowRun"> }>(
+        `
+      MATCH (w:WorkflowRun {id: $workflowId})
+      SET w.previewSubdomain = $previewSubdomain,
+          w.previewUrl = $previewUrl
+      RETURN w
+      `,
+        { workflowId, previewSubdomain: previewSubdomain ?? null, previewUrl: previewUrl ?? null }
+      )
+  )
+  return workflowRunSchema.parse(result.records[0].get("w").properties)
+}
+

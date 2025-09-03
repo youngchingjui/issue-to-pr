@@ -16,7 +16,7 @@ import {
   createStatusEvent,
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
-import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
+import { initializeWorkflowRun, savePreviewInfo } from "@/lib/neo4j/services/workflow"
 import { RepoEnvironment } from "@/lib/types"
 import { GitHubIssue } from "@/lib/types/github"
 import {
@@ -24,6 +24,7 @@ import {
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
+import { buildPreviewSubdomainSlug } from "@shared/index"
 
 interface ResolveMergeConflictsParams {
   repoFullName: string
@@ -74,6 +75,27 @@ export async function resolveMergeConflicts({
     })
     const env: RepoEnvironment = { kind: "container", name: containerName }
     containerCleanup = cleanup
+
+    // Save preview info for UI
+    try {
+      const [owner, name] = repoFullName.split("/")
+      const previewSubdomain = buildPreviewSubdomainSlug({
+        branch: repo.default_branch,
+        owner: owner ?? "",
+        repo: name ?? "",
+      })
+      const base = process.env.NEXT_PUBLIC_PREVIEW_BASE_DOMAIN
+      const previewUrl = base
+        ? `https://${previewSubdomain}.${base}`
+        : undefined
+      await savePreviewInfo({
+        workflowId,
+        previewSubdomain,
+        previewUrl,
+      })
+    } catch (e) {
+      console.warn(`[resolveMergeConflicts] Failed to save preview info:`, e)
+    }
 
     // Fetch PR core context via GraphQL (mergeable field etc.)
     await createStatusEvent({

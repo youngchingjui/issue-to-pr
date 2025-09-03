@@ -18,7 +18,7 @@ import {
   listPlansForIssue,
 } from "@/lib/neo4j/services/plan"
 import { getRepositorySettings } from "@/lib/neo4j/services/repository"
-import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
+import { initializeWorkflowRun, savePreviewInfo } from "@/lib/neo4j/services/workflow"
 import { createBranchTool } from "@/lib/tools/Branch"
 import { createCommitTool } from "@/lib/tools/Commit"
 import { createCreatePRTool } from "@/lib/tools/CreatePRTool"
@@ -41,6 +41,7 @@ import {
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
+import { buildPreviewSubdomainSlug } from "@shared/index"
 
 interface ResolveIssueParams {
   issue: GitHubIssue
@@ -118,6 +119,29 @@ export const resolveIssue = async ({
       workflowId,
       hostRepoPath,
     })
+
+    // Persist preview subdomain/url for this workflow run
+    try {
+      const [owner, repo] = repository.full_name.split("/")
+      const previewSubdomain = buildPreviewSubdomainSlug({
+        branch: repository.default_branch,
+        owner: owner ?? "",
+        repo: repo ?? "",
+      })
+      const base = process.env.NEXT_PUBLIC_PREVIEW_BASE_DOMAIN
+      const previewUrl = base
+        ? `https://${previewSubdomain}.${base}`
+        : undefined
+      await savePreviewInfo({
+        workflowId,
+        previewSubdomain,
+        previewUrl,
+      })
+    } catch (e) {
+      // Non-fatal
+      console.warn(`[resolveIssue] Failed to save preview info:`, e)
+    }
+
     const env: RepoEnvironment = { kind: "container", name: containerName }
     containerCleanup = cleanup
     await createStatusEvent({
@@ -343,3 +367,4 @@ export const resolveIssue = async ({
     }
   }
 }
+

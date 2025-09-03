@@ -12,7 +12,7 @@ import {
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
 import { tagMessageAsPlan } from "@/lib/neo4j/services/plan"
-import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
+import { initializeWorkflowRun, savePreviewInfo } from "@/lib/neo4j/services/workflow"
 import { createContainerExecTool } from "@/lib/tools/ContainerExecTool"
 import { createGetFileContentTool } from "@/lib/tools/GetFileContent"
 import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
@@ -24,6 +24,7 @@ import {
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
+import { buildPreviewSubdomainSlug } from "@shared/index"
 
 interface GitHubError extends Error {
   status?: number
@@ -170,6 +171,27 @@ export default async function commentOnIssue(
         `Failed to setup containerized environment: ${error.message}`
       )
     })
+
+    // Save preview info for this workflow run
+    try {
+      const [owner, name] = repo.full_name.split("/")
+      const previewSubdomain = buildPreviewSubdomainSlug({
+        branch: repo.default_branch,
+        owner: owner ?? "",
+        repo: name ?? "",
+      })
+      const base = process.env.NEXT_PUBLIC_PREVIEW_BASE_DOMAIN
+      const previewUrl = base
+        ? `https://${previewSubdomain}.${base}`
+        : undefined
+      await savePreviewInfo({
+        workflowId: jobId,
+        previewSubdomain,
+        previewUrl,
+      })
+    } catch (e) {
+      console.warn(`[commentOnIssue] Failed to save preview info:`, e)
+    }
 
     containerCleanup = cleanup
 
@@ -352,3 +374,4 @@ export default async function commentOnIssue(
     }
   }
 }
+
