@@ -14,7 +14,7 @@ import { withTiming } from "@/shared/src"
 
 /**
  * Filter workflow runs so that only runs which belong to repositories the
- * current user can access are shown. Visibility of *public* repositories is
+ * current user can access are shown. Visibility of public repositories is
  * already handled by GitHub – they will appear in listUserRepositories() even
  * for users who are not collaborators. Private repositories will only be
  * returned if the user has permission.
@@ -36,10 +36,11 @@ async function getPermittedWorkflowRuns() {
     const allowed = new Set(repos.map((r) => r.nameWithOwner))
 
     return allRuns.filter((run) => {
-      // Runs that are not linked to a repository issue are considered internal
-      // and are therefore hidden from the general listing for security.
-      if (!run.issue) return false
-      return allowed.has(run.issue.repoFullName)
+      // If the run is linked to an issue, ensure the user has access to the repo
+      if (run.issue) return allowed.has(run.issue.repoFullName)
+      // If the run is not linked to an issue (e.g., PR-centric or internal
+      // utility workflows), include it so the list shows all workflow types.
+      return true
     })
   } catch (err) {
     // If we fail to retrieve the accessible repositories (likely because the
@@ -109,3 +110,4 @@ export default async function WorkflowRunsPage() {
     )
   })
 }
+
