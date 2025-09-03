@@ -42,6 +42,7 @@ export const workflowTypeEnum = z.enum([
   "identifyPRGoal",
   "reviewPullRequest",
   "alignmentCheck",
+  "resolveMergeConflicts",
 ])
 
 export const workflowRunSchema = z.object({
@@ -123,8 +124,10 @@ export const llmResponseWithPlanSchema = baseEventSchema.merge(
 
 export const reasoningEventSchema = baseEventSchema.extend({
   type: z.literal("reasoning"),
-  title: z.string(),
-  content: z.string(),
+  // New field for all new events
+  summary: z.string().optional(),
+  // Legacy support: allow old events that used `content`
+  content: z.string().optional(),
 })
 
 export const statusEventSchema = baseEventSchema.extend({
@@ -322,3 +325,4 @@ export type WorkflowRun = z.infer<typeof workflowRunSchema>
 export type WorkflowRunState = z.infer<typeof workflowRunStateSchema>
 export type WorkflowStateEvent = z.infer<typeof workflowStateEventSchema>
 export type WorkflowType = z.infer<typeof workflowTypeEnum>
+

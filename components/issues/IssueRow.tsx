@@ -1,9 +1,9 @@
 "use client"
 
 import { formatDistanceToNow } from "date-fns"
-import { ChevronDown, Loader2, PlayCircle } from "lucide-react"
+import { ChevronDown, Loader2 } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import React from "react"
 
 import AutoResolveIssueController from "@/components/issues/controllers/AutoResolveIssueController"
@@ -14,7 +14,9 @@ import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { TableCell, TableRow } from "@/components/ui/table"
@@ -26,6 +28,8 @@ interface IssueRowProps {
   prSlot?: React.ReactNode
 }
 
+type MainActionId = "autoResolve" | "plan" | "createPR"
+
 export default function IssueRow({
   issue,
   repoFullName,
@@ -33,13 +37,14 @@ export default function IssueRow({
 }: IssueRowProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [activeWorkflow, setActiveWorkflow] = useState<string | null>(null)
+  const [mainAction, setMainAction] = useState<MainActionId>("autoResolve")
 
   const createPRController = CreatePRController({
     issueNumber: issue.number,
     repoFullName,
     onStart: () => {
       setIsLoading(true)
-      setActiveWorkflow("Creating PR...")
+      setActiveWorkflow("Launching agent...")
     },
     onComplete: () => {
       setIsLoading(false)
@@ -56,7 +61,7 @@ export default function IssueRow({
     repoFullName,
     onStart: () => {
       setIsLoading(true)
-      setActiveWorkflow("Auto Resolving...")
+      setActiveWorkflow("Launching agent...")
     },
     onComplete: () => {
       setIsLoading(false)
@@ -73,7 +78,7 @@ export default function IssueRow({
     repoFullName,
     onStart: () => {
       setIsLoading(true)
-      setActiveWorkflow("Generating Plan...")
+      setActiveWorkflow("Launching agent...")
     },
     onComplete: () => {
       setIsLoading(false)
@@ -84,6 +89,28 @@ export default function IssueRow({
       setActiveWorkflow(null)
     },
   })
+
+  // Action map and derived label
+  const actions = useMemo(
+    () => ({
+      autoResolve: {
+        label: "Generate PR",
+        execute: autoResolveIssue,
+      },
+      plan: {
+        label: "Create Plan",
+        execute: generateResolutionPlan,
+      },
+      createPR: {
+        label: "Fix Issue and Create PR",
+        execute: createPRController.execute,
+      },
+    }),
+    [autoResolveIssue, generateResolutionPlan, createPRController.execute]
+  )
+
+  const mainLabel = actions[mainAction].label
+  const runMain = actions[mainAction].execute
 
   // Extract username and repo from repoFullName
   const [username, repo] = repoFullName.split("/")
@@ -126,55 +153,54 @@ export default function IssueRow({
         />
       </TableCell>
       <TableCell className="text-right">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={isLoading}
-              className="w-full sm:w-auto justify-between sm:justify-start"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {activeWorkflow}
-                </>
-              ) : (
-                <>
-                  <PlayCircle className="mr-2 h-4 w-4" />
-                  Launch Workflow
-                  <ChevronDown className="ml-2 h-4 w-4" />
-                </>
-              )}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-[200px]">
-            <DropdownMenuItem onClick={generateResolutionPlan}>
-              <div>
-                <div>Generate Resolution Plan</div>
-                <div className="text-xs text-muted-foreground">
-                  Get an AI-powered plan to resolve this issue
-                </div>
-              </div>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={createPRController.execute}>
-              <div>
-                <div>Fix Issue and Create PR</div>
-                <div className="text-xs text-muted-foreground">
-                  Automatically fix and create a pull request
-                </div>
-              </div>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={autoResolveIssue}>
-              <div>
-                <div>Auto Resolve Issue</div>
-                <div className="text-xs text-muted-foreground">
-                  Run the autoResolveIssue workflow
-                </div>
-              </div>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="inline-flex w-full sm:w-auto">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isLoading}
+            onClick={runMain}
+            className="rounded-r-none border-r-0 p-5"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {activeWorkflow}
+              </>
+            ) : (
+              <>{mainLabel}</>
+            )}
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isLoading}
+                className="rounded-l-none border-l-0 px-2 py-5"
+                aria-label="Change main action"
+              >
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[220px]">
+              <DropdownMenuLabel>Choose main action</DropdownMenuLabel>
+              <DropdownMenuRadioGroup
+                value={mainAction}
+                onValueChange={(v) => setMainAction(v as MainActionId)}
+              >
+                <DropdownMenuRadioItem value="autoResolve">
+                  Auto Resolve Issue
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="plan">
+                  Generate Resolution Plan
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="createPR">
+                  Fix Issue and Create PR
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </TableCell>
     </TableRow>
   )

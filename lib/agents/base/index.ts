@@ -15,7 +15,7 @@ import { ZodType } from "zod"
 import {
   createErrorEvent,
   createLLMResponseEvent,
-  createStatusEvent,
+  createReasoningEvent,
   createSystemPromptEvent,
   createToolCallEvent,
   createToolCallResultEvent,
@@ -480,11 +480,10 @@ export class ResponsesAPIAgent extends Agent {
         return event.id
 
       case "reasoning":
-        // TODO: Track reasoning with its own event on database
         for (const summary of message.summary) {
-          event = await createStatusEvent({
+          await createReasoningEvent({
             workflowId: this.jobId,
-            content: summary.text,
+            summary: summary.text,
           })
         }
         return undefined
