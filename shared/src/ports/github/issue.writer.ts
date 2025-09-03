@@ -1,4 +1,4 @@
-import { Result } from "@/shared/src/entities/result"
+import { Result } from "@shared/entities/result"
 
 export type Issue = { id: number; number: number; url: string }
 

@@ -1,3 +1,5 @@
+// TODO: Move to shared/src/core/entities/container.ts
+
 export type ContainerStatus = "created" | "running" | "stopped" | "removed"
 
 export interface ContainerProps {

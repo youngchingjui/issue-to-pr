@@ -1,12 +1,11 @@
 import { graphql } from "@octokit/graphql"
-
+import { err, ok, type Result } from "@shared/entities/result"
 import {
   CreateIssueInput,
   GithubIssueErrors,
   Issue,
   IssueWriterPort,
-} from "@/shared/src/core/ports/github/issue.writer"
-import { err, ok, type Result } from "@/shared/src/entities/result"
+} from "@shared/ports/github/issue.writer"
 
 /**
  * Octokit GraphQL adapter factory focused on GitHub issue writer.

@@ -1,6 +1,5 @@
+import type { LLMMessage, LLMPort } from "@shared/ports/llm"
 import OpenAI from "openai"
-
-import type { LLMMessage, LLMPort } from "@/shared/src/core/ports/llm"
 
 export function makeOpenAIAdapter(params: { apiKey: string }): LLMPort {
   const { apiKey } = params

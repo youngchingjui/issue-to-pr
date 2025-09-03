@@ -1,4 +1,4 @@
-import { generateNonConflictingBranchName } from "@shared/core/usecases/generateBranchName"
+import { generateNonConflictingBranchName } from "@shared/usecases/generateBranchName"
 import { v4 as uuidv4 } from "uuid"
 
 import { BasicLLMAdapter } from "@/lib/adapters/BasicLLMAdapter"

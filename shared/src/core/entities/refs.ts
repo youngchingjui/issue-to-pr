@@ -1,3 +1,5 @@
+// TODO: Move to shared/src/core/entities/refs.ts
+
 import { z } from "zod"
 
 export const branchPrefixSchema = z

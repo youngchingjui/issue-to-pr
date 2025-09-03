@@ -1,4 +1,4 @@
-import { TimedGitHubIssuesPort } from "@shared/adapters/decorators/timing"
+import { TimedIssueReaderWrapper } from "@shared/adapters/decorators/timing"
 import { makeIssuesReaderAdapter } from "@shared/adapters/github/octokit/graphql/issue.reader"
 import { fetchIssueTitles } from "@shared/services/github/issues"
 import { withTiming } from "@shared/utils/telemetry"
@@ -92,7 +92,7 @@ export async function IssueTitlesTableBody({
 
     if (refs.length > 0 && token) {
       const baseAdapter = makeIssuesReaderAdapter({ token })
-      const adapter = new TimedGitHubIssuesPort(baseAdapter)
+      const adapter = new TimedIssueReaderWrapper(baseAdapter)
       const results = await withTiming("GitHub: getIssueTitles", () =>
         fetchIssueTitles(adapter, refs)
       )
