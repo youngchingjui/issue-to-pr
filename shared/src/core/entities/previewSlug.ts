@@ -70,14 +70,32 @@ export function buildPreviewSubdomainSlug({
     // First, try to shorten repo to make room
     const needed = minBranchWithId - branchMax
     if (repoSlugRaw.length > needed) {
-      const newRepo = repoSlugRaw.slice(0, Math.max(1, repoSlugRaw.length - needed))
-      return buildPreviewSubdomainSlug({ branch, owner, repo: newRepo, softMax, hardMax })
+      const newRepo = repoSlugRaw.slice(
+        0,
+        Math.max(1, repoSlugRaw.length - needed)
+      )
+      return buildPreviewSubdomainSlug({
+        branch,
+        owner,
+        repo: newRepo,
+        softMax,
+        hardMax,
+      })
     }
 
     // Next, try to shorten owner
     if (ownerSlugRaw.length > needed) {
-      const newOwner = ownerSlugRaw.slice(0, Math.max(1, ownerSlugRaw.length - needed))
-      return buildPreviewSubdomainSlug({ branch, owner: newOwner, repo, softMax, hardMax })
+      const newOwner = ownerSlugRaw.slice(
+        0,
+        Math.max(1, ownerSlugRaw.length - needed)
+      )
+      return buildPreviewSubdomainSlug({
+        branch,
+        owner: newOwner,
+        repo,
+        softMax,
+        hardMax,
+      })
     }
 
     // Last ditch: ignore soft max, enforce hard max with minimal branch id
@@ -98,4 +116,3 @@ export function buildPreviewSubdomainSlug({
 
   return full
 }
-

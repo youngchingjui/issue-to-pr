@@ -1,3 +1,4 @@
+import { buildPreviewSubdomainSlug } from "@shared/index"
 import { exec as hostExec } from "child_process"
 import Docker from "dockerode"
 import os from "os"
@@ -15,7 +16,6 @@ import { getInstallationTokenFromRepo } from "@/lib/github/installation"
 import { AGENT_BASE_IMAGE } from "@/lib/types/docker"
 import { containerNameForTrace } from "@/lib/utils/utils-common"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
-import { buildPreviewSubdomainSlug } from "@shared/index"
 
 // Promisified exec for host-side commands (e.g., docker cp)
 const execHost = util.promisify(hostExec)
@@ -365,4 +365,3 @@ export async function copyRepoToExistingContainer({
     throw new Error(`Failed to copy repository to container: ${e}`)
   }
 }
-
