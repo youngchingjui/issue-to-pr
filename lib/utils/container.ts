@@ -1,3 +1,4 @@
+import { buildPreviewSubdomainSlug } from "@shared/index"
 import { exec as hostExec } from "child_process"
 import Docker from "dockerode"
 import os from "os"
@@ -135,6 +136,13 @@ export async function createContainerizedWorktree({
 
   const containerName = containerNameForTrace(workflowId)
 
+  // Metadata for labels and network alias
+  const [ownerRaw, repoRaw] = repoFullName.split("/")
+  const owner = ownerRaw ?? ""
+  const repo = repoRaw ?? ""
+  const subdomain = buildPreviewSubdomainSlug({ branch, owner, repo })
+  const ttlHours = Number.parseInt(process.env.CONTAINER_TTL_HOURS ?? "24", 10)
+
   // 4. Start detached container mounting both the *clone* (read-only) and the *worktree* (rw)
   await startContainer({
     image,
@@ -144,6 +152,18 @@ export async function createContainerizedWorktree({
       { hostPath: worktreeDir, containerPath: worktreeDir },
     ],
     workdir: worktreeDir,
+    labels: {
+      preview: "true",
+      repo,
+      owner,
+      branch,
+      ...(Number.isFinite(ttlHours) ? { "ttl-hours": String(ttlHours) } : {}),
+      subdomain,
+    },
+    network: {
+      name: "preview",
+      aliases: subdomain ? [subdomain] : [],
+    },
   })
 
   // Helper functions
@@ -193,11 +213,16 @@ export async function createContainerizedWorkspace({
   mountPath = "/workspace",
   hostRepoPath,
 }: ContainerizedWorktreeOptions): Promise<ContainerizedWorktreeResult> {
-  const [owner, repo] = repoFullName.split("/")
+  const [ownerRaw, repoRaw] = repoFullName.split("/")
+  const owner = ownerRaw ?? ""
+  const repo = repoRaw ?? ""
   const token = await getInstallationTokenFromRepo({ owner, repo })
 
   // 2. Start a detached container with GITHUB_TOKEN env set
   const containerName = containerNameForTrace(workflowId)
+
+  const subdomain = buildPreviewSubdomainSlug({ branch, owner, repo })
+  const ttlHours = Number.parseInt(process.env.CONTAINER_TTL_HOURS ?? "24", 10)
 
   await startContainer({
     image,
@@ -207,6 +232,18 @@ export async function createContainerizedWorkspace({
       GITHUB_TOKEN: token,
     },
     workdir: mountPath,
+    labels: {
+      preview: "true",
+      repo,
+      owner,
+      branch,
+      ...(Number.isFinite(ttlHours) ? { "ttl-hours": String(ttlHours) } : {}),
+      subdomain,
+    },
+    network: {
+      name: "preview",
+      aliases: subdomain ? [subdomain] : [],
+    },
   })
 
   // 3. Helper exec wrapper
@@ -241,12 +278,20 @@ export async function createContainerizedWorkspace({
     // Git "dubious ownership" warnings caused by mismatched host UIDs.
     await exec(`chown -R root:root ${mountPath}`)
 
-    // Reset to desired branch in case copied repo isn't on it
-    await exec(`git fetch origin && git checkout ${branch}`)
+    // Ensure we are on the desired branch, create it if it doesn't exist
+    await exec(`git fetch origin || true`)
+    const checkoutRes = await exec(`git checkout ${branch}`)
+    if (checkoutRes.exitCode !== 0) {
+      await exec(`git checkout -b ${branch}`)
+    }
   } else {
     // 5. Clone the repository and checkout the requested branch
     await exec(`git clone https://github.com/${repoFullName} ${mountPath}`)
-    await exec(`git checkout ${branch}`)
+    await exec(`git fetch origin || true`)
+    const checkoutRes = await exec(`git checkout ${branch}`)
+    if (checkoutRes.exitCode !== 0) {
+      await exec(`git checkout -b ${branch}`)
+    }
   }
 
   // 6. Cleanup helper

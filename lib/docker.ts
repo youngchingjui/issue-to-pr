@@ -27,6 +27,10 @@ interface StartDetachedContainerOptions {
   workdir?: string
   /** Environment variables to set inside the container */
   env?: Record<string, string>
+  /** Optional labels to attach to the container */
+  labels?: Record<string, string>
+  /** Optional network to connect with optional aliases */
+  network?: { name: string; aliases?: string[] }
 }
 
 /**
@@ -54,6 +58,8 @@ interface StartDetachedContainerOptions {
  *                                                                       Host paths to bind-mount into the container.
  * @param {string} [options.workdir]                                    Working directory inside the container (defaults to first mount or "/").
  * @param {Record<string,string>} [options.env={}]                      Environment variables to set inside the container.
+ * @param {Record<string,string>} [options.labels]                      Labels to set on the container (e.g. preview=true).
+ * @param {{name: string, aliases?: string[]}} [options.network]        Network to join and optional aliases to register.
  *
  * @returns {Promise<string>} The ID of the started container (stdout from `docker run`).
  */
@@ -64,6 +70,8 @@ export async function startContainer({
   mounts = [],
   workdir,
   env = {},
+  labels,
+  network,
 }: StartDetachedContainerOptions): Promise<string> {
   // 1. Build volume flags: -v "host:container[:ro]"
   const volumeFlags = mounts.map(({ hostPath, containerPath, readOnly }) => {
@@ -76,16 +84,38 @@ export async function startContainer({
     ([key, value]) => `-e \"${key}=${value.replace(/"/g, '\\\"')}\"`
   )
 
-  // 3. Determine working directory
+  // 3. Build label flags: --label key=value
+  const labelFlags = labels
+    ? Object.entries(labels).map(
+        ([key, value]) => `--label ${key}=${String(value).replace(/\s/g, "-")}`
+      )
+    : []
+
+  // 4. Build network flags: --network <name> and --network-alias <alias>
+  const networkFlags: string[] = []
+  if (network?.name) {
+    networkFlags.push(`--network ${network.name}`)
+    if (Array.isArray(network.aliases)) {
+      for (const alias of network.aliases) {
+        if (alias && alias.trim().length > 0) {
+          networkFlags.push(`--network-alias ${alias}`)
+        }
+      }
+    }
+  }
+
+  // 5. Determine working directory
   const wdPath = workdir ?? (mounts.length ? mounts[0].containerPath : "/")
   const wdFlag = wdPath ? `-w \"${wdPath}\"` : undefined
 
-  // 4. Assemble command parts and filter out undefined entries
+  // 6. Assemble command parts and filter out undefined entries
   const cmd = [
     "docker run -d",
     `--name ${name}`,
     `-u ${user}`,
     ...envFlags,
+    ...labelFlags,
+    ...networkFlags,
     ...volumeFlags,
     wdFlag,
     image,
@@ -207,7 +237,7 @@ export async function execInContainer({
   cwd?: string
 }): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const workdirFlag = cwd ? `--workdir \"${cwd}\"` : ""
-  const execCmd = `docker exec ${workdirFlag} ${name} sh -c '${command.replace(/'/g, "'\\''")}'`
+  const execCmd = `docker exec ${workdirFlag} ${name} sh -c '${command.replace(/'/g, "'\\\''")}'`
   try {
     const { stdout, stderr } = await execPromise(execCmd)
     return { stdout, stderr, exitCode: 0 }
@@ -424,3 +454,4 @@ export async function getContainerGitInfo(
     diff,
   }
 }
+
