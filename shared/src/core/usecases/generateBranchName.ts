@@ -6,7 +6,7 @@ import type { LLMPort } from "@shared/core/ports/llm"
 import type { GitHubRefsPort } from "@shared/core/ports/refs"
 
 const MAX_CONTEXT_LENGTH = 100000
-const MAX_BRANCH_NAME_LENGTH = 200
+const MAX_BRANCH_NAME_LENGTH = 30
 const MAX_ATTEMPTS = 10
 
 export type GenerateBranchNameParams = {
@@ -78,8 +78,8 @@ export async function generateNonConflictingBranchName(
 
   // 3) Parse and format candidate
   const baseSlug = baseBranchSlugSchema.parse(raw)
-  let candidate = prefix ? `${prefix}/${baseSlug}` : baseSlug
-  candidate = trimToMax(candidate, MAX_BRANCH_NAME_LENGTH)
+  const trimmedSlug = trimToMax(baseSlug, MAX_BRANCH_NAME_LENGTH)
+  const candidate = prefix ? `${prefix}/${trimmedSlug}` : trimmedSlug
 
   // 4) Ensure uniqueness by appending numeric suffixes
   if (!existing.has(candidate)) return candidate
