@@ -23,6 +23,21 @@ Before you begin, ensure you have:
 - Redis server
 - GitHub account
 - OpenAI API key
+- Docker (for containerized agent workflows)
+
+Important: our workflows attach agent containers to a Docker bridge network named `preview`. Create it once on your machine:
+
+```bash
+docker network create preview
+```
+
+You can verify with:
+
+```bash
+docker network inspect preview
+```
+
+If you choose a different network name, update the application configuration and ensure that network exists before running workflows.
 
 ### Redis Installation
 
@@ -99,13 +114,19 @@ OPENAI_API_KEY=your_openai_key
 redis-server
 ```
 
-2. Start development server:
+2. Ensure the Docker `preview` network exists:
+
+```bash
+docker network create preview 2>/dev/null || true
+```
+
+3. Start development server:
 
 ```bash
 pnpm dev
 ```
 
-3. Open application:
+4. Open application:
 
 - Navigate to [http://localhost:3000](http://localhost:3000)
 - Sign in with GitHub
@@ -116,3 +137,4 @@ pnpm dev
 - [Authentication Setup](../guides/authentication.md)
 - [AI Integration](../guides/ai-integration.md)
 - [Architecture Overview](../guides/architecture.md)
+

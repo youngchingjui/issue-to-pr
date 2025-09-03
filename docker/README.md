@@ -12,6 +12,19 @@ docker/
 └── docker-compose.yml # Main compose file
 ```
 
+## Required Docker Network: preview
+
+Agent workflows run inside ephemeral Docker containers that are attached to a shared user-defined bridge network named `preview`.
+
+If this network is missing, containers will fail to start. Create it once per host machine:
+
+```bash
+docker network create preview
+```
+
+- You can verify it exists with: `docker network inspect preview`
+- If you prefer a different name, update the application configuration accordingly and ensure the network exists before starting workflows.
+
 ## Environment Variables
 
 The application uses environment variables from `.env.local` (development) or `.env.production.local` (production). These files should never be committed to the repository.
@@ -115,3 +128,4 @@ This is a private image, so you need to login with Docker to pull this image.
 ## Neo4j Services
 
 The `compose/` directory contains Docker Compose configurations for Neo4j database services used by the application.
+

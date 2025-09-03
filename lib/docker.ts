@@ -12,6 +12,15 @@ import {
 
 const execPromise = util.promisify(exec)
 
+// A specific error type to represent a missing/unknown Docker network
+export class DockerNetworkUnavailableError extends Error {
+  code = "DockerNetworkUnavailable" as const
+  constructor(message: string) {
+    super(message)
+    this.name = "DockerNetworkUnavailableError"
+  }
+}
+
 interface StartDetachedContainerOptions {
   image: string
   name: string
@@ -31,6 +40,15 @@ interface StartDetachedContainerOptions {
   labels?: Record<string, string>
   /** Optional network to connect with optional aliases */
   network?: { name: string; aliases?: string[] }
+}
+
+async function networkExists(name: string): Promise<boolean> {
+  try {
+    await execPromise(`docker network inspect ${name}`)
+    return true
+  } catch {
+    return false
+  }
 }
 
 /**
@@ -73,6 +91,25 @@ export async function startContainer({
   labels,
   network,
 }: StartDetachedContainerOptions): Promise<string> {
+  // If a specific network is requested, verify that it exists up-front so we can
+  // provide a clear, actionable error instead of the raw Docker failure.
+  if (network?.name) {
+    const exists = await networkExists(network.name)
+    if (!exists) {
+      const detailed =
+        `Docker network \"${network.name}\" is not available.\n` +
+        `Create it with:  docker network create ${network.name}\n` +
+        `If you intentionally renamed/disabled it, update the code/config to use the correct network.`
+      // Server-side detailed log with remediation steps
+      console.error(`[docker] Missing network: ${network.name}.\n${detailed}`)
+      // Throw a succinct, user-facing message that will be surfaced in the UI
+      // while keeping detailed instructions in server logs.
+      throw new DockerNetworkUnavailableError(
+        `Docker configuration issue: required network \"${network.name}\" is missing. Please check server logs for setup instructions or contact your administrator.`
+      )
+    }
+  }
+
   // 1. Build volume flags: -v "host:container[:ro]"
   const volumeFlags = mounts.map(({ hostPath, containerPath, readOnly }) => {
     const ro = readOnly ? ":ro" : ""
@@ -81,7 +118,7 @@ export async function startContainer({
 
   // 2. Build environment variable flags: -e "KEY=value"
   const envFlags = Object.entries(env).map(
-    ([key, value]) => `-e \"${key}=${value.replace(/"/g, '\\\"')}\"`
+    ([key, value]) => `-e \"${key}=${value.replace(/"/g, '\\\\"')}\"`
   )
 
   // 3. Build label flags: --label key=value
@@ -124,8 +161,31 @@ export async function startContainer({
     .filter(Boolean)
     .join(" ")
 
-  const { stdout } = await execPromise(cmd)
-  return stdout.trim()
+  try {
+    const { stdout } = await execPromise(cmd)
+    return stdout.trim()
+  } catch (error: unknown) {
+    const err = error as { stderr?: string; stdout?: string; message?: string }
+    const stderr: string = err?.stderr || err?.message || ""
+    const stdout: string = err?.stdout || ""
+
+    // If Docker still failed due to network issues (race conditions, etc.),
+    // map it to our clearer error message and guidance.
+    if (network?.name && /network .*? not found|could not be found|No such network/i.test(stderr)) {
+      console.error(
+        `[docker] Failed to run container on network \"${network.name}\".\n` +
+          `Raw error: ${stderr || stdout}\n` +
+          `Resolution: run \`docker network create ${network.name}\` and retry.`
+      )
+      throw new DockerNetworkUnavailableError(
+        `Docker configuration issue: required network \"${network.name}\" is missing. Please check server logs for setup instructions or contact your administrator.`
+      )
+    }
+
+    // Generic error rethrow with context
+    console.error(`[docker] Failed to start container ${name}:`, error)
+    throw new Error(`Failed to start container ${name}`)
+  }
 }
 
 /**
@@ -237,7 +297,7 @@ export async function execInContainer({
   cwd?: string
 }): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const workdirFlag = cwd ? `--workdir \"${cwd}\"` : ""
-  const execCmd = `docker exec ${workdirFlag} ${name} sh -c '${command.replace(/'/g, "'\\\''")}'`
+  const execCmd = `docker exec ${workdirFlag} ${name} sh -c '${command.replace(/'/g, "'\\\\\\\''")}'`
   try {
     const { stdout, stderr } = await execPromise(execCmd)
     return { stdout, stderr, exitCode: 0 }
