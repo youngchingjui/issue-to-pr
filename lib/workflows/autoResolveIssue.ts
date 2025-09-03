@@ -28,6 +28,10 @@ interface Params {
   repository: GitHubRepository
   apiKey?: string
   jobId?: string
+  // Optional pre-resolved GitHub App installation token. When provided (e.g., by a
+  // background worker), we use it directly to avoid relying on Next.js-only modules
+  // inside non-Next runtimes.
+  sessionToken?: string
 }
 
 export const autoResolveIssue = async ({
@@ -35,6 +39,7 @@ export const autoResolveIssue = async ({
   repository,
   apiKey,
   jobId,
+  sessionToken: maybeSessionToken,
 }: Params) => {
   if (!apiKey) {
     const apiKeyFromSettings = await getUserOpenAIApiKey()
@@ -117,10 +122,12 @@ export const autoResolveIssue = async ({
 
     const env: RepoEnvironment = { kind: "container", name: containerName }
 
-    const sessionToken = await getInstallationTokenFromRepo({
-      owner,
-      repo,
-    })
+    const sessionToken =
+      maybeSessionToken ??
+      (await getInstallationTokenFromRepo({
+        owner,
+        repo,
+      }))
 
     const trace = langfuse.trace({ name: "autoResolve" })
     const span = trace.span({ name: "PlanAndCodeAgent" })
@@ -190,3 +197,4 @@ export const autoResolveIssue = async ({
 }
 
 export default autoResolveIssue
+

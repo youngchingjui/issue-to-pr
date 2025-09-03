@@ -16,6 +16,8 @@ import OpenAI from "openai"
 import path from "path"
 import { fileURLToPath } from "url"
 
+import { handleAutoResolveIssueJob } from "./handlers/autoResolveIssue"
+
 // Load environment variables from monorepo root regardless of CWD
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -84,49 +86,8 @@ async function summarizeIssue(job: Job): Promise<string> {
   return completion.choices[0]?.message?.content?.trim() ?? ""
 }
 
-// --- Auto Resolve Issue job handler ---
-import { runWithInstallationId } from "@/lib/utils/utils-server"
-import { getRepoFromString } from "@/lib/github/content"
-import { getIssue } from "@/lib/github/issues"
-import autoResolveIssue from "@/lib/workflows/autoResolveIssue"
-
-async function handleAutoResolveIssue(job: Job) {
-  const { repoFullName, issueNumber, installationId } = job.data as {
-    repoFullName: string
-    issueNumber: number
-    installationId: number
-  }
-
-  if (!repoFullName || typeof issueNumber !== "number" || !installationId) {
-    throw new Error("Invalid job payload for autoResolveIssue")
-  }
-
-  await publishStatus(String(job.id), "Starting auto-resolve workflow")
-
-  return await runWithInstallationId(String(installationId), async () => {
-    const repo = await getRepoFromString(repoFullName)
-    const issueResult = await getIssue({ fullName: repoFullName, issueNumber })
-
-    if (issueResult.type !== "success") {
-      throw new Error(
-        `Failed to fetch issue: ${JSON.stringify(issueResult, null, 2)}`
-      )
-    }
-
-    await autoResolveIssue({
-      issue: issueResult.issue,
-      repository: repo,
-      apiKey: openaiApiKey, // Use worker OpenAI key
-      jobId: String(job.id),
-    })
-
-    await publishStatus(String(job.id), "Auto-resolve workflow completed")
-    return { status: "ok" }
-  })
-}
-
-async function processor(job: Job) {
-  console.log(`Processing job ${job.id}: ${job.name}`)
+async function defaultQueueProcessor(job: Job) {
+  console.log(`[default] Processing job ${job.id}: ${job.name}`)
   await publishStatus(String(job.id), "Started: processing job")
 
   try {
@@ -136,9 +97,6 @@ async function processor(job: Job) {
         const final = summary || "No summary generated"
         await publishStatus(String(job.id), `Completed: ${final}`)
         return { summary: final }
-      }
-      case "autoResolveIssue": {
-        return await handleAutoResolveIssue(job)
       }
       default: {
         const msg = `Unknown job name: ${job.name}`
@@ -153,18 +111,53 @@ async function processor(job: Job) {
   }
 }
 
-// TODO: Refactor to allow for multiple workers, queues, etc.
-new Worker("default", processor, { connection })
+async function workflowsProcessor(job: Job) {
+  console.log(`[workflows] Processing job ${job.id}: ${job.name}`)
+  await publishStatus(String(job.id), "Started: processing workflow job")
+  try {
+    switch (job.name) {
+      case "autoResolveIssue": {
+        await handleAutoResolveIssueJob(job.data)
+        await publishStatus(String(job.id), `Completed: Auto-resolve workflow`)
+        return { ok: true }
+      }
+      default: {
+        const msg = `Unknown workflow job name: ${job.name}`
+        await publishStatus(String(job.id), `Failed: ${msg}`)
+        throw new Error(msg)
+      }
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    await publishStatus(String(job.id), `Failed: ${message}`)
+    throw err
+  }
+}
 
-const events = new QueueEvents("default", { connection })
+// Start workers
+new Worker("default", defaultQueueProcessor, { connection })
+const defaultEvents = new QueueEvents("default", { connection })
 
-events.on("completed", ({ jobId }) => {
-  console.log(`Job ${jobId} completed`)
+defaultEvents.on("completed", ({ jobId }) => {
+  console.log(`[default] Job ${jobId} completed`)
 })
 
-events.on("failed", ({ jobId, failedReason }) => {
-  console.error(`Job ${jobId} failed:`, failedReason)
+defaultEvents.on("failed", ({ jobId, failedReason }) => {
+  console.error(`[default] Job ${jobId} failed:`, failedReason)
 })
 
-console.log("Worker started and listening for jobs on the 'default' queue…")
+new Worker("workflows", workflowsProcessor, { connection })
+const workflowEvents = new QueueEvents("workflows", { connection })
+
+workflowEvents.on("completed", ({ jobId }) => {
+  console.log(`[workflows] Job ${jobId} completed`)
+})
+
+workflowEvents.on("failed", ({ jobId, failedReason }) => {
+  console.error(`[workflows] Job ${jobId} failed:`, failedReason)
+})
+
+console.log(
+  "Worker started and listening for jobs on the 'default' and 'workflows' queues…"
+)
 

@@ -81,5 +81,8 @@ export const ResolveRequestSchema = z.object({
 
 export const AutoResolveIssueRequestSchema = z.object({
   issueNumber: z.number(),
-  repoFullName: z.string().min(1),
+  repoFullName: z
+    .string()
+    .regex(/^[^/]+\/[^/]+$/, "Repository must be in 'owner/repo' format"),
 })
+

@@ -1,6 +1,8 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    // Inherit monorepo-wide path aliases so imports like '@/shared/*' and '@/lib/*' resolve consistently
+    // Do not override "@/*" to the local src folder, as that breaks monorepo aliases.
     "rootDir": "./src",
     "outDir": "./dist",
     "noEmit": false,
