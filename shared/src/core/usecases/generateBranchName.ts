@@ -6,7 +6,7 @@ import type { LLMPort } from "@shared/core/ports/llm"
 import type { GitHubRefsPort } from "@shared/core/ports/refs"
 
 const MAX_CONTEXT_LENGTH = 100000
-const MAX_BRANCH_NAME_LENGTH = 200
+const MAX_BRANCH_NAME_LENGTH = 30
 const MAX_ATTEMPTS = 10
 
 export type GenerateBranchNameParams = {
@@ -109,3 +109,4 @@ function trimToMax(input: string, max: number): string {
   if (input.length <= max) return input
   return input.slice(0, max)
 }
+

@@ -75,7 +75,7 @@ describe("generateNonConflictingBranchName", () => {
     expect(result).toBe(`${candidate}-5`)
   })
 
-  it("falls back to timestamp when maxAttempts is exhausted", async () => {
+  it("falls back to timestamp when maxAttempts is exhausted (and trims to max length)", async () => {
     const fixedNow = 1_725_000_000_000
     jest.spyOn(Date, "now").mockReturnValue(fixedNow)
 
@@ -97,7 +97,8 @@ describe("generateNonConflictingBranchName", () => {
       }
     )
 
-    expect(result).toBe(`${candidate}-${fixedNow}`)
+    expect(result.startsWith(`${candidate}-`)).toBe(true)
+    expect(result.length).toBeLessThanOrEqual(30)
   })
 
   it("cleans noisy LLM output and returns a kebab-case slug without prefix when not provided", async () => {
@@ -167,7 +168,8 @@ describe("generateNonConflictingBranchName", () => {
       }
     )
 
-    expect(result.length).toBeLessThanOrEqual(200)
+    expect(result.length).toBeLessThanOrEqual(30)
     expect(result.startsWith("feature/")).toBe(true)
   })
 })
+

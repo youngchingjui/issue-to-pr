@@ -15,6 +15,7 @@ import { getInstallationTokenFromRepo } from "@/lib/github/installation"
 import { AGENT_BASE_IMAGE } from "@/lib/types/docker"
 import { containerNameForTrace } from "@/lib/utils/utils-common"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
+import { buildPreviewSubdomainSlug } from "@shared/index"
 
 // Promisified exec for host-side commands (e.g., docker cp)
 const execHost = util.promisify(hostExec)
@@ -49,14 +50,6 @@ interface ContainerizedWorktreeOptions {
 // ---- Git identity defaults ----
 export const DEFAULT_GIT_USER_NAME = "Issue To PR agent"
 export const DEFAULT_GIT_USER_EMAIL = "agent@issuetopr.dev"
-
-function toSlug(input: string): string {
-  return input
-    .toLowerCase()
-    .replace(/[^a-z0-9-]/g, "-")
-    .replace(/-{2,}/g, "-")
-    .replace(/^-|-$/g, "")
-}
 
 /**
  * Creates a directory tree listing from within a container, replicating the logic
@@ -147,10 +140,7 @@ export async function createContainerizedWorktree({
   const [ownerRaw, repoRaw] = repoFullName.split("/")
   const owner = ownerRaw ?? ""
   const repo = repoRaw ?? ""
-  const branchSlug = toSlug(branch)
-  const ownerSlug = toSlug(owner)
-  const repoSlug = toSlug(repo)
-  const subdomain = [branchSlug, ownerSlug, repoSlug].filter(Boolean).join("-")
+  const subdomain = buildPreviewSubdomainSlug({ branch, owner, repo })
   const ttlHours = Number.parseInt(process.env.CONTAINER_TTL_HOURS ?? "24", 10)
 
   // 4. Start detached container mounting both the *clone* (read-only) and the *worktree* (rw)
@@ -231,10 +221,7 @@ export async function createContainerizedWorkspace({
   // 2. Start a detached container with GITHUB_TOKEN env set
   const containerName = containerNameForTrace(workflowId)
 
-  const branchSlug = toSlug(branch)
-  const ownerSlug = toSlug(owner)
-  const repoSlug = toSlug(repo)
-  const subdomain = [branchSlug, ownerSlug, repoSlug].filter(Boolean).join("-")
+  const subdomain = buildPreviewSubdomainSlug({ branch, owner, repo })
   const ttlHours = Number.parseInt(process.env.CONTAINER_TTL_HOURS ?? "24", 10)
 
   await startContainer({
