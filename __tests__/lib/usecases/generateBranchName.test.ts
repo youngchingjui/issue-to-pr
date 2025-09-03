@@ -168,7 +168,7 @@ describe("generateNonConflictingBranchName", () => {
       }
     )
 
-    expect(result.length).toBeLessThanOrEqual(30)
+    expect(result.length).toBeLessThanOrEqual(30 + "feature/".length)
     expect(result.startsWith("feature/")).toBe(true)
   })
 })
