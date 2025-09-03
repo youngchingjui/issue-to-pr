@@ -60,7 +60,7 @@ export async function generateNonConflictingBranchName(
   // 2) Ask LLM for a candidate slug from the context
   const system = [
     "You generate short, descriptive Git branch names in kebab-case.",
-    "Keep it very short (ideally 2-5 words).",
+    "Keep it short (ideally 3-6 words).",
     "Return ONLY the branch path (no code blocks, no quotes).",
     `${prefix ? `Do NOT provide a prefix in the branch path, we will add this manually.` : ""}`,
   ].join(" ")
@@ -101,4 +101,3 @@ function trimToMax(input: string, max: number): string {
   if (input.length <= max) return input
   return input.slice(0, max)
 }
-
