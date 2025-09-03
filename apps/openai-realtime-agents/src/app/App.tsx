@@ -9,6 +9,7 @@ import Image from "next/image"
 import Transcript from "./components/Transcript"
 import Events from "./components/Events"
 import BottomToolbar from "./components/BottomToolbar"
+import LiveTranscription from "./components/LiveTranscription"
 
 // Types
 import { SessionStatus } from "@realtime/app/types"
@@ -97,6 +98,8 @@ function App() {
     useState<SessionStatus>("DISCONNECTED")
 
   const [isEventsPaneExpanded, setIsEventsPaneExpanded] =
+    useState<boolean>(true)
+  const [isLiveTranscriptionPaneExpanded, setIsLiveTranscriptionPaneExpanded] =
     useState<boolean>(true)
   const [userText, setUserText] = useState<string>("")
   const [isPTTActive, setIsPTTActive] = useState<boolean>(false)
@@ -355,6 +358,10 @@ function App() {
     if (storedLogsExpanded) {
       setIsEventsPaneExpanded(storedLogsExpanded === "true")
     }
+    const storedLiveExpanded = localStorage.getItem("liveTransExpanded")
+    if (storedLiveExpanded) {
+      setIsLiveTranscriptionPaneExpanded(storedLiveExpanded === "true")
+    }
     const storedAudioPlaybackEnabled = localStorage.getItem(
       "audioPlaybackEnabled"
     )
@@ -370,6 +377,13 @@ function App() {
   useEffect(() => {
     localStorage.setItem("logsExpanded", isEventsPaneExpanded.toString())
   }, [isEventsPaneExpanded])
+
+  useEffect(() => {
+    localStorage.setItem(
+      "liveTransExpanded",
+      isLiveTranscriptionPaneExpanded.toString()
+    )
+  }, [isLiveTranscriptionPaneExpanded])
 
   useEffect(() => {
     localStorage.setItem(
@@ -520,6 +534,7 @@ function App() {
           canSend={sessionStatus === "CONNECTED"}
         />
 
+        <LiveTranscription isExpanded={isLiveTranscriptionPaneExpanded} />
         <Events isExpanded={isEventsPaneExpanded} />
       </div>
 
@@ -533,6 +548,8 @@ function App() {
         handleTalkButtonUp={handleTalkButtonUp}
         isEventsPaneExpanded={isEventsPaneExpanded}
         setIsEventsPaneExpanded={setIsEventsPaneExpanded}
+        isLiveTranscriptionPaneExpanded={isLiveTranscriptionPaneExpanded}
+        setIsLiveTranscriptionPaneExpanded={setIsLiveTranscriptionPaneExpanded}
         isAudioPlaybackEnabled={isAudioPlaybackEnabled}
         setIsAudioPlaybackEnabled={setIsAudioPlaybackEnabled}
         codec={urlCodec}
@@ -543,3 +560,4 @@ function App() {
 }
 
 export default App
+
