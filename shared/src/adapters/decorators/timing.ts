@@ -1,8 +1,10 @@
 import type {
   CreateIssueInput,
+  GetIssueErrors,
   GithubIssueErrors,
   GitHubIssuesPort,
   Issue,
+  IssueDetails,
   IssueRef,
   IssueTitleResult,
 } from "@shared/core/ports/github"
@@ -19,6 +21,13 @@ export class TimedGitHubIssuesPort implements GitHubIssuesPort {
     private labelPrefix = "GitHub",
     private enabled = process.env.ENABLE_TIMING === "1"
   ) {}
+
+  async getIssue(ref: IssueRef): Promise<Result<IssueDetails, GetIssueErrors>> {
+    if (!this.enabled) return this.inner.getIssue(ref)
+    return withTiming(`${this.labelPrefix}: getIssue`, () =>
+      this.inner.getIssue(ref)
+    )
+  }
 
   async getIssueTitles(refs: IssueRef[]): Promise<IssueTitleResult[]> {
     if (!this.enabled) {
@@ -68,3 +77,4 @@ export function decorateWithTiming<T extends object>(
     },
   })
 }
+
