@@ -29,4 +29,3 @@ export default async function IssueTable({ repoFullName }: Props) {
     </div>
   )
 }
-

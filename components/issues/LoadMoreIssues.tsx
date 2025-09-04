@@ -39,7 +39,11 @@ export default function LoadMoreIssues({
       const resp = await fetch("/api/issues/list", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repoFullName, page: nextPage, per_page: perPage }),
+        body: JSON.stringify({
+          repoFullName,
+          page: nextPage,
+          per_page: perPage,
+        }),
       })
       if (!resp.ok) {
         throw new Error(`Failed to load issues: ${resp.status}`)
@@ -101,4 +105,3 @@ export default function LoadMoreIssues({
     </>
   )
 }
-

@@ -1,6 +1,6 @@
 import IssueRow from "@/components/issues/IssueRow"
-import PRStatusIndicator from "@/components/issues/PRStatusIndicator"
 import LoadMoreIssues from "@/components/issues/LoadMoreIssues"
+import PRStatusIndicator from "@/components/issues/PRStatusIndicator"
 import {
   getIssueListWithStatus,
   getLinkedPRNumbersForIssues,
@@ -51,4 +51,3 @@ export default async function IssueRows({ repoFullName }: Props) {
     </>
   )
 }
-
