@@ -1,3 +1,4 @@
+import { withTiming } from "@shared/utils/telemetry"
 import { Suspense } from "react"
 
 import { auth } from "@/auth"
@@ -10,7 +11,6 @@ import {
 } from "@/components/workflow-runs/WorkflowRunsIssueTitlesTableBody"
 import { listUserRepositories } from "@/lib/github/graphql/queries/listUserRepositories"
 import { listWorkflowRuns } from "@/lib/neo4j/services/workflow"
-import { withTiming } from "@/shared/src"
 
 /**
  * Filter workflow runs so that only runs which belong to repositories the
@@ -110,4 +110,3 @@ export default async function WorkflowRunsPage() {
     )
   })
 }
-
