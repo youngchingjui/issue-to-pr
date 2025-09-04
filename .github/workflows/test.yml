@@ -28,7 +28,7 @@ jobs:
 
       # Cache pnpm store and node_modules
       - name: Cache pnpm store
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: |
             ~/.pnpm-store
