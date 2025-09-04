@@ -16,6 +16,7 @@ import {
   createErrorEvent,
   createLLMResponseEvent,
   createReasoningEvent,
+  createStatusEvent,
   createSystemPromptEvent,
   createToolCallEvent,
   createToolCallResultEvent,
@@ -545,101 +546,138 @@ export class ResponsesAPIAgent extends Agent {
     const functionTools = this.tools.map((t) => convertToolToFunctionTool(t))
 
     let previousResponseId: string | undefined
+    let reasoningEnabled = true
+
+    const isReasoningVerificationError = (err: unknown) => {
+      const obj = (err ?? {}) as Record<string, unknown>
+      const msg = typeof obj.message === "string" ? obj.message : ""
+      const status = typeof obj.status === "number" ? obj.status : undefined
+      const text = msg.toLowerCase()
+      return (
+        status === 400 &&
+        (text.includes("organization must be verified") ||
+          text.includes("must be verified to generate reasoning summaries") ||
+          text.includes("reasoning summaries"))
+      )
+    }
 
     while (true) {
+      // Snapshot input so we can safely retry on certain errors
+      const inputSnapshot = this.inputQueue.slice()
+
       const params: ResponseCreateParamsNonStreaming = {
         model: this.model,
         store: true,
-        reasoning: { summary: "auto" },
         tools: functionTools,
-        input: this.inputQueue,
+        input: inputSnapshot,
+        ...(reasoningEnabled
+          ? { reasoning: { summary: "auto" as const } }
+          : {}),
       }
-
-      // Clear the input queue after using it
-      this.inputQueue = []
 
       if (previousResponseId) {
         params.previous_response_id = previousResponseId
       }
 
-      // Make the API call
-      const response = await this.llm.responses.create(params)
+      try {
+        // Make the API call
+        const response = await this.llm.responses.create(params)
 
-      previousResponseId = response.id
+        // Clear the input queue only after a successful request
+        this.inputQueue = []
+        previousResponseId = response.id
 
-      let hasFunctionCalls = false
+        let hasFunctionCalls = false
 
-      for (const item of response.output) {
-        await this.trackInput(item)
-        switch (item.type) {
-          case "function_call":
-            let toolResponse: ExtendedFunctionCallOutput
-            hasFunctionCalls = true
+        for (const item of response.output) {
+          await this.trackInput(item)
+          switch (item.type) {
+            case "function_call":
+              let toolResponse: ExtendedFunctionCallOutput
+              hasFunctionCalls = true
 
-            // Find the tool that the agent called
-            const tool = this.tools.find((t) => t.function.name === item.name)
+              // Find the tool that the agent called
+              const tool = this.tools.find((t) => t.function.name === item.name)
 
-            if (!tool) {
-              console.error(`Tool ${item.name} not found`) // Log for debugging
-              toolResponse = {
-                type: "function_call_output",
-                call_id: item.call_id,
-                output: `Tool ${item.name} not found`,
-                toolName: item.name,
+              if (!tool) {
+                console.error(`Tool ${item.name} not found`) // Log for debugging
+                toolResponse = {
+                  type: "function_call_output",
+                  call_id: item.call_id,
+                  output: `Tool ${item.name} not found`,
+                  toolName: item.name,
+                }
+                await this.addInput(toolResponse)
+                continue
               }
-              await this.addInput(toolResponse)
-              continue
-            }
 
-            // Validate arguments against the tool schema
-            const parsedArgs = JSON.parse(item.arguments)
-            const validation = tool.schema.safeParse(parsedArgs)
-            if (!validation.success) {
-              console.error(
-                `Validation failed for tool ${item.name}: ${validation.error.message}`
-              )
+              // Validate arguments against the tool schema
+              const parsedArgs = JSON.parse(item.arguments)
+              const validation = tool.schema.safeParse(parsedArgs)
+              if (!validation.success) {
+                console.error(
+                  `Validation failed for tool ${item.name}: ${validation.error.message}`
+                )
+                toolResponse = {
+                  type: "function_call_output",
+                  call_id: item.call_id,
+                  output: `Validation failed for tool ${item.name}: ${validation.error.message}`,
+                  toolName: tool.function.name,
+                }
+                await this.addInput(toolResponse)
+                continue
+              }
+
+              const toolResult = await tool.handler(validation.data)
+              const toolResultString =
+                typeof toolResult === "string"
+                  ? toolResult
+                  : JSON.stringify(toolResult)
+
               toolResponse = {
                 type: "function_call_output",
                 call_id: item.call_id,
-                output: `Validation failed for tool ${item.name}: ${validation.error.message}`,
+                output: toolResultString,
                 toolName: tool.function.name,
               }
               await this.addInput(toolResponse)
-              continue
-            }
-
-            const toolResult = await tool.handler(validation.data)
-            const toolResultString =
-              typeof toolResult === "string"
-                ? toolResult
-                : JSON.stringify(toolResult)
-
-            toolResponse = {
-              type: "function_call_output",
-              call_id: item.call_id,
-              output: toolResultString,
-              toolName: tool.function.name,
-            }
-            await this.addInput(toolResponse)
-            break
-          case "code_interpreter_call":
-          case "computer_call":
-          case "file_search_call":
-          case "image_generation_call":
-          case "local_shell_call":
-          case "mcp_approval_request":
-          case "mcp_call":
-          case "mcp_list_tools":
-          case "message":
-          case "reasoning":
-          case "web_search_call":
-            break
+              break
+            case "code_interpreter_call":
+            case "computer_call":
+            case "file_search_call":
+            case "image_generation_call":
+            case "local_shell_call":
+            case "mcp_approval_request":
+            case "mcp_call":
+            case "mcp_list_tools":
+            case "message":
+            case "reasoning":
+            case "web_search_call":
+              break
+          }
         }
-      }
 
-      if (!hasFunctionCalls) {
-        // We reached a final assistant response – exit loop
-        break
+        if (!hasFunctionCalls) {
+          // We reached a final assistant response – exit loop
+          break
+        }
+      } catch (err) {
+        if (isReasoningVerificationError(err) && reasoningEnabled) {
+          reasoningEnabled = false
+          // Keep the snapshot in the queue so we retry the same turn without reasoning
+          this.inputQueue = inputSnapshot
+          if (this.jobId) {
+            await createStatusEvent({
+              workflowId: this.jobId,
+              content:
+                "Reasoning summaries are not available for this organization. Continuing without reasoning summaries.",
+            })
+          }
+          // Retry the loop without reasoning
+          continue
+        }
+        // Unknown error – rethrow
+        throw err
       }
     }
 
