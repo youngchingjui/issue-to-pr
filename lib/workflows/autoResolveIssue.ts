@@ -21,6 +21,7 @@ import {
   createContainerizedDirectoryTree,
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
+import { extractImageUrlsFromMarkdown } from "@/lib/utils/markdown"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 
 interface Params {
@@ -148,6 +149,22 @@ export const autoResolveIssue = async ({
       type: "message",
     })
 
+    // Add image URLs extracted from the issue body (if any)
+    const imageUrls = extractImageUrlsFromMarkdown(issue.body || "")
+    if (imageUrls.length > 0) {
+      await agent.addInput({
+        role: "user",
+        type: "message",
+        content: [
+          { type: "text", text: "Image attachments from the GitHub issue:" },
+          ...imageUrls.map((url) => ({
+            type: "image_url" as const,
+            image_url: { url },
+          })),
+        ],
+      })
+    }
+
     if (comments && comments.length > 0) {
       await agent.addInput({
         role: "user",
@@ -190,3 +207,4 @@ export const autoResolveIssue = async ({
 }
 
 export default autoResolveIssue
+
