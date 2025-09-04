@@ -3,7 +3,8 @@ import type {
   GitHubIssuesPort,
   IssueRef,
   IssueTitleResult,
-} from "@shared/core/ports/github"
+} from "@shared/ports/github"
+
 /**
  * Service-level function to fetch issue titles using a provided GitHub port.
  * Keeps clean architecture by only depending on the port interface.

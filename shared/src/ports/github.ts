@@ -75,4 +75,3 @@ export interface GitHubIssuesPort {
     input: CreateIssueInput
   ): Promise<Result<Issue, GithubIssueErrors>>
 }
-

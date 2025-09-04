@@ -1,9 +1,6 @@
-import {
-  baseBranchSlugSchema,
-  branchPrefixSchema,
-} from "@shared/core/entities/refs"
-import type { LLMPort } from "@shared/core/ports/llm"
-import type { GitHubRefsPort } from "@shared/core/ports/refs"
+import { baseBranchSlugSchema, branchPrefixSchema } from "@shared/entities/refs"
+import type { LLMPort } from "@shared/ports/llm"
+import type { GitHubRefsPort } from "@shared/ports/refs"
 
 const MAX_CONTEXT_LENGTH = 100000
 const MAX_ATTEMPTS = 10

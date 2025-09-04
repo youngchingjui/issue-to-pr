@@ -1,4 +1,4 @@
-import { buildPreviewSubdomainSlug } from "@shared/index"
+import { buildPreviewSubdomainSlug } from "@shared/entities/previewSlug"
 import { exec as hostExec } from "child_process"
 import Docker from "dockerode"
 import os from "os"

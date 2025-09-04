@@ -1,3 +1,4 @@
+import type { Result } from "@shared/entities/result"
 import type {
   CreateIssueInput,
   GetIssueErrors,
@@ -7,8 +8,7 @@ import type {
   IssueDetails,
   IssueRef,
   IssueTitleResult,
-} from "@shared/core/ports/github"
-import type { Result } from "@shared/entities/result"
+} from "@shared/ports/github"
 import { withTiming } from "@shared/utils/telemetry"
 
 /**
@@ -77,4 +77,3 @@ export function decorateWithTiming<T extends object>(
     },
   })
 }
-
