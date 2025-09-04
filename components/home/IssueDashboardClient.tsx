@@ -98,10 +98,12 @@ export default function IssueDashboardClient({
 
       {!issuesEnabled ? (
         <div className="mb-6 rounded-md border border-yellow-300 bg-yellow-50 p-4 text-yellow-800">
-          <p className="mb-1 font-medium">GitHub Issues are disabled for this repository.</p>
+          <p className="mb-1 font-medium">
+            GitHub Issues are disabled for this repository.
+          </p>
           <p>
-            To enable issues, visit the repository settings on GitHub and turn on the
-            Issues feature. {" "}
+            To enable issues, visit the repository settings on GitHub and turn
+            on the Issues feature.{" "}
             <a
               href={`https://github.com/${repoFullName.owner}/${repoFullName.repo}/settings#features`}
               target="_blank"
@@ -116,7 +118,10 @@ export default function IssueDashboardClient({
       ) : null}
 
       <div className="mb-6">
-        <NewTaskInput repoFullName={repoFullName} issuesEnabled={issuesEnabled} />
+        <NewTaskInput
+          repoFullName={repoFullName}
+          issuesEnabled={issuesEnabled}
+        />
       </div>
 
       {issuesEnabled ? (
@@ -145,4 +150,3 @@ export default function IssueDashboardClient({
     </main>
   )
 }
-
