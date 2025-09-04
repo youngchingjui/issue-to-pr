@@ -6,9 +6,14 @@ import { useEffect, useRef, useState, useTransition } from "react"
 
 import VoiceDictationButton from "@/components/common/VoiceDictationButton"
 import { Button } from "@/components/ui/button"
-import { ToastAction } from "@/components/ui/toast"
 import { Textarea } from "@/components/ui/textarea"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { ToastAction } from "@/components/ui/toast"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { createIssueAction } from "@/lib/actions/createIssue"
 import { toast } from "@/lib/hooks/use-toast"
 import { IssueTitleResponseSchema } from "@/lib/types/api/schemas"
@@ -20,7 +25,10 @@ interface Props {
   issuesEnabled?: boolean
 }
 
-export default function NewTaskInput({ repoFullName, issuesEnabled = true }: Props) {
+export default function NewTaskInput({
+  repoFullName,
+  issuesEnabled = true,
+}: Props) {
   const [description, setDescription] = useState("")
   const [loading, setLoading] = useState(false)
   const [generatingTitle, setGeneratingTitle] = useState(false)
@@ -39,7 +47,8 @@ export default function NewTaskInput({ repoFullName, issuesEnabled = true }: Pro
   useEffect(() => {
     if (typeof window === "undefined") return
     const ua = window.navigator.userAgent || ""
-    const platform = (window.navigator as unknown as { platform?: string }).platform || ""
+    const platform =
+      (window.navigator as unknown as { platform?: string }).platform || ""
     setIsMac(/mac/i.test(ua) || /mac/i.test(platform))
   }, [])
 
@@ -61,7 +70,7 @@ export default function NewTaskInput({ repoFullName, issuesEnabled = true }: Pro
         title: "Issues are disabled",
         description: (
           <span>
-            GitHub Issues are disabled for this repository. {" "}
+            GitHub Issues are disabled for this repository.{" "}
             <a
               href={`https://github.com/${owner}/${repo}/settings#features`}
               target="_blank"
@@ -186,8 +195,11 @@ export default function NewTaskInput({ repoFullName, issuesEnabled = true }: Pro
 
   const shortcutHint = isMac ? "⌘ + Enter" : "Ctrl + Enter"
 
-  const handleKeyDown: React.KeyboardEventHandler<HTMLTextAreaElement> = (e) => {
-    const isSubmitCombo = e.key === "Enter" && ((isMac && e.metaKey) || (!isMac && e.ctrlKey))
+  const handleKeyDown: React.KeyboardEventHandler<HTMLTextAreaElement> = (
+    e
+  ) => {
+    const isSubmitCombo =
+      e.key === "Enter" && ((isMac && e.metaKey) || (!isMac && e.ctrlKey))
     if (isSubmitCombo) {
       e.preventDefault()
       // Trigger form submission which uses the existing submit handler
@@ -235,17 +247,20 @@ export default function NewTaskInput({ repoFullName, issuesEnabled = true }: Pro
                 <Button type="submit" disabled={isDisabled}>
                   {generatingTitle ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating issue
-                      title...
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                      Generating issue title...
                     </>
                   ) : loading || isPending ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                      Creating...
                     </>
                   ) : (
                     <>
                       Create Github Issue
-                      <span className="ml-2 text-xs text-muted-foreground">{shortcutHint}</span>
+                      <span className="ml-2 text-xs text-primary-foreground">
+                        {shortcutHint}
+                      </span>
                     </>
                   )}
                 </Button>
@@ -258,7 +273,9 @@ export default function NewTaskInput({ repoFullName, issuesEnabled = true }: Pro
 
           <VoiceDictationButton
             onTranscribed={(text) =>
-              setDescription((prev) => (prev.trim() ? `${prev}\n${text}` : text))
+              setDescription((prev) =>
+                prev.trim() ? `${prev}\n${text}` : text
+              )
             }
             disabled={isDisabled}
           />
@@ -267,4 +284,3 @@ export default function NewTaskInput({ repoFullName, issuesEnabled = true }: Pro
     </TooltipProvider>
   )
 }
-
