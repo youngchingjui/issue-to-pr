@@ -2,7 +2,7 @@
 
 import { Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useState, useTransition } from "react"
+import { useEffect, useRef, useState, useTransition } from "react"
 
 import VoiceDictationButton from "@/components/common/VoiceDictationButton"
 import { Button } from "@/components/ui/button"
@@ -32,6 +32,16 @@ export default function NewTaskInput({ repoFullName, issuesEnabled = true }: Pro
   const [isPending, startTransition] = useTransition()
 
   const router = useRouter()
+  const formRef = useRef<HTMLFormElement>(null)
+  const [isMac, setIsMac] = useState(false)
+
+  // Detect OS to adjust keyboard shortcut hint and behavior
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const ua = window.navigator.userAgent || ""
+    const platform = (window.navigator as unknown as { platform?: string }).platform || ""
+    setIsMac(/mac/i.test(ua) || /mac/i.test(platform))
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -174,10 +184,22 @@ export default function NewTaskInput({ repoFullName, issuesEnabled = true }: Pro
     ? "Issues are disabled for this repository. Enable them in GitHub settings."
     : undefined
 
+  const shortcutHint = isMac ? "⌘ + Enter" : "Ctrl + Enter"
+
+  const handleKeyDown: React.KeyboardEventHandler<HTMLTextAreaElement> = (e) => {
+    const isSubmitCombo = e.key === "Enter" && ((isMac && e.metaKey) || (!isMac && e.ctrlKey))
+    if (isSubmitCombo) {
+      e.preventDefault()
+      // Trigger form submission which uses the existing submit handler
+      formRef.current?.requestSubmit()
+    }
+  }
+
   return (
     <TooltipProvider>
       <form
         onSubmit={handleSubmit}
+        ref={formRef}
         className="mb-6 grid gap-4 border-b border-muted pb-6"
       >
         <div className="grid gap-2">
@@ -188,6 +210,7 @@ export default function NewTaskInput({ repoFullName, issuesEnabled = true }: Pro
                   id="description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
+                  onKeyDown={handleKeyDown}
                   placeholder={
                     !issuesEnabled
                       ? "Issues are disabled for this repository. Enable them in GitHub settings."
@@ -220,7 +243,10 @@ export default function NewTaskInput({ repoFullName, issuesEnabled = true }: Pro
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...
                     </>
                   ) : (
-                    "Create Github Issue"
+                    <>
+                      Create Github Issue
+                      <span className="ml-2 text-xs text-muted-foreground">{shortcutHint}</span>
+                    </>
                   )}
                 </Button>
               </div>

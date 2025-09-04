@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { execInContainer } from "@/lib/docker"
+import { execInContainerWithDockerode } from "@/lib/docker"
 import { pushBranch } from "@/lib/git"
 import { checkBranchExists } from "@/lib/github/content"
 import { BranchCreationStatus, createBranch } from "@/lib/github/git"
@@ -53,12 +53,11 @@ async function fnHandler(
       )
 
       // Set remote URL with credentials before pushing
-      const { exitCode: setUrlExit, stderr: setUrlErr } = await execInContainer(
-        {
+      const { exitCode: setUrlExit, stderr: setUrlErr } =
+        await execInContainerWithDockerode({
           name: env.name,
           command: `git remote set-url origin "${authenticatedUrl}"`,
-        }
-      )
+        })
       if (setUrlExit !== 0) {
         return JSON.stringify({
           status: "error",
@@ -66,7 +65,7 @@ async function fnHandler(
         })
       }
 
-      const { exitCode, stderr } = await execInContainer({
+      const { exitCode, stderr } = await execInContainerWithDockerode({
         name: env.name,
         command: `git push origin ${branch}`,
       })
