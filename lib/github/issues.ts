@@ -496,3 +496,116 @@ export async function getLinkedPRNumbersForIssues({
   return result
 }
 
+/**
+ * Try to find a preview deployment URL for a given PR by inspecting deployment statuses.
+ * Supports common providers like Vercel, Netlify, Cloudflare Pages (but will accept any URL).
+ */
+export async function getPreviewLinkForPR({
+  repoFullName,
+  prNumber,
+}: {
+  repoFullName: string
+  prNumber: number
+}): Promise<string | null> {
+  const octokit = await getOctokit()
+  if (!octokit) throw new Error("No octokit found")
+  const [owner, repo] = repoFullName.split("/")
+
+  try {
+    const pr = await withTiming(
+      `GitHub REST: pulls.get ${repoFullName}#${prNumber}`,
+      () =>
+        octokit.rest.pulls.get({ owner, repo, pull_number: prNumber })
+    )
+    const sha = pr.data.head.sha
+
+    const deployments = await withTiming(
+      `GitHub REST: repos.listDeployments ${repoFullName}@${sha}`,
+      () => octokit.rest.repos.listDeployments({ owner, repo, ref: sha })
+    )
+
+    // Iterate from newest to oldest for faster match
+    for (const dep of deployments.data.sort(
+      (a, b) =>
+        new Date(b.created_at ?? 0).getTime() -
+        new Date(a.created_at ?? 0).getTime()
+    )) {
+      const statuses = await withTiming(
+        `GitHub REST: repos.listDeploymentStatuses ${repoFullName} dep#${dep.id}`,
+        () =>
+          octokit.rest.repos.listDeploymentStatuses({
+            owner,
+            repo,
+            deployment_id: dep.id,
+            per_page: 10,
+          })
+      )
+
+      // Find the latest successful status with a URL, prefer environment_url then target_url
+      const sorted = [...statuses.data].sort(
+        (a, b) =>
+          new Date(b.created_at ?? 0).getTime() -
+          new Date(a.created_at ?? 0).getTime()
+      )
+      for (const s of sorted) {
+        if (s.state && ["success", "in_progress", "queued"].includes(s.state)) {
+          const url = (s.environment_url || s.target_url || undefined) as
+            | string
+            | undefined
+          if (url && isLikelyPreviewUrl(url)) {
+            return url
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error(
+      `getPreviewLinkForPR error for ${repoFullName}#${prNumber}: ${String(err)}`
+    )
+  }
+
+  return null
+}
+
+function isLikelyPreviewUrl(url: string): boolean {
+  try {
+    const u = new URL(url)
+    const host = u.hostname.toLowerCase()
+    return (
+      host.endsWith("vercel.app") ||
+      host.endsWith("netlify.app") ||
+      host.endsWith("pages.dev") ||
+      host.includes("preview") ||
+      host.includes("staging")
+    )
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Batch helper to get preview links for many issues using their linked PRs map.
+ */
+export async function getPreviewLinksForPRs({
+  repoFullName,
+  prNumbersByIssue,
+}: {
+  repoFullName: string
+  prNumbersByIssue: Record<number, number | null>
+}): Promise<Record<number, string | null>> {
+  const entries = Object.entries(prNumbersByIssue)
+  const result: Record<number, string | null> = {}
+
+  for (const [issueStr, prNum] of entries) {
+    const issueNumber = Number(issueStr)
+    if (!prNum) {
+      result[issueNumber] = null
+      continue
+    }
+    const url = await getPreviewLinkForPR({ repoFullName, prNumber: prNum })
+    result[issueNumber] = url
+  }
+
+  return result
+}
+

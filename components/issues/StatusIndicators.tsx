@@ -17,12 +17,14 @@ interface Props {
   >
   repoFullName: string
   prSlot?: React.ReactNode
+  previewSlot?: React.ReactNode
 }
 
 export default function StatusIndicators({
   issue,
   repoFullName,
   prSlot,
+  previewSlot,
 }: Props) {
   return (
     <TooltipProvider delayDuration={200}>
@@ -59,7 +61,9 @@ export default function StatusIndicators({
           ) : null}
         </div>
         {prSlot}
+        {previewSlot}
       </div>
     </TooltipProvider>
   )
 }
+
