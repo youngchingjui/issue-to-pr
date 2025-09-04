@@ -1,9 +1,9 @@
 "use server"
 
+import { withTiming } from "@shared/utils/telemetry"
 import { z } from "zod"
 
 import { getGraphQLClient } from "@/lib/github"
-import { withTiming } from "@/shared/src"
 
 const PullRequestConflictContextQuery = `
   query PullRequestConflictContext($owner: String!, $repo: String!, $number: Int!) {
@@ -74,7 +74,10 @@ const PullRequestSchema = z.object({
   mergeable: z.enum(["MERGEABLE", "CONFLICTING", "UNKNOWN"]),
   mergeStateStatus: z.string().nullable().optional(),
   reviewDecision: z.string().nullable().optional(),
-  files: z.object({ nodes: z.array(FileNodeSchema) }).nullable().optional(),
+  files: z
+    .object({ nodes: z.array(FileNodeSchema) })
+    .nullable()
+    .optional(),
   closingIssuesReferences: z
     .object({ nodes: z.array(LinkedIssueSchema) })
     .nullable()
@@ -192,4 +195,3 @@ export async function listConflictingPullRequests({
   const nodes = parsed.repository?.pullRequests?.nodes || []
   return nodes.filter((n) => n.mergeable === "CONFLICTING")
 }
-

@@ -1,5 +1,5 @@
 import { graphql } from "@octokit/graphql"
-
+import { err, ok, type Result } from "@shared/entities/result"
 import type {
   CreateIssueInput,
   GetIssueErrors,
@@ -9,8 +9,7 @@ import type {
   IssueDetails,
   IssueRef,
   IssueTitleResult,
-} from "@/shared/src/core/ports/github"
-import { err, ok, type Result } from "@/shared/src/entities/result"
+} from "@shared/ports/github"
 
 /**
  * Factory to create a GraphQL-based GitHub adapter implementing GitHubIssuesPort.
@@ -23,7 +22,9 @@ export function makeGitHubGraphQLAdapter(params: {
     headers: { authorization: `token ${token}` },
   })
 
-  async function getIssue(ref: IssueRef): Promise<Result<IssueDetails, GetIssueErrors>> {
+  async function getIssue(
+    ref: IssueRef
+  ): Promise<Result<IssueDetails, GetIssueErrors>> {
     const [owner, name] = ref.repoFullName.split("/")
     if (!owner || !name) return err("RepoNotFound")
 
@@ -235,4 +236,3 @@ export function makeGitHubGraphQLAdapter(params: {
 // Backwards-compatible alias used elsewhere in the app
 export const makeGithubGraphQLAdapter = (token: string): GitHubIssuesPort =>
   makeGitHubGraphQLAdapter({ token })
-

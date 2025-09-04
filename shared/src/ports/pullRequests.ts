@@ -1,4 +1,4 @@
-import { type Result } from "@/shared/src/entities/result"
+import { type Result } from "@shared/entities/result"
 
 export type PullRequestRef = {
   repoFullName: string // e.g. owner/repo
@@ -91,6 +91,7 @@ export interface GitHubPullRequestsPort {
    * Fetch rich context for a pull request: basic PR info, linked issues, PR comments,
    * reviews with their comments, and changed files summary.
    */
-  getPullRequestContext(ref: PullRequestRef): Promise<Result<PullRequestContext, GitHubPRErrors>>
+  getPullRequestContext(
+    ref: PullRequestRef
+  ): Promise<Result<PullRequestContext, GitHubPRErrors>>
 }
-

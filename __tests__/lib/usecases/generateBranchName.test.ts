@@ -1,8 +1,8 @@
 // Jest tests for generateNonConflictingBranchName use case
 
-import type { LLMPort } from "@shared/core/ports/llm"
-import type { GitHubRefsPort } from "@shared/core/ports/refs"
-import { generateNonConflictingBranchName } from "@shared/core/usecases/generateBranchName"
+import type { LLMPort } from "@shared/ports/llm"
+import type { GitHubRefsPort } from "@shared/ports/refs"
+import { generateNonConflictingBranchName } from "@shared/usecases/generateBranchName"
 
 function mockPorts(overrides?: { llmText?: string; branches?: string[] }): {
   llm: LLMPort
@@ -170,4 +170,3 @@ describe("generateNonConflictingBranchName", () => {
     expect(result).toBe(`feature/${long}`)
   })
 })
-

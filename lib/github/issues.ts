@@ -1,5 +1,7 @@
 "use server"
 
+import { withTiming } from "@shared/utils/telemetry"
+
 import getOctokit, { getGraphQLClient, getUserOctokit } from "@/lib/github"
 import {
   getLatestPlanIdsForIssues,
@@ -12,7 +14,6 @@ import {
   GitHubIssueComment,
   ListForRepoParams,
 } from "@/lib/types/github"
-import { withTiming } from "@/shared/src"
 
 type CreateIssueParams = {
   repo: string
@@ -495,4 +496,3 @@ export async function getLinkedPRNumbersForIssues({
 
   return result
 }
-

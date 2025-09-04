@@ -1,9 +1,9 @@
 "use server"
 
+import { withTiming } from "@shared/utils/telemetry"
 import { z } from "zod"
 
 import { getUserOctokit } from "@/lib/github"
-import { withTiming } from "@/shared/src"
 
 /**
  * GraphQL document for listing the current viewer's repositories ordered by last update.
