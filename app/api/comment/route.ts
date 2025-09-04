@@ -12,7 +12,7 @@ import { v4 as uuidv4 } from "uuid"
 import { z } from "zod"
 
 import { getRepoFromString } from "@/lib/github/content"
-import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
+import { getEffectiveOpenAIApiKey } from "@/lib/neo4j/services/openai"
 import { CommentRequestSchema } from "@/lib/schemas/api"
 import commentOnIssue from "@/lib/workflows/commentOnIssue"
 
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { issueNumber, repoFullName, postToGithub } =
       CommentRequestSchema.parse(body)
-    const apiKey = await getUserOpenAIApiKey()
+    const apiKey = await getEffectiveOpenAIApiKey()
     if (!apiKey) {
       return NextResponse.json(
         { error: "Missing OpenAI API key" },
@@ -68,3 +68,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
