@@ -1,5 +1,6 @@
 import NoRepoCTA from "@/components/common/NoRepoCTA"
-import NewTaskContainer from "@/components/issues/NewTaskContainer"
+import IssueDashboardClient from "@/components/home/IssueDashboardClient"
+import { getRepoFromString } from "@/lib/github/content"
 import { listUserAppRepositories } from "@/lib/github/repos"
 import { repoFullNameSchema } from "@/lib/types/github"
 
@@ -13,5 +14,15 @@ export default async function IssueDashboard() {
   }
 
   const repoFullName = repoFullNameSchema.parse(firstRepo.full_name)
-  return <NewTaskContainer repoFullName={repoFullName} repositories={repos} />
+  const repo = await getRepoFromString(repoFullName.fullName)
+  const issuesEnabled = !!repo.has_issues
+
+  return (
+    <IssueDashboardClient
+      repoFullName={repoFullName}
+      repositories={repos}
+      issuesEnabled={issuesEnabled}
+    />
+  )
 }
+

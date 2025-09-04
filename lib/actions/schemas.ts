@@ -35,3 +35,18 @@ export const createIssueActionResultSchema = z.discriminatedUnion("status", [
 export type CreateIssueActionResult = z.infer<
   typeof createIssueActionResultSchema
 >
+
+// List Issues Input Schema
+export const listIssuesInputSchema = z.object({
+  repoFullName: z.string().min(3),
+  page: z.number().int().min(1).default(1).optional(),
+  per_page: z.number().int().min(1).max(100).default(25).optional(),
+})
+export type ListIssuesInput = z.infer<typeof listIssuesInputSchema>
+
+export const listIssuesResultSchema = z.object({
+  issues: z.array(z.any()),
+  prMap: z.record(z.number(), z.number().nullable()),
+  hasMore: z.boolean(),
+})
+export type ListIssuesResult = z.infer<typeof listIssuesResultSchema>
