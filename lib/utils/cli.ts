@@ -4,7 +4,7 @@ import { exec as execCallback } from "node:child_process"
 
 import { promisify } from "util"
 const execPromise = promisify(execCallback)
-import { execInContainer } from "@/lib/docker"
+import { execInContainerWithDockerode } from "@/lib/docker"
 import { asRepoEnvironment, RepoEnvironment } from "@/lib/types"
 
 /**
@@ -123,7 +123,7 @@ export async function setupEnv(
             .join("\n")
         )
       } else {
-        const { stdout, stderr } = await execInContainer({
+        const { stdout, stderr } = await execInContainerWithDockerode({
           name: env.name,
           command: cmd,
         })

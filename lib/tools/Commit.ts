@@ -1,7 +1,7 @@
 import path from "path"
 import { z } from "zod"
 
-import { execInContainer } from "@/lib/docker"
+import { execInContainerWithDockerode } from "@/lib/docker"
 import {
   createCommit,
   getCommitHash,
@@ -30,7 +30,7 @@ async function fnHandler(
     env.kind === "host"
       ? await getCurrentBranch(env.root)
       : (
-          await execInContainer({
+          await execInContainerWithDockerode({
             name: env.name,
             command: "git rev-parse --abbrev-ref HEAD",
           })
@@ -58,7 +58,7 @@ async function fnHandler(
           })
         }
       } else {
-        const { exitCode, stderr } = await execInContainer({
+        const { exitCode, stderr } = await execInContainerWithDockerode({
           name: env.name,
           command: `git add '${filePath.replace(/'/g, "'\\''")}'`,
         })
@@ -74,7 +74,7 @@ async function fnHandler(
     if (env.kind === "host") {
       await createCommit(commitMessage, env.root)
     } else {
-      const { exitCode, stderr } = await execInContainer({
+      const { exitCode, stderr } = await execInContainerWithDockerode({
         name: env.name,
         command: `git commit -m ${JSON.stringify(commitMessage)}`,
       })
@@ -90,7 +90,7 @@ async function fnHandler(
       env.kind === "host"
         ? await getCommitHash(env.root)
         : (
-            await execInContainer({
+            await execInContainerWithDockerode({
               name: env.name,
               command: "git rev-parse HEAD",
             })

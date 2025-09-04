@@ -224,39 +224,6 @@ export async function execInContainerWithDockerode({
   }
 }
 
-/**
- * @deprecated Prefer execInContainerWithDockerode for robust inside-container execution.
- */
-export async function execInContainer({
-  name,
-  command,
-  cwd,
-}: {
-  name: string
-  command: string
-  cwd?: string
-}): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-  const workdirFlag = cwd ? `--workdir \"${cwd}\"` : ""
-  const execCmd = `docker exec ${workdirFlag} ${name} sh -c '${command.replace(/'/g, "'\\\\\''")}'`
-  try {
-    const { stdout, stderr } = await execPromise(execCmd)
-    return { stdout, stderr, exitCode: 0 }
-  } catch (error: unknown) {
-    const err = error as {
-      stdout?: string
-      stderr?: string
-      code?: number
-      message?: string
-    }
-    // child_process.exec provides stdout/stderr even on errors
-    return {
-      stdout: err.stdout || "",
-      stderr: err.stderr || err.message || "",
-      exitCode: typeof err.code === "number" ? err.code : 1,
-    }
-  }
-}
-
 export async function stopAndRemoveContainer(name: string): Promise<void> {
   try {
     await execPromise(`docker rm -f ${name}`)
@@ -301,18 +268,16 @@ export async function listRunningContainers(): Promise<RunningContainer[]> {
 /**
  * List container names matching a set of Docker label filters. Includes stopped containers.
  */
-export async function listContainersByLabels(labels: Record<string, string>): Promise<string[]> {
+export async function listContainersByLabels(
+  labels: Record<string, string>
+): Promise<string[]> {
   const filters: string[] = []
   for (const [key, value] of Object.entries(labels)) {
     if (value !== undefined && value !== null) {
       filters.push(`--filter \"label=${key}=${value}\"`)
     }
   }
-  const cmd = [
-    "docker ps -a",
-    ...filters,
-    "--format '{{.Names}}'",
-  ].join(" ")
+  const cmd = ["docker ps -a", ...filters, "--format '{{.Names}}'"].join(" ")
 
   try {
     const { stdout } = await execPromise(cmd)
@@ -483,4 +448,3 @@ export async function getContainerGitInfo(
     diff,
   }
 }
-
