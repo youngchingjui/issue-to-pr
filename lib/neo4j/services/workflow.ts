@@ -12,6 +12,7 @@ import {
   listAll,
   listForIssue,
   mergeIssueLink,
+  setPreviewInfo,
 } from "@/lib/neo4j/repositories/workflowRun"
 import {
   AnyEvent,
@@ -220,3 +221,31 @@ export async function getWorkflowRunEvents(
     await session.close()
   }
 }
+
+/**
+ * Persist preview information (subdomain and/or URL) on a WorkflowRun
+ */
+export async function savePreviewInfo({
+  workflowId,
+  previewSubdomain,
+  previewUrl,
+}: {
+  workflowId: string
+  previewSubdomain?: string | null
+  previewUrl?: string | null
+}): Promise<AppWorkflowRun> {
+  const session = await n4j.getSession()
+  try {
+    const result = await withTiming(
+      `Neo4j WRITE: savePreviewInfo ${workflowId}`,
+      async () =>
+        session.executeWrite(async (tx) =>
+          setPreviewInfo(tx, { workflowId, previewSubdomain, previewUrl })
+        )
+    )
+    return workflowRunSchema.parse(neo4jToJs(result))
+  } finally {
+    await session.close()
+  }
+}
+

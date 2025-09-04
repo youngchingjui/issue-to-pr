@@ -54,6 +54,14 @@ export default async function WorkflowRunDetailPage({
     issue?.title ||
     `Workflow Run: ${traceId}`
 
+  // Compute preview URL if we have subdomain or a stored URL
+  const base = process.env.NEXT_PUBLIC_PREVIEW_BASE_DOMAIN
+  const computedPreviewUrl =
+    workflow.previewUrl ||
+    (base && workflow.previewSubdomain
+      ? `https://${workflow.previewSubdomain}.${base}`
+      : undefined)
+
   return (
     <main className="container mx-auto p-4">
       <div className="flex flex-col gap-6 max-w-4xl mx-auto">
@@ -72,6 +80,16 @@ export default async function WorkflowRunDetailPage({
           <h1 className="text-2xl font-bold flex items-center gap-3 flex-wrap">
             {headerTitle}
           </h1>
+          {/* Preview link if available */}
+          {computedPreviewUrl && (
+            <div>
+              <Link href={computedPreviewUrl} target="_blank">
+                <Button size="sm" variant="secondary">
+                  Open Preview
+                </Button>
+              </Link>
+            </div>
+          )}
           {/* Container actions & status */}
           <ContainerManager
             workflowId={traceId}
@@ -114,3 +132,4 @@ export default async function WorkflowRunDetailPage({
     </main>
   )
 }
+

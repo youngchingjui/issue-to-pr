@@ -14,7 +14,7 @@ import {
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
 import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
-import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
+import { initializeWorkflowRun, savePreviewInfo } from "@/lib/neo4j/services/workflow"
 import { RepoEnvironment } from "@/lib/types"
 import { GitHubIssue, GitHubRepository } from "@/lib/types/github"
 import {
@@ -22,6 +22,7 @@ import {
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
+import { buildPreviewSubdomainSlug } from "@shared/index"
 
 interface Params {
   issue: GitHubIssue
@@ -115,6 +116,26 @@ export const autoResolveIssue = async ({
       hostRepoPath,
     })
 
+    // Persist preview info for UI
+    try {
+      const previewSubdomain = buildPreviewSubdomainSlug({
+        branch: workingBranch,
+        owner: owner ?? "",
+        repo: repo ?? "",
+      })
+      const base = process.env.NEXT_PUBLIC_PREVIEW_BASE_DOMAIN
+      const previewUrl = base
+        ? `https://${previewSubdomain}.${base}`
+        : undefined
+      await savePreviewInfo({
+        workflowId,
+        previewSubdomain,
+        previewUrl,
+      })
+    } catch (e) {
+      console.warn(`[autoResolveIssue] Failed to save preview info:`, e)
+    }
+
     const env: RepoEnvironment = { kind: "container", name: containerName }
 
     const sessionToken = await getInstallationTokenFromRepo({
@@ -190,3 +211,4 @@ export const autoResolveIssue = async ({
 }
 
 export default autoResolveIssue
+
