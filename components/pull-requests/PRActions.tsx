@@ -1,3 +1,4 @@
+import AutoFixPRController from "@/components/pull-requests/controllers/AutoFixPRController"
 import IdentifyPRGoalController from "@/components/pull-requests/controllers/IdentifyPRGoalController"
 import ReviewPRController from "@/components/pull-requests/controllers/ReviewPRController"
 import { Button } from "@/components/ui/button"
@@ -61,6 +62,25 @@ export default function PRActions({
         {activeWorkflow === "Identifying Goal..."
           ? "Identifying..."
           : "Identify PR Goal"}
+      </Button>
+      <Button
+        onClick={() => {
+          const controller = AutoFixPRController({
+            repoFullName,
+            pullNumber: pr.number,
+            onStart: () => {
+              onWorkflowStart("Auto-fixing PR...")
+            },
+            onComplete: onWorkflowComplete,
+            onError: onWorkflowError,
+          })
+          controller.execute()
+        }}
+        disabled={isLoading}
+      >
+        {activeWorkflow === "Auto-fixing PR..."
+          ? "Auto-fixing..."
+          : "Auto-fix PR"}
       </Button>
     </div>
   )

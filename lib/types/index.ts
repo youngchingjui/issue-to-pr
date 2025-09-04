@@ -43,6 +43,7 @@ export const workflowTypeEnum = z.enum([
   "reviewPullRequest",
   "alignmentCheck",
   "resolveMergeConflicts",
+  "autoFixPullRequest",
 ])
 
 export const workflowRunSchema = z.object({

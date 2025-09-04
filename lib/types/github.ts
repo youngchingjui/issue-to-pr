@@ -58,6 +58,7 @@ export type WorkflowType =
   | "Reviewing PR..."
   | "Identifying Goal..."
   | "Auto Resolving..."
+  | "Auto-fixing PR..."
 
 // Extended types for our application
 export type GitHubItem = GitHubIssue & {
@@ -79,3 +80,4 @@ export type GetIssueResult =
   | { type: "other_error"; error: unknown }
 
 export type ExtendedOctokit = Octokit & { authType: "user" | "app" }
+

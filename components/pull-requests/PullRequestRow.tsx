@@ -8,6 +8,7 @@ import { useState } from "react"
 import MergeConflictBadge from "@/components/pull-requests/MergeConflictBadge"
 import AlignmentCheckController from "@/components/pull-requests/controllers/AlignmentCheckController"
 import AnalyzePRController from "@/components/pull-requests/controllers/AnalyzePRController"
+import AutoFixPRController from "@/components/pull-requests/controllers/AutoFixPRController"
 import ResolveMergeConflictsController from "@/components/pull-requests/controllers/ResolveMergeConflictsController"
 import ReviewPRController from "@/components/pull-requests/controllers/ReviewPRController"
 import { Button } from "@/components/ui/button"
@@ -92,6 +93,23 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
     },
   })
 
+  const autoFixWorkflow = AutoFixPRController({
+    repoFullName: pr.head.repo.full_name,
+    pullNumber: pr.number,
+    onStart: () => {
+      setIsLoading(true)
+      setActiveWorkflow("Auto-fixing PR...")
+    },
+    onComplete: () => {
+      setIsLoading(false)
+      setActiveWorkflow(null)
+    },
+    onError: () => {
+      setIsLoading(false)
+      setActiveWorkflow(null)
+    },
+  })
+
   return (
     <TableRow>
       <TableCell className="py-4">
@@ -149,7 +167,7 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
               )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-[240px]">
+          <DropdownMenuContent align="end" className="w-[260px]">
             <DropdownMenuItem onClick={reviewWorkflow.execute}>
               <div>
                 <div>Review Pull Request</div>
@@ -179,6 +197,14 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
                 <div>Resolve Merge Conflicts</div>
                 <div className="text-xs text-muted-foreground">
                   Detect and attempt to automatically resolve conflicts
+                </div>
+              </div>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={autoFixWorkflow.execute}>
+              <div>
+                <div>Auto-fix Pull Request</div>
+                <div className="text-xs text-muted-foreground">
+                  Apply fixes based on review comments and sync to the PR
                 </div>
               </div>
             </DropdownMenuItem>
