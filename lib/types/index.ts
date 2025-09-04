@@ -35,15 +35,9 @@ export const issueSchema = z.object({
 })
 
 // WorkflowRuns
-export const workflowTypeEnum = z.enum([
-  "commentOnIssue",
-  "resolveIssue",
-  "autoResolveIssue",
-  "identifyPRGoal",
-  "reviewPullRequest",
-  "alignmentCheck",
-  "resolveMergeConflicts",
-])
+// Accept any string for workflow type so all current and future workflow types
+// are supported in the UI and storage without schema failures.
+export const workflowTypeEnum = z.string()
 
 export const workflowRunSchema = z.object({
   id: z.string(),
