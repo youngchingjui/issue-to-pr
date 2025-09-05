@@ -12,6 +12,11 @@ import {
 import { listUserRepositories } from "@/lib/github/graphql/queries/listUserRepositories"
 import { listWorkflowRuns } from "@/lib/neo4j/services/workflow"
 
+// There were build errors
+// "Dynamic server usage: Route /workflow-runs couldn't be rendered statically because it used `headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error"
+// Making this dynamic to avoid those errors
+export const dynamic = "force-dynamic"
+
 /**
  * Filter workflow runs so that only runs which belong to repositories the
  * current user can access are shown. Visibility of public repositories is
