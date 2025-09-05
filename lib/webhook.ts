@@ -1,8 +1,8 @@
 import { v4 as uuidv4 } from "uuid"
 
+import { listContainersByLabels, stopAndRemoveContainer } from "@/lib/docker"
 import { getRepoFromString } from "@/lib/github/content"
 import { getIssue } from "@/lib/github/issues"
-import { listContainersByLabels, stopAndRemoveContainer } from "@/lib/docker"
 import { updateJobStatus } from "@/lib/redis-old"
 import { resolveIssue } from "@/lib/workflows/resolveIssue"
 
@@ -137,10 +137,7 @@ export const routeWebhookHandler = async ({
           `[Webhook] Cleaned up ${containerNames.length} container(s) for merged PR ${owner}/${repo}@${branch}`
         )
       } catch (e) {
-        console.error(
-          "[Webhook] Failed to clean up containers on PR merge:",
-          e
-        )
+        console.error("[Webhook] Failed to clean up containers on PR merge:", e)
       }
     }
   } else {
@@ -149,4 +146,3 @@ export const routeWebhookHandler = async ({
     console.log(`${event} event received on ${repository}`)
   }
 }
-

@@ -1,0 +1,9 @@
+{
+  "name": "issue-to-pr-nextjs",
+  "version": "0.1.0",
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
+  }
+}
