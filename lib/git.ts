@@ -350,7 +350,7 @@ export async function addWorktree(
   // First attempt: normal add (may fail if branch already checked out)
   try {
     return await execWorktree(`git worktree add "${worktreeDir}" ${branch}`)
-  } catch (err: unknown) {
+  } catch (err) {
     // TODO: Handle if any of the below completely fail (how?)
     // Fallback 1: detached HEAD
     try {
@@ -359,6 +359,7 @@ export async function addWorktree(
       )
     } catch {
       // Fallback 2: force add (should rarely be needed)
+      console.error(err)
       return await execWorktree(
         `git worktree add --force "${worktreeDir}" ${branch}`
       )
