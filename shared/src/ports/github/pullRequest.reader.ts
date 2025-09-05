@@ -79,19 +79,19 @@ export type PullRequestContext = {
   reviews?: PRReview[]
 }
 
-export type GitHubPRErrors =
+export type PullRequestErrors =
   | "AuthRequired"
   | "RepoNotFound"
   | "RateLimited"
   | "ValidationFailed"
   | "Unknown"
 
-export interface GitHubPullRequestsPort {
+export interface PullRequestReaderPort {
   /**
    * Fetch rich context for a pull request: basic PR info, linked issues, PR comments,
    * reviews with their comments, and changed files summary.
    */
   getPullRequestContext(
     ref: PullRequestRef
-  ): Promise<Result<PullRequestContext, GitHubPRErrors>>
+  ): Promise<Result<PullRequestContext, PullRequestErrors>>
 }

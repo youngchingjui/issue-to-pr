@@ -1,27 +1,26 @@
 import { graphql } from "@octokit/graphql"
-
+import { err, ok, type Result } from "@shared/entities/result"
 import {
-  type GitHubPullRequestsPort,
-  type GitHubPRErrors,
   type PRFileChange,
   type PRIssueComment,
   type PRIssueLink,
   type PRReview,
   type PullRequestContext,
+  type PullRequestErrors,
+  type PullRequestReaderPort,
   type PullRequestRef,
-} from "@/shared/src/core/ports/pullRequests"
-import { err, ok, type Result } from "@/shared/src/entities/result"
+} from "@shared/ports/github/pullRequest.reader"
 
 export function makeGitHubPRGraphQLAdapter(params: {
   token: string
-}): GitHubPullRequestsPort {
+}): PullRequestReaderPort {
   const client = graphql.defaults({
     headers: { authorization: `token ${params.token}` },
   })
 
   async function getPullRequestContext(
     ref: PullRequestRef
-  ): Promise<Result<PullRequestContext, GitHubPRErrors>> {
+  ): Promise<Result<PullRequestContext, PullRequestErrors>> {
     const [owner, repo] = ref.repoFullName.split("/")
     if (!owner || !repo) {
       return err("ValidationFailed", {
@@ -124,9 +123,29 @@ export function makeGitHubPRGraphQLAdapter(params: {
           deletions: number | null
           changedFiles: number | null
           author: { login: string } | null
-          files: { nodes: Array<{ path: string; additions: number | null; deletions: number | null; changeType?: string | null }> }
-          closingIssuesReferences: { nodes: Array<{ number: number; title: string | null; state: "OPEN" | "CLOSED" }> }
-          comments: { nodes: Array<{ id: string; body: string; createdAt: string; author: { login: string } | null }> }
+          files: {
+            nodes: Array<{
+              path: string
+              additions: number | null
+              deletions: number | null
+              changeType?: string | null
+            }>
+          }
+          closingIssuesReferences: {
+            nodes: Array<{
+              number: number
+              title: string | null
+              state: "OPEN" | "CLOSED"
+            }>
+          }
+          comments: {
+            nodes: Array<{
+              id: string
+              body: string
+              createdAt: string
+              author: { login: string } | null
+            }>
+          }
           reviews: {
             nodes: Array<{
               id: string
@@ -171,7 +190,12 @@ export function makeGitHubPRGraphQLAdapter(params: {
         pr.closingIssuesReferences?.nodes || []
       ).map((i) => ({ number: i.number, title: i.title, state: i.state }))
       const comments: PRIssueComment[] = (pr.comments?.nodes || []).map(
-        (c) => ({ id: c.id, body: c.body, createdAt: c.createdAt, author: c.author?.login ?? null })
+        (c) => ({
+          id: c.id,
+          body: c.body,
+          createdAt: c.createdAt,
+          author: c.author?.login ?? null,
+        })
       )
       const reviews: PRReview[] = (pr.reviews?.nodes || []).map((r) => ({
         id: r.id,
@@ -222,13 +246,21 @@ export function makeGitHubPRGraphQLAdapter(params: {
     } catch (e: unknown) {
       let status: number | undefined
       let message: string | undefined
-      if (typeof e === "object" && e !== null) {
-        const anyErr = e as any
-        status = anyErr.status ?? anyErr?.response?.status
-        message = anyErr.message
+      if (
+        typeof e === "object" &&
+        e !== null &&
+        "status" in e &&
+        "message" in e &&
+        typeof e.status === "number" &&
+        typeof e.message === "string"
+      ) {
+        status = e.status
+        message = e.message
       }
-      if (status === 401 || status === 403) return err("AuthRequired", { status, message })
-      if (typeof message === "string" && /rate\s*limit/i.test(message)) return err("RateLimited", { status, message })
+      if (status === 401 || status === 403)
+        return err("AuthRequired", { status, message })
+      if (typeof message === "string" && /rate\s*limit/i.test(message))
+        return err("RateLimited", { status, message })
       if (status === 422) return err("ValidationFailed", { status, message })
       return err("Unknown", { status, message })
     }
@@ -241,4 +273,3 @@ export function makeGitHubPRGraphQLAdapter(params: {
 
 export const makeGithubPRGraphQLAdapter = (token: string) =>
   makeGitHubPRGraphQLAdapter({ token })
-

@@ -10,23 +10,6 @@ export interface IssueTitleResult extends IssueRef {
   state?: "OPEN" | "CLOSED"
 }
 
-export type CreateIssueInput = {
-  owner: string
-  repo: string
-  title: string
-  body?: string
-}
-
-export type Issue = { id: number; number: number; url: string }
-
-export type GithubIssueErrors =
-  | "AuthRequired"
-  | "RepoNotFound"
-  | "IssuesDisabled"
-  | "RateLimited"
-  | "ValidationFailed"
-  | "Unknown"
-
 // Key properties needed by auto-resolve and planning workflows
 // Keep this minimal and provider-agnostic
 export interface IssueDetails extends IssueRef {
@@ -53,9 +36,8 @@ export type GetIssueErrors =
 
 /**
  * Abstraction over GitHub for reading issue metadata.
- * Implementations can use REST or GraphQL.
  */
-export interface GitHubIssuesPort {
+export interface IssueReaderPort {
   /**
    * Fetch a single issue with key properties used across workflows.
    */
@@ -66,12 +48,4 @@ export interface GitHubIssuesPort {
    * Implementations should be resilient to partial failures and return null titles when not found.
    */
   getIssueTitles(refs: IssueRef[]): Promise<IssueTitleResult[]>
-
-  /**
-   * Create an issue in a repository.
-   * @param input
-   */
-  createIssue(
-    input: CreateIssueInput
-  ): Promise<Result<Issue, GithubIssueErrors>>
 }

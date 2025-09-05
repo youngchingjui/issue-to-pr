@@ -1,23 +1,19 @@
 import { Octokit } from "@octokit/rest"
-
+import { err, ok, type Result } from "@shared/entities/result"
 import type {
-  CreateIssueInput,
   GetIssueErrors,
-  GithubIssueErrors,
-  GitHubIssuesPort,
-  Issue,
   IssueDetails,
+  IssueReaderPort,
   IssueRef,
   IssueTitleResult,
-} from "@/shared/src/core/ports/github"
-import { err, ok, type Result } from "@/shared/src/entities/result"
+} from "@shared/ports/github/issue.reader"
 
 /**
- * Factory to create a REST-based GitHub adapter implementing GitHubIssuesPort.
+ * Factory to create a REST-based GitHub adapter implementing IssueReaderPort.
  */
-export function makeGitHubRESTAdapter(params: {
+export function makeIssueReaderAdapter(params: {
   token: string
-}): GitHubIssuesPort {
+}): IssueReaderPort {
   const token = params.token
   const octokit = new Octokit({ auth: token })
 
@@ -41,10 +37,10 @@ export function makeGitHubRESTAdapter(params: {
         url: data.html_url ?? "",
         authorLogin: data.user?.login ?? null,
         labels: (Array.isArray(data.labels) ? data.labels : [])
-          .map((l: any) => (typeof l === "string" ? l : l?.name))
+          .map((l) => (typeof l === "string" ? l : l?.name))
           .filter(Boolean) as string[],
         assignees: (Array.isArray(data.assignees) ? data.assignees : [])
-          .map((a: any) => a?.login)
+          .map((a) => a?.login)
           .filter(Boolean) as string[],
         createdAt: data.created_at ?? new Date().toISOString(),
         updatedAt: data.updated_at ?? new Date().toISOString(),
@@ -54,10 +50,14 @@ export function makeGitHubRESTAdapter(params: {
     } catch (e: unknown) {
       if (typeof e !== "object" || e === null) return err("Unknown")
       const anyErr = e as { status?: number; message?: string }
-      if (anyErr.status === 404) return err("NotFound", { message: anyErr.message })
-      if (anyErr.status === 403) return err("Forbidden", { message: anyErr.message })
-      if (anyErr.status === 401) return err("AuthRequired", { message: anyErr.message })
-      if (anyErr.status === 429) return err("RateLimited", { message: anyErr.message })
+      if (anyErr.status === 404)
+        return err("NotFound", { message: anyErr.message })
+      if (anyErr.status === 403)
+        return err("Forbidden", { message: anyErr.message })
+      if (anyErr.status === 401)
+        return err("AuthRequired", { message: anyErr.message })
+      if (anyErr.status === 429)
+        return err("RateLimited", { message: anyErr.message })
       return err("Unknown", { message: anyErr.message })
     }
   }
@@ -93,60 +93,10 @@ export function makeGitHubRESTAdapter(params: {
     return results
   }
 
-  async function createIssue(
-    input: CreateIssueInput
-  ): Promise<Result<Issue, GithubIssueErrors>> {
-    try {
-      const { data } = await octokit.issues.create({
-        owner: input.owner,
-        repo: input.repo,
-        title: input.title,
-        body: input.body ?? undefined,
-      })
-      return ok({
-        id: data.id ?? 0,
-        number: data.number ?? 0,
-        url: data.html_url ?? "",
-      })
-    } catch (e: unknown) {
-      if (typeof e !== "object" || e === null) {
-        return err("Unknown", { message: "Unknown error" })
-      }
-
-      let status: number | undefined
-      let message: string | undefined
-      if ("status" in e && typeof (e as any).status === "number") {
-        status = (e as any).status
-      }
-      if ("message" in e && typeof (e as any).message === "string") {
-        message = (e as any).message
-      }
-
-      if (status === 401 || status === 403) {
-        return err("AuthRequired", { status, message })
-      }
-      if (status === 404) {
-        return err("RepoNotFound", { status, message })
-      }
-      if (status === 410) {
-        return err("IssuesDisabled", { status, message })
-      }
-      if (status === 422) {
-        return err("ValidationFailed", { status, message })
-      }
-      if (status === 429) {
-        return err("RateLimited", { status, message })
-      }
-      return err("Unknown", { status, message })
-    }
-  }
-
   return {
     getIssue,
     getIssueTitles,
-    createIssue,
   }
 }
 
-export default makeGitHubRESTAdapter
-
+export default makeIssueReaderAdapter
