@@ -376,6 +376,8 @@ importers:
         specifier: ^5.12.2
         version: 5.12.2(ws@8.18.3)(zod@3.25.76)
 
+  apps/www: {}
+
   shared:
     dependencies:
       '@anthropic-ai/sdk':
