@@ -18,5 +18,11 @@
       "@workers/*": ["apps/workers/src/*"]
     }
   },
-  "include": ["__tests__/**/*", "lib/**/*", "components/**/*", "app/**/*"]
+  "include": [
+    "**/*",
+    "../lib/**/*",
+    "../components/**/*",
+    "../app/**/*",
+    "../shared/src/**/*"
+  ]
 }
