@@ -19,4 +19,3 @@ export interface CoreWorkflowEvent<T = unknown> {
 export interface EventPort {
   emit(workflowId: string, event: CoreWorkflowEvent): Promise<void> | void
 }
-

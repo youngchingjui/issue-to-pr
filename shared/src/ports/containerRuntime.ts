@@ -37,4 +37,3 @@ export interface ContainerRuntimePort {
   stopAndRemoveContainer(name: string): Promise<void>
   getContainerStatus(name: string): Promise<ContainerState>
 }
-

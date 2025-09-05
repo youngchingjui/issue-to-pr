@@ -21,9 +21,11 @@ export interface TelemetryPort {
   }): Promise<TraceHandle>
 
   /** Finish a trace (marks completion in telemetry backend). */
-  endTrace(trace: TraceHandle, params?: { metadata?: Record<string, unknown> }): Promise<void>
+  endTrace(
+    trace: TraceHandle,
+    params?: { metadata?: Record<string, unknown> }
+  ): Promise<void>
 
   /** Record an event within a trace (maps to Langfuse event). */
   trackEvent(trace: TraceHandle, event: TelemetryEvent): Promise<void>
 }
-

@@ -1,11 +1,11 @@
-import type { LLMPort } from "@/shared/src/core/ports/llm"
-import type { CoreWorkflowEvent, EventPort } from "@/shared/src/core/ports/events"
+import type { CoreWorkflowEvent, EventPort } from "@shared/ports/events"
+import type { LLMPort } from "@shared/ports/llm"
 
 export interface AgentToolContext {
   emit: (event: CoreWorkflowEvent) => Promise<void> | void
 }
 
-export interface AgentTool<Args = any, Result = any> {
+export interface AgentTool<Args = unknown, Result = unknown> {
   name: string
   description: string
   execute: (args: Args, ctx: AgentToolContext) => Promise<Result>
@@ -76,4 +76,3 @@ export class Agent {
     return response
   }
 }
-
