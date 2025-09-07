@@ -2,7 +2,7 @@
 
 import type { LLMPort } from "@shared/ports/llm"
 import type { GitHubRefsPort } from "@shared/ports/refs"
-import { generateNonConflictingBranchName } from "@shared/usecases/generateBranchName"
+import { generateNonConflictingBranchName } from "@shared/usecases/git/generateBranchName"
 
 function mockPorts(overrides?: { llmText?: string; branches?: string[] }): {
   llm: LLMPort
