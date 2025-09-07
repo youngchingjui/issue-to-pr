@@ -5,7 +5,7 @@ import {
   IssueTitleResponseSchema,
 } from "@/lib/types/api/schemas"
 import { AnthropicAdapter } from "@/shared/src/adapters/anthropic"
-import { generateIssueTitle } from "@/shared/src/services/workflows/generateIssueTitle"
+import { generateIssueTitle } from "@/shared/src/usecases/workflows/generateIssueTitle"
 
 export async function POST(req: NextRequest) {
   try {
