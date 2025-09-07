@@ -1,4 +1,4 @@
-import { generateNonConflictingBranchName } from "@shared/usecases/generateBranchName"
+import { generateNonConflictingBranchName } from "@shared/usecases/git/generateBranchName"
 import { v4 as uuidv4 } from "uuid"
 
 import { BasicLLMAdapter } from "@/lib/adapters/BasicLLMAdapter"
