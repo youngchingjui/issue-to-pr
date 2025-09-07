@@ -14,7 +14,7 @@ interface Props {
 export default async function IssueTable({ repoFullName }: Props) {
   return (
     <div className="rounded-md border">
-      <Table className="table-fixed sm:table-auto">
+      <Table className="table-auto">
         <TableBody>
           {/* Render GitHub issues first */}
           <Suspense fallback={<RowsSkeleton rows={5} columns={3} />}>
@@ -32,4 +32,3 @@ export default async function IssueTable({ repoFullName }: Props) {
     </div>
   )
 }
-

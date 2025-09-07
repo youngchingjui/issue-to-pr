@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 import IssueRow from "@/components/issues/IssueRow"
 import PRStatusIndicator from "@/components/issues/PRStatusIndicator"
@@ -20,6 +20,43 @@ export default function LoadMoreIssues({ repoFullName, perPage = 25 }: Props) {
   const [issues, setIssues] = useState<IssueWithStatus[]>([])
   const [prMap, setPrMap] = useState<Record<number, number | null>>({})
   const [hasMore, setHasMore] = useState<boolean | null>(null)
+  const [hasAnyInitialIssues, setHasAnyInitialIssues] = useState<
+    boolean | null
+  >(null)
+
+  // Check if there are any issues on initial page so we don't render button when list is empty
+  useEffect(() => {
+    const cancelled = false
+    const ctrl = new AbortController()
+    const checkInitial = async () => {
+      try {
+        const resp = await fetch("/api/issues/list", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ repoFullName, page: 1, per_page: perPage }),
+          signal: ctrl.signal,
+        })
+        if (!resp.ok) {
+          throw new Error(`Failed to check initial issues: ${resp.status}`)
+        }
+        const data: {
+          issues: IssueWithStatus[]
+          prMap: Record<number, number | null>
+          hasMore: boolean
+        } = await resp.json()
+        setHasAnyInitialIssues(data.issues.length > 0)
+        // If server says there aren't more after page 1, reflect that so we can hide button up front.
+        setHasMore(data.hasMore)
+      } catch {
+        // ignore errors; leave as null so UX can still attempt loading
+        setHasAnyInitialIssues(true)
+      }
+    }
+    checkInitial()
+    return () => {
+      ctrl.abort()
+    }
+  }, [repoFullName, perPage])
 
   const loadMore = async () => {
     if (loading) return
@@ -30,7 +67,11 @@ export default function LoadMoreIssues({ repoFullName, perPage = 25 }: Props) {
       const resp = await fetch("/api/issues/list", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repoFullName, page: nextPage, per_page: perPage }),
+        body: JSON.stringify({
+          repoFullName,
+          page: nextPage,
+          per_page: perPage,
+        }),
       })
       if (!resp.ok) {
         throw new Error(`Failed to load issues: ${resp.status}`)
@@ -52,9 +93,9 @@ export default function LoadMoreIssues({ repoFullName, perPage = 25 }: Props) {
     }
   }
 
+  // Don't show the button until we know whether there are any issues at all.
   // If we already determined there are no more, hide the button.
-  // Initially null means unknown - show the button so users can try to load more.
-  const showButton = hasMore !== false
+  const showButton = hasAnyInitialIssues === true && hasMore !== false
 
   return (
     <>
@@ -92,4 +133,3 @@ export default function LoadMoreIssues({ repoFullName, perPage = 25 }: Props) {
     </>
   )
 }
-
