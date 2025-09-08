@@ -1,3 +1,4 @@
+import { modelList } from "@shared/entities/llm/models"
 import { z } from "zod"
 
 // =================================================
@@ -58,10 +59,11 @@ export type ListIssuesResult = z.infer<typeof listIssuesResultSchema>
 // =================================================
 // Resolve Issue Action
 // =================================================
+
 export const resolveIssueRequestSchema = z.object({
   repoFullName: z.string().min(1),
   issueNumber: z.number().int().positive(),
-  model: z.string().optional(),
+  model: modelList.optional(),
   maxTokens: z.number().int().positive().optional(),
 })
 export type ResolveIssueRequest = z.infer<typeof resolveIssueRequestSchema>
