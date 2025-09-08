@@ -1,5 +1,4 @@
 import { createAppAuth } from "@octokit/auth-app"
-import { createOAuthUserAuth } from "@octokit/auth-oauth-user"
 import { Octokit } from "@octokit/rest"
 import { err, ok, type Result } from "@shared/entities/result"
 import type {
@@ -17,9 +16,9 @@ export type GitHubAuthMethod =
   | { type: "oauth_user"; token: string } // Github App user-to-server OAuth
   | {
       type: "app_installation"
-      appId: string
+      appId: number | string
       privateKey: string
-      installationId: number
+      installationId: number | string
     } // Github App server-to-server
 
 /**
@@ -28,13 +27,7 @@ export type GitHubAuthMethod =
 function createOctokitFromAuth(authMethod: GitHubAuthMethod): Octokit {
   switch (authMethod.type) {
     case "oauth_user":
-      return new Octokit({
-        authStrategy: createOAuthUserAuth,
-        auth: {
-          clientType: "github-app",
-          token: authMethod.token,
-        },
-      })
+      return new Octokit({ auth: authMethod.token })
 
     case "app_installation":
       return new Octokit({
