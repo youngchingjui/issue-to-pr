@@ -52,10 +52,20 @@ export interface IssueReaderPort {
   getIssueTitles(refs: IssueRef[]): Promise<IssueTitleResult[]>
 }
 
+/**
+ * Authentication methods for GitHub API access
+ */
+export type GitHubAuthMethod =
+  | { type: "oauth_user"; token: string } // Github App user-to-server OAuth
+  | {
+      type: "app_installation"
+      appId: number | string
+      privateKey: string
+      installationId: number | string
+    } // Github App server-to-server
+
 export interface IssueReaderFactoryPort {
-  authorize(input: {
-    type: "oauth"
-    provider: "github"
-    token: string
-  }): Promise<Result<IssueReaderPort, AuthErrors>>
+  authorize(
+    input: GitHubAuthMethod
+  ): Promise<Result<IssueReaderPort, AuthErrors>>
 }

@@ -3,23 +3,12 @@ import { Octokit } from "@octokit/rest"
 import { err, ok, type Result } from "@shared/entities/result"
 import type {
   GetIssueErrors,
+  GitHubAuthMethod,
   IssueDetails,
   IssueReaderPort,
   IssueRef,
   IssueTitleResult,
 } from "@shared/ports/github/issue.reader"
-
-/**
- * Authentication methods for GitHub API access
- */
-export type GitHubAuthMethod =
-  | { type: "oauth_user"; token: string } // Github App user-to-server OAuth
-  | {
-      type: "app_installation"
-      appId: number | string
-      privateKey: string
-      installationId: number | string
-    } // Github App server-to-server
 
 /**
  * Creates an Octokit instance based on the provided authentication method
