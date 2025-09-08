@@ -105,7 +105,10 @@ export function makeIssueReaderAdapter(
 
       return ok(issueDetails)
     } catch (error) {
-      if (typeof error !== "object" || error === null) return err("Unknown")
+      if (typeof error !== "object" || error === null) {
+        console.error(error)
+        return err("Unknown")
+      }
       if ("status" in error && typeof error.status === "number") {
         switch (error.status) {
           case 401:
@@ -122,7 +125,8 @@ export function makeIssueReaderAdapter(
             throw error
         }
       }
-      throw error
+      console.error(error)
+      return err("Unknown")
     }
   }
 
