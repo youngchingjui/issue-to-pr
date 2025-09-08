@@ -27,11 +27,15 @@ export async function resolveIssueAction(
 export async function resolveIssueAction(
   input: unknown
 ): Promise<ResolveIssueResult> {
-  // Parse inputs
+  // =================================================
+  // Step 1: Parse inputs
+  // =================================================
   const { repoFullName, issueNumber, model, maxTokens } =
     resolveIssueRequestSchema.parse(input)
 
-  // Prepare adapters
+  // =================================================
+  // Step 2: Prepare adapters
+  // =================================================
   const issueReaderAdapter = (token: string) =>
     makeIssueReaderAdapter(
       async (): Promise<GitHubAuthMethod> => ({
@@ -49,7 +53,9 @@ export async function resolveIssueAction(
 
   const authAdapter = nextAuthReader
 
-  // Execute the use case
+  // =================================================
+  // Step 3: Execute the use case
+  // =================================================
   const result = await resolveIssue(
     {
       auth: authAdapter,
@@ -65,7 +71,9 @@ export async function resolveIssueAction(
     }
   )
 
-  // Ensure the return value is a plain, serializable object for Client Components
+  // =================================================
+  // Step 4: Serialize and return results
+  // =================================================
   const serializedIssue = result.issue
     ? {
         ref: {

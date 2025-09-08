@@ -1,4 +1,7 @@
-// lib/adapters/auth/AuthReader.ts
+// =================================================
+// # Auth Reader Adapter
+// This adapter belongs in NextJS `/lib` folder as it uses the NextAuth library
+// =================================================
 import {
   AccessToken,
   AuthenticatedUser,
