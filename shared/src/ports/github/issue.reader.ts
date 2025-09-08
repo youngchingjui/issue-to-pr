@@ -34,6 +34,8 @@ export type GetIssueErrors =
   | "RateLimited"
   | "Unknown"
 
+export type AuthErrors = "AuthRequired" | "Unknown"
+
 /**
  * Abstraction over GitHub for reading issue metadata.
  */
@@ -48,4 +50,12 @@ export interface IssueReaderPort {
    * Implementations should be resilient to partial failures and return null titles when not found.
    */
   getIssueTitles(refs: IssueRef[]): Promise<IssueTitleResult[]>
+}
+
+export interface IssueReaderFactoryPort {
+  authorize(input: {
+    type: "oauth"
+    provider: "github"
+    token: string
+  }): Promise<Result<IssueReaderPort, AuthErrors>>
 }

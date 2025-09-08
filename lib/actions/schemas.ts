@@ -50,3 +50,20 @@ export const listIssuesResultSchema = z.object({
   hasMore: z.boolean(),
 })
 export type ListIssuesResult = z.infer<typeof listIssuesResultSchema>
+
+// Resolve Issue Action
+export const resolveIssueRequestSchema = z.object({
+  repoFullName: z.string().min(1),
+  issueNumber: z.number().int().positive(),
+  model: z.string().optional(),
+  maxTokens: z.number().int().positive().optional(),
+})
+export type ResolveIssueRequest = z.infer<typeof resolveIssueRequestSchema>
+
+export const resolveIssueResultSchema = z.object({
+  issue: z.any().nullable(), // Issue entity
+  response: z.string(),
+  success: z.boolean(),
+  error: z.string().optional(),
+})
+export type ResolveIssueResult = z.infer<typeof resolveIssueResultSchema>

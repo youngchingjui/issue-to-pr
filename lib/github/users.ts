@@ -5,6 +5,9 @@ import { listUserRepositories } from "@/lib/github/graphql/queries/listUserRepos
 import { listUserAppRepositories } from "@/lib/github/repos"
 import { GitHubUser, RepoPermissions } from "@/lib/types/github"
 
+/**
+ * @deprecated Use getGithubUser from @shared/adapters/github/users.ts instead
+ */
 export async function getGithubUser(): Promise<GitHubUser | null> {
   try {
     const octokit = await getUserOctokit()
@@ -85,4 +88,3 @@ export async function checkRepoPermissions(
 }
 
 export { listUserRepositories }
-

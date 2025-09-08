@@ -11,3 +11,7 @@ export interface LLMPort {
     maxTokens?: number
   }): Promise<string>
 }
+
+export interface LLMFactoryPort {
+  create(apiKey: string, type: "openai" | "anthropic"): LLMPort
+}
