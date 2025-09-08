@@ -114,7 +114,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // Try to refresh when we have a refresh token available
         if (token.refresh_token) {
           try {
-            console.log("Refreshing token", token)
+            console.log("Refreshing token", {
+              provider: token.provider,
+              sub: token.sub,
+              expires_at: token.expires_at,
+            })
             return await refreshTokenWithLock(token)
           } catch (error) {
             console.error("Error refreshing token. Sign in again", error)
