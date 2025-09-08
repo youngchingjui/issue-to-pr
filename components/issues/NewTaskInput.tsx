@@ -1,6 +1,6 @@
 "use client"
 
-import { Loader2 } from "lucide-react"
+import { Image as ImageIcon, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState, useTransition } from "react"
 
@@ -32,6 +32,7 @@ export default function NewTaskInput({
   const [description, setDescription] = useState("")
   const [loading, setLoading] = useState(false)
   const [generatingTitle, setGeneratingTitle] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
   // useTransition is useful for UI updates (e.g. router.refresh).
   // We should NOT perform remote/network work inside the transition callback
   // because any thrown error will escape the surrounding try/catch resulting
@@ -41,6 +42,7 @@ export default function NewTaskInput({
 
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [isMac, setIsMac] = useState(false)
 
   // Detect OS to adjust keyboard shortcut hint and behavior
@@ -207,6 +209,67 @@ export default function NewTaskInput({
     }
   }
 
+  const uploadImage = async (file: File) => {
+    if (!repoFullName) {
+      toast({
+        title: "No repository selected",
+        description: "Select a repository before attaching images.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      setUploadingImage(true)
+      const fd = new FormData()
+      fd.append("file", file)
+      fd.append("repoFullName", `${repoFullName.owner}/${repoFullName.repo}`)
+
+      const res = await fetch("/api/images/upload", {
+        method: "POST",
+        body: fd,
+      })
+
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}))
+        throw new Error(errBody?.error ?? "Failed to upload image")
+      }
+
+      const data = (await res.json()) as { url: string; markdown: string }
+      const snippet = data.markdown || `![](${data.url})`
+      setDescription((prev) => (prev.trim() ? `${prev}\n\n${snippet}` : snippet))
+      toast({ title: "Image attached", description: "Added to description." })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      toast({
+        title: "Image upload failed",
+        description: message,
+        variant: "destructive",
+      })
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
+  const handlePaste: React.ClipboardEventHandler<HTMLTextAreaElement> = async (
+    e
+  ) => {
+    if (isDisabled) return
+    const items = e.clipboardData?.items
+    if (!items) return
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i]
+      if (item.kind === "file" && item.type.startsWith("image/")) {
+        const file = item.getAsFile()
+        if (file) {
+          e.preventDefault()
+          await uploadImage(file)
+          return
+        }
+      }
+    }
+  }
+
   return (
     <TooltipProvider>
       <form
@@ -223,6 +286,7 @@ export default function NewTaskInput({
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   onKeyDown={handleKeyDown}
+                  onPaste={handlePaste}
                   placeholder={
                     !issuesEnabled
                       ? "Issues are disabled for this repository. Enable them in GitHub settings."
@@ -279,8 +343,41 @@ export default function NewTaskInput({
             }
             disabled={isDisabled}
           />
+
+          <div className="flex items-center gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                if (f) void uploadImage(f)
+                // Reset input so selecting same file again triggers onChange
+                if (fileInputRef.current) fileInputRef.current.value = ""
+              }}
+              disabled={isDisabled}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isDisabled || uploadingImage}
+            >
+              {uploadingImage ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading…
+                </>
+              ) : (
+                <>
+                  <ImageIcon className="mr-2 h-4 w-4" /> Attach image
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </form>
     </TooltipProvider>
   )
 }
+
