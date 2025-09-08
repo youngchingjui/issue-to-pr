@@ -17,18 +17,17 @@ declare global {
   var __neo4jDs__: ReturnType<typeof createNeo4jDataSource> | undefined
 }
 
-if (
-  !process.env.NEO4J_URI ||
-  !process.env.NEO4J_USER ||
-  !process.env.NEO4J_PASSWORD
-) {
+const uri = process.env.NEO4J_URI
+const user = process.env.NEO4J_USER
+const password = process.env.NEO4J_PASSWORD
+if (!uri || !user || !password) {
   throw new Error("NEO4J_URI, NEO4J_USER, and NEO4J_PASSWORD must be set")
 }
 
 export const neo4jDs =
   global.__neo4jDs__ ??
   (global.__neo4jDs__ = createNeo4jDataSource({
-    uri: process.env.NEO4J_URI,
-    user: process.env.NEO4J_USER,
-    password: process.env.NEO4J_PASSWORD,
+    uri,
+    user,
+    password,
   }))
