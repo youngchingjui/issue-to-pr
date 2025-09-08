@@ -1,0 +1,174 @@
+import { Issue } from "@shared/entities/Issue"
+import { err, ok, type Result } from "@shared/entities/result"
+import type { AuthReaderPort } from "@shared/ports/auth/reader"
+import type { IssueReaderPort } from "@shared/ports/github/issue.reader"
+import type { LLMPort } from "@shared/ports/llm"
+import type { SettingsReaderPort } from "@shared/ports/repositories/settings.reader"
+
+/**
+ * Parameters for resolving an issue
+ */
+export interface ResolveIssueParams {
+  /** Repository full name (e.g., "owner/repo") */
+  repoFullName: string
+  /** Issue number */
+  issueNumber: number
+  /** Optional model override for LLM */
+  model?: string
+  /** Optional max tokens for LLM response */
+  maxTokens?: number
+}
+
+/**
+ * Result of issue resolution
+ */
+export type ResolveIssueErrorCode =
+  | "AUTH_REQUIRED"
+  | "ISSUE_FETCH_FAILED"
+  | "ISSUE_NOT_OPEN"
+  | "MISSING_API_KEY"
+  | "LLM_ERROR"
+  | "UNKNOWN"
+
+export interface ResolveIssueErrorDetails {
+  /** Optional issue instance if we already fetched it before failing */
+  issue?: Issue
+  /** Minimal reference; safe to return */
+  issueRef?: { repoFullName: string; number: number }
+}
+
+export interface ResolveIssueOk {
+  /** The fetched and validated issue */
+  issue: Issue
+  /** LLM's response/solution */
+  response: string
+}
+
+/**
+ * System prompt for issue resolution
+ */
+const RESOLUTION_SYSTEM_PROMPT = `You are an expert software engineer and GitHub issue resolver. Your task is to analyze GitHub issues and provide clear, actionable solutions.
+
+When given an issue, you should:
+1. Understand the problem or request clearly
+2. Provide a step-by-step solution or approach
+3. Include relevant code examples if applicable
+4. Suggest testing approaches
+5. Consider edge cases and potential complications
+
+Guidelines:
+- Be concise but comprehensive
+- Use clear, technical language
+- Provide actionable steps
+- Include code snippets when helpful
+- Consider the repository context
+- Suggest follow-up actions if needed
+
+Format your response as a clear, structured solution that a developer can follow.`
+
+/**
+ * Use case: Resolve a GitHub issue using an LLM agent
+ *
+ * This follows clean architecture principles:
+ * - Ports are injected for external dependencies (LLM, GitHub)
+ * - Business logic is pure and testable
+ * - No direct dependencies on external services
+ */
+export async function resolveIssue(
+  ports: {
+    auth: AuthReaderPort
+    settings: SettingsReaderPort
+    llm: LLMPort | ((apiKey: string) => LLMPort)
+    issueReader: IssueReaderPort | ((token: string) => IssueReaderPort)
+  },
+  params: ResolveIssueParams
+): Promise<
+  Result<ResolveIssueOk, ResolveIssueErrorCode, ResolveIssueErrorDetails>
+> {
+  const { auth, settings } = ports
+  try {
+    // =================================================
+    // Step 1: Get login and token
+    // =================================================
+    const authResult = await auth.getAuth()
+    if (!authResult.ok) {
+      return err("AUTH_REQUIRED")
+    }
+    const { user: login, token } = authResult.value
+
+    // =================================================
+    // Step 2: Fetch the issue details
+    // =================================================
+    const issueReaderPort: IssueReaderPort =
+      typeof ports.issueReader === "function"
+        ? (ports.issueReader as (token: string) => IssueReaderPort)(
+            token.access_token
+          )
+        : ports.issueReader
+
+    const issueResult = await issueReaderPort.getIssue({
+      repoFullName: params.repoFullName,
+      number: params.issueNumber,
+    })
+
+    if (!issueResult.ok) {
+      return err("ISSUE_FETCH_FAILED", {
+        issueRef: {
+          repoFullName: params.repoFullName,
+          number: params.issueNumber,
+        },
+      })
+    }
+
+    const issue = Issue.fromDetails(issueResult.value)
+
+    if (!issue.isResolvable) {
+      return err("ISSUE_NOT_OPEN", { issue, issueRef: issue.ref })
+    }
+
+    // =================================================
+    // Step 3: Get OpenAI API key
+    // =================================================
+    const apiKeyResult = await settings.getOpenAIKey(login.githubLogin)
+    if (!apiKeyResult.ok || !apiKeyResult.value) {
+      return err("MISSING_API_KEY")
+    }
+    const apiKey = apiKeyResult.value
+    // =================================================
+    // Step 4: Create LLM Port
+    // =================================================
+    const llmPort: LLMPort =
+      typeof ports.llm === "function"
+        ? (ports.llm as (apiKey: string) => LLMPort)(apiKey)
+        : ports.llm
+
+    // =================================================
+    // Step 5: Generate LLM response
+    // =================================================
+    const userMessage = `Please analyze and provide a solution for this GitHub issue:\n\n${issue.summary}\n\nRepository: ${params.repoFullName}`
+
+    try {
+      const llmResult = await llmPort.createCompletion({
+        system: RESOLUTION_SYSTEM_PROMPT,
+        messages: [{ role: "user", content: userMessage }],
+        model: params.model,
+        maxTokens: params.maxTokens,
+      })
+
+      if (!llmResult.ok) {
+        return err("LLM_ERROR", { issueRef: issue.ref })
+      }
+
+      return ok({
+        issue,
+        response: llmResult.value.trim(),
+      })
+    } catch {
+      // Intentionally do not surface upstream error details to avoid leaking sensitive info
+      return err("LLM_ERROR", { issueRef: issue.ref })
+    }
+  } catch {
+    // Fallback unknown error; do not leak raw error messages
+    return err("UNKNOWN")
+  }
+}

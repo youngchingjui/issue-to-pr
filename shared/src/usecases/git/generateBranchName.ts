@@ -64,13 +64,17 @@ export async function generateNonConflictingBranchName(
 
   const user = `Context:\n${trimToMax(params.context, MAX_CONTEXT_LENGTH)}\n\nRespond with only a short kebab-case slug suitable for a branch name.`
 
-  const raw = (
-    await ports.llm.createCompletion({
-      system,
-      model: "gpt-4.1",
-      messages: [{ role: "user", content: user }],
-    })
-  ).trim()
+  const rawResult = await ports.llm.createCompletion({
+    system,
+    model: "gpt-4.1",
+    messages: [{ role: "user", content: user }],
+  })
+  if (!rawResult.ok) {
+    // For this utility use case, fall back to a minimal slug from context
+    const fallback = trimToMax(user, 60)
+    return prefix ? `${prefix}/${fallback}` : fallback
+  }
+  const raw = rawResult.value.trim()
 
   // 3) Parse and format candidate
   const baseSlug = baseBranchSlugSchema.parse(raw)
