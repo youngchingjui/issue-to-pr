@@ -1,6 +1,5 @@
 "use server"
 
-import type { GitHubAuthMethod } from "@shared/adapters/github/IssueReaderAdapter"
 import { makeIssueReaderAdapter } from "@shared/adapters/github/IssueReaderAdapter"
 import { OpenAIAdapter } from "@shared/adapters/llm/OpenAIAdapter"
 import { makeSettingsReaderAdapter } from "@shared/adapters/neo4j/repositories/SettingsReaderAdapter"
@@ -8,6 +7,7 @@ import { resolveIssue } from "@shared/usecases/workflows/resolveIssue"
 
 import { nextAuthReader } from "@/lib/adapters/auth/AuthReader"
 import * as userRepo from "@/lib/neo4j/repositories/user"
+import type { GitHubAuthMethod } from "@/shared/src/ports/github/issue.reader"
 
 import { neo4jDs } from "../neo4j"
 import {

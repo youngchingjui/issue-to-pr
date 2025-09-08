@@ -23,13 +23,16 @@ export async function generateIssueTitle(
   options: { model?: string; maxTokens?: number } = {}
 ): Promise<string> {
   const { model, maxTokens } = options
-  const response = await llm.createCompletion({
+  const result = await llm.createCompletion({
     system: SYSTEM_PROMPT,
     messages: [{ role: "user", content: description }],
     model,
     maxTokens,
   })
-  return response.trim()
+  if (!result.ok) {
+    throw new Error("LLM error")
+  }
+  return result.value.trim()
 }
 
 export default generateIssueTitle

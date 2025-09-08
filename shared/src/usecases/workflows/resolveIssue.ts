@@ -148,16 +148,20 @@ export async function resolveIssue(
     const userMessage = `Please analyze and provide a solution for this GitHub issue:\n\n${issue.summary}\n\nRepository: ${params.repoFullName}`
 
     try {
-      const response = await llmPort.createCompletion({
+      const llmResult = await llmPort.createCompletion({
         system: RESOLUTION_SYSTEM_PROMPT,
         messages: [{ role: "user", content: userMessage }],
         model: params.model,
         maxTokens: params.maxTokens,
       })
 
+      if (!llmResult.ok) {
+        return err("LLM_ERROR", { issueRef: issue.ref })
+      }
+
       return ok({
         issue,
-        response: response.trim(),
+        response: llmResult.value.trim(),
       })
     } catch {
       // Intentionally do not surface upstream error details to avoid leaking sensitive info

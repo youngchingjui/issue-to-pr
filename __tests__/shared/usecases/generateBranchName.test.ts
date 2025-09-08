@@ -13,7 +13,7 @@ function mockPorts(overrides?: { llmText?: string; branches?: string[] }): {
   const list = overrides?.branches ?? []
 
   const llm: LLMPort = {
-    createCompletion: async () => llmResp,
+    createCompletion: async () => ({ ok: true, value: llmResp }),
   }
   const refs: GitHubRefsPort = {
     listBranches: async () => list,
