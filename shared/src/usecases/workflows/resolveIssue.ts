@@ -73,7 +73,9 @@ export async function resolveIssue(
 ): Promise<ResolveIssueResult> {
   const { auth, settings } = ports
   try {
-    // 1. Resolve auth and bind issue reader
+    // =================================================
+    // Step 1: Get login and token
+    // =================================================
     const authResult = await auth.getAuth()
     if (!authResult.ok) {
       return {
@@ -85,6 +87,9 @@ export async function resolveIssue(
     }
     const { user: login, token } = authResult.value
 
+    // =================================================
+    // Step 2: Fetch the issue details
+    // =================================================
     const issueReaderPort: IssueReaderPort =
       typeof ports.issueReader === "function"
         ? (ports.issueReader as (token: string) => IssueReaderPort)(
@@ -92,7 +97,6 @@ export async function resolveIssue(
           )
         : ports.issueReader
 
-    // 2. Fetch the issue details
     const issueResult = await issueReaderPort.getIssue({
       repoFullName: params.repoFullName,
       number: params.issueNumber,
@@ -118,7 +122,9 @@ export async function resolveIssue(
       }
     }
 
-    // 3. Resolve API key and bind LLM
+    // =================================================
+    // Step 3: Get OpenAI API key
+    // =================================================
     const apiKeyResult = await settings.getOpenAIKey(login.githubLogin)
     if (!apiKeyResult.ok || !apiKeyResult.value) {
       return {
@@ -131,13 +137,17 @@ export async function resolveIssue(
       }
     }
     const apiKey = apiKeyResult.value
-
+    // =================================================
+    // Step 4: Create LLM Port
+    // =================================================
     const llmPort: LLMPort =
       typeof ports.llm === "function"
         ? (ports.llm as (apiKey: string) => LLMPort)(apiKey)
         : ports.llm
 
-    // 4. Call LLM to generate resolution
+    // =================================================
+    // Step 5: Generate LLM response
+    // =================================================
     const userMessage = `Please analyze and provide a solution for this GitHub issue:\n\n${issue.summary}\n\nRepository: ${params.repoFullName}`
 
     const response = await llmPort.createCompletion({

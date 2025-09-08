@@ -1,6 +1,12 @@
-// New neo4j configuration using shared adapter.
-// Use this instead of old client in lib/neo4j/client.ts
-// For NextJS node server only.
+/* =================================================
+ # Neo4j Data Source
+ New neo4j configuration using shared adapter.
+ Use this instead of old client in lib/neo4j/client.ts
+ For NextJS node server only.
+ We import env variables here at app level
+ We create a driver at process level to avoid creating a new driver for each request
+ So that we can pool connections and manage sessions more efficiently
+ ================================================= */
 import "server-only"
 
 import { createNeo4jDataSource } from "@shared/adapters/neo4j/dataSource"
