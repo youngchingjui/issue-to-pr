@@ -118,6 +118,7 @@ export async function resolveIssueAction(
     }
   })()
 
+  console.error(result.error, result.details)
   const errorPayload: ResolveIssueResult = {
     status: "error",
     code: result.error,
