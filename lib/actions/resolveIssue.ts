@@ -74,29 +74,47 @@ export async function resolveIssueAction(
   // =================================================
   // Step 4: Serialize and return results
   // =================================================
-  const serializedIssue = result.issue
-    ? {
-        ref: {
-          repoFullName: result.issue.ref.repoFullName,
-          number: result.issue.ref.number,
-        },
-        title: result.issue.title,
-        body: result.issue.body,
-        state: result.issue.state,
-        url: result.issue.url,
-        authorLogin: result.issue.authorLogin,
-        labels: [...result.issue.labels],
-        assignees: [...result.issue.assignees],
-        createdAt: result.issue.createdAt,
-        updatedAt: result.issue.updatedAt,
-        closedAt: result.issue.closedAt ?? null,
-      }
-    : null
-
-  return {
-    issue: serializedIssue,
-    response: result.response,
-    success: result.success,
-    error: result.error,
+  if (result.ok) {
+    const issue = result.value.issue
+    const summary = {
+      repoFullName: issue.ref.repoFullName,
+      number: issue.ref.number,
+      title: issue.title ?? null,
+      state: issue.state,
+      authorLogin: issue.authorLogin ?? null,
+      url: issue.url,
+    }
+    const payload: ResolveIssueResult = {
+      status: "success",
+      response: result.value.response,
+      issue: summary,
+    }
+    return payload
   }
+
+  const message = (() => {
+    switch (result.error) {
+      case "AUTH_REQUIRED":
+        return "Authentication required. Please sign in."
+      case "ISSUE_FETCH_FAILED":
+        return "Failed to fetch the issue. Please check the repository and issue number."
+      case "ISSUE_NOT_OPEN":
+        return "The issue is not open and cannot be resolved."
+      case "MISSING_API_KEY":
+        return "LLM API key is not configured. Add your OpenAI API key in settings."
+      case "LLM_ERROR":
+        return "Failed to generate analysis. Please try again later."
+      case "UNKNOWN":
+      default:
+        return "An unexpected error occurred. Please try again."
+    }
+  })()
+
+  const errorPayload: ResolveIssueResult = {
+    status: "error",
+    code: result.error,
+    message,
+    issueRef: result.details?.issueRef,
+  }
+  return errorPayload
 }

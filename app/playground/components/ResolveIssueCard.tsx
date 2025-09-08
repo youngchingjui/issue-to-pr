@@ -35,10 +35,9 @@ export function ResolveIssueCard() {
       setResult(data)
     } catch (error) {
       setResult({
-        issue: null,
-        response: "",
-        success: false,
-        error:
+        status: "error",
+        code: "UNKNOWN",
+        message:
           error instanceof Error ? error.message : "Unknown error occurred",
       })
     } finally {
@@ -52,7 +51,7 @@ export function ResolveIssueCard() {
         <CardTitle className="flex items-center gap-2">
           <span>Resolve Issue Use Case</span>
           {result &&
-            (result.success ? (
+            (result.status === "success" ? (
               <CheckCircle className="h-5 w-5 text-green-500" />
             ) : (
               <XCircle className="h-5 w-5 text-red-500" />
@@ -121,7 +120,7 @@ export function ResolveIssueCard() {
 
         {result && (
           <div className="space-y-4">
-            {result.success ? (
+            {result.status === "success" ? (
               <Alert>
                 <CheckCircle className="h-4 w-4" />
                 <AlertDescription>
@@ -132,15 +131,21 @@ export function ResolveIssueCard() {
               <Alert variant="destructive">
                 <XCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Failed to resolve issue: {result.error}
+                  Failed to resolve issue: {result.message}
                 </AlertDescription>
               </Alert>
             )}
 
-            {result.issue && (
+            {result.status === "success" && result.issue && (
               <div className="space-y-2">
                 <h4 className="font-semibold">Issue Details</h4>
                 <div className="bg-muted p-4 rounded-lg space-y-2 text-sm">
+                  <div>
+                    <strong>Repository:</strong> {result.issue.repoFullName}
+                  </div>
+                  <div>
+                    <strong>Issue #:</strong> {result.issue.number}
+                  </div>
                   <div>
                     <strong>Title:</strong> {result.issue.title || "No title"}
                   </div>
@@ -150,10 +155,6 @@ export function ResolveIssueCard() {
                   <div>
                     <strong>Author:</strong>{" "}
                     {result.issue.authorLogin || "Unknown"}
-                  </div>
-                  <div>
-                    <strong>Labels:</strong>{" "}
-                    {result.issue.labels.join(", ") || "None"}
                   </div>
                   <div>
                     <strong>URL:</strong>{" "}
@@ -166,19 +167,11 @@ export function ResolveIssueCard() {
                       {result.issue.url}
                     </a>
                   </div>
-                  {result.issue.body && (
-                    <div>
-                      <strong>Description:</strong>
-                      <div className="mt-1 p-2 bg-background rounded border max-h-32 overflow-y-auto">
-                        {result.issue.body}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             )}
 
-            {result.response && (
+            {result.status === "success" && result.response && (
               <div className="space-y-2">
                 <h4 className="font-semibold">LLM Response</h4>
                 <Textarea

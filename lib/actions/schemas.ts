@@ -66,10 +66,40 @@ export const resolveIssueRequestSchema = z.object({
 })
 export type ResolveIssueRequest = z.infer<typeof resolveIssueRequestSchema>
 
-export const resolveIssueResultSchema = z.object({
-  issue: z.any().nullable(), // Issue entity
+const resolveIssueSuccessSchema = z.object({
+  status: z.literal("success"),
   response: z.string(),
-  success: z.boolean(),
-  error: z.string().optional(),
+  issue: z.object({
+    repoFullName: z.string().min(1),
+    number: z.number().int().positive(),
+    title: z.string().nullable().optional(),
+    state: z.string().min(1),
+    authorLogin: z.string().nullable().optional(),
+    url: z.string().min(1),
+  }),
 })
+
+const resolveIssueErrorSchema = z.object({
+  status: z.literal("error"),
+  code: z.enum([
+    "AUTH_REQUIRED",
+    "ISSUE_FETCH_FAILED",
+    "ISSUE_NOT_OPEN",
+    "MISSING_API_KEY",
+    "LLM_ERROR",
+    "UNKNOWN",
+  ]),
+  message: z.string().min(1),
+  issueRef: z
+    .object({
+      repoFullName: z.string().min(1),
+      number: z.number().int().positive(),
+    })
+    .optional(),
+})
+
+export const resolveIssueResultSchema = z.discriminatedUnion("status", [
+  resolveIssueSuccessSchema,
+  resolveIssueErrorSchema,
+])
 export type ResolveIssueResult = z.infer<typeof resolveIssueResultSchema>

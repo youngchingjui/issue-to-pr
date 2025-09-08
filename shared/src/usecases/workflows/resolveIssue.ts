@@ -1,4 +1,5 @@
 import { Issue } from "@shared/entities/Issue"
+import { err, ok, type Result } from "@shared/entities/result"
 import type { AuthReaderPort } from "@shared/ports/auth/reader"
 import type { IssueReaderPort } from "@shared/ports/github/issue.reader"
 import type { LLMPort } from "@shared/ports/llm"
@@ -21,15 +22,26 @@ export interface ResolveIssueParams {
 /**
  * Result of issue resolution
  */
-export interface ResolveIssueResult {
-  /** The original issue (null if failed to fetch) */
-  issue: Issue | null
+export type ResolveIssueErrorCode =
+  | "AUTH_REQUIRED"
+  | "ISSUE_FETCH_FAILED"
+  | "ISSUE_NOT_OPEN"
+  | "MISSING_API_KEY"
+  | "LLM_ERROR"
+  | "UNKNOWN"
+
+export interface ResolveIssueErrorDetails {
+  /** Optional issue instance if we already fetched it before failing */
+  issue?: Issue
+  /** Minimal reference; safe to return */
+  issueRef?: { repoFullName: string; number: number }
+}
+
+export interface ResolveIssueOk {
+  /** The fetched and validated issue */
+  issue: Issue
   /** LLM's response/solution */
   response: string
-  /** Whether the issue was successfully analyzed */
-  success: boolean
-  /** Error message if resolution failed */
-  error?: string
 }
 
 /**
@@ -70,7 +82,9 @@ export async function resolveIssue(
     issueReader: IssueReaderPort | ((token: string) => IssueReaderPort)
   },
   params: ResolveIssueParams
-): Promise<ResolveIssueResult> {
+): Promise<
+  Result<ResolveIssueOk, ResolveIssueErrorCode, ResolveIssueErrorDetails>
+> {
   const { auth, settings } = ports
   try {
     // =================================================
@@ -78,12 +92,7 @@ export async function resolveIssue(
     // =================================================
     const authResult = await auth.getAuth()
     if (!authResult.ok) {
-      return {
-        issue: null,
-        response: "",
-        success: false,
-        error: authResult.error,
-      }
+      return err("AUTH_REQUIRED")
     }
     const { user: login, token } = authResult.value
 
@@ -103,23 +112,18 @@ export async function resolveIssue(
     })
 
     if (!issueResult.ok) {
-      return {
-        issue: null,
-        response: "",
-        success: false,
-        error: `Failed to fetch issue: ${issueResult.error}`,
-      }
+      return err("ISSUE_FETCH_FAILED", {
+        issueRef: {
+          repoFullName: params.repoFullName,
+          number: params.issueNumber,
+        },
+      })
     }
 
     const issue = Issue.fromDetails(issueResult.value)
 
     if (!issue.isResolvable) {
-      return {
-        issue,
-        response: "This issue is already closed and cannot be resolved.",
-        success: false,
-        error: "Issue is not open",
-      }
+      return err("ISSUE_NOT_OPEN", { issue, issueRef: issue.ref })
     }
 
     // =================================================
@@ -127,14 +131,7 @@ export async function resolveIssue(
     // =================================================
     const apiKeyResult = await settings.getOpenAIKey(login.githubLogin)
     if (!apiKeyResult.ok || !apiKeyResult.value) {
-      return {
-        issue: null,
-        response: "",
-        success: false,
-        error: apiKeyResult.ok
-          ? "No API key saved for user in settings"
-          : `Failed to fetch LLM API key: ${apiKeyResult.error}`,
-      }
+      return err("MISSING_API_KEY")
     }
     const apiKey = apiKeyResult.value
     // =================================================
@@ -150,24 +147,24 @@ export async function resolveIssue(
     // =================================================
     const userMessage = `Please analyze and provide a solution for this GitHub issue:\n\n${issue.summary}\n\nRepository: ${params.repoFullName}`
 
-    const response = await llmPort.createCompletion({
-      system: RESOLUTION_SYSTEM_PROMPT,
-      messages: [{ role: "user", content: userMessage }],
-      model: params.model,
-      maxTokens: params.maxTokens,
-    })
+    try {
+      const response = await llmPort.createCompletion({
+        system: RESOLUTION_SYSTEM_PROMPT,
+        messages: [{ role: "user", content: userMessage }],
+        model: params.model,
+        maxTokens: params.maxTokens,
+      })
 
-    return {
-      issue,
-      response: response.trim(),
-      success: true,
+      return ok({
+        issue,
+        response: response.trim(),
+      })
+    } catch {
+      // Intentionally do not surface upstream error details to avoid leaking sensitive info
+      return err("LLM_ERROR", { issueRef: issue.ref })
     }
-  } catch (error) {
-    return {
-      issue: null,
-      response: "",
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error occurred",
-    }
+  } catch {
+    // Fallback unknown error; do not leak raw error messages
+    return err("UNKNOWN")
   }
 }
