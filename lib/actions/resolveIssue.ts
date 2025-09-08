@@ -30,8 +30,16 @@ export async function resolveIssueAction(
   // =================================================
   // Step 1: Parse inputs
   // =================================================
-  const { repoFullName, issueNumber, model, maxTokens } =
-    resolveIssueRequestSchema.parse(input)
+
+  const parsedInput = resolveIssueRequestSchema.safeParse(input)
+  if (!parsedInput.success) {
+    return {
+      status: "error",
+      code: "INVALID_INPUT",
+      message: parsedInput.error.message,
+    }
+  }
+  const { repoFullName, issueNumber, model, maxTokens } = parsedInput.data
 
   // =================================================
   // Step 2: Prepare adapters

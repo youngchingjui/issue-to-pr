@@ -87,6 +87,7 @@ const resolveIssueErrorSchema = z.object({
     "ISSUE_NOT_OPEN",
     "MISSING_API_KEY",
     "LLM_ERROR",
+    "INVALID_INPUT",
     "UNKNOWN",
   ]),
   message: z.string().min(1),
