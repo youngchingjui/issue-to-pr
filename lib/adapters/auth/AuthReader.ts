@@ -13,11 +13,11 @@ import { auth } from "@/auth"
 function toAccessToken(input: unknown): AccessToken | null {
   if (typeof input !== "object" || input === null) return null
   const t = input as Record<string, unknown>
+  const accessToken =
+    typeof t["access_token"] === "string" ? t["access_token"] : ""
+  if (!accessToken) return null
   return {
-    access_token:
-      typeof t["access_token"] === "string"
-        ? (t["access_token"] as string)
-        : "",
+    access_token: accessToken,
     refresh_token:
       typeof t["refresh_token"] === "string"
         ? (t["refresh_token"] as string)
@@ -55,7 +55,7 @@ export const nextAuthReader: AuthReaderPort = {
       return { ok: false as const, error: "AuthRequired" as const }
     }
     const token = toAccessToken(session.token)
-    if (!token) {
+    if (!token || !token.access_token) {
       return { ok: false as const, error: "AuthRequired" as const }
     }
     return {
