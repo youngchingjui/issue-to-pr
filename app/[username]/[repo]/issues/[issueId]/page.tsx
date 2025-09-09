@@ -26,7 +26,6 @@ export default async function IssueDetailsPage({ params }: Props) {
     fullName: repoFullName,
     issueNumber,
   })
-  const runs = await listWorkflowRuns({ repoFullName, issueNumber })
 
   if (result.type === "not_found") {
     return (
@@ -93,6 +92,7 @@ export default async function IssueDetailsPage({ params }: Props) {
 
   // Success path: Render issue details
   const issue = result.issue
+  const runs = await listWorkflowRuns({ repoFullName, issueNumber })
 
   return (
     <main className="container mx-auto p-4">
@@ -127,4 +127,3 @@ export default async function IssueDetailsPage({ params }: Props) {
     </main>
   )
 }
-

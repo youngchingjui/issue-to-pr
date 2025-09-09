@@ -1,6 +1,6 @@
-import type { Meta, StoryObj } from "@storybook/react"
-import React from "react"
 import { IssueRow, type SharedIssue } from "@shared/ui/IssueRow"
+import type { Meta, StoryObj } from "@storybook/nextjs"
+import React from "react"
 
 const meta: Meta<typeof IssueRow> = {
   title: "Shared/IssueRow",
@@ -30,8 +30,6 @@ export const Default: Story = {
     issue: mockIssue,
     repoFullName: "owner/repo",
     onAutoResolve: async () => console.log("autoResolve"),
-    onGeneratePlan: async () => console.log("generatePlan"),
-    onCreatePR: async () => console.log("createPR"),
   },
   render: (args) => (
     <table className="w-full">

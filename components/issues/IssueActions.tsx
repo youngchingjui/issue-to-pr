@@ -41,6 +41,7 @@ export default function IssueActions({
               onClick={executeAutoResolve}
               disabled={isLoading}
               variant="default"
+              aria-busy={isLoading}
             >
               {activeWorkflow === "Auto Resolving..."
                 ? "Running..."
@@ -52,4 +53,3 @@ export default function IssueActions({
     </div>
   )
 }
-
