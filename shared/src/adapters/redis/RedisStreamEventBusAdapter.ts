@@ -8,6 +8,7 @@ import { getRedisConnection } from "@shared/services/redis/ioredis"
  * Stream key convention: workflow:{workflowId}:events
  */
 export class RedisStreamEventBusAdapter implements EventBusPort {
+  constructor(private readonly maxLen = 10000) {}
   private streamKeyFor(workflowId: string) {
     return `workflow:${workflowId}:events`
   }
@@ -15,9 +16,11 @@ export class RedisStreamEventBusAdapter implements EventBusPort {
   async publish(workflowId: string, event: WorkflowEvent): Promise<void> {
     const client = getRedisConnection()
 
-    // XADD <key> * field value [field value ...]
     await client.xadd(
       this.streamKeyFor(workflowId),
+      "MAXLEN",
+      "~",
+      String(this.maxLen),
       "*",
       "event",
       JSON.stringify(event)
