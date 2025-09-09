@@ -1,8 +1,8 @@
-import type { WorkflowEvent } from "@shared/entities/events/WorkflowEvent"
 import { Issue } from "@shared/entities/Issue"
 import { err, ok, type Result } from "@shared/entities/result"
 import type { AuthReaderPort } from "@shared/ports/auth/reader"
 import type { EventBusPort } from "@shared/ports/events/eventBus"
+import { createWorkflowEventPublisher } from "@shared/ports/events/publisher"
 import type { IssueReaderPort } from "@shared/ports/github/issue.reader"
 import type { LLMPort } from "@shared/ports/llm"
 import type { SettingsReaderPort } from "@shared/ports/repositories/settings.reader"
@@ -91,33 +91,19 @@ export async function resolveIssue(
   Result<ResolveIssueOk, ResolveIssueErrorCode, ResolveIssueErrorDetails>
 > {
   const { auth, settings, eventBus } = ports
-
-  const publish = async (event: WorkflowEvent) => {
-    if (!eventBus || !params.workflowId) return
-    try {
-      await eventBus.publish(params.workflowId, event)
-    } catch {
-      // Deliberately swallow event bus errors to not affect core flow
-    }
-  }
+  const pub = createWorkflowEventPublisher(eventBus, params.workflowId)
 
   try {
     // =================================================
     // Step 1: Get login and token
     // =================================================
-    await publish({
-      type: "workflow.started",
-      timestamp: new Date().toISOString(),
-      content: `Resolving issue #${params.issueNumber} in ${params.repoFullName}`,
-    })
+    pub.workflow.started(
+      `Resolving issue #${params.issueNumber} in ${params.repoFullName}`
+    )
 
     const authResult = await auth.getAuth()
     if (!authResult.ok) {
-      await publish({
-        type: "workflow.error",
-        timestamp: new Date().toISOString(),
-        content: "Authentication required",
-      })
+      pub.workflow.error("Authentication required")
       return err("AUTH_REQUIRED")
     }
     const { user: login, token } = authResult.value
@@ -138,14 +124,9 @@ export async function resolveIssue(
     })
 
     if (!issueResult.ok) {
-      await publish({
-        type: "workflow.error",
-        timestamp: new Date().toISOString(),
-        content: "Failed to fetch issue",
-        metadata: {
-          repoFullName: params.repoFullName,
-          issueNumber: params.issueNumber,
-        },
+      pub.workflow.error("Failed to fetch issue", {
+        repoFullName: params.repoFullName,
+        issueNumber: params.issueNumber,
       })
       return err("ISSUE_FETCH_FAILED", {
         issueRef: {
@@ -157,19 +138,12 @@ export async function resolveIssue(
 
     const issue = Issue.fromDetails(issueResult.value)
 
-    await publish({
-      type: "issue.fetched",
-      timestamp: new Date().toISOString(),
-      content: `Fetched issue #${issue.ref.number}`,
-      metadata: { state: issue.state },
+    pub.issue.fetched(`Fetched issue #${issue.ref.number}`, {
+      state: issue.state,
     })
 
     if (!issue.isResolvable) {
-      await publish({
-        type: "workflow.error",
-        timestamp: new Date().toISOString(),
-        content: "Issue is not open/resolvable",
-      })
+      pub.workflow.error("Issue is not open/resolvable")
       return err("ISSUE_NOT_OPEN", { issue, issueRef: issue.ref })
     }
 
@@ -178,11 +152,7 @@ export async function resolveIssue(
     // =================================================
     const apiKeyResult = await settings.getOpenAIKey(login.githubLogin)
     if (!apiKeyResult.ok || !apiKeyResult.value) {
-      await publish({
-        type: "workflow.error",
-        timestamp: new Date().toISOString(),
-        content: "Missing OpenAI API key",
-      })
+      pub.workflow.error("Missing OpenAI API key")
       return err("MISSING_API_KEY")
     }
     const apiKey = apiKeyResult.value
@@ -200,11 +170,7 @@ export async function resolveIssue(
     const userMessage = `Please analyze and provide a solution for this GitHub issue:\n\n${issue.summary}\n\nRepository: ${params.repoFullName}`
 
     try {
-      await publish({
-        type: "llm.started",
-        timestamp: new Date().toISOString(),
-        content: "Requesting completion from LLM",
-      })
+      pub.llm.started("Requesting completion from LLM")
 
       const llmResult = await llmPort.createCompletion({
         system: RESOLUTION_SYSTEM_PROMPT,
@@ -214,25 +180,13 @@ export async function resolveIssue(
       })
 
       if (!llmResult.ok) {
-        await publish({
-          type: "workflow.error",
-          timestamp: new Date().toISOString(),
-          content: "LLM returned an error",
-        })
+        pub.workflow.error("LLM returned an error")
         return err("LLM_ERROR", { issueRef: issue.ref })
       }
 
-      await publish({
-        type: "llm.completed",
-        timestamp: new Date().toISOString(),
-        content: "LLM completed successfully",
-      })
+      pub.llm.completed("LLM completed successfully")
 
-      await publish({
-        type: "workflow.completed",
-        timestamp: new Date().toISOString(),
-        content: "ResolveIssue workflow completed",
-      })
+      pub.workflow.completed("ResolveIssue workflow completed")
 
       return ok({
         issue,
@@ -240,20 +194,12 @@ export async function resolveIssue(
       })
     } catch {
       // Intentionally do not surface upstream error details to avoid leaking sensitive info
-      await publish({
-        type: "workflow.error",
-        timestamp: new Date().toISOString(),
-        content: "LLM call failed",
-      })
+      pub.workflow.error("LLM call failed")
       return err("LLM_ERROR", { issueRef: issue.ref })
     }
   } catch {
     // Fallback unknown error; do not leak raw error messages
-    await publish({
-      type: "workflow.error",
-      timestamp: new Date().toISOString(),
-      content: "Unknown error occurred",
-    })
+    pub.workflow.error("Unknown error occurred")
     return err("UNKNOWN")
   }
 }
