@@ -1,3 +1,4 @@
+import { withTiming } from "@shared/utils/telemetry"
 import { int, Integer, ManagedTransaction, Node } from "neo4j-driver"
 import { ZodError } from "zod"
 
@@ -13,7 +14,6 @@ import {
   WorkflowRunState,
   workflowRunStateSchema,
 } from "@/lib/types/db/neo4j"
-import { withTiming } from "@/shared/src"
 
 export async function create(
   tx: ManagedTransaction,

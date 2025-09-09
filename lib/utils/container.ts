@@ -1,4 +1,4 @@
-import { buildPreviewSubdomainSlug } from "@shared/index"
+import { buildPreviewSubdomainSlug } from "@shared/entities/previewSlug"
 import { exec as hostExec } from "child_process"
 import Docker from "dockerode"
 import os from "os"
@@ -7,7 +7,7 @@ import util from "util"
 import { v4 as uuidv4 } from "uuid"
 
 import {
-  execInContainer,
+  execInContainerWithDockerode,
   startContainer,
   stopAndRemoveContainer,
 } from "@/lib/docker"
@@ -84,7 +84,7 @@ export async function createContainerizedDirectoryTree(
   const treeCommand = "tree -afi --noreport" // list all files/directories, absolute paths off
 
   try {
-    const { stdout, stderr, exitCode } = await execInContainer({
+    const { stdout, stderr, exitCode } = await execInContainerWithDockerode({
       name: containerName,
       command: treeCommand,
       cwd: containerDir,
@@ -168,7 +168,7 @@ export async function createContainerizedWorktree({
 
   // Helper functions
   const exec = async (command: string) => {
-    return await execInContainer({
+    return await execInContainerWithDockerode({
       name: containerName,
       command,
     })
@@ -248,7 +248,7 @@ export async function createContainerizedWorkspace({
 
   // 3. Helper exec wrapper
   const exec = async (command: string) =>
-    await execInContainer({
+    await execInContainerWithDockerode({
       name: containerName,
       command,
       cwd: mountPath,

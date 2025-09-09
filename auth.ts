@@ -13,12 +13,14 @@ declare module "next-auth" {
   interface Session {
     token?: JWT
     authMethod?: "github-app"
+    profile?: { login: string }
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
     authMethod?: "github-app"
+    profile?: { login: string }
   }
 }
 
@@ -45,12 +47,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           name: profile.name || profile.login,
           email: profile.email,
           image: profile.avatar_url,
+          username: profile.login,
         }
       },
     }),
   ],
   callbacks: {
-    async jwt({ token, account }) {
+    async jwt({ token, account, user, profile, trigger, session }) {
+      // TODO: Should test on `trigger` instead of `account`
       if (account) {
         console.log("Auth info:", {
           provider: account.provider,
@@ -62,6 +66,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const newToken = {
           ...token,
           ...account,
+          profile: { login: profile?.login },
           // Store which auth method was used
           authMethod: "github-app",
         }
@@ -91,6 +96,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // Try to refresh when we have a refresh token available
         if (token.refresh_token) {
           try {
+            console.log("Refreshing token", {
+              provider: token.provider,
+              sub: token.sub,
+              expires_at: token.expires_at,
+            })
             return await refreshTokenWithLock(token)
           } catch (error) {
             console.error("Error refreshing token. Sign in again", error)
@@ -106,10 +116,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
       return token
     },
-    async session({ session, token }) {
+    async session({ session, token, user }) {
       session.token = token
       // Add auth method to session for frontend usage
       session.authMethod = token.authMethod
+      session.profile = token.profile
       return session
     },
   },

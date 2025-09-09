@@ -11,7 +11,10 @@ interface Props {
 
 type MergeStatus = "unknown" | "conflicting" | "mergeable"
 
-export default function MergeConflictBadge({ repoFullName, pullNumber }: Props) {
+export default function MergeConflictBadge({
+  repoFullName,
+  pullNumber,
+}: Props) {
   const [status, setStatus] = useState<MergeStatus>("unknown")
 
   useEffect(() => {
@@ -24,7 +27,11 @@ export default function MergeConflictBadge({ repoFullName, pullNumber }: Props) 
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ type: "pull", number: pullNumber, fullName: repoFullName }),
+          body: JSON.stringify({
+            type: "pull",
+            number: pullNumber,
+            fullName: repoFullName,
+          }),
         })
         if (!response.ok) throw new Error("Failed to fetch PR details")
         const pr = await response.json()
@@ -33,7 +40,11 @@ export default function MergeConflictBadge({ repoFullName, pullNumber }: Props) 
         const mergeableState: string | undefined = pr?.mergeable_state
 
         let newStatus: MergeStatus = "unknown"
-        if (mergeable === false || mergeableState === "dirty" || mergeableState === "blocked") {
+        if (
+          mergeable === false ||
+          mergeableState === "dirty" ||
+          mergeableState === "blocked"
+        ) {
           newStatus = "conflicting"
         } else if (mergeable === true || mergeableState === "clean") {
           newStatus = "mergeable"
@@ -43,6 +54,7 @@ export default function MergeConflictBadge({ repoFullName, pullNumber }: Props) 
       } catch (e) {
         // Ignore errors; keep unknown
         if (isMounted) setStatus("unknown")
+        console.error(e)
       }
     }
 
@@ -57,4 +69,3 @@ export default function MergeConflictBadge({ repoFullName, pullNumber }: Props) 
 
   return <Badge variant="destructive">Merge conflict</Badge>
 }
-

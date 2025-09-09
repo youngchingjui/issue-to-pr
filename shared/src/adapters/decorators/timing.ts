@@ -1,23 +1,26 @@
-import type {
-  CreateIssueInput,
-  GetIssueErrors,
-  GithubIssueErrors,
-  GitHubIssuesPort,
-  Issue,
-  IssueDetails,
-  IssueRef,
-  IssueTitleResult,
-} from "@shared/core/ports/github"
 import type { Result } from "@shared/entities/result"
+import {
+  type GetIssueErrors,
+  type IssueDetails,
+  IssueReaderPort,
+  type IssueRef,
+  type IssueTitleResult,
+} from "@shared/ports/github/issue.reader"
+import {
+  type CreateIssueInput,
+  type GithubIssueErrors,
+  IssueWriterPort,
+} from "@shared/ports/github/issue.writer"
+import { Issue } from "@shared/ports/github/issue.writer"
 import { withTiming } from "@shared/utils/telemetry"
 
 /**
  * Timing decorator for GitHubIssuesPort that adds telemetry to all methods.
  * Only instruments when ENABLE_TIMING=1, otherwise delegates directly to the inner adapter.
  */
-export class TimedGitHubIssuesPort implements GitHubIssuesPort {
+export class TimedIssueReaderPort implements IssueReaderPort {
   constructor(
-    private inner: GitHubIssuesPort,
+    private inner: IssueReaderPort,
     private labelPrefix = "GitHub",
     private enabled = process.env.ENABLE_TIMING === "1"
   ) {}
@@ -40,6 +43,14 @@ export class TimedGitHubIssuesPort implements GitHubIssuesPort {
       { batchSize: refs.length }
     )
   }
+}
+
+export class TimedIssueWriterPort implements IssueWriterPort {
+  constructor(
+    private inner: IssueWriterPort,
+    private labelPrefix = "GitHub",
+    private enabled = process.env.ENABLE_TIMING === "1"
+  ) {}
 
   async createIssue(
     input: CreateIssueInput
@@ -77,4 +88,3 @@ export function decorateWithTiming<T extends object>(
     },
   })
 }
-

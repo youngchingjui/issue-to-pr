@@ -1,7 +1,7 @@
 import path from "path"
 import { z } from "zod"
 
-import { execInContainer } from "@/lib/docker"
+import { execInContainerWithDockerode } from "@/lib/docker"
 import { getFileContent } from "@/lib/fs"
 import { createTool } from "@/lib/tools/helper"
 import { asRepoEnvironment, RepoEnvironment, Tool } from "@/lib/types"
@@ -32,7 +32,7 @@ async function fnHandler(
         env.mount ?? "/workspace",
         relativePath
       )
-      const { stdout, stderr, exitCode } = await execInContainer({
+      const { stdout, stderr, exitCode } = await execInContainerWithDockerode({
         name: env.name,
         command: `cat '${fileInContainer}'`,
       })
