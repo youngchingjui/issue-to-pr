@@ -8,13 +8,16 @@ import type { EventBusPort } from "@shared/ports/events/eventBus"
  * Stream key convention: workflow:{workflowId}:events
  */
 export class RedisStreamEventBusAdapter implements EventBusPort {
-  constructor(private readonly maxLen = 10000) {}
+  constructor(
+    private readonly redisUrl: string,
+    private readonly maxLen = 10000
+  ) {}
   private streamKeyFor(workflowId: string) {
     return `workflow:${workflowId}:events`
   }
 
   async publish(workflowId: string, event: WorkflowEvent): Promise<void> {
-    const client = getRedisConnection()
+    const client = getRedisConnection(this.redisUrl)
 
     await client.xadd(
       this.streamKeyFor(workflowId),

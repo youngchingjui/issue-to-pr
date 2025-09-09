@@ -1,18 +1,19 @@
 import IORedis from "ioredis"
 
-// Lazily-initialised Redis connection – re-using the same connection prevents
-// BullMQ from spawning extra listeners and helps keep the number of open file
-// descriptors low in serverless environments.
-let connection: IORedis | null = null
-export function getRedisConnection(): IORedis {
-  if (connection) return connection
+// Lazily-initialised Redis connections, cached per-URL – re-using the same
+// connection prevents BullMQ from spawning extra listeners and helps keep the
+// number of open file descriptors low in serverless environments.
+const connectionByUrl = new Map<string, IORedis>()
 
-  const redisUrl = process.env.REDIS_URL
+export function getRedisConnection(redisUrl: string): IORedis {
+  const existing = connectionByUrl.get(redisUrl)
+  if (existing) return existing
 
   if (!redisUrl) {
-    throw new Error("REDIS_URL is not set")
+    throw new Error("redisUrl must be provided")
   }
 
-  connection = new IORedis(redisUrl)
-  return connection
+  const conn = new IORedis(redisUrl)
+  connectionByUrl.set(redisUrl, conn)
+  return conn
 }
