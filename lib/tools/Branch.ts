@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { execInContainer } from "@/lib/docker"
+import { execInContainerWithDockerode } from "@/lib/docker"
 import {
   checkIfLocalBranchExists,
   checkoutBranchQuietly,
@@ -66,7 +66,7 @@ async function fnHandler(
       }
     } else {
       const exec = async (cmd: string) =>
-        execInContainer({ name: env.name, command: cmd })
+        execInContainerWithDockerode({ name: env.name, command: cmd })
 
       const { stdout: branchList } = await exec(`git branch --list ${branch}`)
       const exists = branchList.trim().length > 0

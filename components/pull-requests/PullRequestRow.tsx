@@ -5,11 +5,11 @@ import { ChevronDown, Loader2, PlayCircle } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 
-import MergeConflictBadge from "@/components/pull-requests/MergeConflictBadge"
 import AlignmentCheckController from "@/components/pull-requests/controllers/AlignmentCheckController"
 import AnalyzePRController from "@/components/pull-requests/controllers/AnalyzePRController"
 import ResolveMergeConflictsController from "@/components/pull-requests/controllers/ResolveMergeConflictsController"
 import ReviewPRController from "@/components/pull-requests/controllers/ReviewPRController"
+import MergeConflictBadge from "@/components/pull-requests/MergeConflictBadge"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -188,4 +188,3 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
     </TableRow>
   )
 }
-

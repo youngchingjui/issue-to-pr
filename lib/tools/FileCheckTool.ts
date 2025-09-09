@@ -2,7 +2,7 @@ import { exec } from "child_process"
 import { promisify } from "util"
 import { z } from "zod"
 
-import { execInContainer } from "@/lib/docker"
+import { execInContainerWithDockerode } from "@/lib/docker"
 import { createTool } from "@/lib/tools/helper"
 import { asRepoEnvironment, RepoEnvironment, Tool } from "@/lib/types"
 
@@ -43,7 +43,7 @@ async function handler(
       })
       return { stdout, stderr, exitCode: 0 }
     } else {
-      const { stdout, stderr, exitCode } = await execInContainer({
+      const { stdout, stderr, exitCode } = await execInContainerWithDockerode({
         name: env.name,
         command: sanitizedCommand,
       })

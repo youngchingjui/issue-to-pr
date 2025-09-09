@@ -1,3 +1,4 @@
+import { withTiming } from "@shared/utils/telemetry"
 import { int } from "neo4j-driver"
 
 import { n4j } from "@/lib/neo4j/client"
@@ -24,7 +25,6 @@ import {
   WorkflowRunState,
   WorkflowType,
 } from "@/lib/types"
-import { withTiming } from "@/shared/src"
 
 /**
  * Merges (matches or creates) a WorkflowRun node and the corresponding Issue node in the database, linking the two.

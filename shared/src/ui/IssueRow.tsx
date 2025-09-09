@@ -3,7 +3,7 @@
 import { formatDistanceToNow } from "date-fns"
 import { ChevronDown, Loader2 } from "lucide-react"
 import Link from "next/link"
-import React, { useMemo, useState } from "react"
+import { useState } from "react"
 
 // NOTE: This shared UI version intentionally avoids importing app-specific controllers.
 // It exposes callbacks so apps (Next.js, Storybook) can plug in their own behaviors.
@@ -39,12 +39,9 @@ export function IssueRow({
   repoFullName,
   prSlot,
   onAutoResolve,
-  onGeneratePlan,
-  onCreatePR,
 }: IssueRowProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [activeWorkflow, setActiveWorkflow] = useState<string | null>(null)
-  const [mainAction, setMainAction] = useState<MainActionId>("autoResolve")
 
   const runWithUi = async (label: string, fn?: () => Promise<void> | void) => {
     if (!fn) return
@@ -58,26 +55,8 @@ export function IssueRow({
     }
   }
 
-  const actions = useMemo(
-    () => ({
-      autoResolve: {
-        label: "Generate PR",
-        execute: () => runWithUi("Generate PR", onAutoResolve),
-      },
-      plan: {
-        label: "Create Plan",
-        execute: () => runWithUi("Create Plan", onGeneratePlan),
-      },
-      createPR: {
-        label: "Fix Issue and Create PR",
-        execute: () => runWithUi("Fix Issue and Create PR", onCreatePR),
-      },
-    }),
-    [onAutoResolve, onGeneratePlan, onCreatePR]
-  )
-
-  const mainLabel = actions[mainAction].label
-  const runMain = actions[mainAction].execute
+  const mainLabel = "Resolve Issue"
+  const runMain = () => runWithUi("Resolve Issue", onAutoResolve)
 
   const [username, repo] = repoFullName.split("/")
   const localIssueUrl = `/${username}/${repo}/issues/${issue.number}`

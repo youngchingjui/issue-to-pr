@@ -1,4 +1,4 @@
-import { DateTime, Integer } from "neo4j-driver"
+import { DateTime, Integer, isDateTime } from "neo4j-driver"
 import { z } from "zod"
 
 import {
@@ -175,7 +175,9 @@ export function isLLMResponseWithPlan(
 export const repoSettingsSchema = appRepoSettingsSchema.merge(
   z.object({
     // Ensure Neo4j temporal type is preserved while at repository layer
-    lastUpdated: z.instanceof(DateTime),
+    lastUpdated: z.custom<DateTime>(isDateTime, {
+      message: "Input not instance of DateTime",
+    }),
   })
 )
 
@@ -184,7 +186,9 @@ export type RepoSettings = z.infer<typeof repoSettingsSchema>
 // ---- User Settings ----
 export const userSettingsSchema = appSettingsSchema.merge(
   z.object({
-    lastUpdated: z.instanceof(DateTime),
+    lastUpdated: z.custom<DateTime>(isDateTime, {
+      message: "Input not instance of DateTime",
+    }),
   })
 )
 
