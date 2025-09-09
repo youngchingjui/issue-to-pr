@@ -2,7 +2,7 @@
 
 import type { LLMPort } from "@shared/ports/llm"
 import type { GitHubRefsPort } from "@shared/ports/refs"
-import { generateNonConflictingBranchName } from "@shared/usecases/generateBranchName"
+import { generateNonConflictingBranchName } from "@shared/usecases/git/generateBranchName"
 
 function mockPorts(overrides?: { llmText?: string; branches?: string[] }): {
   llm: LLMPort
@@ -13,7 +13,7 @@ function mockPorts(overrides?: { llmText?: string; branches?: string[] }): {
   const list = overrides?.branches ?? []
 
   const llm: LLMPort = {
-    createCompletion: async () => llmResp,
+    createCompletion: async () => ({ ok: true, value: llmResp }),
   }
   const refs: GitHubRefsPort = {
     listBranches: async () => list,

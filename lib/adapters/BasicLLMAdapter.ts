@@ -2,6 +2,7 @@
 // Later we will make an OpenAI/Anthropic specific adapter
 // And it'll be in the @shared folder instead of /lib
 
+import { ok, type Result } from "@shared/entities/result"
 import type { LLMMessage, LLMPort } from "@shared/ports/llm"
 
 function toKebab(input: string): string {
@@ -25,7 +26,7 @@ export class BasicLLMAdapter implements LLMPort {
   }: {
     system?: string
     messages: LLMMessage[]
-  }): Promise<string> {
+  }): Promise<Result<string, "UNKNOWN">> {
     // Prefer the latest user message content
     const lastUser = [...messages].reverse().find((m) => m.role === "user")
     const base = lastUser?.content ?? messages.map((m) => m.content).join(" ")
@@ -36,7 +37,7 @@ export class BasicLLMAdapter implements LLMPort {
 
     // Take the first 8 words to form a concise slug
     const firstWords = contextText.split(/\s+/).slice(0, 8).join(" ")
-    return toKebab(firstWords).slice(0, 60)
+    return ok(toKebab(firstWords).slice(0, 60))
   }
 }
 

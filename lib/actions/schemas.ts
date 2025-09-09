@@ -1,6 +1,9 @@
+import { modelList } from "@shared/entities/llm/models"
 import { z } from "zod"
 
+// =================================================
 // Create Issue Action
+// =================================================
 export const createIssueActionSchema = z.object({
   owner: z.string().min(1),
   repo: z.string().min(1),
@@ -36,7 +39,9 @@ export type CreateIssueActionResult = z.infer<
   typeof createIssueActionResultSchema
 >
 
-// List Issues Input Schema
+// =================================================
+// List Issues Action
+// =================================================
 export const listIssuesInputSchema = z.object({
   repoFullName: z.string().min(3),
   page: z.number().int().min(1).default(1).optional(),
@@ -50,3 +55,54 @@ export const listIssuesResultSchema = z.object({
   hasMore: z.boolean(),
 })
 export type ListIssuesResult = z.infer<typeof listIssuesResultSchema>
+
+// =================================================
+// Resolve Issue Action
+// =================================================
+
+export const resolveIssueRequestSchema = z.object({
+  repoFullName: z.string().min(1),
+  issueNumber: z.number().int().positive(),
+  model: modelList.optional(),
+  maxTokens: z.number().int().positive().optional(),
+})
+export type ResolveIssueRequest = z.infer<typeof resolveIssueRequestSchema>
+
+const resolveIssueSuccessSchema = z.object({
+  status: z.literal("success"),
+  response: z.string(),
+  issue: z.object({
+    repoFullName: z.string().min(1),
+    number: z.number().int().positive(),
+    title: z.string().nullable().optional(),
+    state: z.string().min(1),
+    authorLogin: z.string().nullable().optional(),
+    url: z.string().min(1),
+  }),
+})
+
+const resolveIssueErrorSchema = z.object({
+  status: z.literal("error"),
+  code: z.enum([
+    "AUTH_REQUIRED",
+    "ISSUE_FETCH_FAILED",
+    "ISSUE_NOT_OPEN",
+    "MISSING_API_KEY",
+    "LLM_ERROR",
+    "INVALID_INPUT",
+    "UNKNOWN",
+  ]),
+  message: z.string().min(1),
+  issueRef: z
+    .object({
+      repoFullName: z.string().min(1),
+      number: z.number().int().positive(),
+    })
+    .optional(),
+})
+
+export const resolveIssueResultSchema = z.discriminatedUnion("status", [
+  resolveIssueSuccessSchema,
+  resolveIssueErrorSchema,
+])
+export type ResolveIssueResult = z.infer<typeof resolveIssueResultSchema>

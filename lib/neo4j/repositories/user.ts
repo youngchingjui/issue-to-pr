@@ -3,6 +3,9 @@ import { Integer, ManagedTransaction, Node } from "neo4j-driver"
 import { Labels } from "@/lib/neo4j/labels"
 import { UserSettings, userSettingsSchema } from "@/lib/types/db/neo4j"
 
+/**
+ * @deprecated Move this to shared/ folder
+ */
 export async function getUserSettings(
   tx: ManagedTransaction,
   username: string

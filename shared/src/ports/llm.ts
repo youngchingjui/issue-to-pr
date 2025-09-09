@@ -1,7 +1,20 @@
+import { Result } from "@shared/entities/result"
+
 export interface LLMMessage {
   role: "user" | "assistant"
   content: string
 }
+
+export type LLMErrorCode =
+  | "UNAUTHORIZED"
+  | "RATE_LIMITED"
+  | "INSUFFICIENT_QUOTA"
+  | "UNSUPPORTED_LOCATION"
+  | "INVALID_REQUEST"
+  | "SERVICE_UNAVAILABLE"
+  | "TIMEOUT"
+  | "NETWORK_ERROR"
+  | "UNKNOWN"
 
 export interface LLMPort {
   createCompletion(params: {
@@ -9,5 +22,9 @@ export interface LLMPort {
     messages: LLMMessage[]
     model?: string
     maxTokens?: number
-  }): Promise<string>
+  }): Promise<Result<string, LLMErrorCode>>
+}
+
+export interface LLMFactoryPort {
+  create(apiKey: string, type: "openai" | "anthropic"): LLMPort
 }

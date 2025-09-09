@@ -26,7 +26,6 @@ export default function LoadMoreIssues({ repoFullName, perPage = 25 }: Props) {
 
   // Check if there are any issues on initial page so we don't render button when list is empty
   useEffect(() => {
-    const cancelled = false
     const ctrl = new AbortController()
     const checkInitial = async () => {
       try {

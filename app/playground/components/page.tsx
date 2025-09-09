@@ -11,6 +11,8 @@ import { getGithubUser } from "@/lib/github/users"
 import { getUserRoles } from "@/lib/neo4j/services/user"
 import { type ToolCallResult } from "@/lib/types"
 
+import { ResolveIssueCard } from "./ResolveIssueCard"
+
 export default async function ComponentsLibraryPage() {
   const session = await auth()
   if (!session?.user) {
@@ -113,6 +115,13 @@ export default async function ComponentsLibraryPage() {
               <ToolCallResultEvent event={prErrorEvent} />
             </CardContent>
           </Card>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold">Use Cases</h2>
+        <div className="grid gap-4">
+          <ResolveIssueCard />
         </div>
       </section>
 

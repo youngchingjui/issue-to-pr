@@ -3,7 +3,6 @@ import Link from "next/link"
 import { Suspense } from "react"
 
 import IssueDetailsWrapper from "@/components/issues/IssueDetailsWrapper"
-import IssuePlans from "@/components/issues/IssuePlans"
 import IssueWorkflowRuns from "@/components/issues/IssueWorkflowRuns"
 import TableSkeleton from "@/components/layout/TableSkeleton"
 import { Button } from "@/components/ui/button"
@@ -21,13 +20,12 @@ interface Props {
 export default async function IssueDetailsPage({ params }: Props) {
   const { username, repo, issueId } = params
   const repoFullName = `${username}/${repo}`
-  const issueNumber = parseInt(issueId)
+  const issueNumber = Number.parseInt(issueId, 10)
 
   const result = await getIssue({
     fullName: repoFullName,
     issueNumber,
   })
-  const runs = await listWorkflowRuns({ repoFullName, issueNumber })
 
   if (result.type === "not_found") {
     return (
@@ -94,6 +92,7 @@ export default async function IssueDetailsPage({ params }: Props) {
 
   // Success path: Render issue details
   const issue = result.issue
+  const runs = await listWorkflowRuns({ repoFullName, issueNumber })
 
   return (
     <main className="container mx-auto p-4">
@@ -115,10 +114,6 @@ export default async function IssueDetailsPage({ params }: Props) {
         </div>
         <Suspense fallback={<TableSkeleton />}>
           <IssueDetailsWrapper issue={issue} />
-        </Suspense>
-
-        <Suspense fallback={<TableSkeleton />}>
-          <IssuePlans repoFullName={repoFullName} issueNumber={issueNumber} />
         </Suspense>
 
         <Suspense fallback={<TableSkeleton />}>
