@@ -18,12 +18,14 @@ interface Props {
   repoFullName: RepoFullName
   repositories: AuthenticatedUserRepository[]
   issuesEnabled: boolean
+  hasOpenAIKey: boolean
 }
 
 export default function IssueDashboardClient({
   repoFullName,
   repositories,
   issuesEnabled,
+  hasOpenAIKey,
 }: Props) {
   const [issues, setIssues] = useState<IssueWithStatus[]>([])
   const [prMap, setPrMap] = useState<Record<number, number | null>>({})
@@ -121,6 +123,7 @@ export default function IssueDashboardClient({
         <NewTaskInput
           repoFullName={repoFullName}
           issuesEnabled={issuesEnabled}
+          hasOpenAIKey={hasOpenAIKey}
         />
       </div>
 
@@ -150,3 +153,4 @@ export default function IssueDashboardClient({
     </main>
   )
 }
+

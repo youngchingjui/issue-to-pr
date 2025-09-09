@@ -1,6 +1,7 @@
 import IssueTable from "@/components/issues/IssueTable"
 import NewTaskInput from "@/components/issues/NewTaskInput"
 import { getRepoFromString } from "@/lib/github/content"
+import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
 import { repoFullNameSchema } from "@/lib/types/github"
 
 interface Props {
@@ -16,6 +17,8 @@ export default async function RepoPage({ params }: Props) {
   const repoFullName = repoFullNameSchema.parse(`${username}/${repo}`)
   const repoData = await getRepoFromString(repoFullName.fullName)
   const issuesEnabled = !!repoData.has_issues
+  const existingKey = await getUserOpenAIApiKey()
+  const hasOpenAIKey = !!(existingKey && existingKey.trim())
 
   return (
     <main className="container mx-auto p-4">
@@ -44,7 +47,7 @@ export default async function RepoPage({ params }: Props) {
         </div>
       ) : null}
 
-      <NewTaskInput repoFullName={repoFullName} issuesEnabled={issuesEnabled} />
+      <NewTaskInput repoFullName={repoFullName} issuesEnabled={issuesEnabled} hasOpenAIKey={hasOpenAIKey} />
 
       {issuesEnabled ? (
         <IssueTable repoFullName={repoFullName} />
