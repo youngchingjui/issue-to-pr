@@ -24,11 +24,13 @@ import { mapGithubErrorToCopy } from "@/lib/ui/errorMessages"
 interface Props {
   repoFullName: RepoFullName | null
   issuesEnabled?: boolean
+  hasOpenAIKey: boolean
 }
 
 export default function NewTaskInput({
   repoFullName,
   issuesEnabled = true,
+  hasOpenAIKey,
 }: Props) {
   const [description, setDescription] = useState("")
   const [loading, setLoading] = useState(false)
@@ -209,6 +211,8 @@ export default function NewTaskInput({
     }
   }
 
+  const micDisabled = isDisabled || !hasOpenAIKey
+
   return (
     <TooltipProvider>
       <form
@@ -281,11 +285,10 @@ export default function NewTaskInput({
                 prev.trim() ? `${prev}\n${text}` : text
               )
             }
-            disabled={isDisabled}
+            disabled={micDisabled}
           />
         </div>
       </form>
     </TooltipProvider>
   )
 }
-
