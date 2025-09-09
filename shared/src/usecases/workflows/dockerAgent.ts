@@ -1,4 +1,5 @@
-import { Agent, type AgentTool } from "@shared/entities/agent"
+import { Agent } from "@shared/entities/agent"
+import { Tool } from "@shared/entities/Tool"
 import type { ContainerRuntimePort } from "@shared/ports/containerRuntime"
 import type {
   CoreWorkflowEvent,
@@ -7,6 +8,7 @@ import type {
 } from "@shared/ports/events"
 import type { LLMPort } from "@shared/ports/llm"
 import type { TelemetryPort } from "@shared/ports/telemetry"
+import { type ZodType } from "zod"
 
 export interface DockerAgentWorkflowParams {
   workflowId: string
@@ -20,7 +22,7 @@ export interface DockerAgentWorkflowParams {
   userId?: string
 }
 
-export interface DockerAgentWorkflowDeps {
+export interface DockerAgentWorkflowPorts {
   docker: ContainerRuntimePort
   llm: LLMPort
   telemetry: TelemetryPort
@@ -30,11 +32,11 @@ export interface DockerAgentWorkflowDeps {
 }
 
 export async function runDockerAgentWorkflow(
-  deps: DockerAgentWorkflowDeps,
+  ports: DockerAgentWorkflowPorts,
   params: DockerAgentWorkflowParams
 ): Promise<{ containerId: string }> {
-  const { docker, llm, telemetry, events } = deps
-  const idFactory = deps.idFactory ?? (() => crypto.randomUUID())
+  const { docker, llm, telemetry, events } = ports
+  const idFactory = ports.idFactory ?? (() => crypto.randomUUID())
 
   // 1) Start telemetry trace
   const trace = await telemetry.startTrace({
@@ -79,8 +81,9 @@ export async function runDockerAgentWorkflow(
     data: { containerId, name: params.containerName },
   })
 
+  // TODO: We should define these tools in entities/ folder and import
   // 4) Create agent with simple tools
-  const tools: AgentTool[] = [
+  const tools: Tool<ZodType, unknown>[] = [
     {
       name: "emit_event",
       description: "Emit a structured workflow event",
