@@ -259,12 +259,13 @@ export default function NewTaskInput({
                     </>
                   ) : (
                     <>
-                      Create Github Issue
-                      {hasKeyboard ? (
-                        <span className="ml-2 text-xs text-primary-foreground">
-                          {shortcutHint}
-                        </span>
-                      ) : null}
+                      Create GitHub Issue
+                      <span
+                        className={`ml-2 text-xs text-primary-foreground ${hasKeyboard ? "" : "invisible"}`}
+                        aria-hidden={!hasKeyboard}
+                      >
+                        {shortcutHint}
+                      </span>
                     </>
                   )}
                 </Button>
@@ -288,4 +289,3 @@ export default function NewTaskInput({
     </TooltipProvider>
   )
 }
-

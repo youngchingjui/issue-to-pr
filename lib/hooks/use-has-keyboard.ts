@@ -16,26 +16,22 @@ export function useHasKeyboard(): boolean {
 
     const mq = (q: string) => window.matchMedia(q)
 
-    const hasFinePointer =
-      mq("(pointer: fine)").matches || mq("(any-pointer: fine)").matches
-    const hasHover =
-      mq("(hover: hover)").matches || mq("(any-hover: hover)").matches
+    const computeHasKeyboard = () => {
+      const hasFinePointer =
+        mq("(pointer: fine)").matches || mq("(any-pointer: fine)").matches
+      const hasHover =
+        mq("(hover: hover)").matches || mq("(any-hover: hover)").matches
 
-    const ua = window.navigator.userAgent || ""
-    const platform = window.navigator.platform || ""
+      const ua = window.navigator.userAgent || ""
+      const platform = window.navigator.platform || ""
+      const isMobileUA = /Mobi|Android|iPhone|iPad|iPod|Phone/i.test(ua)
+      const maxTouchPoints = window.navigator.maxTouchPoints ?? 0
+      const looksDesktopPlatform =
+        /(Mac|Win|Linux)/i.test(platform) && maxTouchPoints < 2
+      return (hasFinePointer && hasHover && !isMobileUA) || looksDesktopPlatform
+    }
 
-    // Heuristic mobile/tablet detection
-    const isMobileUA = /Mobi|Android|iPhone|iPad|iPod|Phone/i.test(ua)
-    const maxTouchPoints = window.navigator.maxTouchPoints ?? 0
-
-    // Consider as desktop if platform looks like a desktop and touch points are few
-    const looksDesktopPlatform =
-      /(Mac|Win|Linux)/i.test(platform) && maxTouchPoints < 2
-
-    const initialHasKeyboard =
-      (hasFinePointer && hasHover && !isMobileUA) || looksDesktopPlatform
-
-    setHasKeyboard(initialHasKeyboard)
+    setHasKeyboard(computeHasKeyboard())
 
     // Upgrade to true only on signals typical of physical keyboards
     const onKeyDown = (e: KeyboardEvent) => {
@@ -58,20 +54,7 @@ export function useHasKeyboard(): boolean {
     const makeListener = (query: string) => {
       const mql = mq(query)
       const handler = () => {
-        const nextFinePointer =
-          mq("(pointer: fine)").matches || mq("(any-pointer: fine)").matches
-        const nextHasHover =
-          mq("(hover: hover)").matches || mq("(any-hover: hover)").matches
-        const nextIsMobileUA = /Mobi|Android|iPhone|iPad|iPod|Phone/i.test(
-          window.navigator.userAgent || ""
-        )
-        const nextLooksDesktopPlatform =
-          /(Mac|Win|Linux)/i.test(window.navigator.platform || "") &&
-          (window.navigator.maxTouchPoints ?? 0) < 2
-        setHasKeyboard(
-          (nextFinePointer && nextHasHover && !nextIsMobileUA) ||
-            nextLooksDesktopPlatform
-        )
+        setHasKeyboard(computeHasKeyboard())
       }
       mql.addEventListener("change", handler)
       listeners.push({ mql, handler })
