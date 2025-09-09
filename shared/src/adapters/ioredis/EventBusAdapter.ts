@@ -7,7 +7,7 @@ import type { EventBusPort } from "@shared/ports/events/eventBus"
  *
  * Stream key convention: workflow:{workflowId}:events
  */
-export class RedisStreamEventBusAdapter implements EventBusPort {
+export class EventBusAdapter implements EventBusPort {
   constructor(
     private readonly redisUrl: string,
     private readonly maxLen = 10000
