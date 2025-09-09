@@ -23,4 +23,3 @@ export interface WorkflowEvent {
    */
   metadata?: Record<string, unknown>
 }
-

@@ -24,4 +24,3 @@ export class RedisStreamEventBusAdapter implements EventBusPort {
     )
   }
 }
-

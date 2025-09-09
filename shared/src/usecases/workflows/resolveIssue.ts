@@ -1,10 +1,10 @@
-import { Issue } from "@shared/entities/Issue"
 import type { WorkflowEvent } from "@shared/entities/events/WorkflowEvent"
+import { Issue } from "@shared/entities/Issue"
 import { err, ok, type Result } from "@shared/entities/result"
 import type { AuthReaderPort } from "@shared/ports/auth/reader"
+import type { EventBusPort } from "@shared/ports/events/eventBus"
 import type { IssueReaderPort } from "@shared/ports/github/issue.reader"
 import type { LLMPort } from "@shared/ports/llm"
-import type { EventBusPort } from "@shared/ports/events/eventBus"
 import type { SettingsReaderPort } from "@shared/ports/repositories/settings.reader"
 
 /**
@@ -257,4 +257,3 @@ export async function resolveIssue(
     return err("UNKNOWN")
   }
 }
-

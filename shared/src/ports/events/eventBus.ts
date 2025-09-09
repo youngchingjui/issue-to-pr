@@ -11,4 +11,3 @@ export interface EventBusPort {
    */
   publish(workflowId: string, event: WorkflowEvent): Promise<void>
 }
-
