@@ -16,6 +16,3 @@ export function getRedisConnection(): IORedis {
   connection = new IORedis(redisUrl)
   return connection
 }
-
-// TODO: This file should probably be in /src/adapters/redis/ioredis.ts
-// To follow clean architecture principles

@@ -1,6 +1,6 @@
+import { getRedisConnection } from "@shared/adapters/ioredis/client"
 import type { WorkflowEvent } from "@shared/entities/events/WorkflowEvent"
 import type { EventBusPort } from "@shared/ports/events/eventBus"
-import { getRedisConnection } from "@shared/services/redis/ioredis"
 
 /**
  * Redis Streams implementation of the EventBusPort.
