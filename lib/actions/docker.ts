@@ -17,9 +17,14 @@ export async function getRunningContainers(): Promise<RunningContainer[]> {
 
 export async function launchAgentBaseContainer() {
   const name = `agent-${Date.now()}`
+  const ttlHours = Number.parseInt(process.env.CONTAINER_TTL_HOURS ?? "24", 10)
   await startContainer({
     image: AGENT_BASE_IMAGE_PREFIX,
     name,
+    labels: {
+      preview: "true",
+      ...(Number.isFinite(ttlHours) ? { "ttl-hours": String(ttlHours) } : {}),
+    },
   })
   return name
 }
@@ -27,3 +32,4 @@ export async function launchAgentBaseContainer() {
 export async function stopContainer(name: string) {
   await stopAndRemoveContainer(name)
 }
+

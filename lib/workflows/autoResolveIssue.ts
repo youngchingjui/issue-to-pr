@@ -1,5 +1,8 @@
+import { generateNonConflictingBranchName } from "@shared/usecases/git/generateBranchName"
 import { v4 as uuidv4 } from "uuid"
 
+import { BasicLLMAdapter } from "@/lib/adapters/BasicLLMAdapter"
+import { GitHubRefsAdapter } from "@/lib/adapters/GitHubRefsAdapter"
 import PlanAndCodeAgent from "@/lib/agents/PlanAndCodeAgent"
 import { getInstallationTokenFromRepo } from "@/lib/github/installation"
 import { getIssueComments } from "@/lib/github/issues"
@@ -73,21 +76,48 @@ export const autoResolveIssue = async ({
       })
     }
 
+    // Decide the working branch first so we can set labels and network aliases on the container
+    const [owner, repo] = repository.full_name.split("/")
+    let workingBranch = repository.default_branch
+    try {
+      const llm = new BasicLLMAdapter()
+      const refs = new GitHubRefsAdapter()
+      const context = `GitHub issue title: ${issue.title}\n\n${issue.body ?? ""}`
+      const generated = await generateNonConflictingBranchName(
+        { llm, refs },
+        { owner, repo, context, prefix: "feature" }
+      )
+      workingBranch = generated
+      await createStatusEvent({
+        workflowId,
+        content: `Using working branch: ${generated}`,
+      })
+    } catch (e) {
+      await createStatusEvent({
+        workflowId,
+        content: `[WARNING]: Failed to generate non-conflicting branch name, falling back to default branch ${repository.default_branch}. Error: ${String(
+          e
+        )}`,
+      })
+      workingBranch = repository.default_branch
+    }
+
     const hostRepoPath = await setupLocalRepository({
       repoFullName: repository.full_name,
+      // Always prepare local repo on the default branch to ensure fetch/checkout succeeds,
+      // we will create/switch to the workingBranch inside the container as needed.
       workingBranch: repository.default_branch,
     })
 
     const { containerName } = await createContainerizedWorkspace({
       repoFullName: repository.full_name,
-      branch: repository.default_branch,
+      branch: workingBranch,
       workflowId,
       hostRepoPath,
     })
 
     const env: RepoEnvironment = { kind: "container", name: containerName }
 
-    const [owner, repo] = repository.full_name.split("/")
     const sessionToken = await getInstallationTokenFromRepo({
       owner,
       repo,

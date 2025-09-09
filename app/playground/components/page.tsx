@@ -2,6 +2,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 
 import { auth } from "@/auth"
+import MicrophoneRecordingDraft from "@/components/playground/MicrophoneRecordingDraft"
 import CreatedPullRequestCard from "@/components/pull-requests/CreatedPullRequestCard"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,6 +10,8 @@ import { ToolCallResultEvent } from "@/components/workflow-runs/events/ToolCallR
 import { getGithubUser } from "@/lib/github/users"
 import { getUserRoles } from "@/lib/neo4j/services/user"
 import { type ToolCallResult } from "@/lib/types"
+
+import { ResolveIssueCard } from "./ResolveIssueCard"
 
 export default async function ComponentsLibraryPage() {
   const session = await auth()
@@ -112,6 +115,20 @@ export default async function ComponentsLibraryPage() {
               <ToolCallResultEvent event={prErrorEvent} />
             </CardContent>
           </Card>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold">Use Cases</h2>
+        <div className="grid gap-4">
+          <ResolveIssueCard />
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold">Voice / Recording</h2>
+        <div className="grid gap-4 md:grid-cols-2">
+          <MicrophoneRecordingDraft />
         </div>
       </section>
     </div>

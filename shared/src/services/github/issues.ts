@@ -1,15 +1,19 @@
 import type {
-  GitHubIssuesPort,
+  IssueReaderPort,
   IssueRef,
   IssueTitleResult,
-} from "@/shared/src/core/ports/github"
+} from "@shared/ports/github/issue.reader"
+import {
+  type CreateIssueInput,
+  IssueWriterPort,
+} from "@shared/ports/github/issue.writer"
 
 /**
  * Service-level function to fetch issue titles using a provided GitHub port.
  * Keeps clean architecture by only depending on the port interface.
  */
 export async function fetchIssueTitles(
-  port: GitHubIssuesPort,
+  port: IssueReaderPort,
   refs: IssueRef[]
 ): Promise<IssueTitleResult[]> {
   // Deduplicate identical refs to avoid redundant API calls
@@ -32,4 +36,14 @@ export async function fetchIssueTitles(
   )
 }
 
-export default fetchIssueTitles
+export async function createIssueForRepo(
+  port: IssueWriterPort,
+  input: CreateIssueInput
+) {
+  const sanitized = {
+    ...input,
+    title: input.title.trim(),
+    body: input.body?.trim() ?? undefined,
+  }
+  return port.createIssue(sanitized)
+}

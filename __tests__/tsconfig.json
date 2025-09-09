@@ -1,0 +1,28 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["jest", "node", "@testing-library/jest-dom"],
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "baseUrl": "..",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ES2022",
+    "paths": {
+      "@/*": ["*"],
+      "@/components/*": ["components/*"],
+      "@/styles/*": ["styles/*"],
+      "@/lib/*": ["lib/*"],
+      "@/__tests__/*": ["__tests__/*"],
+      "@shared/*": ["shared/src/*"],
+      "@workers/*": ["apps/workers/src/*"]
+    }
+  },
+  "include": [
+    "**/*",
+    "../lib/**/*",
+    "../components/**/*",
+    "../app/**/*",
+    "../shared/src/**/*"
+  ]
+}

@@ -1,14 +1,12 @@
+import { TimedIssueReaderPort } from "@shared/adapters/decorators/timing"
+import { makeIssueReaderAdapter } from "@shared/adapters/github/octokit/graphql/issue.reader"
+import { fetchIssueTitles } from "@shared/services/github/issues"
+import { withTiming } from "@shared/utils/telemetry"
 import { formatDistanceToNow } from "date-fns"
 import Link from "next/link"
 
 import { Badge } from "@/components/ui/badge"
 import { TableBody, TableCell, TableRow } from "@/components/ui/table"
-import {
-  fetchIssueTitles,
-  GitHubGraphQLAdapter,
-  TimedGitHubIssuesPort,
-  withTiming,
-} from "@/shared/src"
 
 export type WorkflowRunItem = {
   id: string
@@ -93,8 +91,8 @@ export async function IssueTitlesTableBody({
       }))
 
     if (refs.length > 0 && token) {
-      const baseAdapter = new GitHubGraphQLAdapter({ token })
-      const adapter = new TimedGitHubIssuesPort(baseAdapter)
+      const baseAdapter = makeIssueReaderAdapter({ token })
+      const adapter = new TimedIssueReaderPort(baseAdapter)
       const results = await withTiming("GitHub: getIssueTitles", () =>
         fetchIssueTitles(adapter, refs)
       )

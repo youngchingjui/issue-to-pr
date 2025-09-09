@@ -1,14 +1,9 @@
 import { auth } from "@/auth"
 import IssueDashboard from "@/components/home/IssueDashboard"
-import AgentArchitecture from "@/components/landing-page/AgentArchitecture"
-import ComparisonToIDEAgents from "@/components/landing-page/ComparisonToIDEAgents"
-import Features from "@/components/landing-page/Features"
+import Benefits from "@/components/landing-page/Benefits"
 import Footer from "@/components/landing-page/Footer"
-import GetStarted from "@/components/landing-page/GetStarted"
 import Hero from "@/components/landing-page/Hero"
-import PlanningFeature from "@/components/landing-page/PlanningFeature"
-import Pricing from "@/components/landing-page/Pricing"
-import Steps from "@/components/landing-page/Steps"
+import NonDeveloperBenefits from "@/components/landing-page/NonDeveloperBenefits"
 import GridBackground from "@/components/ui/grid-background"
 
 import OpenAIApiKeyCard from "./OpenAIApiKeyCard"
@@ -32,13 +27,8 @@ export default async function LandingPage() {
       <main>
         <GridBackground>
           <Hero />
-          <AgentArchitecture />
-          <PlanningFeature />
-          <Steps />
-          <Features />
-          <ComparisonToIDEAgents />
-          <Pricing />
-          <GetStarted />
+          <Benefits />
+          <NonDeveloperBenefits />
         </GridBackground>
       </main>
       <Footer />

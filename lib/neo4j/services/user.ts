@@ -37,6 +37,9 @@ export async function setUserOpenAIApiKey(apiKey: string): Promise<void> {
   }
 }
 
+/**
+ * @deprecated Use `getOpenAIKey` in shared/adapters/neo4j/repositories/SettingsReaderAdapter.ts instead
+ */
 export async function getUserOpenAIApiKey(): Promise<string | null> {
   const settings = await getUserSettings()
   if (!settings) return null

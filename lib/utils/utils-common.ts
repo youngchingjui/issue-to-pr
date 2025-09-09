@@ -1,7 +1,6 @@
 // TODO: Migrate to /lib/utils/client.ts or /lib/utils/server.ts
 
 import { type ClassValue, clsx } from "clsx"
-import { EventEmitter } from "events"
 import { twMerge } from "tailwind-merge"
 
 import { GitHubURLSchema } from "@/lib/schemas/api"
@@ -30,7 +29,45 @@ export function getCloneUrlWithAccessToken(
   return `https://${token}@github.com/${userRepo}.git`
 }
 
-export const jobStatusEmitter = new EventEmitter()
+// Lightweight event emitter that works in both browser and Node without bundling 'events'
+type Listener = (...args: unknown[]) => void
+class LightweightEmitter {
+  private listeners = new Map<string, Set<Listener>>()
+
+  on(event: string, listener: Listener) {
+    if (!this.listeners.has(event)) this.listeners.set(event, new Set())
+    this.listeners.get(event)!.add(listener)
+    return this
+  }
+
+  addListener(event: string, listener: Listener) {
+    return this.on(event, listener)
+  }
+
+  off(event: string, listener: Listener) {
+    this.listeners.get(event)?.delete(listener)
+    return this
+  }
+
+  removeListener(event: string, listener: Listener) {
+    return this.off(event, listener)
+  }
+
+  removeAllListeners(event?: string) {
+    if (event) this.listeners.delete(event)
+    else this.listeners.clear()
+    return this
+  }
+
+  emit(event: string, ...args: unknown[]) {
+    const set = this.listeners.get(event)
+    if (!set) return false
+    for (const listener of Array.from(set)) listener(...args)
+    return true
+  }
+}
+
+export const jobStatusEmitter = new LightweightEmitter()
 export const jobStatus: Record<string, string> = {}
 
 /**

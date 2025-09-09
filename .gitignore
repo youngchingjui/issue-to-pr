@@ -17,6 +17,7 @@
 
 # next.js
 /.next/
+*.next/
 /out/
 
 # local backups
@@ -54,3 +55,11 @@ next-env.d.ts
 # Ignore large mock message fixtures
 # Mainly so ripgrep search stops searching these files
 /__tests__/mocks/messages*.json
+
+# /apps/storybook
+*storybook.log
+storybook-static
+
+# /apps/openai-realtime-agents
+apps/openai-realtime-agents/.env*
+!apps/openai-realtime-agents/.env.example

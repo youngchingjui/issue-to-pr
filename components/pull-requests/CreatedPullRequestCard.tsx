@@ -1,7 +1,7 @@
 import { ExternalLink } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 
 export interface CreatedPullRequestCardProps {
   number: number
@@ -16,13 +16,6 @@ export default function CreatedPullRequestCard({
   body,
   url,
 }: CreatedPullRequestCardProps) {
-  const preview = (body || "").trim()
-  const previewText = preview
-    ? preview.length > 280
-      ? preview.slice(0, 280) + "…"
-      : preview
-    : "No description provided."
-
   return (
     <Card className="border-blue-200 dark:border-blue-900">
       <CardHeader>

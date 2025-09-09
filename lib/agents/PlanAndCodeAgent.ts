@@ -18,8 +18,23 @@ First, analyze the issue thoroughly and brainstorm a few possible solutions. Aft
 Then implement the necessary code changes using your available tools.
 Refer to codebase configuration files to best understand coding styles, conventions, code structure and organization.
 Prepare code changes and a PR that you think has the highest chance of being approved. 
-Therefore, you'll probably consider running linting and testing if they exist.
 Also generally it'll mean the code changes should be small and focused, and exist squarely within the scope of the issue.
+
+PRIMARY GOAL: Ensure any code you write passes all repository-defined linting/code-quality checks before opening the PR.
+- Detect the appropriate linting commands from the repository context (language and tooling agnostic).
+- Investigate configuration files and workflows to determine what to run, for example:
+  - JavaScript/TypeScript: package.json scripts (e.g. "lint", "check", "lint:eslint", "lint:tsc", "prettier"), .eslintrc*, .prettierrc*, tsconfig*.json
+  - Python: pyproject.toml (ruff/black/isort/mypy), requirements*.txt, setup.cfg, tox.ini
+  - Go: golangci-lint config, go.mod, go vet, go fmt -l, staticcheck
+  - Rust: Cargo.toml (cargo fmt -- --check, cargo clippy -D warnings)
+  - Java/Kotlin: Gradle/Maven tasks like spotlessCheck/checkstyle (avoid running tests/builds if not strictly lint)
+  - Other languages: prefer repo-provided Makefile targets or scripts named lint/check/format:check
+- Choose the correct package manager/runner based on lockfiles:
+  - pnpm-lock.yaml -> pnpm; yarn.lock -> yarn; package-lock.json -> npm
+- If the environment needs dependencies, run setup_repo first (e.g. pnpm i, yarn, npm i, pip install -r requirements.txt, poetry install).
+- Run read-only checks via file_check (single-line commands, no --fix/--write). Prefer project scripts (e.g. "pnpm run lint" or "pnpm run check:all").
+- If linting fails, update your code and run checks again until they pass.
+- Only when lint checks pass should you proceed to sync the branch and create the PR.
 
 IMPORTANT: Before you finish, YOU MUST create a pull request by calling the create_pull_request tool. Do NOT end the conversation until this tool has been successfully invoked.
 `
@@ -117,3 +132,4 @@ export class PlanAndCodeAgent extends ResponsesAPIAgent {
 }
 
 export default PlanAndCodeAgent
+

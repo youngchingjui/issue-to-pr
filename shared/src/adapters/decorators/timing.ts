@@ -1,20 +1,36 @@
-import type {
-  GitHubIssuesPort,
-  IssueRef,
-  IssueTitleResult,
-} from "@/shared/src/core/ports/github"
-import { withTiming } from "@/shared/src/utils/telemetry"
+import type { Result } from "@shared/entities/result"
+import {
+  type GetIssueErrors,
+  type IssueDetails,
+  IssueReaderPort,
+  type IssueRef,
+  type IssueTitleResult,
+} from "@shared/ports/github/issue.reader"
+import {
+  type CreateIssueInput,
+  type GithubIssueErrors,
+  IssueWriterPort,
+} from "@shared/ports/github/issue.writer"
+import { Issue } from "@shared/ports/github/issue.writer"
+import { withTiming } from "@shared/utils/telemetry"
 
 /**
  * Timing decorator for GitHubIssuesPort that adds telemetry to all methods.
  * Only instruments when ENABLE_TIMING=1, otherwise delegates directly to the inner adapter.
  */
-export class TimedGitHubIssuesPort implements GitHubIssuesPort {
+export class TimedIssueReaderPort implements IssueReaderPort {
   constructor(
-    private inner: GitHubIssuesPort,
+    private inner: IssueReaderPort,
     private labelPrefix = "GitHub",
     private enabled = process.env.ENABLE_TIMING === "1"
   ) {}
+
+  async getIssue(ref: IssueRef): Promise<Result<IssueDetails, GetIssueErrors>> {
+    if (!this.enabled) return this.inner.getIssue(ref)
+    return withTiming(`${this.labelPrefix}: getIssue`, () =>
+      this.inner.getIssue(ref)
+    )
+  }
 
   async getIssueTitles(refs: IssueRef[]): Promise<IssueTitleResult[]> {
     if (!this.enabled) {
@@ -25,6 +41,26 @@ export class TimedGitHubIssuesPort implements GitHubIssuesPort {
       `${this.labelPrefix}: getIssueTitles`,
       () => this.inner.getIssueTitles(refs),
       { batchSize: refs.length }
+    )
+  }
+}
+
+export class TimedIssueWriterPort implements IssueWriterPort {
+  constructor(
+    private inner: IssueWriterPort,
+    private labelPrefix = "GitHub",
+    private enabled = process.env.ENABLE_TIMING === "1"
+  ) {}
+
+  async createIssue(
+    input: CreateIssueInput
+  ): Promise<Result<Issue, GithubIssueErrors>> {
+    if (!this.enabled) {
+      return this.inner.createIssue(input)
+    }
+
+    return withTiming(`${this.labelPrefix}: createIssue`, () =>
+      this.inner.createIssue(input)
     )
   }
 }

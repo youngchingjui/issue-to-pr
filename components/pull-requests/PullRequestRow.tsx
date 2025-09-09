@@ -7,7 +7,9 @@ import { useState } from "react"
 
 import AlignmentCheckController from "@/components/pull-requests/controllers/AlignmentCheckController"
 import AnalyzePRController from "@/components/pull-requests/controllers/AnalyzePRController"
+import ResolveMergeConflictsController from "@/components/pull-requests/controllers/ResolveMergeConflictsController"
 import ReviewPRController from "@/components/pull-requests/controllers/ReviewPRController"
+import MergeConflictBadge from "@/components/pull-requests/MergeConflictBadge"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -73,6 +75,23 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
     },
   })
 
+  const resolveConflictsWorkflow = ResolveMergeConflictsController({
+    repoFullName: pr.head.repo.full_name,
+    pullNumber: pr.number,
+    onStart: () => {
+      setIsLoading(true)
+      setActiveWorkflow("Resolving conflicts...")
+    },
+    onComplete: () => {
+      setIsLoading(false)
+      setActiveWorkflow(null)
+    },
+    onError: () => {
+      setIsLoading(false)
+      setActiveWorkflow(null)
+    },
+  })
+
   return (
     <TableRow>
       <TableCell className="py-4">
@@ -104,6 +123,10 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
                 addSuffix: true,
               })}
             </span>
+            <MergeConflictBadge
+              repoFullName={pr.head.repo.full_name}
+              pullNumber={pr.number}
+            />
           </div>
         </div>
       </TableCell>
@@ -126,7 +149,7 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
               )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-[220px]">
+          <DropdownMenuContent align="end" className="w-[240px]">
             <DropdownMenuItem onClick={reviewWorkflow.execute}>
               <div>
                 <div>Review Pull Request</div>
@@ -148,6 +171,14 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
                 <div>Run AlignmentCheck</div>
                 <div className="text-xs text-muted-foreground">
                   Check how well this PR aligns with requirements and goals
+                </div>
+              </div>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={resolveConflictsWorkflow.execute}>
+              <div>
+                <div>Resolve Merge Conflicts</div>
+                <div className="text-xs text-muted-foreground">
+                  Detect and attempt to automatically resolve conflicts
                 </div>
               </div>
             </DropdownMenuItem>

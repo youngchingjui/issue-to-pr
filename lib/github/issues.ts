@@ -1,5 +1,7 @@
 "use server"
 
+import { withTiming } from "@shared/utils/telemetry"
+
 import getOctokit, { getGraphQLClient, getUserOctokit } from "@/lib/github"
 import {
   getLatestPlanIdsForIssues,
@@ -12,7 +14,6 @@ import {
   GitHubIssueComment,
   ListForRepoParams,
 } from "@/lib/types/github"
-import { withTiming } from "@/shared/src"
 
 type CreateIssueParams = {
   repo: string
@@ -271,13 +272,14 @@ export async function getLinkedPRNumberForIssue({
                   __typename
                   ... on PullRequest {
                     number
+                    state
                   }
                 }
               }
               ... on ReferencedEvent {
                 subject {
                   __typename
-                  ... on PullRequest { number }
+                  ... on PullRequest { number state }
                 }
               }
             }
@@ -292,11 +294,11 @@ export async function getLinkedPRNumberForIssue({
         __typename: "CrossReferencedEvent"
         isCrossRepository: boolean
         willCloseTarget: boolean
-        source: { __typename: string; number?: number } | null
+        source: { __typename: string; number?: number; state?: string } | null
       }
     | {
         __typename: "ReferencedEvent"
-        subject: { __typename: string; number?: number } | null
+        subject: { __typename: string; number?: number; state?: string } | null
       }
 
   interface Resp {
@@ -315,23 +317,38 @@ export async function getLinkedPRNumberForIssue({
 
   const nodes = resp.repository?.issue?.timelineItems?.nodes || []
 
-  // Prefer PRs that will close this issue when merged
+  // helper to check OPEN state
+  const isOpen = (state?: string) => state === "OPEN"
+
+  // Prefer PRs that will close this issue when merged and are open
   for (const n of nodes) {
     if (n.__typename === "CrossReferencedEvent" && n.willCloseTarget) {
-      if (n.source?.__typename === "PullRequest" && n.source.number) {
+      if (
+        n.source?.__typename === "PullRequest" &&
+        n.source.number &&
+        isOpen(n.source.state)
+      ) {
         return n.source.number
       }
     }
   }
-  // Fallback: any PR reference
+  // Fallback: any PR reference that is open
   for (const n of nodes) {
     if (n.__typename === "ReferencedEvent") {
-      if (n.subject?.__typename === "PullRequest" && n.subject.number) {
+      if (
+        n.subject?.__typename === "PullRequest" &&
+        n.subject.number &&
+        isOpen(n.subject.state)
+      ) {
         return n.subject.number
       }
     }
     if (n.__typename === "CrossReferencedEvent") {
-      if (n.source?.__typename === "PullRequest" && n.source.number) {
+      if (
+        n.source?.__typename === "PullRequest" &&
+        n.source.number &&
+        isOpen(n.source.state)
+      ) {
         return n.source.number
       }
     }
@@ -365,13 +382,13 @@ export async function getLinkedPRNumbersForIssues({
                 willCloseTarget
                 source {
                   __typename
-                  ... on PullRequest { number }
+                  ... on PullRequest { number state }
                 }
               }
               ... on ReferencedEvent {
                 subject {
                   __typename
-                  ... on PullRequest { number }
+                  ... on PullRequest { number state }
                 }
               }
             }
@@ -394,11 +411,11 @@ export async function getLinkedPRNumbersForIssues({
         __typename: "CrossReferencedEvent"
         isCrossRepository: boolean
         willCloseTarget: boolean
-        source: { __typename: string; number?: number } | null
+        source: { __typename: string; number?: number; state?: string } | null
       }
     | {
         __typename: "ReferencedEvent"
-        subject: { __typename: string; number?: number } | null
+        subject: { __typename: string; number?: number; state?: string } | null
       }
 
   type Resp = {
@@ -412,12 +429,14 @@ export async function getLinkedPRNumbersForIssues({
 
   const variables = { owner, repo }
   const resp = (await withTiming(
-    `GitHub GraphQL: getLinkedPRNumbersForIssues ${repoFullName} [${issueNumbers.join(",")}]`,
+    `GitHub GraphQL: getLinkedPRNumbersForIssues ${repoFullName} [${issueNumbers.join(",")} ]`,
     () => graphqlWithAuth<Resp>(query, variables)
   )) as Resp
 
   const repository = resp.repository || {}
   const result: Record<number, number | null> = {}
+
+  const isOpen = (state?: string) => state === "OPEN"
 
   for (const issueNumber of issueNumbers) {
     const key = `i_${issueNumber}`
@@ -434,7 +453,9 @@ export async function getLinkedPRNumbersForIssues({
       if (n.__typename === "CrossReferencedEvent" && n.willCloseTarget) {
         const prNum =
           n.source?.__typename === "PullRequest" ? n.source.number : undefined
-        if (typeof prNum === "number") {
+        const prState =
+          n.source?.__typename === "PullRequest" ? n.source.state : undefined
+        if (typeof prNum === "number" && isOpen(prState)) {
           found = prNum
           break
         }
@@ -448,7 +469,11 @@ export async function getLinkedPRNumbersForIssues({
             n.subject?.__typename === "PullRequest"
               ? n.subject.number
               : undefined
-          if (typeof prNum === "number") {
+          const prState =
+            n.subject?.__typename === "PullRequest"
+              ? n.subject.state
+              : undefined
+          if (typeof prNum === "number" && isOpen(prState)) {
             found = prNum
             break
           }
@@ -456,7 +481,9 @@ export async function getLinkedPRNumbersForIssues({
         if (n.__typename === "CrossReferencedEvent") {
           const prNum =
             n.source?.__typename === "PullRequest" ? n.source.number : undefined
-          if (typeof prNum === "number") {
+          const prState =
+            n.source?.__typename === "PullRequest" ? n.source.state : undefined
+          if (typeof prNum === "number" && isOpen(prState)) {
             found = prNum
             break
           }

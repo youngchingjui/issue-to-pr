@@ -1,8 +1,10 @@
-# Observability with Langfuse
+# Observability with Langfuse and Error Telemetry
 
 ## Overview
 
 Our system uses Langfuse's hosted service (cloud.langfuse.com) for monitoring and tracking all LLM operations. This integration provides comprehensive visibility into our AI operations and helps maintain system reliability.
+
+In addition, we capture client- and server-side runtime errors in production and forward them to a configurable webhook for centralized error telemetry.
 
 ## Monitoring Features
 
@@ -28,112 +30,82 @@ Our system uses Langfuse's hosted service (cloud.langfuse.com) for monitoring an
 - Usage pattern analysis
 - Trend monitoring for optimization
 
+### Error Telemetry
+
+- Client-side global capture of window errors and unhandled promise rejections
+- Server-side global capture of uncaught exceptions and unhandled rejections
+- Error forwarding to a webhook for storage and alerting (e.g., log collector, Slack, Sentry-compatible endpoint, or your own service)
+
 ## Integration Points
 
 Langfuse is integrated at key points in our system:
 
-1. **Issue Analysis**
-
+1. Issue Analysis
    - Tracks initial issue processing
    - Monitors content understanding accuracy
-
-2. **Code Generation**
-
+2. Code Generation
    - Measures code generation performance
    - Tracks completion rates
-
-3. **PR Creation**
+3. PR Creation
    - Monitors end-to-end conversion success
    - Tracks overall system effectiveness
 
+Error telemetry is integrated at the framework level:
+
+- Client: a global ErrorListener component registers listeners for `error` and `unhandledrejection` and posts to `/api/telemetry/error`.
+- Server: `instrumentation.ts` registers process-level handlers for `uncaughtException` and `unhandledRejection` in production.
+
+## Configuration
+
+Set the following environment variable in production to enable forwarding to your telemetry sink:
+
+- ERROR_WEBHOOK_URL: HTTPS endpoint that receives JSON error payloads via POST.
+
+If this variable is not set, errors are still logged to the server console.
+
+Example payload posted to the webhook:
+
+```
+{
+  "type": "server-error" | "unhandled-rejection" | "uncaught-exception",
+  "message": "Error message",
+  "stack": "...",
+  "timestamp": "2024-08-31T12:34:56.789Z",
+  "environment": "production",
+  "service": "issue-to-pr",
+  "url": "https://your.app/path",
+  "meta": { "source": "client", "userAgent": "..." }
+}
+```
+
+You can point this to a custom collector, Slack incoming webhook (with a middleware that reformats), or a lightweight service like Logtail, or a server that bridges to Sentry.
+
 ## Monitoring Dashboard
 
-Our system metrics can be viewed on the Langfuse hosted dashboard, providing:
-
-1. **Real-time Metrics**
-
-   - Current system performance
-   - Active operations
-   - Recent completions
-
-2. **Historical Analysis**
-
-   - Success rate trends
-   - Cost patterns
-   - Performance over time
-
-3. **Alert System**
-   - Automated monitoring for:
-     - High latency operations
-     - Increased error rates
-     - Cost thresholds
-     - Usage spikes
-
-## Key Performance Indicators
-
-1. PR Generation Success Rate
-2. Average Processing Time
-3. Token Usage per Operation
-4. Cost per Successful PR
-5. Error Distribution
+- Langfuse hosted dashboard for LLM operations
+- Your webhook destination for error logs (e.g., your log management or alerting platform)
 
 ## Best Practices
 
-1. **Consistent Naming**
-
-   - Use descriptive trace names
-   - Follow naming conventions for spans
-   - Include relevant metadata
-
-2. **Error Handling**
-
-   - Always capture error states
-   - Include error context and stack traces
-   - Tag critical vs non-critical failures
-
-3. **Performance Optimization**
-   - Monitor token usage patterns
-   - Track response times
-   - Identify bottlenecks
-
-## Integration with Existing Systems
-
-### Alerts and Notifications
-
-Configure alerts for:
-
-- High latency operations
-- Increased error rates
-- Cost thresholds
-- Token usage spikes
-
-### Metrics Dashboard
-
-Key metrics to monitor:
-
-1. Success rate of PR generation
-2. Average processing time
-3. Token usage per operation
-4. Cost per successful PR
-5. Error distribution by type
+1. Consistent Naming
+   - Use descriptive labels and include relevant metadata when capturing errors manually
+2. Error Handling
+   - Always include stack traces when available
+   - Tag critical vs non-critical failures via `severity` in the client payload if needed
+3. Performance Optimization
+   - Error telemetry is best-effort and non-blocking; do not await it in critical paths
 
 ## Troubleshooting
 
-Common issues and solutions:
-
-1. Missing traces
-
-   - Verify API keys
-   - Check network connectivity
-   - Validate trace initialization
-
-2. Incomplete data
-   - Ensure proper trace closure
-   - Verify all steps are tracked
-   - Check error handling
+- No error logs show up
+  - Ensure `ERROR_WEBHOOK_URL` is set in production
+  - Verify the endpoint accepts POST JSON without authentication, or add the required headers
+  - Check server logs for `[telemetry]` messages
+- Too noisy in local development
+  - Error forwarding runs only when `NODE_ENV=production`
 
 ## Additional Resources
 
-- [Langfuse Documentation](https://langfuse.com/docs)
-- [API Reference](https://langfuse.com/docs/api)
-- [Best Practices Guide](https://langfuse.com/docs/guides/best-practices)
+- Langfuse Documentation: https://langfuse.com/docs
+- Next.js Instrumentation: https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry
+
