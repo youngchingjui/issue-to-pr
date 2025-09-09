@@ -18,4 +18,3 @@ export type WorkflowRun = {
   workflowType: WorkflowType
   created_at: Date
 }
-
