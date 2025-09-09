@@ -1,6 +1,7 @@
 "use client"
 
 import { Loader2, Play, Square, Trash2 } from "lucide-react"
+import Link from "next/link"
 import { useCallback } from "react"
 import useSWR from "swr"
 
@@ -31,10 +32,12 @@ function badgeVariantForStatus(
   }
 }
 
+type ContainerInfo = { status: string; subdomain?: string; url?: string }
+
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 export default function ContainerManager({ workflowId, initialStatus }: Props) {
-  const { data, mutate, isValidating } = useSWR<{ status: string }>(
+  const { data, mutate, isValidating } = useSWR<ContainerInfo>(
     `/api/workflow-runs/${workflowId}/container`,
     fetcher,
     {
@@ -107,7 +110,24 @@ export default function ContainerManager({ workflowId, initialStatus }: Props) {
           )}
           <span className="sr-only">Delete container</span>
         </Button>
+
+        {/* Open preview button when available */}
+        {data?.url && status === "running" && (
+          <Link href={data.url} target="_blank" rel="noopener noreferrer">
+            <Button size="sm" variant="default">
+              Open Preview
+            </Button>
+          </Link>
+        )}
       </div>
+
+      {/* Show subdomain label for reference when URL is not configured */}
+      {!data?.url && data?.subdomain && (
+        <span className="text-xs text-muted-foreground">
+          Preview alias: {data.subdomain}
+        </span>
+      )}
     </div>
   )
 }
+

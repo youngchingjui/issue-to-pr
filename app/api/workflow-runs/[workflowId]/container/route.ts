@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server"
 import util from "util"
 
 import {
+  getContainerPreviewInfo,
   getContainerStatus,
   isContainerRunning,
   stopAndRemoveContainer,
@@ -21,8 +22,8 @@ export async function GET(
   { params }: { params: { workflowId: string } }
 ) {
   const containerName = containerNameForTrace(params.workflowId)
-  const status = await getContainerStatus(containerName)
-  return NextResponse.json({ status })
+  const info = await getContainerPreviewInfo(containerName)
+  return NextResponse.json(info)
 }
 
 export async function POST(
@@ -72,3 +73,4 @@ export async function POST(
   const status = await getContainerStatus(containerName)
   return NextResponse.json({ status })
 }
+

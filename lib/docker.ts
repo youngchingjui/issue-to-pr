@@ -277,7 +277,8 @@ export async function listContainersByLabels(
       filters.push(`--filter \"label=${key}=${value}\"`)
     }
   }
-  const cmd = ["docker ps -a", ...filters, "--format '{{.Names}}'"].join(" ")
+  const cmd = ["docker ps -a", ...filters, "--format '{{.Names}}'"]
+    .join(" ")
 
   try {
     const { stdout } = await execPromise(cmd)
@@ -378,6 +379,42 @@ export async function getContainerStatus(name: string): Promise<string> {
 }
 
 /**
+ * Return preview-related metadata for a container from its labels and environment.
+ * Useful for building a user-facing preview URL.
+ */
+export async function getContainerPreviewInfo(
+  name: string
+): Promise<{ status: string; subdomain?: string; url?: string }> {
+  try {
+    const docker = new Docker({ socketPath: "/var/run/docker.sock" })
+    const container = docker.getContainer(name)
+    const data = await container.inspect()
+    const status = data.State?.Status || "unknown"
+    const labelsRaw = (data.Config && data.Config.Labels) || {}
+    const labels = labelsRaw as Record<string, string>
+    const subdomain = labels.subdomain
+
+    // Build URL if we have a subdomain and environment is configured
+    let url: string | undefined
+    if (subdomain) {
+      const template = process.env.NEXT_PUBLIC_PREVIEW_URL_TEMPLATE
+      const baseHost = process.env.NEXT_PUBLIC_PREVIEW_BASE_HOST
+      const scheme = process.env.NEXT_PUBLIC_PREVIEW_SCHEME || "http"
+
+      if (template && template.includes("{subdomain}")) {
+        url = template.replace("{subdomain}", subdomain)
+      } else if (baseHost) {
+        url = `${scheme}://${subdomain}.${baseHost}`
+      }
+    }
+
+    return { status, subdomain, url }
+  } catch {
+    return { status: "not_found" }
+  }
+}
+
+/**
  * Container git information result
  */
 interface ContainerGitInfo {
@@ -448,3 +485,4 @@ export async function getContainerGitInfo(
     diff,
   }
 }
+
