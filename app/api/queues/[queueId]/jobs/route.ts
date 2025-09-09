@@ -33,8 +33,18 @@ export async function POST(
     )
   }
 
+  const redisUrl = process.env.REDIS_URL
+  if (!redisUrl) {
+    return NextResponse.json(
+      { success: false, error: "REDIS_URL is not set" },
+      { status: 500 }
+    )
+  }
+
   const jobIds = await Promise.all(
-    jobs.map((job) => addJob(queueId, job.name, job.data ?? {}, job.opts))
+    jobs.map((job) =>
+      addJob(queueId, job.name, job.data ?? {}, job.opts, redisUrl)
+    )
   )
 
   return NextResponse.json({ success: true, jobIds })
