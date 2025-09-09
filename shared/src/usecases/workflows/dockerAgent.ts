@@ -1,8 +1,12 @@
-import { Agent, type AgentTool } from "@/shared/src/core/entities/agent"
-import type { ContainerRuntimePort } from "@/shared/src/core/ports/containerRuntime"
-import type { EventPort } from "@/shared/src/core/ports/events"
-import type { LLMPort } from "@/shared/src/core/ports/llm"
-import type { TelemetryPort } from "@/shared/src/core/ports/telemetry"
+import { Agent, type AgentTool } from "@shared/entities/agent"
+import type { ContainerRuntimePort } from "@shared/ports/containerRuntime"
+import type {
+  CoreWorkflowEvent,
+  CoreWorkflowEventType,
+  EventPort,
+} from "@shared/ports/events"
+import type { LLMPort } from "@shared/ports/llm"
+import type { TelemetryPort } from "@shared/ports/telemetry"
 
 export interface DockerAgentWorkflowParams {
   workflowId: string
@@ -80,9 +84,15 @@ export async function runDockerAgentWorkflow(
     {
       name: "emit_event",
       description: "Emit a structured workflow event",
-      async execute(args: { type: string; data?: unknown }, ctx) {
+      async execute(
+        args: {
+          type: CoreWorkflowEventType
+          data?: CoreWorkflowEvent["data"]
+        },
+        ctx: { emit: (event: CoreWorkflowEvent) => Promise<void> | void }
+      ) {
         await ctx.emit({
-          type: (args.type as any) ?? "status",
+          type: args.type ?? "status",
           data: args.data ?? { status: "noop" },
           timestamp: new Date(),
         })
