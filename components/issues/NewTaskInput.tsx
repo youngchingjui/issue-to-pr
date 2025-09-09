@@ -24,13 +24,13 @@ import { mapGithubErrorToCopy } from "@/lib/ui/errorMessages"
 interface Props {
   repoFullName: RepoFullName | null
   issuesEnabled?: boolean
-  hasOpenAIKey?: boolean
+  hasOpenAIKey: boolean
 }
 
 export default function NewTaskInput({
   repoFullName,
   issuesEnabled = true,
-  hasOpenAIKey = true,
+  hasOpenAIKey,
 }: Props) {
   const [description, setDescription] = useState("")
   const [loading, setLoading] = useState(false)
@@ -292,4 +292,3 @@ export default function NewTaskInput({
     </TooltipProvider>
   )
 }
-

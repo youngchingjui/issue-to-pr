@@ -153,4 +153,3 @@ export default function IssueDashboardClient({
     </main>
   )
 }
-

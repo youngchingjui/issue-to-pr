@@ -30,10 +30,12 @@ export default async function RepoPage({ params }: Props) {
 
       {!issuesEnabled ? (
         <div className="mb-6 rounded-md border border-yellow-300 bg-yellow-50 p-4 text-yellow-800">
-          <p className="mb-1 font-medium">GitHub Issues are disabled for this repository.</p>
+          <p className="mb-1 font-medium">
+            GitHub Issues are disabled for this repository.
+          </p>
           <p>
-            To enable issues, visit the repository settings on GitHub and turn on the
-            Issues feature. {" "}
+            To enable issues, visit the repository settings on GitHub and turn
+            on the Issues feature.{" "}
             <a
               href={`https://github.com/${username}/${repo}/settings#features`}
               target="_blank"
@@ -47,12 +49,13 @@ export default async function RepoPage({ params }: Props) {
         </div>
       ) : null}
 
-      <NewTaskInput repoFullName={repoFullName} issuesEnabled={issuesEnabled} hasOpenAIKey={hasOpenAIKey} />
+      <NewTaskInput
+        repoFullName={repoFullName}
+        issuesEnabled={issuesEnabled}
+        hasOpenAIKey={hasOpenAIKey}
+      />
 
-      {issuesEnabled ? (
-        <IssueTable repoFullName={repoFullName} />
-      ) : null}
+      {issuesEnabled ? <IssueTable repoFullName={repoFullName} /> : null}
     </main>
   )
 }
-
