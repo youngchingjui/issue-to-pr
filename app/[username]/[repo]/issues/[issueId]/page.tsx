@@ -20,7 +20,7 @@ interface Props {
 export default async function IssueDetailsPage({ params }: Props) {
   const { username, repo, issueId } = params
   const repoFullName = `${username}/${repo}`
-  const issueNumber = parseInt(issueId)
+  const issueNumber = Number.parseInt(issueId, 10)
 
   const result = await getIssue({
     fullName: repoFullName,

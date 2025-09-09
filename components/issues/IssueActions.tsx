@@ -26,7 +26,7 @@ export default function IssueActions({
     issueNumber: issue.number,
     repoFullName,
     onStart: () => {
-      onWorkflowStart("Auto Resolving...")
+      onWorkflowStart("Resolving...")
     },
     onComplete: onWorkflowComplete,
     onError: onWorkflowError,
@@ -43,9 +43,9 @@ export default function IssueActions({
               variant="default"
               aria-busy={isLoading}
             >
-              {activeWorkflow === "Auto Resolving..."
+              {activeWorkflow === "Resolving..."
                 ? "Running..."
-                : "Auto Resolve Issue"}
+                : "Resolve Issue"}
             </Button>
           </div>
         </div>

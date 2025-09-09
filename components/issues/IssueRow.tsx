@@ -91,14 +91,15 @@ export default function IssueRow({
             disabled={isLoading}
             onClick={autoResolveIssue}
             className="p-5"
+            aria-busy={isLoading}
           >
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {activeWorkflow}
+                <span aria-live="polite">{activeWorkflow}</span>
               </>
             ) : (
-              <>Auto Resolve Issue</>
+              <>Resolve Issue</>
             )}
           </Button>
         </div>
@@ -106,4 +107,3 @@ export default function IssueRow({
     </TableRow>
   )
 }
-
