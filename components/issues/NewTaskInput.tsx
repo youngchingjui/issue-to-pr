@@ -15,6 +15,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { createIssueAction } from "@/lib/actions/createIssue"
+import { useHasKeyboard } from "@/lib/hooks/use-has-keyboard"
 import { toast } from "@/lib/hooks/use-toast"
 import { IssueTitleResponseSchema } from "@/lib/types/api/schemas"
 import type { RepoFullName } from "@/lib/types/github"
@@ -44,6 +45,7 @@ export default function NewTaskInput({
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
   const [isMac, setIsMac] = useState(false)
+  const hasKeyboard = useHasKeyboard()
 
   // Detect OS to adjust keyboard shortcut hint and behavior
   useEffect(() => {
@@ -261,10 +263,12 @@ export default function NewTaskInput({
                     </>
                   ) : (
                     <>
-                      Create Github Issue
-                      <span className="ml-2 text-xs text-primary-foreground">
-                        {shortcutHint}
-                      </span>
+                      Create GitHub Issue
+                      {hasKeyboard && (
+                        <span className="ml-2 text-xs text-primary-foreground">
+                          {shortcutHint}
+                        </span>
+                      )}
                     </>
                   )}
                 </Button>

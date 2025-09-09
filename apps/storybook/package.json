@@ -3,9 +3,13 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "packageManager": "pnpm@10.6.4",
   "scripts": {
     "dev": "storybook dev -p 6006",
     "build": "storybook build",
     "preview": "http-server dist -p 6007"
+  },
+  "dependencies": {
+    "@storybook/nextjs": "^9.1.5"
   }
 }

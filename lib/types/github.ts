@@ -53,11 +53,9 @@ export interface RepoPermissions {
 
 // Application-specific types
 export type WorkflowType =
-  | "Generating Plan..."
-  | "Creating PR..."
   | "Reviewing PR..."
   | "Identifying Goal..."
-  | "Auto Resolving..."
+  | "Resolving..."
 
 // Extended types for our application
 export type GitHubItem = GitHubIssue & {
