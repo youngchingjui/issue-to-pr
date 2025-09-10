@@ -183,7 +183,7 @@ export async function createDependentPRWorkflow({
       env,
       defaultBranch: repo.default_branch,
       repoFullName,
-      baseRefName: headRef,
+      baseRefName: repo.default_branch,
       sessionToken: sessionToken || undefined,
       jobId: workflowId,
     })
@@ -228,7 +228,7 @@ export async function createDependentPRWorkflow({
 
     const message = `
 # Goal
-Implement a follow-up patch that addresses reviewer comments and discussion on PR #${pullNumber}. Work directly on branch '${dependentBranch}' which is branched off '${headRef}'. When done, push this branch to origin using the sync tool, then create a dependent PR targeting base '${headRef}' using the create_dependent_pull_request tool.
+Implement a follow-up patch that addresses reviewer comments and discussion on PR #${pullNumber}. Work directly on branch '${dependentBranch}' which is branched off '${headRef}'. When done, push this branch to origin using the sync tool, then create a new PR targeting the repository's default branch ('${repo.default_branch}') using the create_dependent_pull_request tool.
 
 # Repository
 ${repoFullName}
@@ -253,7 +253,7 @@ ${formattedReviewThreads ? `# Review Line Comments\n${formattedReviewThreads}\n`
 - Use meaningful commit messages.
 - Run repo checks (type-check/lint) via the provided tools before finishing.
 - When finished, push branch '${dependentBranch}' to GitHub using the sync tool.
-- Finally, create a dependent PR with base '${headRef}' using the create_dependent_pull_request tool. Choose a clear title and provide a detailed description of the changes you made in response to the reviews.
+- Finally, create a PR with base '${repo.default_branch}' using the create_dependent_pull_request tool. Choose a clear title and provide a detailed description of the changes you made in response to the reviews.
 `
 
     await agent.addInput({ role: "user", type: "message", content: message })
