@@ -28,6 +28,8 @@ interface Params {
   repository: GitHubRepository
   apiKey?: string
   jobId?: string
+  /** Optional branch to run the workflow on. If omitted, a new feature branch is generated. */
+  branch?: string
 }
 
 export const autoResolveIssue = async ({
@@ -35,6 +37,7 @@ export const autoResolveIssue = async ({
   repository,
   apiKey,
   jobId,
+  branch,
 }: Params) => {
   if (!apiKey) {
     const apiKeyFromSettings = await getUserOpenAIApiKey()
@@ -78,27 +81,36 @@ export const autoResolveIssue = async ({
     // Decide the working branch first so we can set labels and network aliases on the container
     const [owner, repo] = repository.full_name.split("/")
     let workingBranch = repository.default_branch
-    try {
-      const llm = new BasicLLMAdapter()
-      const refs = new GitHubRefsAdapter()
-      const context = `GitHub issue title: ${issue.title}\n\n${issue.body ?? ""}`
-      const generated = await generateNonConflictingBranchName(
-        { llm, refs },
-        { owner, repo, context, prefix: "feature" }
-      )
-      workingBranch = generated
+
+    if (branch && branch.trim().length > 0) {
+      workingBranch = branch.trim()
       await createStatusEvent({
         workflowId,
-        content: `Using working branch: ${generated}`,
+        content: `Using provided branch: ${workingBranch}`,
       })
-    } catch (e) {
-      await createStatusEvent({
-        workflowId,
-        content: `[WARNING]: Failed to generate non-conflicting branch name, falling back to default branch ${repository.default_branch}. Error: ${String(
-          e
-        )}`,
-      })
-      workingBranch = repository.default_branch
+    } else {
+      try {
+        const llm = new BasicLLMAdapter()
+        const refs = new GitHubRefsAdapter()
+        const context = `GitHub issue title: ${issue.title}\n\n${issue.body ?? ""}`
+        const generated = await generateNonConflictingBranchName(
+          { llm, refs },
+          { owner, repo, context, prefix: "feature" }
+        )
+        workingBranch = generated
+        await createStatusEvent({
+          workflowId,
+          content: `Using working branch: ${generated}`,
+        })
+      } catch (e) {
+        await createStatusEvent({
+          workflowId,
+          content: `[WARNING]: Failed to generate non-conflicting branch name, falling back to default branch ${repository.default_branch}. Error: ${String(
+            e
+          )}`,
+        })
+        workingBranch = repository.default_branch
+      }
     }
 
     const hostRepoPath = await setupLocalRepository({
@@ -190,3 +202,4 @@ export const autoResolveIssue = async ({
 }
 
 export default autoResolveIssue
+
