@@ -3,11 +3,14 @@
 import OpenAI from "openai"
 import { ChatCompletionMessageParam } from "openai/resources/chat/completions"
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+function getClient(apiKey?: string) {
+  return new OpenAI({ apiKey: apiKey ?? process.env.OPENAI_API_KEY })
+}
 
-export async function transcribeAudio(audioFile: File): Promise<
+export async function transcribeAudio(
+  audioFile: File,
+  apiKey?: string
+): Promise<
   | {
       success: true
       text: string
@@ -17,6 +20,7 @@ export async function transcribeAudio(audioFile: File): Promise<
       error: string
     }
 > {
+  const openai = getClient(apiKey)
   try {
     // Ensure we have a valid file
     if (!audioFile || audioFile.size === 0) {
@@ -48,10 +52,13 @@ export async function transcribeAudio(audioFile: File): Promise<
 export async function getChatCompletion({
   systemPrompt,
   userPrompt,
+  apiKey,
 }: {
   systemPrompt: string
   userPrompt: string
+  apiKey?: string
 }): Promise<string> {
+  const openai = getClient(apiKey)
   const messages: ChatCompletionMessageParam[] = [
     { role: "system", content: systemPrompt },
     { role: "user", content: userPrompt },
@@ -69,3 +76,4 @@ export async function getChatCompletion({
   })
   return res.choices[0]?.message?.content || ""
 }
+
