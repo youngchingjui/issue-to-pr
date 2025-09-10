@@ -1,6 +1,8 @@
 import { Issue } from "@shared/entities/Issue"
 import { err, ok, type Result } from "@shared/entities/result"
 import type { AuthReaderPort } from "@shared/ports/auth/reader"
+import type { EventBusPort } from "@shared/ports/events/eventBus"
+import { createWorkflowEventPublisher } from "@shared/ports/events/publisher"
 import type { IssueReaderPort } from "@shared/ports/github/issue.reader"
 import type { LLMPort } from "@shared/ports/llm"
 import type { SettingsReaderPort } from "@shared/ports/repositories/settings.reader"
@@ -17,6 +19,8 @@ export interface ResolveIssueParams {
   model?: string
   /** Optional max tokens for LLM response */
   maxTokens?: number
+  /** Optional workflow id for emitting events */
+  workflowId?: string
 }
 
 /**
@@ -80,18 +84,26 @@ export async function resolveIssue(
     settings: SettingsReaderPort
     llm: LLMPort | ((apiKey: string) => LLMPort)
     issueReader: IssueReaderPort | ((token: string) => IssueReaderPort)
+    eventBus?: EventBusPort
   },
   params: ResolveIssueParams
 ): Promise<
   Result<ResolveIssueOk, ResolveIssueErrorCode, ResolveIssueErrorDetails>
 > {
-  const { auth, settings } = ports
+  const { auth, settings, eventBus } = ports
+  const pub = createWorkflowEventPublisher(eventBus, params.workflowId)
+
   try {
     // =================================================
     // Step 1: Get login and token
     // =================================================
+    pub.workflow.started(
+      `Resolving issue #${params.issueNumber} in ${params.repoFullName}`
+    )
+
     const authResult = await auth.getAuth()
     if (!authResult.ok) {
+      pub.workflow.error("Authentication required")
       return err("AUTH_REQUIRED")
     }
     const { user: login, token } = authResult.value
@@ -112,6 +124,10 @@ export async function resolveIssue(
     })
 
     if (!issueResult.ok) {
+      pub.workflow.error("Failed to fetch issue", {
+        repoFullName: params.repoFullName,
+        issueNumber: params.issueNumber,
+      })
       return err("ISSUE_FETCH_FAILED", {
         issueRef: {
           repoFullName: params.repoFullName,
@@ -122,7 +138,12 @@ export async function resolveIssue(
 
     const issue = Issue.fromDetails(issueResult.value)
 
+    pub.issue.fetched(`Fetched issue #${issue.ref.number}`, {
+      state: issue.state,
+    })
+
     if (!issue.isResolvable) {
+      pub.workflow.error("Issue is not open/resolvable")
       return err("ISSUE_NOT_OPEN", { issue, issueRef: issue.ref })
     }
 
@@ -131,6 +152,7 @@ export async function resolveIssue(
     // =================================================
     const apiKeyResult = await settings.getOpenAIKey(login.githubLogin)
     if (!apiKeyResult.ok || !apiKeyResult.value) {
+      pub.workflow.error("Missing OpenAI API key")
       return err("MISSING_API_KEY")
     }
     const apiKey = apiKeyResult.value
@@ -148,6 +170,8 @@ export async function resolveIssue(
     const userMessage = `Please analyze and provide a solution for this GitHub issue:\n\n${issue.summary}\n\nRepository: ${params.repoFullName}`
 
     try {
+      pub.llm.started("Requesting completion from LLM")
+
       const llmResult = await llmPort.createCompletion({
         system: RESOLUTION_SYSTEM_PROMPT,
         messages: [{ role: "user", content: userMessage }],
@@ -156,8 +180,13 @@ export async function resolveIssue(
       })
 
       if (!llmResult.ok) {
+        pub.workflow.error("LLM returned an error")
         return err("LLM_ERROR", { issueRef: issue.ref })
       }
+
+      pub.llm.completed("LLM completed successfully")
+
+      pub.workflow.completed("ResolveIssue workflow completed")
 
       return ok({
         issue,
@@ -165,10 +194,12 @@ export async function resolveIssue(
       })
     } catch {
       // Intentionally do not surface upstream error details to avoid leaking sensitive info
+      pub.workflow.error("LLM call failed")
       return err("LLM_ERROR", { issueRef: issue.ref })
     }
   } catch {
     // Fallback unknown error; do not leak raw error messages
+    pub.workflow.error("Unknown error occurred")
     return err("UNKNOWN")
   }
 }

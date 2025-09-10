@@ -7,6 +7,7 @@ import { useState } from "react"
 
 import AlignmentCheckController from "@/components/pull-requests/controllers/AlignmentCheckController"
 import AnalyzePRController from "@/components/pull-requests/controllers/AnalyzePRController"
+import CreateDependentPRController from "@/components/pull-requests/controllers/CreateDependentPRController"
 import ResolveMergeConflictsController from "@/components/pull-requests/controllers/ResolveMergeConflictsController"
 import ReviewPRController from "@/components/pull-requests/controllers/ReviewPRController"
 import MergeConflictBadge from "@/components/pull-requests/MergeConflictBadge"
@@ -81,6 +82,23 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
     onStart: () => {
       setIsLoading(true)
       setActiveWorkflow("Resolving conflicts...")
+    },
+    onComplete: () => {
+      setIsLoading(false)
+      setActiveWorkflow(null)
+    },
+    onError: () => {
+      setIsLoading(false)
+      setActiveWorkflow(null)
+    },
+  })
+
+  const createDependentPRWorkflow = CreateDependentPRController({
+    repoFullName: pr.head.repo.full_name,
+    pullNumber: pr.number,
+    onStart: () => {
+      setIsLoading(true)
+      setActiveWorkflow("Creating dependent PR...")
     },
     onComplete: () => {
       setIsLoading(false)
@@ -179,6 +197,14 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
                 <div>Resolve Merge Conflicts</div>
                 <div className="text-xs text-muted-foreground">
                   Detect and attempt to automatically resolve conflicts
+                </div>
+              </div>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={createDependentPRWorkflow.execute}>
+              <div>
+                <div>Create Dependent PR</div>
+                <div className="text-xs text-muted-foreground">
+                  Create a follow-up PR targeting this PR&apos;s branch.
                 </div>
               </div>
             </DropdownMenuItem>

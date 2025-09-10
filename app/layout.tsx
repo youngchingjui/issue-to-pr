@@ -15,6 +15,9 @@ export const metadata = {
   title: "Issue-to-PR: Automated GitHub Issue Resolution",
   description:
     "Automatically resolve your GitHub issues and create Pull Requests using AI.",
+  icons: {
+    icon: "/favicon.svg",
+  },
 }
 
 export default async function RootLayout({

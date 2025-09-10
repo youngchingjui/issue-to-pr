@@ -43,8 +43,18 @@ export async function setUserOpenAIApiKey(apiKey: string): Promise<void> {
 export async function getUserOpenAIApiKey(): Promise<string | null> {
   const settings = await getUserSettings()
   if (!settings) return null
-  const key = settings.openAIApiKey?.trim()
-  return key ? key : null
+
+  // 1) Prefer the user's own key if set
+  const userKey = settings.openAIApiKey?.trim()
+  if (userKey) return userKey
+
+  // 2) If user has demo access, fall back to the demo key from env
+  const hasDemoAccess = settings.roles?.includes("demo")
+  const demoKey = process.env.OPENAI_DEMO_API_KEY?.trim()
+  if (hasDemoAccess && demoKey) return demoKey
+
+  // 3) Otherwise, no key available
+  return null
 }
 
 /**

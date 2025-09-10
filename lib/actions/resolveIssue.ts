@@ -1,6 +1,7 @@
 "use server"
 
 import { makeIssueReaderAdapter } from "@shared/adapters/github/IssueReaderAdapter"
+import { EventBusAdapter } from "@shared/adapters/ioredis/EventBusAdapter"
 import { OpenAIAdapter } from "@shared/adapters/llm/OpenAIAdapter"
 import { makeSettingsReaderAdapter } from "@shared/adapters/neo4j/repositories/SettingsReaderAdapter"
 import { resolveIssue } from "@shared/usecases/workflows/resolveIssue"
@@ -64,12 +65,15 @@ export async function resolveIssueAction(
   // =================================================
   // Step 3: Execute the use case
   // =================================================
+  const redisUrl = process.env.REDIS_URL
+  const eventBus = redisUrl ? new EventBusAdapter(redisUrl) : undefined
   const result = await resolveIssue(
     {
       auth: authAdapter,
       settings: settingsAdapter,
       llm: llmAdapter,
       issueReader: issueReaderAdapter,
+      eventBus,
     },
     {
       repoFullName,
