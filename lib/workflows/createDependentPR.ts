@@ -12,6 +12,7 @@ import {
   getPullRequest,
   getPullRequestComments,
   getPullRequestDiff,
+  getPullRequestReviewCommentsGraphQL,
   getPullRequestReviews,
 } from "@/lib/github/pullRequests"
 import { checkRepoPermissions } from "@/lib/github/users"
@@ -83,12 +84,14 @@ export async function createDependentPRWorkflow({
 
     // Fetch linked issue (first closing reference if any) and PR artifacts in parallel
     let linkedIssue: GitHubIssue | undefined
-    const [linkedIssues, diff, comments, reviews] = await Promise.all([
-      getLinkedIssuesForPR({ repoFullName, pullNumber }),
-      getPullRequestDiff({ repoFullName, pullNumber }),
-      getPullRequestComments({ repoFullName, pullNumber }),
-      getPullRequestReviews({ repoFullName, pullNumber }),
-    ])
+    const [linkedIssues, diff, comments, reviews, reviewThreads] =
+      await Promise.all([
+        getLinkedIssuesForPR({ repoFullName, pullNumber }),
+        getPullRequestDiff({ repoFullName, pullNumber }),
+        getPullRequestComments({ repoFullName, pullNumber }),
+        getPullRequestReviews({ repoFullName, pullNumber }),
+        getPullRequestReviewCommentsGraphQL({ repoFullName, pullNumber }),
+      ])
     if (linkedIssues.length > 0) {
       const res = await getIssue({
         fullName: repoFullName,
@@ -231,6 +234,22 @@ export async function createDependentPRWorkflow({
       )
       .join("\n\n")
 
+    // Include review line comments (code review threads)
+    const formattedReviewThreads = reviewThreads
+      .map((rev, i) => {
+        const header = `Review Thread ${i + 1} by ${rev.author || "unknown"} (${rev.state}) at ${new Date(
+          rev.submittedAt || new Date().toISOString()
+        ).toLocaleString()}\n${rev.body || "No review body"}`
+        const commentsBlock = (rev.comments || [])
+          .map((c, j) => {
+            const hunk = c.diffHunk ? `\n      Hunk:\n${c.diffHunk}` : ""
+            return `    - [${c.file || "unknown file"}] ${c.body}${hunk}`
+          })
+          .join("\n")
+        return commentsBlock ? `${header}\n${commentsBlock}` : header
+      })
+      .join("\n\n")
+
     const message = `
 # Goal
 Implement a follow-up patch that addresses reviewer comments and discussion on PR #${pullNumber}. Work directly on branch '${dependentBranch}' which is branched off '${headRef}'. When done, push this branch to origin using the sync tool. Do NOT create a PR yourself.
@@ -249,6 +268,7 @@ ${diff}
 
 ${formattedComments ? `# Comments\n${formattedComments}\n` : ""}
 ${formattedReviews ? `# Reviews\n${formattedReviews}\n` : ""}
+${formattedReviewThreads ? `# Review Line Comments\n${formattedReviewThreads}\n` : ""}
 
 # Requirements
 - Make only the changes necessary to satisfy the feedback in comments and reviews.
