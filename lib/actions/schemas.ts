@@ -106,3 +106,40 @@ export const resolveIssueResultSchema = z.discriminatedUnion("status", [
   resolveIssueErrorSchema,
 ])
 export type ResolveIssueResult = z.infer<typeof resolveIssueResultSchema>
+
+// =================================================
+// Create Dependent PR Action
+// =================================================
+
+export const createDependentPRRequestSchema = z.object({
+  repoFullName: z.string().min(1),
+  pullNumber: z.number().int().positive(),
+  jobId: z.string().optional(),
+})
+export type CreateDependentPRRequest = z.infer<
+  typeof createDependentPRRequestSchema
+>
+
+const createDependentPRSuccessSchema = z.object({
+  status: z.literal("success"),
+  jobId: z.string().min(1),
+})
+
+const createDependentPRErrorSchema = z.object({
+  status: z.literal("error"),
+  code: z.enum([
+    "AUTH_REQUIRED",
+    "MISSING_API_KEY",
+    "INVALID_INPUT",
+    "UNKNOWN",
+  ]),
+  message: z.string().min(1),
+})
+
+export const createDependentPRResultSchema = z.discriminatedUnion("status", [
+  createDependentPRSuccessSchema,
+  createDependentPRErrorSchema,
+])
+export type CreateDependentPRResult = z.infer<
+  typeof createDependentPRResultSchema
+>
