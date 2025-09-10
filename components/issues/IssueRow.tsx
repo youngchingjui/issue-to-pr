@@ -3,9 +3,9 @@
 import { formatDistanceToNow } from "date-fns"
 import { Loader2 } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
-import React from "react"
+import React, { useState } from "react"
 
+import { useBranchContext } from "@/components/common/BranchContext"
 import AutoResolveIssueController from "@/components/issues/controllers/AutoResolveIssueController"
 import StatusIndicators from "@/components/issues/StatusIndicators"
 import { Button } from "@/components/ui/button"
@@ -26,9 +26,12 @@ export default function IssueRow({
   const [isLoading, setIsLoading] = useState(false)
   const [activeWorkflow, setActiveWorkflow] = useState<string | null>(null)
 
+  const branchContext = useBranchContext()
+
   const { execute: autoResolveIssue } = AutoResolveIssueController({
     issueNumber: issue.number,
     repoFullName,
+    branch: branchContext?.branch,
     onStart: () => {
       setIsLoading(true)
       setActiveWorkflow("Launching agent...")
@@ -107,3 +110,4 @@ export default function IssueRow({
     </TableRow>
   )
 }
+

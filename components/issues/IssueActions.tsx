@@ -1,3 +1,6 @@
+"use client"
+
+import { useBranchContext } from "@/components/common/BranchContext"
 import AutoResolveIssueController from "@/components/issues/controllers/AutoResolveIssueController"
 import { Button } from "@/components/ui/button"
 import { GitHubIssue, WorkflowType } from "@/lib/types/github"
@@ -21,10 +24,12 @@ export default function IssueActions({
   onWorkflowError,
 }: IssueActionsProps) {
   const repoFullName = getRepoFullNameFromIssue(issue)
+  const branchContext = useBranchContext()
 
   const { execute: executeAutoResolve } = AutoResolveIssueController({
     issueNumber: issue.number,
     repoFullName,
+    branch: branchContext?.branch,
     onStart: () => {
       onWorkflowStart("Resolving...")
     },
@@ -53,3 +58,4 @@ export default function IssueActions({
     </div>
   )
 }
+
