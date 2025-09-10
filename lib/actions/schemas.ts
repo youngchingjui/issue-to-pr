@@ -88,6 +88,7 @@ const resolveIssueErrorSchema = z.object({
     "ISSUE_FETCH_FAILED",
     "ISSUE_NOT_OPEN",
     "MISSING_API_KEY",
+    "REDIS_URL_NOT_SET",
     "LLM_ERROR",
     "INVALID_INPUT",
     "UNKNOWN",
