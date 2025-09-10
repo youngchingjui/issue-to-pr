@@ -4,6 +4,7 @@ import { listContainersByLabels, stopAndRemoveContainer } from "@/lib/docker"
 import { getRepoFromString } from "@/lib/github/content"
 import { getIssue } from "@/lib/github/issues"
 import { updateJobStatus } from "@/lib/redis-old"
+import autoResolveIssue from "@/lib/workflows/autoResolveIssue"
 import { resolveIssue } from "@/lib/workflows/resolveIssue"
 
 const POST_TO_GITHUB_SETTING = true // TODO: Set setting in database
@@ -40,19 +41,21 @@ export const routeWebhookHandler = async ({
   }
 
   if (event === GitHubEvent.Issues) {
-    const action = payload["action"]
+    const action = (payload as any)["action"]
     if (action === "labeled") {
-      const labelName = payload["label"]?.["name"]
+      const labelName = (payload as any)["label"]?.["name"] as
+        | string
+        | undefined
 
       // If the label added is "resolve", start the resolveIssue workflow
       if (labelName === "resolve") {
-        const repoFullName = payload["repository"]?.["full_name"]
+        const repoFullName = (payload as any)["repository"]?.["full_name"]
         if (typeof process.env.OPENAI_API_KEY !== "string") {
           throw new Error("OPENAI_API_KEY is not set")
         }
 
         const apiKey = process.env.OPENAI_API_KEY
-        const issueNumber = payload["issue"]["number"]
+        const issueNumber = (payload as any)["issue"]["number"]
         const postToGithub = POST_TO_GITHUB_SETTING
         const createPR = CREATE_PR_SETTING
 
@@ -90,6 +93,45 @@ export const routeWebhookHandler = async ({
         })()
       }
 
+      // If the label added is "I2PR: Resolve Issue", start the autoResolveIssue workflow
+      if (labelName === "I2PR: Resolve Issue") {
+        const repoFullName = (payload as any)["repository"]?.["full_name"]
+        const issueNumber = (payload as any)["issue"]["number"]
+
+        ;(async () => {
+          try {
+            const jobId = uuidv4()
+
+            await updateJobStatus(
+              jobId,
+              'Received "I2PR: Resolve Issue" label on issue. Starting autoResolveIssue workflow.'
+            )
+
+            const fullRepo = await getRepoFromString(repoFullName)
+            const issue = await getIssue({
+              fullName: repoFullName,
+              issueNumber,
+            })
+
+            if (issue.type !== "success") {
+              console.error("Failed to get issue:", issue)
+              return
+            }
+
+            await autoResolveIssue({
+              issue: issue.issue,
+              repository: fullRepo,
+              jobId,
+            })
+          } catch (e) {
+            console.error(
+              "Failed to run autoResolveIssue workflow from label:",
+              e
+            )
+          }
+        })()
+      }
+
       return
     }
 
@@ -98,14 +140,14 @@ export const routeWebhookHandler = async ({
       return
     }
   } else if (event === GitHubEvent.PullRequest) {
-    const action = payload["action"]
+    const action = (payload as any)["action"]
 
     // We only care when a PR is closed AND merged
-    if (action === "closed" && payload["pull_request"]?.["merged"]) {
+    if (action === "closed" && (payload as any)["pull_request"]?.["merged"]) {
       try {
-        const repo = payload["repository"]?.["name"]
-        const owner = payload["repository"]?.["owner"]?.["login"]
-        const branch = payload["pull_request"]?.["head"]?.["ref"]
+        const repo = (payload as any)["repository"]?.["name"]
+        const owner = (payload as any)["repository"]?.["owner"]?.["login"]
+        const branch = (payload as any)["pull_request"]?.["head"]?.["ref"]
 
         if (!repo || !owner || !branch) {
           console.warn(
@@ -142,7 +184,8 @@ export const routeWebhookHandler = async ({
     }
   } else {
     const repository =
-      payload["repository"]?.["full_name"] || "<unknown repository>"
+      (payload as any)["repository"]?.["full_name"] || "<unknown repository>"
     console.log(`${event} event received on ${repository}`)
   }
 }
+
