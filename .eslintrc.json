@@ -32,10 +32,13 @@
   },
   "overrides": [
     {
-      "files": ["shared/src/**/*.{ts,tsx,js,jsx}", "shared/**/*.{ts,tsx,js,jsx}"],
+      "files": [
+        "shared/src/**/*.{ts,tsx,js,jsx}",
+        "shared/**/*.{ts,tsx,js,jsx}"
+      ],
       "rules": {
         "no-restricted-properties": [
-          "warn",
+          "warn", // Change to error after full migration
           {
             "object": "process",
             "property": "env",
@@ -50,4 +53,3 @@
     "ecmaVersion": "latest"
   }
 }
-
