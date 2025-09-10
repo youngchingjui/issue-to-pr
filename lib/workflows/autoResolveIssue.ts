@@ -1,19 +1,21 @@
+import { OpenAIAdapter } from "@shared/adapters/llm/OpenAIAdapter"
+import { makeSettingsReaderAdapter } from "@shared/adapters/neo4j/repositories/SettingsReaderAdapter"
 import { generateNonConflictingBranchName } from "@shared/usecases/git/generateBranchName"
 import { v4 as uuidv4 } from "uuid"
 
-import { BasicLLMAdapter } from "@/lib/adapters/BasicLLMAdapter"
 import { GitHubRefsAdapter } from "@/lib/adapters/GitHubRefsAdapter"
 import PlanAndCodeAgent from "@/lib/agents/PlanAndCodeAgent"
 import { getInstallationTokenFromRepo } from "@/lib/github/installation"
 import { getIssueComments } from "@/lib/github/issues"
-import { checkRepoPermissions } from "@/lib/github/users"
+import { checkRepoPermissions, getGithubUser } from "@/lib/github/users"
+import { n4j } from "@/lib/neo4j/client"
+import * as userRepo from "@/lib/neo4j/repositories/user"
 import { langfuse } from "@/lib/langfuse"
 import {
   createErrorEvent,
   createStatusEvent,
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
-import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
 import { RepoEnvironment } from "@/lib/types"
 import { GitHubIssue, GitHubRepository } from "@/lib/types/github"
@@ -39,14 +41,41 @@ export const autoResolveIssue = async ({
   jobId,
   branch,
 }: Params) => {
+  // Prefer provided API key; otherwise read from user settings via shared adapter
   if (!apiKey) {
-    const apiKeyFromSettings = await getUserOpenAIApiKey()
+    const user = await getGithubUser()
 
-    if (!apiKeyFromSettings) {
-      throw new Error("No API key provided and no user settings found")
+    // Bridge our async neo4j client to the sync getSession contract expected by the shared adapter
+    const settingsReader = makeSettingsReaderAdapter({
+      getSession: () => ({
+        executeRead: async (fn) => {
+          const session = await n4j.getSession()
+          try {
+            // neo4j-driver Session#executeRead will pass a ManagedTransaction to fn
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            return await (session as any).executeRead(fn)
+          } finally {
+            await session.close()
+          }
+        },
+        close: async () => {
+          // no-op; session is closed within executeRead above
+        },
+      }),
+      userRepo: {
+        getUserSettings: (tx, username) =>
+          userRepo.getUserSettings(tx as never, username),
+      },
+    })
+
+    const result = await settingsReader.getOpenAIKey(user?.login ?? "")
+    if (result.ok) {
+      apiKey = result.value ?? undefined
     }
 
-    apiKey = apiKeyFromSettings
+    if (!apiKey) {
+      throw new Error("No API key provided and no user settings found")
+    }
   }
 
   const workflowId = jobId ?? uuidv4()
@@ -90,7 +119,7 @@ export const autoResolveIssue = async ({
       })
     } else {
       try {
-        const llm = new BasicLLMAdapter()
+        const llm = new OpenAIAdapter(apiKey!)
         const refs = new GitHubRefsAdapter()
         const context = `GitHub issue title: ${issue.title}\n\n${issue.body ?? ""}`
         const generated = await generateNonConflictingBranchName(
