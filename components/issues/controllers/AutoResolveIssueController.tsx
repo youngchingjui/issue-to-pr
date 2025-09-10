@@ -8,6 +8,7 @@ interface Props {
   onStart: () => void
   onComplete: () => void
   onError: () => void
+  branch?: string
 }
 
 export default function AutoResolveIssueController({
@@ -16,6 +17,7 @@ export default function AutoResolveIssueController({
   onStart,
   onComplete,
   onError,
+  branch,
 }: Props) {
   const execute = async () => {
     try {
@@ -23,7 +25,7 @@ export default function AutoResolveIssueController({
       const response = await fetch("/api/workflow/autoResolveIssue", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ issueNumber, repoFullName }),
+        body: JSON.stringify({ issueNumber, repoFullName, branch }),
       })
 
       if (!response.ok) {
@@ -53,3 +55,4 @@ export default function AutoResolveIssueController({
 
   return { execute }
 }
+
