@@ -1,5 +1,0 @@
-# pnpm-workspace.yaml
-packages:
-  - .
-  - apps/*
-  - shared/

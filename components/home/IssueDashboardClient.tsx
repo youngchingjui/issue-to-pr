@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useEffect, useState } from "react"
+import { Suspense, useEffect, useMemo, useState } from "react"
 
 import RepoSelector from "@/components/common/RepoSelector"
 import IssuesList from "@/components/issues/IssuesList"
@@ -13,6 +13,7 @@ import type {
   AuthenticatedUserRepository,
   RepoFullName,
 } from "@/lib/types/github"
+import { repoFullNameSchema } from "@/lib/types/github"
 
 interface Props {
   repoFullName: RepoFullName
@@ -24,7 +25,7 @@ interface Props {
 export default function IssueDashboardClient({
   repoFullName,
   repositories,
-  issuesEnabled,
+  issuesEnabled: _initialIssuesEnabled,
   hasOpenAIKey,
 }: Props) {
   const [issues, setIssues] = useState<IssueWithStatus[]>([])
@@ -35,6 +36,24 @@ export default function IssueDashboardClient({
   const [initialLoading, setInitialLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Local, immediately responsive repo selection state
+  const [selectedRepo, setSelectedRepo] = useState<string>(
+    repoFullName.fullName
+  )
+  useEffect(() => {
+    setSelectedRepo(repoFullName.fullName)
+  }, [repoFullName.fullName])
+
+  const selectedRepoObj = useMemo(() => {
+    return repoFullNameSchema.parse(selectedRepo)
+  }, [selectedRepo])
+
+  const issuesEnabled = useMemo(() => {
+    const repo = repositories.find((r) => r.full_name === selectedRepo)
+    // Default to true if unknown; will still show skeleton while issues load
+    return repo?.has_issues ?? true
+  }, [repositories, selectedRepo])
+
   useEffect(() => {
     let cancelled = false
     async function loadInitial() {
@@ -42,7 +61,7 @@ export default function IssueDashboardClient({
       setError(null)
       try {
         const data = await listIssues({
-          repoFullName: repoFullName.fullName,
+          repoFullName: selectedRepo,
           page: 1,
           per_page: 25,
         })
@@ -62,7 +81,7 @@ export default function IssueDashboardClient({
     return () => {
       cancelled = true
     }
-  }, [repoFullName.fullName])
+  }, [selectedRepo])
 
   const onLoadMore = async () => {
     if (loading || !hasMore) return
@@ -71,7 +90,7 @@ export default function IssueDashboardClient({
     try {
       const nextPage = page + 1
       const data = await listIssues({
-        repoFullName: repoFullName.fullName,
+        repoFullName: selectedRepo,
         page: nextPage,
         per_page: 25,
       })
@@ -92,8 +111,9 @@ export default function IssueDashboardClient({
         <h1 className="text-2xl font-bold">Your Issues &amp; Workflows</h1>
         <div className="flex items-center gap-3">
           <RepoSelector
-            selectedRepo={repoFullName.fullName}
+            selectedRepo={selectedRepo}
             repositories={repositories}
+            onChange={(val) => setSelectedRepo(val)}
           />
         </div>
       </div>
@@ -107,7 +127,7 @@ export default function IssueDashboardClient({
             To enable issues, visit the repository settings on GitHub and turn
             on the Issues feature.{" "}
             <a
-              href={`https://github.com/${repoFullName.owner}/${repoFullName.repo}/settings#features`}
+              href={`https://github.com/${selectedRepoObj.owner}/${selectedRepoObj.repo}/settings#features`}
               target="_blank"
               rel="noopener noreferrer"
               className="underline"
@@ -121,7 +141,7 @@ export default function IssueDashboardClient({
 
       <div className="mb-6">
         <NewTaskInput
-          repoFullName={repoFullName}
+          repoFullName={selectedRepoObj}
           issuesEnabled={issuesEnabled}
           hasOpenAIKey={hasOpenAIKey}
         />
@@ -136,7 +156,7 @@ export default function IssueDashboardClient({
                   <RowsSkeleton rows={5} columns={3} />
                 ) : (
                   <IssuesList
-                    repoFullName={repoFullName.fullName}
+                    repoFullName={selectedRepo}
                     issues={issues}
                     prMap={prMap}
                     loading={loading}
@@ -153,3 +173,4 @@ export default function IssueDashboardClient({
     </main>
   )
 }
+

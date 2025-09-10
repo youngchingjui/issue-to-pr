@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -31,6 +31,9 @@ const INSTALL_URL = `https://github.com/apps/${GITHUB_APP_SLUG}/installations/ne
 interface Props {
   selectedRepo: string
   repositories?: AuthenticatedUserRepository[]
+  // Optional: when provided, the selector becomes controlled and will call this
+  // callback immediately to update UI state without waiting for navigation.
+  onChange?: (repoFullName: string) => void
 }
 
 // TODO: Not quite sure this data fetching is all necessary. Need to revisit and consider how to best fetch data here.
@@ -38,6 +41,7 @@ interface Props {
 export default function RepoSelector({
   selectedRepo,
   repositories: initialRepositories,
+  onChange,
 }: Props) {
   const router = useRouter()
   const [repos, setRepos] = useState<AuthenticatedUserRepository[]>(
@@ -90,7 +94,7 @@ export default function RepoSelector({
   // When it vanishes due to a search filter Radix re-calculates focus which causes
   // the <Input> to lose focus (mobile keyboards collapse). By force-including the
   // selected repo we keep the internal focus management stable.
-  const visibleRepos = (() => {
+  const visibleRepos = useMemo(() => {
     if (filteredRepos.some((r) => r.full_name === selectedRepo)) {
       return filteredRepos
     }
@@ -102,7 +106,8 @@ export default function RepoSelector({
 
     // Prepend to avoid changing the relative ordering of the filtered list.
     return [selectedEntry, ...filteredRepos]
-  })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredRepos, selectedRepo])
 
   // 1. Loading state
   if (loading) {
@@ -115,7 +120,7 @@ export default function RepoSelector({
       <div className="flex flex-col items-start gap-2">
         <Button asChild variant="secondary">
           <Link href={INSTALL_URL} target="_blank" rel="noopener noreferrer">
-            Install Issue&nbsp;to&nbsp;PR to get started
+            Install Issue\u00a0to\u00a0PR to get started
           </Link>
         </Button>
         <Button asChild variant="link" className="p-0 h-auto text-sm">
@@ -128,19 +133,28 @@ export default function RepoSelector({
   }
 
   // 3. Repositories available – show repo selector dropdown
+  const selectProps = {
+    name: "repo",
+    onValueChange: (val: string) => {
+      if (onChange) {
+        // Optimistically update UI first
+        onChange(val)
+      } else {
+        // Fallback: navigate to issues page when no onChange handler is provided
+        router.push(`/issues?repo=${encodeURIComponent(val)}`)
+      }
+    },
+    onOpenChange: setOpen,
+  }
+
   return (
     <Select
-      defaultValue={selectedRepo}
-      name="repo"
-      onValueChange={(val) => {
-        router.push(`/issues?repo=${encodeURIComponent(val)}`)
-      }}
-      onOpenChange={setOpen}
+      {...selectProps}
+      // Controlled when onChange handler provided (so the label updates immediately)
+      {...(onChange ? { value: selectedRepo } : { defaultValue: selectedRepo })}
     >
       <SelectTrigger className="w-64">
-        <SelectValue placeholder="Select repository">
-          {selectedRepo}
-        </SelectValue>
+        <SelectValue placeholder="Select repository">{selectedRepo}</SelectValue>
       </SelectTrigger>
       <SelectContent align={isDesktop ? "end" : "start"}>
         {/* Search input */}
@@ -177,3 +191,4 @@ export default function RepoSelector({
     </Select>
   )
 }
+
