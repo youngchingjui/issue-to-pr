@@ -1,18 +1,20 @@
 import { v4 as uuidv4 } from "uuid"
 
 import { CoderAgent } from "@/lib/agents/coder"
+import { execInContainerWithDockerode } from "@/lib/docker"
 import { getRepoFromString } from "@/lib/github/content"
 import { getInstallationTokenFromRepo } from "@/lib/github/installation"
 import { getIssue } from "@/lib/github/issues"
 import {
+  addLabelsToPullRequest,
+  createPullRequestToBase,
   getLinkedIssuesForPR,
   getPullRequest,
   getPullRequestComments,
   getPullRequestDiff,
   getPullRequestReviews,
-  addLabelsToPullRequest,
-  createPullRequestToBase,
 } from "@/lib/github/pullRequests"
+import { checkRepoPermissions } from "@/lib/github/users"
 import { langfuse } from "@/lib/langfuse"
 import {
   createErrorEvent,
@@ -30,14 +32,12 @@ import { createSyncBranchTool } from "@/lib/tools/SyncBranchTool"
 import { createWriteFileContentTool } from "@/lib/tools/WriteFileContent"
 import { RepoEnvironment } from "@/lib/types"
 import { GitHubIssue, RepoPermissions } from "@/lib/types/github"
+import { repoFullNameSchema } from "@/lib/types/github"
 import {
   createContainerizedDirectoryTree,
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
-import { execInContainerWithDockerode } from "@/lib/docker"
-import { checkRepoPermissions } from "@/lib/github/users"
-import { repoFullNameSchema } from "@/lib/types/github"
 
 interface CreateDependentPRParams {
   repoFullName: string
@@ -81,21 +81,21 @@ export async function createDependentPRWorkflow({
       content: `PR #${pullNumber}: ${baseRef} <- ${headRef}`,
     })
 
-    // Fetch linked issue (first closing reference if any)
+    // Fetch linked issue (first closing reference if any) and PR artifacts in parallel
     let linkedIssue: GitHubIssue | undefined
-    const linkedIssues = await getLinkedIssuesForPR({
-      repoFullName,
-      pullNumber,
-    })
+    const [linkedIssues, diff, comments, reviews] = await Promise.all([
+      getLinkedIssuesForPR({ repoFullName, pullNumber }),
+      getPullRequestDiff({ repoFullName, pullNumber }),
+      getPullRequestComments({ repoFullName, pullNumber }),
+      getPullRequestReviews({ repoFullName, pullNumber }),
+    ])
     if (linkedIssues.length > 0) {
-      const res = await getIssue({ fullName: repoFullName, issueNumber: linkedIssues[0] })
+      const res = await getIssue({
+        fullName: repoFullName,
+        issueNumber: linkedIssues[0],
+      })
       if (res.type === "success") linkedIssue = res.issue
     }
-
-    // Gather diff, comments, and reviews
-    const diff = await getPullRequestDiff({ repoFullName, pullNumber })
-    const comments = await getPullRequestComments({ repoFullName, pullNumber })
-    const reviews = await getPullRequestReviews({ repoFullName, pullNumber })
 
     // Ensure local repository exists and is up-to-date
     const repo = await getRepoFromString(repoFullName)
@@ -116,10 +116,14 @@ export async function createDependentPRWorkflow({
 
     // Authenticate remote for fetch/push
     const [owner, repoName] = repoFullName.split("/")
-    const sessionToken = await getInstallationTokenFromRepo({ owner, repo: repoName })
+    const sessionToken = await getInstallationTokenFromRepo({
+      owner,
+      repo: repoName,
+    })
 
     // Check permissions
-    const permissions: RepoPermissions | null = await checkRepoPermissions(repoFullName)
+    const permissions: RepoPermissions | null =
+      await checkRepoPermissions(repoFullName)
     if (!permissions?.canPush || !permissions?.canCreatePR) {
       await createStatusEvent({
         workflowId,
@@ -136,8 +140,14 @@ export async function createDependentPRWorkflow({
     }
 
     // Fetch and checkout the PR head branch
-    await createStatusEvent({ workflowId, content: `Checking out head branch ${headRef}` })
-    await execInContainerWithDockerode({ name: containerName, command: `git fetch origin ${headRef}` })
+    await createStatusEvent({
+      workflowId,
+      content: `Checking out head branch ${headRef}`,
+    })
+    await execInContainerWithDockerode({
+      name: containerName,
+      command: `git fetch origin ${headRef}`,
+    })
     // Try checkout tracking remote if local doesn't exist
     const { exitCode: chk1 } = await execInContainerWithDockerode({
       name: containerName,
@@ -149,15 +159,27 @@ export async function createDependentPRWorkflow({
         command: `git checkout -b ${headRef} origin/${headRef}`,
       })
     } else {
-      await execInContainerWithDockerode({ name: containerName, command: `git checkout -q ${headRef}` })
-      await execInContainerWithDockerode({ name: containerName, command: `git pull --ff-only origin ${headRef}` })
+      await execInContainerWithDockerode({
+        name: containerName,
+        command: `git checkout -q ${headRef}`,
+      })
+      await execInContainerWithDockerode({
+        name: containerName,
+        command: `git pull --ff-only origin ${headRef}`,
+      })
     }
 
     // Create a dependent branch off the PR head
     const dependentBranch = `${headRef}-followup-${workflowId.slice(0, 8)}`
-    await createStatusEvent({ workflowId, content: `Creating dependent branch ${dependentBranch}` })
+    await createStatusEvent({
+      workflowId,
+      content: `Creating dependent branch ${dependentBranch}`,
+    })
     const branchTool = createBranchTool(env)
-    await branchTool.handler({ branch: dependentBranch, createIfNotExists: true })
+    await branchTool.handler({
+      branch: dependentBranch,
+      createIfNotExists: true,
+    })
 
     // Create directory tree for context
     const tree = await createContainerizedDirectoryTree(containerName)
@@ -180,7 +202,11 @@ export async function createDependentPRWorkflow({
     const writeFileTool = createWriteFileContentTool(env)
     const commitTool = createCommitTool(env, repo.default_branch)
     const fileCheckTool = createFileCheckTool(env)
-    const syncBranchTool = createSyncBranchTool(repoFullNameSchema.parse(repoFullName), env, sessionToken || "")
+    const syncBranchTool = createSyncBranchTool(
+      repoFullNameSchema.parse(repoFullName),
+      env,
+      sessionToken || ""
+    )
 
     coder.addTool(setupRepoTool)
     coder.addTool(getFileContentTool)
@@ -193,13 +219,15 @@ export async function createDependentPRWorkflow({
     // Seed agent with context and instructions
     const formattedComments = comments
       .map(
-        (c, i) => `Comment ${i + 1} by ${c.user?.login || "unknown"} at ${new Date(c.created_at || new Date().toISOString()).toLocaleString()}\n${c.body}`
+        (c, i) =>
+          `Comment ${i + 1} by ${c.user?.login || "unknown"} at ${new Date(c.created_at || new Date().toISOString()).toLocaleString()}\n${c.body}`
       )
       .join("\n\n")
 
     const formattedReviews = reviews
       .map(
-        (r, i) => `Review ${i + 1} by ${r.user?.login || "unknown"} (${r.state}) at ${new Date(r.submitted_at || new Date().toISOString()).toLocaleString()}\n${r.body || "No comment provided"}`
+        (r, i) =>
+          `Review ${i + 1} by ${r.user?.login || "unknown"} (${r.state}) at ${new Date(r.submitted_at || new Date().toISOString()).toLocaleString()}\n${r.body || "No comment provided"}`
       )
       .join("\n\n")
 
@@ -237,7 +265,10 @@ ${formattedReviews ? `# Reviews\n${formattedReviews}\n` : ""}
     const result = await coder.runWithFunctions()
 
     // Ensure branch is pushed
-    await createStatusEvent({ workflowId, content: `Pushing branch ${dependentBranch}` })
+    await createStatusEvent({
+      workflowId,
+      content: `Pushing branch ${dependentBranch}`,
+    })
     await syncBranchTool.handler({ branch: dependentBranch })
 
     // Create dependent PR targeting the original PR's head branch
@@ -285,4 +316,3 @@ ${formattedReviews ? `# Reviews\n${formattedReviews}\n` : ""}
     if (containerCleanup) await containerCleanup()
   }
 }
-
