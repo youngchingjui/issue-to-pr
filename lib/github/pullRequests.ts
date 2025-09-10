@@ -146,6 +146,77 @@ export async function createPullRequest({
   }
 }
 
+export async function createPullRequestToBase({
+  repoFullName,
+  branch,
+  base,
+  title,
+  body,
+}: {
+  repoFullName: string
+  branch: string
+  base: string
+  title: string
+  body: string
+}) {
+  const [owner, repo] = repoFullName.split("/")
+  if (!owner || !repo) {
+    throw new Error("Invalid repository format. Expected 'owner/repo'")
+  }
+
+  const graphqlWithAuth = await getGraphQLClient()
+  if (!graphqlWithAuth) {
+    throw new Error("Could not initialize GraphQL client")
+  }
+
+  const repoIdQuery = `
+    query ($owner: String!, $name: String!) {
+      repository(owner: $owner, name: $name) {
+        id
+      }
+    }
+  `
+  const repoIdResult = await withTiming(
+    `GitHub GraphQL: get repository id ${repoFullName}`,
+    () =>
+      graphqlWithAuth<RepositoryIdResponse>(repoIdQuery, { owner, name: repo })
+  )
+  const repositoryId = repoIdResult.repository.id
+  if (!repositoryId) throw new Error("Failed to retrieve repository ID")
+
+  const createPRMutation = `
+    mutation ($input: CreatePullRequestInput!) {
+      createPullRequest(input: $input) {
+        pullRequest {
+          number
+          url
+          title
+          body
+        }
+      }
+    }
+  `
+
+  const variables = {
+    input: {
+      repositoryId,
+      baseRefName: base,
+      headRefName: branch,
+      title,
+      body,
+      draft: false,
+    },
+  }
+
+  const response = await withTiming(
+    `GitHub GraphQL: createPullRequest(base=${base}) ${repoFullName} ${branch}`,
+    () => graphqlWithAuth<CreatePRGraphQLResponse>(createPRMutation, variables)
+  )
+
+  const pr = response.createPullRequest.pullRequest
+  return { data: pr }
+}
+
 export async function getPullRequestDiff({
   repoFullName,
   pullNumber,
@@ -630,3 +701,4 @@ export async function getLinkedIssuesForPR({
     response.repository?.pullRequest?.closingIssuesReferences?.nodes || []
   return nodes.map((n) => n.number)
 }
+

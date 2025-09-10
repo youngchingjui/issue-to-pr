@@ -1,13 +1,13 @@
+import { getRedisConnection } from "@shared/adapters/ioredis/client"
 import { Queue } from "bullmq"
 
-import { getRedisConnection } from "@/shared/src/services/redis/ioredis"
+const queuesByKey = new Map<string, Queue>()
+export function getQueue(name: string, redisUrl: string): Queue {
+  const key = `${name}::${redisUrl}`
+  if (queuesByKey.has(key)) return queuesByKey.get(key) as Queue
 
-const queues = new Map<string, Queue>()
-export function getQueue(name: string): Queue {
-  if (queues.has(name)) return queues.get(name) as Queue
-
-  const queue = new Queue(name, { connection: getRedisConnection() })
-  queues.set(name, queue)
+  const queue = new Queue(name, { connection: getRedisConnection(redisUrl) })
+  queuesByKey.set(key, queue)
 
   return queue
 }
