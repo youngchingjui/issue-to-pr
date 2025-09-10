@@ -51,7 +51,7 @@ function BottomToolbar({
   }
 
   function getConnectionButtonClasses() {
-    const baseClasses = "text-white text-base p-2 w-36 rounded-md h-full";
+    const baseClasses = "text-white text-sm sm:text-base p-2 w-28 sm:w-36 rounded-md h-full";
     const cursorClass = isConnecting ? "cursor-not-allowed" : "cursor-pointer";
 
     if (isConnected) {
@@ -63,7 +63,7 @@ function BottomToolbar({
   }
 
   return (
-    <div className="p-4 flex flex-row items-center justify-center gap-x-8">
+    <div className="p-4 flex flex-wrap items-center justify-center gap-2 sm:gap-x-8">
       <button
         onClick={onToggleConnection}
         className={getConnectionButtonClasses()}
@@ -83,7 +83,7 @@ function BottomToolbar({
         />
         <label
           htmlFor="push-to-talk"
-          className="flex items-center cursor-pointer"
+          className="flex items-center cursor-pointer text-sm sm:text-base"
         >
           Push to talk
         </label>
@@ -114,7 +114,7 @@ function BottomToolbar({
         />
         <label
           htmlFor="audio-playback"
-          className="flex items-center cursor-pointer"
+          className="flex items-center cursor-pointer text-sm sm:text-base"
         >
           Audio playback
         </label>
@@ -128,7 +128,7 @@ function BottomToolbar({
           onChange={(e) => setIsEventsPaneExpanded(e.target.checked)}
           className="w-4 h-4"
         />
-        <label htmlFor="logs" className="flex items-center cursor-pointer">
+        <label htmlFor="logs" className="flex items-center cursor-pointer text-sm sm:text-base">
           Logs
         </label>
       </div>
@@ -141,14 +141,14 @@ function BottomToolbar({
           onChange={(e) => setIsLiveTranscriptionPaneExpanded(e.target.checked)}
           className="w-4 h-4"
         />
-        <label htmlFor="live-transcription" className="flex items-center cursor-pointer">
+        <label htmlFor="live-transcription" className="flex items-center cursor-pointer text-sm sm:text-base">
           Live transcript
         </label>
       </div>
 
       <div className="flex flex-row items-center gap-2">
-        <div>Codec:</div>
-        {/*
+        <div className="text-sm sm:text-base">Codec:</div>
+        {/**
           Codec selector – Lets you force the WebRTC track to use 8 kHz 
           PCMU/PCMA so you can preview how the agent will sound 
           (and how ASR/VAD will perform) when accessed via a 
@@ -160,7 +160,7 @@ function BottomToolbar({
           id="codec-select"
           value={codec}
           onChange={handleCodecChange}
-          className="border border-gray-300 rounded-md px-2 py-1 focus:outline-none cursor-pointer"
+          className="border border-gray-300 rounded-md px-2 py-1 focus:outline-none cursor-pointer text-sm sm:text-base"
         >
           <option value="opus">Opus (48 kHz)</option>
           <option value="pcmu">PCMU (8 kHz)</option>
