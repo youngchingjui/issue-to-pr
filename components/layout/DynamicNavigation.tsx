@@ -36,17 +36,20 @@ const landingNavItems = [
 
 // Shared navigation items for authenticated users
 const authenticatedNavItems = (
-  isAdmin: boolean
+  isAdmin: boolean,
+  username?: string
 ): Array<{ label: string; href: string }> => {
   const items = [
     { label: "Workflows", href: "/workflow-runs" },
+    // Repositories page is user-specific
+    ...(username ? [{ label: "Repositories", href: `/${username}` }] : []),
     { label: "Issues", href: "/issues" },
     { label: "Kanban", href: "/kanban" },
     { label: "Contribute", href: "/contribute" },
   ]
 
   if (isAdmin) {
-    // Insert Playground right after Workflows (index 1 after insertion of Issues)
+    // Insert PRDs and Playground right after Workflows (index 1), before Repositories/Issues
     items.splice(1, 0, { label: "Playground", href: "/playground" })
     items.splice(1, 0, { label: "PRDs", href: "/prds" })
   }
@@ -58,10 +61,12 @@ export default function DynamicNavigation({
   isAuthenticated,
   isAdmin,
   avatarUrl,
+  username,
 }: {
   isAuthenticated: boolean
   isAdmin: boolean
   avatarUrl?: string
+  username?: string
 }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -140,7 +145,7 @@ export default function DynamicNavigation({
   }
 
   if (isAuthenticated) {
-    const navItems = authenticatedNavItems(isAdmin)
+    const navItems = authenticatedNavItems(isAdmin, username)
 
     const handleSignOut = async () => {
       await signOut({ redirect: false })
@@ -227,3 +232,4 @@ export default function DynamicNavigation({
     </>
   )
 }
+
