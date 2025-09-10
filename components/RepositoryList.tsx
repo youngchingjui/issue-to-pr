@@ -26,12 +26,29 @@ export default async function RepositoryList({
     <ul className="space-y-4">
       {repositories.map((repo) => (
         <li key={repo.id} className="bg-white shadow rounded-lg p-4">
-          <Link
-            href={`/${username}/${repo.name}/issues`}
-            className="text-blue-600 hover:underline"
-          >
-            {repo.name}
-          </Link>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <Link
+              href={`/${username}/${repo.name}/issues`}
+              className="text-blue-600 hover:underline font-medium"
+            >
+              {repo.name}
+            </Link>
+            <div className="flex items-center gap-4 text-sm">
+              <Link
+                href={`/${username}/${repo.name}/issues`}
+                className="text-stone-700 hover:underline"
+              >
+                Issues
+              </Link>
+              <span className="text-stone-300">|</span>
+              <Link
+                href={`/${username}/${repo.name}/pullRequests`}
+                className="text-stone-700 hover:underline"
+              >
+                Pull Requests
+              </Link>
+            </div>
+          </div>
         </li>
       ))}
       <Pagination>
@@ -51,3 +68,4 @@ export default async function RepositoryList({
     </ul>
   )
 }
+
