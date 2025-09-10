@@ -2,27 +2,44 @@ import { NextRequest, NextResponse } from "next/server"
 import { v4 as uuidv4 } from "uuid"
 import { z } from "zod"
 
+import { nextAuthReader } from "@/lib/adapters/auth/AuthReader"
 import { getRepoFromString } from "@/lib/github/content"
 import { getIssue } from "@/lib/github/issues"
-import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
+import { neo4jDs } from "@/lib/neo4j"
+import * as userRepo from "@/lib/neo4j/repositories/user"
 import { AutoResolveIssueRequestSchema } from "@/lib/schemas/api"
 import autoResolveIssue from "@/lib/workflows/autoResolveIssue"
+import { EventBusAdapter } from "@/shared/src/adapters/ioredis/EventBusAdapter"
+import { makeSettingsReaderAdapter } from "@/shared/src/adapters/neo4j/repositories/SettingsReaderAdapter"
 
 export async function POST(request: NextRequest) {
   try {
+    // =================================================
+    // Step 1: Parse inputs
+    // =================================================
     const body = await request.json()
     const { issueNumber, repoFullName, branch } =
       AutoResolveIssueRequestSchema.parse(body)
 
-    const apiKey = await getUserOpenAIApiKey()
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: "Missing OpenAI API key" },
-        { status: 401 }
-      )
-    }
-
     const jobId = uuidv4()
+
+    const redisUrl = process.env.REDIS_URL
+
+    // =================================================
+    // Step 2: Prepare adapters
+    // =================================================
+
+    const settingsAdapter = makeSettingsReaderAdapter({
+      getSession: () => neo4jDs.getSession(),
+      userRepo: userRepo,
+    })
+
+    const authAdapter = nextAuthReader
+
+    const eventBus = redisUrl ? new EventBusAdapter(redisUrl) : undefined
+    // =================================================
+    // Step 3: Launch the background job
+    // =================================================
 
     ;(async () => {
       try {
@@ -36,17 +53,27 @@ export async function POST(request: NextRequest) {
           throw new Error(JSON.stringify(issueResult))
         }
 
-        await autoResolveIssue({
-          issue: issueResult.issue,
-          repository: repo,
-          apiKey,
-          jobId,
-          branch,
-        })
+        await autoResolveIssue(
+          {
+            issue: issueResult.issue,
+            repository: repo,
+            jobId,
+            branch,
+          },
+          {
+            auth: authAdapter,
+            settings: settingsAdapter,
+            eventBus: eventBus,
+          }
+        )
       } catch (error) {
         console.error(error)
       }
     })()
+
+    // =================================================
+    // Step 4: Return the job ID
+    // =================================================
 
     return NextResponse.json({ jobId })
   } catch (error) {
@@ -63,4 +90,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-
