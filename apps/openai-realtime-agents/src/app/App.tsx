@@ -444,7 +444,7 @@ function App() {
 
   return (
     <div className="text-base flex flex-col h-screen bg-gray-100 text-gray-800 relative">
-      <div className="p-5 text-lg font-semibold flex justify-between items-center">
+      <div className="p-5 text-lg font-semibold flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
         <div
           className="flex items-center cursor-pointer"
           onClick={() => window.location.reload()}
@@ -462,15 +462,15 @@ function App() {
             Realtime API <span className="text-gray-500">Agents</span>
           </div>
         </div>
-        <div className="flex items-center">
-          <label className="flex items-center text-base gap-1 mr-2 font-medium">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+          <label className="flex items-center text-sm sm:text-base gap-1 font-medium">
             Scenario
           </label>
           <div className="relative inline-block">
             <select
               value={agentSetKey}
               onChange={handleAgentChange}
-              className="appearance-none border border-gray-300 rounded-lg text-base px-2 py-1 pr-8 cursor-pointer font-normal focus:outline-none"
+              className="appearance-none border border-gray-300 rounded-lg text-sm sm:text-base px-2 py-1 pr-8 cursor-pointer font-normal focus:outline-none"
             >
               {Object.keys(allAgentSets).map((agentKey) => (
                 <option key={agentKey} value={agentKey}>
@@ -490,15 +490,15 @@ function App() {
           </div>
 
           {agentSetKey && (
-            <div className="flex items-center ml-6">
-              <label className="flex items-center text-base gap-1 mr-2 font-medium">
+            <div className="flex items-center ml-0 sm:ml-6 mt-2 sm:mt-0">
+              <label className="flex items-center text-sm sm:text-base gap-1 mr-2 font-medium">
                 Agent
               </label>
               <div className="relative inline-block">
                 <select
                   value={selectedAgentName}
                   onChange={handleSelectedAgentChange}
-                  className="appearance-none border border-gray-300 rounded-lg text-base px-2 py-1 pr-8 cursor-pointer font-normal focus:outline-none"
+                  className="appearance-none border border-gray-300 rounded-lg text-sm sm:text-base px-2 py-1 pr-8 cursor-pointer font-normal focus:outline-none"
                 >
                   {selectedAgentConfigSet?.map((agent) => (
                     <option key={agent.name} value={agent.name}>
