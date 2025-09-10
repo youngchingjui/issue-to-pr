@@ -8,20 +8,31 @@ import {
 import { createTool } from "@/lib/tools/helper"
 
 const createDependentPRParameters = z.object({
-  branch: z.string().describe("The branch name that contains your changes"),
+  branch: z
+    .string()
+    .trim()
+    .min(1, "Branch name is required")
+    .describe("The branch name that contains your changes"),
   title: z
     .string()
+    .trim()
+    .min(1, "Title is required")
+    .max(72, "Keep PR titles concise (<=72 chars)")
     .describe(
       "A clear, concise PR title. Do not include issue numbers unless necessary."
     ),
   body: z
     .string()
+    .trim()
+    .min(1, "Body is required")
     .describe(
       "A detailed description of what you changed and why, referencing review feedback you addressed."
     ),
 })
 
 type CreateDependentPRParams = z.infer<typeof createDependentPRParameters>
+
+type MinimalPR = { number: number; html_url?: string; url?: string; title?: string }
 
 async function handler(
   repoFullName: string,
@@ -30,19 +41,24 @@ async function handler(
 ): Promise<string> {
   const { branch, title, body } = params
 
-  // Prevent duplicate PRs from same head branch
-  const existingPR = await getPullRequestOnBranch({
-    repoFullName,
-    branch,
-  })
-  if (existingPR) {
-    return JSON.stringify({
-      status: "error",
-      message: `A pull request already exists for branch '${branch}'. PR: ${existingPR}`,
-    })
-  }
-
   try {
+    // Prevent duplicate PRs from same head branch
+    const existingPR = (await getPullRequestOnBranch({
+      repoFullName,
+      branch,
+    })) as MinimalPR | null
+    if (existingPR) {
+      return JSON.stringify({
+        status: "error",
+        message: `A pull request already exists for branch '${branch}'.`,
+        pullRequest: {
+          number: existingPR.number,
+          url: existingPR.html_url ?? existingPR.url,
+          title: existingPR.title,
+        },
+      })
+    }
+
     const pr = await createPullRequestToBase({
       repoFullName,
       branch,
@@ -52,22 +68,23 @@ async function handler(
     })
 
     // Attempt to label the PR for traceability
+    const DEPENDENT_PR_LABELS = ["AI generated", "dependent-pr"] as const
     try {
       await addLabelsToPullRequest({
         repoFullName,
         pullNumber: pr.data.number,
-        labels: ["AI generated", "dependent-pr"],
+        labels: [...DEPENDENT_PR_LABELS],
       })
     } catch (labelError) {
       // Non-fatal; return a warning in the payload
       return JSON.stringify({
         status: "success",
-        pullRequest: pr,
+        pullRequest: pr.data,
         message: `PR created but failed to add labels: ${String(labelError)}`,
       })
     }
 
-    return JSON.stringify({ status: "success", pullRequest: pr })
+    return JSON.stringify({ status: "success", pullRequest: pr.data })
   } catch (error: unknown) {
     return JSON.stringify({
       status: "error",

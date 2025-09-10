@@ -239,8 +239,9 @@ ${linkedIssue ? `#${linkedIssue.number} ${linkedIssue.title}\n${linkedIssue.body
 # Codebase Directory
 ${tree.join("\n")}
 
-# Current PR Diff
-${diff}
+# Current PR Diff (truncated)
+${diff.slice(0, 200000)}
+... (truncated)
 
 ${formattedComments ? `# Comments\n${formattedComments}\n` : ""}
 ${formattedReviews ? `# Reviews\n${formattedReviews}\n` : ""}
@@ -266,6 +267,12 @@ ${formattedReviewThreads ? `# Review Line Comments\n${formattedReviewThreads}\n`
       workflowId,
       content: `Ensuring branch ${dependentBranch} is pushed`,
     })
+    if (sessionToken) {
+      await execInContainerWithDockerode({
+        name: containerName,
+        command: `git push -u origin ${dependentBranch} || true`,
+      })
+    }
 
     await createWorkflowStateEvent({ workflowId, state: "completed" })
     return {
