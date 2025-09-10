@@ -13,12 +13,17 @@ export default function BranchSelectorControl({ showSkeleton = false }: Props) {
 
   // While repoFullName is required, keep an optional skeleton hook for future use
   if (showSkeleton && !repoFullName) {
-    return <Skeleton className="h-9 w-60" />
+    return (
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-4 w-20" />
+        <Skeleton className="h-9 w-full md:w-60" />
+      </div>
+    )
   }
 
   return (
     <BranchSelector
-      value={branch ?? ""}
+      value={branch ?? undefined}
       onChange={setBranch}
       selectedRepo={repoFullName}
     />

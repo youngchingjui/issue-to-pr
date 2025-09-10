@@ -29,7 +29,7 @@ export default function IssueActions({
   const { execute: executeAutoResolve } = AutoResolveIssueController({
     issueNumber: issue.number,
     repoFullName,
-    branch: branchContext?.branch,
+    branch: branchContext?.branch?.trim() || undefined,
     onStart: () => {
       onWorkflowStart("Resolving...")
     },

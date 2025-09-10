@@ -31,7 +31,7 @@ export default function IssueRow({
   const { execute: autoResolveIssue } = AutoResolveIssueController({
     issueNumber: issue.number,
     repoFullName,
-    branch: branchContext?.branch,
+    branch: branchContext?.branch?.trim() || undefined,
     onStart: () => {
       setIsLoading(true)
       setActiveWorkflow("Launching agent...")
