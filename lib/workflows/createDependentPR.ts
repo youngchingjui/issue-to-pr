@@ -1,17 +1,16 @@
 import { v4 as uuidv4 } from "uuid"
 
-import { CoderAgent } from "@/lib/agents/coder"
+import { DependentPRAgent } from "@/lib/agents/DependentPRAgent"
 import { execInContainerWithDockerode } from "@/lib/docker"
 import { getRepoFromString } from "@/lib/github/content"
 import { getInstallationTokenFromRepo } from "@/lib/github/installation"
 import { getIssue } from "@/lib/github/issues"
 import {
-  addLabelsToPullRequest,
-  createPullRequestToBase,
   getLinkedIssuesForPR,
   getPullRequest,
   getPullRequestComments,
   getPullRequestDiff,
+  getPullRequestReviewCommentsGraphQL,
   getPullRequestReviews,
 } from "@/lib/github/pullRequests"
 import { checkRepoPermissions } from "@/lib/github/users"
@@ -23,16 +22,8 @@ import {
 } from "@/lib/neo4j/services/event"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
 import { createBranchTool } from "@/lib/tools/Branch"
-import { createCommitTool } from "@/lib/tools/Commit"
-import { createFileCheckTool } from "@/lib/tools/FileCheckTool"
-import { createGetFileContentTool } from "@/lib/tools/GetFileContent"
-import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
-import { createSetupRepoTool } from "@/lib/tools/SetupRepoTool"
-import { createSyncBranchTool } from "@/lib/tools/SyncBranchTool"
-import { createWriteFileContentTool } from "@/lib/tools/WriteFileContent"
 import { RepoEnvironment } from "@/lib/types"
 import { GitHubIssue, RepoPermissions } from "@/lib/types/github"
-import { repoFullNameSchema } from "@/lib/types/github"
 import {
   createContainerizedDirectoryTree,
   createContainerizedWorkspace,
@@ -83,12 +74,14 @@ export async function createDependentPRWorkflow({
 
     // Fetch linked issue (first closing reference if any) and PR artifacts in parallel
     let linkedIssue: GitHubIssue | undefined
-    const [linkedIssues, diff, comments, reviews] = await Promise.all([
-      getLinkedIssuesForPR({ repoFullName, pullNumber }),
-      getPullRequestDiff({ repoFullName, pullNumber }),
-      getPullRequestComments({ repoFullName, pullNumber }),
-      getPullRequestReviews({ repoFullName, pullNumber }),
-    ])
+    const [linkedIssues, diff, comments, reviews, reviewThreads] =
+      await Promise.all([
+        getLinkedIssuesForPR({ repoFullName, pullNumber }),
+        getPullRequestDiff({ repoFullName, pullNumber }),
+        getPullRequestComments({ repoFullName, pullNumber }),
+        getPullRequestReviews({ repoFullName, pullNumber }),
+        getPullRequestReviewCommentsGraphQL({ repoFullName, pullNumber }),
+      ])
     if (linkedIssues.length > 0) {
       const res = await getIssue({
         fullName: repoFullName,
@@ -184,37 +177,23 @@ export async function createDependentPRWorkflow({
     // Create directory tree for context
     const tree = await createContainerizedDirectoryTree(containerName)
 
-    // Initialize the coder agent (we will create the PR ourselves with custom base)
-    const coder = new CoderAgent({ apiKey, model: "gpt-5", createPR: false })
-    await coder.addJobId(workflowId)
+    // Initialize the dependent PR agent (reasoning-enabled)
+    const agent = new DependentPRAgent({
+      apiKey,
+      env,
+      defaultBranch: repo.default_branch,
+      repoFullName,
+      baseRefName: headRef,
+      sessionToken: sessionToken || undefined,
+      jobId: workflowId,
+    })
 
     const trace = langfuse.trace({
       name: `Create dependent PR for #${pullNumber}`,
       input: { repoFullName, pullNumber },
     })
     const span = trace.span({ name: "createDependentPR" })
-    coder.addSpan({ span, generationName: "createDependentPR" })
-
-    // Load tools
-    const setupRepoTool = createSetupRepoTool(env)
-    const getFileContentTool = createGetFileContentTool(env)
-    const searchCodeTool = createRipgrepSearchTool(env)
-    const writeFileTool = createWriteFileContentTool(env)
-    const commitTool = createCommitTool(env, repo.default_branch)
-    const fileCheckTool = createFileCheckTool(env)
-    const syncBranchTool = createSyncBranchTool(
-      repoFullNameSchema.parse(repoFullName),
-      env,
-      sessionToken || ""
-    )
-
-    coder.addTool(setupRepoTool)
-    coder.addTool(getFileContentTool)
-    coder.addTool(searchCodeTool)
-    coder.addTool(writeFileTool)
-    coder.addTool(commitTool)
-    coder.addTool(fileCheckTool)
-    coder.addTool(syncBranchTool)
+    agent.addSpan({ span, generationName: "createDependentPR" })
 
     // Seed agent with context and instructions
     const formattedComments = comments
@@ -231,9 +210,25 @@ export async function createDependentPRWorkflow({
       )
       .join("\n\n")
 
+    // Include review line comments (code review threads)
+    const formattedReviewThreads = reviewThreads
+      .map((rev, i) => {
+        const header = `Review Thread ${i + 1} by ${rev.author || "unknown"} (${rev.state}) at ${new Date(
+          rev.submittedAt || new Date().toISOString()
+        ).toLocaleString()}\n${rev.body || "No review body"}`
+        const commentsBlock = (rev.comments || [])
+          .map((c) => {
+            const hunk = c.diffHunk ? `\n      Hunk:\n${c.diffHunk}` : ""
+            return `    - [${c.file || "unknown file"}] ${c.body}${hunk}`
+          })
+          .join("\n")
+        return commentsBlock ? `${header}\n${commentsBlock}` : header
+      })
+      .join("\n\n")
+
     const message = `
 # Goal
-Implement a follow-up patch that addresses reviewer comments and discussion on PR #${pullNumber}. Work directly on branch '${dependentBranch}' which is branched off '${headRef}'. When done, push this branch to origin using the sync tool. Do NOT create a PR yourself.
+Implement a follow-up patch that addresses reviewer comments and discussion on PR #${pullNumber}. Work directly on branch '${dependentBranch}' which is branched off '${headRef}'. When done, push this branch to origin using the sync tool, then create a dependent PR targeting base '${headRef}' using the create_dependent_pull_request tool.
 
 # Repository
 ${repoFullName}
@@ -244,11 +239,13 @@ ${linkedIssue ? `#${linkedIssue.number} ${linkedIssue.title}\n${linkedIssue.body
 # Codebase Directory
 ${tree.join("\n")}
 
-# Current PR Diff
-${diff}
+# Current PR Diff (truncated)
+${diff.slice(0, 200000)}
+... (truncated)
 
 ${formattedComments ? `# Comments\n${formattedComments}\n` : ""}
 ${formattedReviews ? `# Reviews\n${formattedReviews}\n` : ""}
+${formattedReviewThreads ? `# Review Line Comments\n${formattedReviewThreads}\n` : ""}
 
 # Requirements
 - Make only the changes necessary to satisfy the feedback in comments and reviews.
@@ -256,51 +253,29 @@ ${formattedReviews ? `# Reviews\n${formattedReviews}\n` : ""}
 - Use meaningful commit messages.
 - Run repo checks (type-check/lint) via the provided tools before finishing.
 - When finished, push branch '${dependentBranch}' to GitHub using the sync tool.
+- Finally, create a dependent PR with base '${headRef}' using the create_dependent_pull_request tool. Choose a clear title and provide a detailed description of the changes you made in response to the reviews.
 `
 
-    await coder.addMessage({ role: "user", content: message })
+    await agent.addInput({ role: "user", type: "message", content: message })
 
-    await createStatusEvent({ workflowId, content: "Starting coding agent" })
+    await createStatusEvent({ workflowId, content: "Starting dependent PR agent" })
 
-    const result = await coder.runWithFunctions()
+    const result = await agent.runWithFunctions()
 
-    // Ensure branch is pushed
+    // Best-effort: ensure branch is pushed (idempotent if already pushed)
     await createStatusEvent({
       workflowId,
-      content: `Pushing branch ${dependentBranch}`,
+      content: `Ensuring branch ${dependentBranch} is pushed`,
     })
-    await syncBranchTool.handler({ branch: dependentBranch })
-
-    // Create dependent PR targeting the original PR's head branch
-    const prTitle = `Follow-up: Address feedback for #${pullNumber}`
-    const prBody = `This PR addresses review comments and follow-up actions for #${pullNumber}.\n\nBase: ${headRef}\nHead: ${dependentBranch}\n\nIt should be merged into the original PR's branch.`
-
-    const created = await createPullRequestToBase({
-      repoFullName,
-      branch: dependentBranch,
-      base: headRef,
-      title: prTitle,
-      body: prBody,
-    })
-
-    // Try to add label
-    try {
-      await addLabelsToPullRequest({
-        repoFullName,
-        pullNumber: created.data.number,
-        labels: ["AI generated", "dependent-pr"],
-      })
-    } catch (e) {
-      // non-fatal
-      await createStatusEvent({
-        workflowId,
-        content: `Warning: failed to add labels to PR #${created.data.number}: ${String(e)}`,
+    if (sessionToken) {
+      await execInContainerWithDockerode({
+        name: containerName,
+        command: `git push -u origin ${dependentBranch} || true`,
       })
     }
 
     await createWorkflowStateEvent({ workflowId, state: "completed" })
     return {
-      dependentPR: created.data,
       agentResult: result,
       branch: dependentBranch,
     }
@@ -316,3 +291,4 @@ ${formattedReviews ? `# Reviews\n${formattedReviews}\n` : ""}
     if (containerCleanup) await containerCleanup()
   }
 }
+
