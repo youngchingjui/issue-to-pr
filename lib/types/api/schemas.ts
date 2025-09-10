@@ -69,3 +69,22 @@ export type ResolveMergeConflictsRequest = z.infer<
   typeof ResolveMergeConflictsRequestSchema
 >
 
+// POST /api/workflow/create-dependent-pr request body
+export const CreateDependentPRRequestSchema = z.object({
+  repoFullName: z.string().min(1),
+  pullNumber: z.number(),
+  jobId: z.string().optional(),
+})
+export type CreateDependentPRRequest = z.infer<
+  typeof CreateDependentPRRequestSchema
+>
+
+export const CreateDependentPRResponseSchema = z.object({
+  success: z.boolean(),
+  result: z.any().optional(),
+  error: z.string().optional(),
+})
+export type CreateDependentPRResponse = z.infer<
+  typeof CreateDependentPRResponseSchema
+>
+
