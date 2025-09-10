@@ -134,4 +134,3 @@ export async function getUserRoles(username: string): Promise<string[]> {
     await session.close()
   }
 }
-
