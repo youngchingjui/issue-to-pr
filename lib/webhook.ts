@@ -4,8 +4,11 @@ import { listContainersByLabels, stopAndRemoveContainer } from "@/lib/docker"
 import { getRepoFromString } from "@/lib/github/content"
 import { getIssue } from "@/lib/github/issues"
 import { updateJobStatus } from "@/lib/redis-old"
-import autoResolveIssue from "@/lib/workflows/autoResolveIssue"
+import { autoResolveIssue } from "@/lib/workflows/autoResolveIssue"
 import { resolveIssue } from "@/lib/workflows/resolveIssue"
+import { makeSettingsReaderAdapter } from "@shared/adapters/neo4j/repositories/SettingsReaderAdapter"
+import { neo4jDs } from "@/lib/neo4j"
+import * as userRepo from "@/lib/neo4j/repositories/user"
 
 const POST_TO_GITHUB_SETTING = true // TODO: Set setting in database
 const CREATE_PR_SETTING = true // TODO: Set setting in database
@@ -28,6 +31,21 @@ enum GitHubEvent {
   Ping = "ping",
 }
 
+// Narrow structural payload types for the few fields we access
+type IssuesPayload = {
+  action?: string
+  label?: { name?: string }
+  repository?: { full_name?: string }
+  issue?: { number?: number }
+  sender?: { login?: string }
+}
+
+type PullRequestPayload = {
+  action?: string
+  pull_request?: { merged?: boolean; head?: { ref?: string } }
+  repository?: { name?: string; owner?: { login?: string } }
+}
+
 export const routeWebhookHandler = async ({
   event,
   payload,
@@ -41,21 +59,41 @@ export const routeWebhookHandler = async ({
   }
 
   if (event === GitHubEvent.Issues) {
-    const action = (payload as any)["action"]
+    const p = payload as IssuesPayload
+    const action = p.action
     if (action === "labeled") {
-      const labelName = (payload as any)["label"]?.["name"] as
-        | string
-        | undefined
+      const labelName: string | undefined = p.label?.name
 
       // If the label added is "resolve", start the resolveIssue workflow
       if (labelName === "resolve") {
-        const repoFullName = (payload as any)["repository"]?.["full_name"]
-        if (typeof process.env.OPENAI_API_KEY !== "string") {
-          throw new Error("OPENAI_API_KEY is not set")
+        const repoFullName = p.repository?.full_name
+        const issueNumber = p.issue?.number
+        const labelerLogin = p.sender?.login
+        if (!repoFullName || typeof issueNumber !== "number") {
+          console.error(
+            "Missing repository.full_name or issue.number in Issues payload"
+          )
+          return
         }
 
-        const apiKey = process.env.OPENAI_API_KEY
-        const issueNumber = (payload as any)["issue"]["number"]
+        if (!labelerLogin) {
+          console.error("Missing sender.login for labeled issue event")
+          return
+        }
+
+        // Read API key for the user who added the label
+        const settingsReader = makeSettingsReaderAdapter({
+          getSession: () => neo4jDs.getSession(),
+          userRepo: userRepo,
+        })
+        const apiKeyResult = await settingsReader.getOpenAIKey(labelerLogin)
+        if (!apiKeyResult.ok || !apiKeyResult.value) {
+          console.error(
+            `Missing OpenAI API key for user ${labelerLogin}. Skipping resolveIssue.`
+          )
+          return
+        }
+        const apiKey = apiKeyResult.value
         const postToGithub = POST_TO_GITHUB_SETTING
         const createPR = CREATE_PR_SETTING
 
@@ -95,8 +133,33 @@ export const routeWebhookHandler = async ({
 
       // If the label added is "I2PR: Resolve Issue", start the autoResolveIssue workflow
       if (labelName === "I2PR: Resolve Issue") {
-        const repoFullName = (payload as any)["repository"]?.["full_name"]
-        const issueNumber = (payload as any)["issue"]["number"]
+        const repoFullName = p.repository?.full_name
+        const issueNumber = p.issue?.number
+        const labelerLogin = p.sender?.login
+        if (!repoFullName || typeof issueNumber !== "number") {
+          console.error(
+            "Missing repository.full_name or issue.number in Issues payload"
+          )
+          return
+        }
+        if (!labelerLogin) {
+          console.error("Missing sender.login for labeled issue event")
+          return
+        }
+
+        // Read API key for the user who added the label
+        const settingsReader = makeSettingsReaderAdapter({
+          getSession: () => neo4jDs.getSession(),
+          userRepo: userRepo,
+        })
+        const apiKeyResult = await settingsReader.getOpenAIKey(labelerLogin)
+        if (!apiKeyResult.ok || !apiKeyResult.value) {
+          console.error(
+            `Missing OpenAI API key for user ${labelerLogin}. Skipping autoResolveIssue.`
+          )
+          return
+        }
+        const apiKey = apiKeyResult.value
 
         ;(async () => {
           try {
@@ -122,6 +185,7 @@ export const routeWebhookHandler = async ({
               issue: issue.issue,
               repository: fullRepo,
               jobId,
+              apiKey,
             })
           } catch (e) {
             console.error(
@@ -140,14 +204,15 @@ export const routeWebhookHandler = async ({
       return
     }
   } else if (event === GitHubEvent.PullRequest) {
-    const action = (payload as any)["action"]
+    const pr = payload as PullRequestPayload
+    const action = pr.action
 
     // We only care when a PR is closed AND merged
-    if (action === "closed" && (payload as any)["pull_request"]?.["merged"]) {
+    if (action === "closed" && pr.pull_request?.merged) {
       try {
-        const repo = (payload as any)["repository"]?.["name"]
-        const owner = (payload as any)["repository"]?.["owner"]?.["login"]
-        const branch = (payload as any)["pull_request"]?.["head"]?.["ref"]
+        const repo = pr.repository?.name
+        const owner = pr.repository?.owner?.login
+        const branch = pr.pull_request?.head?.ref
 
         if (!repo || !owner || !branch) {
           console.warn(
@@ -183,8 +248,8 @@ export const routeWebhookHandler = async ({
       }
     }
   } else {
-    const repository =
-      (payload as any)["repository"]?.["full_name"] || "<unknown repository>"
+    const repository = (payload as { repository?: { full_name?: string } })
+      .repository?.full_name || "<unknown repository>"
     console.log(`${event} event received on ${repository}`)
   }
 }
