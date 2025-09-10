@@ -29,7 +29,7 @@ export async function resolveIssueAction(
   input: unknown
 ): Promise<ResolveIssueResult> {
   // =================================================
-  // Step 1: Parse inputs
+  // Step 1: Prepare inputs
   // =================================================
 
   const parsedInput = resolveIssueRequestSchema.safeParse(input)
@@ -41,6 +41,15 @@ export async function resolveIssueAction(
     }
   }
   const { repoFullName, issueNumber, model, maxTokens } = parsedInput.data
+
+  const redisUrl = process.env.REDIS_URL
+  if (!redisUrl) {
+    return {
+      status: "error",
+      code: "REDIS_URL_NOT_SET",
+      message: "REDIS_URL is not set",
+    }
+  }
 
   // =================================================
   // Step 2: Prepare adapters
@@ -62,11 +71,11 @@ export async function resolveIssueAction(
 
   const authAdapter = nextAuthReader
 
+  const eventBus = redisUrl ? new EventBusAdapter(redisUrl) : undefined
+
   // =================================================
   // Step 3: Execute the use case
   // =================================================
-  const redisUrl = process.env.REDIS_URL
-  const eventBus = redisUrl ? new EventBusAdapter(redisUrl) : undefined
   const result = await resolveIssue(
     {
       auth: authAdapter,
