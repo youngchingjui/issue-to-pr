@@ -15,7 +15,7 @@ import { listBranchesSortedByCommitDate } from "@/lib/github/refs"
 import { repoFullNameSchema } from "@/lib/types/github"
 
 interface BranchSelectorProps {
-  value: string
+  value?: string
   onChange: (value: string) => void
   selectedRepo?: string
   disabled?: boolean
@@ -101,3 +101,4 @@ export default function BranchSelector({
     </div>
   )
 }
+

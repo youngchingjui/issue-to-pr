@@ -25,6 +25,7 @@ export default async function RepoPage({ params }: Props) {
 
   return (
     <RepoBranchProvider
+      key={repoFullName.fullName}
       repoFullName={repoFullName.fullName}
       defaultBranch={defaultBranch}
     >

@@ -4,11 +4,12 @@ import React, { createContext, useContext, useMemo, useState } from "react"
 
 interface BranchContextValue {
   branch?: string
-  setBranch: (value: string) => void
+  setBranch: React.Dispatch<React.SetStateAction<string | undefined>>
   repoFullName: string
 }
 
 const BranchContext = createContext<BranchContextValue | undefined>(undefined)
+BranchContext.displayName = "BranchContext"
 
 interface ProviderProps {
   repoFullName: string
