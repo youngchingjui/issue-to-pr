@@ -1,7 +1,7 @@
+import { OpenAIAdapter } from "@shared/adapters/llm/OpenAIAdapter"
 import { generateNonConflictingBranchName } from "@shared/usecases/git/generateBranchName"
 import { v4 as uuidv4 } from "uuid"
 
-import { BasicLLMAdapter } from "@/lib/adapters/BasicLLMAdapter"
 import { GitHubRefsAdapter } from "@/lib/adapters/GitHubRefsAdapter"
 import PlanAndCodeAgent from "@/lib/agents/PlanAndCodeAgent"
 import { getInstallationTokenFromRepo } from "@/lib/github/installation"
@@ -13,7 +13,6 @@ import {
   createStatusEvent,
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
-import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
 import { RepoEnvironment } from "@/lib/types"
 import { GitHubIssue, GitHubRepository } from "@/lib/types/github"
@@ -22,34 +21,57 @@ import {
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
+import { AuthReaderPort } from "@/shared/src/ports/auth/reader"
+import { EventBusPort } from "@/shared/src/ports/events/eventBus"
+import { createWorkflowEventPublisher } from "@/shared/src/ports/events/publisher"
+import { SettingsReaderPort } from "@/shared/src/ports/repositories/settings.reader"
 
 interface Params {
   issue: GitHubIssue
   repository: GitHubRepository
-  apiKey?: string
   jobId?: string
   /** Optional branch to run the workflow on. If omitted, a new feature branch is generated. */
   branch?: string
 }
 
-export const autoResolveIssue = async ({
-  issue,
-  repository,
-  apiKey,
-  jobId,
-  branch,
-}: Params) => {
-  if (!apiKey) {
-    const apiKeyFromSettings = await getUserOpenAIApiKey()
+interface AutoResolveIssuePorts {
+  auth: AuthReaderPort
+  settings: SettingsReaderPort
+  eventBus?: EventBusPort
+}
+export const autoResolveIssue = async (
+  params: Params,
+  ports: AutoResolveIssuePorts
+) => {
+  const { issue, repository, jobId, branch } = params
+  const { auth, settings, eventBus } = ports
 
-    if (!apiKeyFromSettings) {
-      throw new Error("No API key provided and no user settings found")
-    }
+  // =================================================
+  // Step 0: Setup workflow publisher
+  // =================================================
+  const workflowId = jobId ?? uuidv4()
+  const pub = createWorkflowEventPublisher(eventBus, workflowId)
 
-    apiKey = apiKeyFromSettings
+  // =================================================
+  // Step 1: Get API key
+  // =================================================
+  const authResult = await auth.getAuth()
+  if (!authResult.ok) {
+    pub.workflow.error("Authentication required")
+    throw new Error("Authentication required")
   }
 
-  const workflowId = jobId ?? uuidv4()
+  const { user: login, token } = authResult.value
+  const apiKeyResult = await settings.getOpenAIKey(login.githubLogin)
+  if (!apiKeyResult.ok || !apiKeyResult.value) {
+    pub.workflow.error("No API key provided and no user settings found")
+    throw new Error("No API key provided and no user settings found")
+  }
+  const apiKey = apiKeyResult.value
+
+  // =================================================
+  // Step 2: Initialize workflow
+  // =================================================
 
   try {
     await initializeWorkflowRun({
@@ -90,7 +112,14 @@ export const autoResolveIssue = async ({
       })
     } else {
       try {
-        const llm = new BasicLLMAdapter()
+        // TODO: This is super messy.
+        // This workflow is supposed to be a use case.
+        // Here, we're calling another use case within the use case.
+        // As well as importing adapters directly in the use case.
+        // This should not happen.
+        // Either this use case needs to be called outside this use case independently
+        // Or we combine in internals of generateNonConflictingBranchName into this use case
+        const llm = new OpenAIAdapter(apiKey)
         const refs = new GitHubRefsAdapter()
         const context = `GitHub issue title: ${issue.title}\n\n${issue.body ?? ""}`
         const generated = await generateNonConflictingBranchName(
@@ -202,4 +231,3 @@ export const autoResolveIssue = async ({
 }
 
 export default autoResolveIssue
-
