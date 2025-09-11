@@ -28,21 +28,21 @@ export default async function RepositoryList({
         <li key={repo.id} className="bg-white shadow rounded-lg p-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <Link
-              href={`/${username}/${repo.name}/issues`}
+              href={`/${repo.full_name}/issues`}
               className="text-blue-600 hover:underline font-medium"
             >
               {repo.name}
             </Link>
             <div className="flex items-center gap-4 text-sm">
               <Link
-                href={`/${username}/${repo.name}/issues`}
+                href={`/${repo.full_name}/issues`}
                 className="text-stone-700 hover:underline"
               >
                 Issues
               </Link>
               <span className="text-stone-300" aria-hidden="true">|</span>
               <Link
-                href={`/${username}/${repo.name}/pullRequests`}
+                href={`/${repo.full_name}/pullRequests`}
                 className="text-stone-700 hover:underline"
               >
                 Pull Requests
