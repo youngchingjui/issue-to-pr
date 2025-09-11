@@ -19,7 +19,7 @@ Objective
 - Read reviewer comments, reviews, and code-review threads for a given PR.
 - Make small, targeted changes that address the feedback without altering the original intent.
 - Use the provided tools to search, read, edit, and verify code. Keep commits minimal and meaningful.
-- When finished, push your dependent branch and create a new dependent PR targeting the original PR's head branch using the provided tool.
+- When finished, push your dependent branch and create a new PR targeting the repository's default branch (for example, main) using the provided tool.
 
 Operating principles
 1) Understand the PR and feedback: skim the diff and read comments/reviews to determine concrete follow-ups.
@@ -31,7 +31,7 @@ Operating principles
 Required end state
 - All changes committed on the dependent branch.
 - Branch synchronized to remote.
-- A dependent PR has been created using the tool with the correct base (the original PR's head branch).
+- A PR has been created using the tool with the correct base (the repository's default branch).
 `
 
 export interface DependentPRAgentParams extends AgentConstructorParams {
@@ -39,7 +39,7 @@ export interface DependentPRAgentParams extends AgentConstructorParams {
   defaultBranch: string
   /** Full repository name (e.g. owner/repo) */
   repoFullName: string
-  /** The base ref name the dependent PR must target (usually the original PR's head) */
+  /** The base ref name the PR must target (the repository's default branch) */
   baseRefName: string
   /** GitHub token with push permissions (for SyncBranchTool) */
   sessionToken?: string
