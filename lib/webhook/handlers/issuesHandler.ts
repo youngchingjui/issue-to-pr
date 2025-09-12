@@ -16,6 +16,10 @@ import { IssuesPayload, WebhookHandler } from "../types"
 const POST_TO_GITHUB_SETTING = true // TODO: Set setting in database
 const CREATE_PR_SETTING = true // TODO: Set setting in database
 
+// Label constants
+const RESOLVE_LABEL = "resolve"
+const AUTO_RESOLVE_LABEL = "I2PR: Resolve Issue"
+
 export class IssuesHandler implements WebhookHandler<IssuesPayload> {
   canHandle(event: string, _payload: IssuesPayload): boolean {
     return event === "issues"
@@ -28,19 +32,22 @@ export class IssuesHandler implements WebhookHandler<IssuesPayload> {
     } else if (action === "opened") {
       // No-op: we intentionally do not launch any workflow on new issue creation.
       return
+    } else {
+      console.log(`[issues] Ignoring action: ${action}`)
+      return
     }
   }
 
   private async handleLabeled(payload: IssuesPayload): Promise<void> {
-    const labelName: string | undefined = payload.label?.name
+    const labelName = payload.label?.name?.trim()
 
     // If the label added is "resolve", start the resolveIssue workflow
-    if (labelName === "resolve") {
+    if (labelName?.toLowerCase() === RESOLVE_LABEL) {
       await this.handleResolveLabel(payload)
     }
 
     // If the label added is "I2PR: Resolve Issue", start the autoResolveIssue workflow
-    if (labelName === "I2PR: Resolve Issue") {
+    if (labelName === AUTO_RESOLVE_LABEL) {
       await this.handleAutoResolveLabel(payload)
     }
   }
@@ -179,7 +186,7 @@ export class IssuesHandler implements WebhookHandler<IssuesPayload> {
             return {
               access_token: token,
               refresh_token: "",
-              expires_at: 0,
+              expires_at: Math.floor(Date.now() / 1000) + 3600,
               expires_in: 3600,
               scope: "",
               token_type: "installation",

@@ -46,12 +46,19 @@ export class PullRequestHandler implements WebhookHandler<PullRequestPayload> {
         return
       }
 
-      await Promise.all(
-        containerNames.map((name) => stopAndRemoveContainer(name))
+      const unique = [...new Set(containerNames)]
+      const results = await Promise.allSettled(
+        unique.map((name) => stopAndRemoveContainer(name))
       )
+      const failed = results.filter((r) => r.status === "rejected").length
+      if (failed) {
+        console.warn(
+          `[Webhook] ${failed} container cleanup(s) failed for ${owner}/${repo}@${branch}`
+        )
+      }
 
       console.log(
-        `[Webhook] Cleaned up ${containerNames.length} container(s) for merged PR ${owner}/${repo}@${branch}`
+        `[Webhook] Cleaned up ${unique.length - failed} container(s) for merged PR ${owner}/${repo}@${branch}`
       )
     } catch (e) {
       console.error("[Webhook] Failed to clean up containers on PR merge:", e)

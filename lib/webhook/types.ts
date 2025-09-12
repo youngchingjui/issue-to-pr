@@ -4,8 +4,8 @@ import { z } from "zod"
 export const GithubEventSchema = z.enum(["issues", "pull_request", "push"])
 export type GithubEvent = z.infer<typeof GithubEventSchema>
 
-// Common optional fields present on GitHub App webhooks
-const InstallationSchema = z.object({ id: z.number() }).optional()
+// Common fields present on GitHub App webhooks (required for this app)
+const InstallationSchema = z.object({ id: z.number() })
 
 export const IssuesPayloadSchema = z.object({
   action: z.string(),

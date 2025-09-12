@@ -13,12 +13,15 @@ export async function routeWebhookHandler({
 }: {
   event: string
   payload: object
-}): Promise<void> {
+}): Promise<number> {
   const handledCount = await webhookRouter.route(event, payload)
   if (handledCount === 0) {
     const repository = (payload as { repository?: { full_name?: string } })
       .repository?.full_name
-    console.log(`${event} event received on ${repository ?? "<unknown repository>"}`)
+    console.log(
+      `${event} event received on ${repository ?? "<unknown repository>"}`
+    )
   }
+  return handledCount
 }
 

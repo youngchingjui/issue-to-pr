@@ -229,18 +229,18 @@ export async function stopAndRemoveContainer(name: string): Promise<void> {
     const docker = new Docker({ socketPath: "/var/run/docker.sock" })
     const container = docker.getContainer(name)
 
-    // Attempt to stop; ignore if not running
+    // Attempt to stop if running; then force remove
     try {
-      await container.stop()
-      console.log(`Stopped container: ${name}`)
-    } catch (error: unknown) {
-      const msg = (error as { message?: string } | undefined)?.message || ""
-      if (!msg.includes("is not running")) {
-        console.warn(`Warning stopping container ${name}:`, error)
+      const info = await container.inspect()
+      if (info.State?.Running) {
+        await container.stop()
+        console.log(`Stopped container: ${name}`)
       }
+    } catch (error: unknown) {
+      console.warn(`Warning inspecting/stopping container ${name}:`, error)
     }
 
-    await container.remove()
+    await container.remove({ force: true })
     console.log(`Removed container: ${name}`)
   } catch (e) {
     console.warn(`[WARNING] Failed to stop/remove container ${name}:`, e)
@@ -291,7 +291,7 @@ export async function listContainersByLabels(
     const docker = new Docker({ socketPath: "/var/run/docker.sock" })
 
     const labelFilters = Object.entries(labels)
-      .filter(([, v]) => v != null)
+      .filter(([, v]) => v != null && String(v).trim().length > 0)
       .map(([k, v]) => `${k}=${v}`)
 
     const containers = await docker.listContainers({
@@ -299,11 +299,12 @@ export async function listContainersByLabels(
       filters: { label: labelFilters },
     })
 
-    return containers
-      .map((c) => c.Names)
-      .flat()
+    const names = containers
+      .flatMap((c) => c.Names ?? [])
       .map((n) => n.replace(/^\//, ""))
       .filter(Boolean)
+
+    return [...new Set(names)]
   } catch (error) {
     console.error("[ERROR] Failed to list containers by labels:", error)
     return []
