@@ -1,11 +1,3 @@
-import { webhookRouter } from "./webhook"
+// Deprecated: use ./webhook/router instead
+export { routeWebhookHandler } from "./webhook/router"
 
-export const routeWebhookHandler = async ({
-  event,
-  payload,
-}: {
-  event: string
-  payload: object
-}) => {
-  await webhookRouter.route(event, payload)
-}

@@ -1,38 +1,24 @@
-import { type Event, GitHubEvent, type Payload, WebhookRouter } from "./types"
+import { WebhookRouter } from "./types"
+import { IssuesHandler } from "./handlers/issuesHandler"
+import { PullRequestHandler } from "./handlers/pullRequestHandler"
 
-// Singleton router instance to register concrete handlers elsewhere
+// Singleton router instance and handler registration
 export const webhookRouter = new WebhookRouter()
+webhookRouter.register(new IssuesHandler())
+webhookRouter.register(new PullRequestHandler())
 
-// Overloads to allow both inferred typed usage and plain string/object
-export async function routeWebhookHandler<E extends Event>(args: {
-  event: E
-  payload: Payload<E>
-}): Promise<void>
-export async function routeWebhookHandler(args: {
-  event: string
-  payload: object
-}): Promise<void>
-
-export async function routeWebhookHandler<E extends Event | string>({
+export async function routeWebhookHandler({
   event,
   payload,
 }: {
-  event: E
-  payload: E extends Event ? Payload<Extract<E, Event>> : object
+  event: string
+  payload: object
 }): Promise<void> {
-  if (!Object.values(GitHubEvent).includes(event as unknown as GitHubEvent)) {
-    console.error("Invalid event type:", event)
-    return
-  }
-
-  const handledCount = await webhookRouter.route(
-    event as Extract<E, Event>,
-    payload as Payload<Extract<E, Event>>
-  )
+  const handledCount = await webhookRouter.route(event, payload)
   if (handledCount === 0) {
-    const repository =
-      (payload as unknown as { repository?: { full_name?: string } }).repository
-        ?.full_name || "<unknown repository>"
-    console.log(`${String(event)} event received on ${repository}`)
+    const repository = (payload as { repository?: { full_name?: string } })
+      .repository?.full_name
+    console.log(`${event} event received on ${repository ?? "<unknown repository>"}`)
   }
 }
+

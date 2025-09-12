@@ -11,17 +11,17 @@ import { autoResolveIssue } from "@/lib/workflows/autoResolveIssue"
 import { resolveIssue } from "@/lib/workflows/resolveIssue"
 import { AuthReaderPort } from "@/shared/src/ports/auth/reader"
 
-import { GitHubEvent, IssuesPayload, WebhookHandler } from "../types"
+import { IssuesPayload, WebhookHandler } from "../types"
 
 const POST_TO_GITHUB_SETTING = true // TODO: Set setting in database
 const CREATE_PR_SETTING = true // TODO: Set setting in database
 
 export class IssuesHandler implements WebhookHandler<IssuesPayload> {
-  canHandle(event: string, payload: IssuesPayload): boolean {
-    return event === GitHubEvent.Issues
+  canHandle(event: string, _payload: IssuesPayload): boolean {
+    return event === "issues"
   }
 
-  async handle(event: string, payload: IssuesPayload): Promise<void> {
+  async handle(_event: string, payload: IssuesPayload): Promise<void> {
     const action = payload.action
     if (action === "labeled") {
       await this.handleLabeled(payload)
@@ -213,3 +213,4 @@ export class IssuesHandler implements WebhookHandler<IssuesPayload> {
     })()
   }
 }
+

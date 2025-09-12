@@ -1,9 +1,14 @@
-import type { WebhookEventMap } from "@octokit/webhooks-types"
 import crypto from "crypto"
 import { NextRequest } from "next/server"
 
-import { runWithInstallationId } from "@/lib/utils/utils-server"
 import { routeWebhookHandler } from "@/lib/webhook/router"
+import {
+  GithubEventSchema,
+  IssuesPayloadSchema,
+  PullRequestPayloadSchema,
+  PushPayloadSchema,
+} from "@/lib/webhook/types"
+import { runWithInstallationId } from "@/lib/utils/utils-server"
 
 async function verifySignature(
   signature: string,
@@ -20,7 +25,7 @@ async function verifySignature(
 export async function POST(req: NextRequest) {
   try {
     const signature = req.headers.get("x-hub-signature-256") as string
-    const event = req.headers.get("x-github-event") as string
+    const eventHeader = req.headers.get("x-github-event") as string
     const payload = (await req.json()) as object
     const secret = process.env.GITHUB_WEBHOOK_SECRET
 
@@ -34,38 +39,60 @@ export async function POST(req: NextRequest) {
       return new Response("Invalid signature", { status: 401 })
     }
 
-    const installationId = (payload as { installation?: { id?: number } })
-      .installation?.id
+    // Validate and narrow event type
+    const eventParse = GithubEventSchema.safeParse(eventHeader)
+    if (!eventParse.success) {
+      console.error("[ERROR] Unsupported GitHub event:", eventHeader)
+      return new Response("Unsupported event", { status: 400 })
+    }
+    const event = eventParse.data
+
+    // Validate and narrow payload by event
+    let installationId: number | undefined
+    let parsedPayload: object
+    if (event === "issues") {
+      const r = IssuesPayloadSchema.safeParse(payload)
+      if (!r.success) {
+        console.error("[ERROR] Invalid issues payload", r.error.flatten())
+        return new Response("Invalid payload", { status: 400 })
+      }
+      parsedPayload = r.data
+      installationId = r.data.installation?.id
+    } else if (event === "pull_request") {
+      const r = PullRequestPayloadSchema.safeParse(payload)
+      if (!r.success) {
+        console.error("[ERROR] Invalid pull_request payload", r.error.flatten())
+        return new Response("Invalid payload", { status: 400 })
+      }
+      parsedPayload = r.data
+      installationId = r.data.installation?.id
+    } else {
+      const r = PushPayloadSchema.safeParse(payload)
+      if (!r.success) {
+        console.error("[ERROR] Invalid push payload", r.error.flatten())
+        return new Response("Invalid payload", { status: 400 })
+      }
+      parsedPayload = r.data
+      installationId = r.data.installation?.id
+    }
+
     if (!installationId) {
       console.error("[ERROR] No installation ID found in webhook payload")
       return new Response("No installation ID found", { status: 400 })
     }
 
-    // Narrow payload types at the boundary for better tooling/feedback
-    if (event === "issues") {
-      const p = payload as WebhookEventMap["issues"]
-      void p.action
-      void p.issue
-    } else if (event === "pull_request") {
-      const p = payload as WebhookEventMap["pull_request"]
-      void p.pull_request
-    } else if (event === "push") {
-      const p = payload as WebhookEventMap["push"]
-      void p.ref
-    }
-
     // Route the payload to the appropriate handler
-    runWithInstallationId(installationId, async () => {
+    runWithInstallationId(String(installationId), async () => {
       await routeWebhookHandler({
-        event: event as keyof WebhookEventMap,
-        payload: payload as WebhookEventMap[keyof WebhookEventMap],
+        event,
+        payload: parsedPayload,
       })
     })
 
-    // Respond with a success status
     return new Response("Webhook received", { status: 200 })
   } catch (error) {
     console.error("[ERROR] Error handling webhook:", error)
     return new Response("Error", { status: 500 })
   }
 }
+

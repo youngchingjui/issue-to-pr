@@ -1,13 +1,13 @@
 import { listContainersByLabels, stopAndRemoveContainer } from "@/lib/docker"
 
-import { GitHubEvent, PullRequestPayload, WebhookHandler } from "../types"
+import { PullRequestPayload, WebhookHandler } from "../types"
 
 export class PullRequestHandler implements WebhookHandler<PullRequestPayload> {
-  canHandle(event: string, payload: PullRequestPayload): boolean {
-    return event === GitHubEvent.PullRequest
+  canHandle(event: string, _payload: PullRequestPayload): boolean {
+    return event === "pull_request"
   }
 
-  async handle(event: string, payload: PullRequestPayload): Promise<void> {
+  async handle(_event: string, payload: PullRequestPayload): Promise<void> {
     const action = payload.action
 
     // We only care when a PR is closed AND merged
@@ -58,3 +58,4 @@ export class PullRequestHandler implements WebhookHandler<PullRequestPayload> {
     }
   }
 }
+
