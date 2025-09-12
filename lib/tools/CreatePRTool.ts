@@ -21,7 +21,7 @@ type CreatePRParams = z.infer<typeof createPRParameters>
 // Creates PR, then attempts to label it as "AI generated"
 async function fnHandler(
   repository: GitHubRepository,
-  issueNumber: number,
+  issueNumber: number | undefined,
   params: CreatePRParams
 ): Promise<string> {
   const { branch, title, body } = params
@@ -44,6 +44,7 @@ async function fnHandler(
       title,
       body,
       issueNumber,
+      baseRefName: repository.default_branch,
     })
     let labelWarning: string | undefined
     try {
@@ -72,7 +73,7 @@ async function fnHandler(
 
 export const createCreatePRTool = (
   repository: GitHubRepository,
-  issueNumber: number
+  issueNumber?: number
 ) =>
   createTool({
     name: "create_pull_request",
@@ -82,3 +83,4 @@ export const createCreatePRTool = (
     handler: (params: CreatePRParams) =>
       fnHandler(repository, issueNumber, params),
   })
+
