@@ -27,7 +27,8 @@ export default async function Navigation() {
   }
 
   // Determine avatar URL – prefer GitHub avatar then session image
-  const avatarUrl = githubUser?.avatar_url || session?.user?.image || undefined
+  const avatarUrl =
+    githubUser?.avatar_url || session?.user?.image || "/avatar.svg"
 
   return (
     <HideOnScroll className="sticky top-0 z-50 w-full bg-transparent">
@@ -57,4 +58,3 @@ export default async function Navigation() {
     </HideOnScroll>
   )
 }
-
