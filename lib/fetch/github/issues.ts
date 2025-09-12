@@ -73,4 +73,3 @@ export const getIssue = async (
     return { type: "other_error", error }
   }
 }
-

@@ -17,4 +17,3 @@ export const makeOpenAIProvider = (
     const { default: OpenAIClient } = await import("openai")
     return new OpenAIClient({ apiKey: await apiKeyProvider() })
   })
-

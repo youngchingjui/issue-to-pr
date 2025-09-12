@@ -1,7 +1,7 @@
-import { Suspense } from "react"
-import { notFound } from "next/navigation"
-import Link from "next/link"
 import { ChevronLeft } from "lucide-react"
+import Link from "next/link"
+import { notFound } from "next/navigation"
+import { Suspense } from "react"
 
 import IssueDetailsWrapper from "@/components/issues/IssueDetailsWrapper"
 import IssueWorkflowRuns from "@/components/issues/IssueWorkflowRuns"
@@ -22,7 +22,11 @@ export default async function IssueDetailsPage({ params }: Props) {
   const { username, repo, issueId } = params
   const repoFullName = `${username}/${repo}`
   const issueNumber = Number.parseInt(issueId, 10)
-  if (!Number.isFinite(issueNumber) || Number.isNaN(issueNumber) || issueNumber <= 0) {
+  if (
+    !Number.isFinite(issueNumber) ||
+    Number.isNaN(issueNumber) ||
+    issueNumber <= 0
+  ) {
     return notFound()
   }
 
@@ -112,4 +116,3 @@ export default async function IssueDetailsPage({ params }: Props) {
     </main>
   )
 }
-

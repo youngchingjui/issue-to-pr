@@ -27,4 +27,3 @@ export function makeGetIssueUseCase({ issueReader }: GetIssueDeps) {
     return await issueReader.getIssue(input)
   }
 }
-
