@@ -50,6 +50,7 @@ export default async function Navigation() {
             isAuthenticated={!!session?.user}
             isAdmin={isAdmin}
             avatarUrl={avatarUrl}
+            username={githubUser?.login}
           />
         </div>
       </div>

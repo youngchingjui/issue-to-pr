@@ -1,10 +1,10 @@
 import RepositoryList from "@/components/RepositoryList"
 import {
   combineRepositories,
-  getAuthenticatedUserRepositories,
   getUserRepositories,
 } from "@/lib/github/content"
 import { GitHubError } from "@/lib/github/content"
+import { listUserAppRepositories } from "@/lib/github/repos"
 import { getGithubUser } from "@/lib/github/users"
 import { AuthenticatedUserRepository } from "@/lib/types/github"
 
@@ -27,15 +27,11 @@ export default async function Repositories({
     let maxPage = 1
 
     if (authUser?.login === params.username) {
-      // Viewing own profile - use authenticated user endpoint
-      const result = await getAuthenticatedUserRepositories({
-        per_page: perPage,
-        page,
-        sort: "updated",
-        direction: "desc",
-      })
-      repositories = result.repositories
-      maxPage = result.maxPage
+      // Viewing own profile - show repositories where the GitHub App is installed
+      // and that the user has access to (union handled by listUserAppRepositories)
+      const result = await listUserAppRepositories()
+      repositories = result
+      maxPage = 1
     } else {
       // Viewing other user profile
       // First get public repositories
@@ -47,18 +43,12 @@ export default async function Repositories({
       })
 
       if (authUser) {
-        // If user is authenticated, also try to get repositories they have access to
+        // If user is authenticated, also try to get repositories they have access to via the app
         try {
-          const accessibleResult = await getAuthenticatedUserRepositories({
-            per_page: perPage,
-            page,
-            sort: "updated",
-            direction: "desc",
-            affiliation: "collaborator,organization_member",
-          })
+          const accessibleResult = await listUserAppRepositories()
 
           // Filter to only include repos owned by the target username
-          const filteredAccessible = accessibleResult.repositories.filter(
+          const filteredAccessible = accessibleResult.filter(
             (repo) =>
               repo.owner.login.toLowerCase() === params.username.toLowerCase()
           )
@@ -69,7 +59,7 @@ export default async function Repositories({
             filteredAccessible
           )
           // TODO: Implement proper pagination for combined results
-          maxPage = Math.max(publicResult.maxPage, accessibleResult.maxPage)
+          maxPage = Math.max(publicResult.maxPage, 1)
         } catch (error) {
           // If we fail to get accessible repos, fall back to just public repos
           console.error(error)
@@ -105,3 +95,4 @@ export default async function Repositories({
     throw new Error("Failed to fetch repositories")
   }
 }
+
