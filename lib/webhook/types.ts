@@ -1,40 +1,37 @@
 // Webhook event types
 import type { WebhookEventMap } from "@octokit/webhooks-types"
+import { z } from "zod"
 
-export enum GitHubEvent {
-  Create = "create",
-  Delete = "delete",
-  Installation = "installation",
-  InstallationRepositories = "installation_repositories",
-  InstallationTarget = "installation_target",
-  Issues = "issues",
-  IssueComment = "issue_comment",
-  PullRequest = "pull_request",
-  PullRequestReview = "pull_request_review",
-  PullRequestReviewComment = "pull_request_review_comment",
-  PullRequestReviewThread = "pull_request_review_thread",
-  Push = "push",
-  Repository = "repository",
-  Ping = "ping",
-}
+export const GithubEventSchema = z.enum(["issues", "pull_request", "push"])
 
-// Narrow structural payload types for the few fields we access
-export type IssuesPayload = {
-  action?: string
-  label?: { name?: string }
-  repository?: { full_name?: string }
-  issue?: { number?: number }
-  sender?: { login?: string }
-}
+export type GithubEvent = z.infer<typeof GithubEventSchema>
 
-export type PullRequestPayload = {
-  action?: string
-  pull_request?: { merged?: boolean; head?: { ref?: string } }
-  repository?: { name?: string; owner?: { login?: string } }
-}
+export const IssuesPayloadSchema = z.object({
+  action: z.string(),
+  label: z.object({ name: z.string() }),
+  repository: z.object({ full_name: z.string() }),
+  issue: z.object({ number: z.number() }),
+  sender: z.object({ login: z.string() }),
+})
 
-type Event = keyof WebhookEventMap
-type Payload<E extends Event> = WebhookEventMap[E]
+export type IssuesPayload = z.infer<typeof IssuesPayloadSchema>
+
+export const PullRequestPayloadSchema = z.object({
+  action: z.string(),
+  pull_request: z.object({
+    merged: z.boolean(),
+    head: z.object({ ref: z.string() }),
+  }),
+  repository: z.object({
+    name: z.string(),
+    owner: z.object({ login: z.string() }),
+  }),
+})
+
+export type PullRequestPayload = z.infer<typeof PullRequestPayloadSchema>
+
+export type Event = keyof WebhookEventMap
+export type Payload<E extends Event> = WebhookEventMap[E]
 
 export interface WebhookHandler<E extends Event = Event> {
   /** One or more exact event names like "issues.opened", "pull_request.closed" */
@@ -45,20 +42,38 @@ export interface WebhookHandler<E extends Event = Event> {
 }
 
 export class WebhookRouter {
-  private handlers: { [K in Event]?: WebhookHandler<K>[] } = {}
+  private handlers: Partial<Record<Event, WebhookHandler[]>> = {}
 
   on<E extends Event>(event: E, handler: WebhookHandler<E>) {
-    ;(this.handlers[event] ??= [] as WebhookHandler<E>[]).push(
-      handler as WebhookHandler<E>
-    )
+    const list = (this.handlers[event] ??= []) as WebhookHandler[]
+    list.push(handler as unknown as WebhookHandler)
   }
 
   async route<E extends Event>(event: E, payload: Payload<E>) {
-    const list = (this.handlers[event] ?? []) as WebhookHandler<E>[]
-    for (const h of list) {
-      if (!h.canHandle(payload) || h.canHandle(payload)) {
+    const list = (this.handlers[event] ?? []) as WebhookHandler[]
+    let executedHandlers = 0
+    for (const h of list as WebhookHandler<E>[]) {
+      if (!h.canHandle || h.canHandle(payload)) {
         await h.handle(payload)
+        executedHandlers += 1
       }
     }
+    return executedHandlers
   }
 }
+
+const map: WebhookEventMap
+const a: WebhookEventMap["issues"] = {
+  action: "opened",
+  issue: {
+    number: 1,
+  },
+  repository: {
+    full_name: "owner/repo",
+  },
+  sender: {
+    login: "user",
+  },
+}
+
+console.log(a)
