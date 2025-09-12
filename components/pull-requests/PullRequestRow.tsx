@@ -32,12 +32,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { PullRequest } from "@/lib/types/github"
+import { PullRequest, PullRequestSingle } from "@/lib/types/github"
 
 export default function PullRequestRow({ pr }: { pr: PullRequest }) {
   const [isLoading, setIsLoading] = useState(false)
   const [activeWorkflow, setActiveWorkflow] = useState<string | null>(null)
-  const [prDetails, setPrDetails] = useState<PullRequest | null>(null)
+  const [prDetails, setPrDetails] = useState<PullRequestSingle | null>(null)
   const [tooltipOpen, setTooltipOpen] = useState<{ comments: boolean; reviewComments: boolean }>({
     comments: false,
     reviewComments: false,
@@ -65,8 +65,8 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
     }
   }, [pr.number, pr.head.repo.full_name])
 
-  const commentsCount = pr.comments ?? 0
-  const reviewCommentsCount = pr.review_comments ?? 0
+  const commentsCount = prDetails?.comments ?? 0
+  const reviewCommentsCount = prDetails?.review_comments ?? 0
 
   const hasCommentsOrReviews = commentsCount > 0 || reviewCommentsCount > 0
 
@@ -74,8 +74,7 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
     const mergeable: boolean | null | undefined = prDetails?.mergeable
     const mergeableState: string | undefined = prDetails?.mergeable_state
     if (mergeable === false) return true
-    if (mergeableState === "dirty" || mergeableState === "blocked") return true
-    return false
+    return mergeableState === "dirty"
   }, [prDetails])
 
   const canUpdateBranch = useMemo(() => {
@@ -154,13 +153,32 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
   const updateBranchWorkflow = UpdateBranchController({
     repoFullName: pr.head.repo.full_name,
     pullNumber: pr.number,
+    expectedHeadSha: pr.head.sha,
     onStart: () => {
       setIsLoading(true)
       setActiveWorkflow("Updating branch...")
     },
-    onComplete: () => {
+    onComplete: async () => {
       setIsLoading(false)
       setActiveWorkflow(null)
+      // refresh mergeability details
+      try {
+        const res = await fetch("/api/github/fetch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "pull",
+            number: pr.number,
+            fullName: pr.head.repo.full_name,
+          }),
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setPrDetails(data)
+        }
+      } catch {
+        // ignore
+      }
     },
     onError: () => {
       setIsLoading(false)
@@ -235,6 +253,7 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
                   <button
                     type="button"
                     className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
+                    aria-label={`Comments (${commentsCount})`}
                     onClick={() => showTooltipOnClick("comments")}
                   >
                     <MessageSquare className="h-4 w-4" />
@@ -248,6 +267,7 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
                   <button
                     type="button"
                     className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
+                    aria-label={`Review comments (${reviewCommentsCount})`}
                     onClick={() => showTooltipOnClick("reviewComments")}
                   >
                     <MessageSquareText className="h-4 w-4" />

@@ -707,9 +707,11 @@ export async function getLinkedIssuesForPR({
 export async function updatePullRequestBranch({
   repoFullName,
   pullNumber,
+  expectedHeadSha,
 }: {
   repoFullName: string
   pullNumber: number
+  expectedHeadSha?: string
 }) {
   const octokit = await getOctokit()
   if (!octokit) throw new Error("No octokit found")
@@ -718,18 +720,35 @@ export async function updatePullRequestBranch({
     throw new Error("Invalid repository format. Expected 'owner/repo'")
   }
 
-  const response = await withTiming(
-    `GitHub REST: pulls.update-branch ${repoFullName}#${pullNumber}`,
-    () =>
-      octokit.request(
-        "PUT /repos/{owner}/{repo}/pulls/{pull_number}/update-branch",
-        {
-          owner,
-          repo,
-          pull_number: pullNumber,
-        }
-      )
-  )
-  return response.data
+  try {
+    const response = await withTiming(
+      `GitHub REST: pulls.update-branch ${repoFullName}#${pullNumber}`,
+      () =>
+        octokit.request(
+          "PUT /repos/{owner}/{repo}/pulls/{pull_number}/update-branch",
+          {
+            owner,
+            repo,
+            pull_number: pullNumber,
+            ...(expectedHeadSha ? { expected_head_sha: expectedHeadSha } : {}),
+          }
+        )
+    )
+    return response.data
+  } catch (err) {
+    let status: number | undefined
+    let message = ""
+    if (typeof err === "object" && err !== null) {
+      status = (err as { status?: number }).status
+      const resp = (err as { response?: { data?: { message?: string } } })
+        .response
+      message = resp?.data?.message ?? ""
+    }
+    // Benign: nothing to update (GitHub may respond 422 for no-op updates)
+    if (status === 422 && /up to date|no commits between/i.test(message)) {
+      return { message }
+    }
+    throw err
+  }
 }
 

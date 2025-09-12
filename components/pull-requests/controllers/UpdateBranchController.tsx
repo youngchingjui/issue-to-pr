@@ -5,6 +5,7 @@ import { toast } from "@/lib/hooks/use-toast"
 interface Props {
   repoFullName: string
   pullNumber: number
+  expectedHeadSha?: string
   onStart: () => void
   onComplete: () => void
   onError: () => void
@@ -13,6 +14,7 @@ interface Props {
 export default function UpdateBranchController({
   repoFullName,
   pullNumber,
+  expectedHeadSha,
   onStart,
   onComplete,
   onError,
@@ -23,7 +25,7 @@ export default function UpdateBranchController({
       const response = await fetch("/api/github/pulls/update-branch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repoFullName, pullNumber }),
+        body: JSON.stringify({ repoFullName, pullNumber, expectedHeadSha }),
       })
 
       if (!response.ok) {
