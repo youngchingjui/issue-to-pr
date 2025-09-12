@@ -13,7 +13,7 @@ export const IssuesPayloadSchema = z.object({
   repository: z.object({ full_name: z.string() }),
   issue: z.object({ number: z.number() }),
   sender: z.object({ login: z.string() }),
-  installation: z.object({ id: z.number() }).optional(),
+  installation: InstallationSchema,
 })
 export type IssuesPayload = z.infer<typeof IssuesPayloadSchema>
 

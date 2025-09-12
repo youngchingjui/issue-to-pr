@@ -10,23 +10,35 @@ import {
 } from "@/lib/webhook/types"
 import { runWithInstallationId } from "@/lib/utils/utils-server"
 
-async function verifySignature(
-  signature: string,
-  payload: object,
+function verifySignature({
+  signature,
+  rawBody,
+  secret,
+}: {
+  signature: string | null
+  rawBody: string
   secret: string
-) {
+}): boolean {
+  if (!signature || !signature.startsWith("sha256=")) return false
   const hmac = crypto.createHmac("sha256", secret)
-  hmac.update(JSON.stringify(payload))
-
-  const digest = `sha256=${hmac.digest("hex")}`
-  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(digest))
+  hmac.update(rawBody, "utf8")
+  const expected = `sha256=${hmac.digest("hex")}`
+  try {
+    const sigBuf = Buffer.from(signature)
+    const expBuf = Buffer.from(expected)
+    if (sigBuf.length !== expBuf.length) return false
+    return crypto.timingSafeEqual(sigBuf, expBuf)
+  } catch {
+    return false
+  }
 }
+
+type WithInstallation = { installation?: { id?: number } }
 
 export async function POST(req: NextRequest) {
   try {
-    const signature = req.headers.get("x-hub-signature-256") as string
+    const signature = req.headers.get("x-hub-signature-256")
     const eventHeader = req.headers.get("x-github-event") as string
-    const payload = (await req.json()) as object
     const secret = process.env.GITHUB_WEBHOOK_SECRET
 
     if (!secret) {
@@ -34,10 +46,16 @@ export async function POST(req: NextRequest) {
       return new Response("Webhook secret not configured", { status: 500 })
     }
 
-    if (!verifySignature(signature, payload, secret)) {
+    // Read raw body for signature verification first
+    const rawBody = await req.text()
+
+    if (!verifySignature({ signature, rawBody, secret })) {
       console.error("[ERROR] Invalid webhook signature")
       return new Response("Invalid signature", { status: 401 })
     }
+
+    // Safe to parse after signature verification
+    const payload = JSON.parse(rawBody) as object
 
     // Validate and narrow event type
     const eventParse = GithubEventSchema.safeParse(eventHeader)
@@ -48,40 +66,27 @@ export async function POST(req: NextRequest) {
     const event = eventParse.data
 
     // Validate and narrow payload by event
-    let installationId: number | undefined
-    let parsedPayload: object
-    if (event === "issues") {
-      const r = IssuesPayloadSchema.safeParse(payload)
-      if (!r.success) {
-        console.error("[ERROR] Invalid issues payload", r.error.flatten())
-        return new Response("Invalid payload", { status: 400 })
-      }
-      parsedPayload = r.data
-      installationId = r.data.installation?.id
-    } else if (event === "pull_request") {
-      const r = PullRequestPayloadSchema.safeParse(payload)
-      if (!r.success) {
-        console.error("[ERROR] Invalid pull_request payload", r.error.flatten())
-        return new Response("Invalid payload", { status: 400 })
-      }
-      parsedPayload = r.data
-      installationId = r.data.installation?.id
-    } else {
-      const r = PushPayloadSchema.safeParse(payload)
-      if (!r.success) {
-        console.error("[ERROR] Invalid push payload", r.error.flatten())
-        return new Response("Invalid payload", { status: 400 })
-      }
-      parsedPayload = r.data
-      installationId = r.data.installation?.id
+    const schemas = {
+      issues: IssuesPayloadSchema,
+      pull_request: PullRequestPayloadSchema,
+      push: PushPayloadSchema,
+    } as const
+
+    const r = schemas[event].safeParse(payload)
+    if (!r.success) {
+      console.error(`[ERROR] Invalid ${event} payload`, r.error.flatten())
+      return new Response("Invalid payload", { status: 400 })
     }
+
+    const parsedPayload = r.data as unknown as WithInstallation
+    const installationId = parsedPayload.installation?.id
 
     if (!installationId) {
       console.error("[ERROR] No installation ID found in webhook payload")
       return new Response("No installation ID found", { status: 400 })
     }
 
-    // Route the payload to the appropriate handler
+    // Route the payload to the appropriate handler (fire-and-forget by design)
     runWithInstallationId(String(installationId), async () => {
       await routeWebhookHandler({
         event,

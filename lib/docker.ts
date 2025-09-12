@@ -226,7 +226,22 @@ export async function execInContainerWithDockerode({
 
 export async function stopAndRemoveContainer(name: string): Promise<void> {
   try {
-    await execPromise(`docker rm -f ${name}`)
+    const docker = new Docker({ socketPath: "/var/run/docker.sock" })
+    const container = docker.getContainer(name)
+
+    // Attempt to stop; ignore if not running
+    try {
+      await container.stop()
+      console.log(`Stopped container: ${name}`)
+    } catch (error: unknown) {
+      const msg = (error as { message?: string } | undefined)?.message || ""
+      if (!msg.includes("is not running")) {
+        console.warn(`Warning stopping container ${name}:`, error)
+      }
+    }
+
+    await container.remove()
+    console.log(`Removed container: ${name}`)
   } catch (e) {
     console.warn(`[WARNING] Failed to stop/remove container ${name}:`, e)
   }
@@ -267,24 +282,27 @@ export async function listRunningContainers(): Promise<RunningContainer[]> {
 
 /**
  * List container names matching a set of Docker label filters. Includes stopped containers.
+ * SECURITY: Uses dockerode API instead of shell commands to prevent injection attacks.
  */
 export async function listContainersByLabels(
   labels: Record<string, string>
 ): Promise<string[]> {
-  const filters: string[] = []
-  for (const [key, value] of Object.entries(labels)) {
-    if (value !== undefined && value !== null) {
-      filters.push(`--filter \"label=${key}=${value}\"`)
-    }
-  }
-  const cmd = ["docker ps -a", ...filters, "--format '{{.Names}}'"].join(" ")
-
   try {
-    const { stdout } = await execPromise(cmd)
-    return stdout
-      .trim()
-      .split("\n")
-      .map((s) => s.trim())
+    const docker = new Docker({ socketPath: "/var/run/docker.sock" })
+
+    const labelFilters = Object.entries(labels)
+      .filter(([, v]) => v != null)
+      .map(([k, v]) => `${k}=${v}`)
+
+    const containers = await docker.listContainers({
+      all: true,
+      filters: { label: labelFilters },
+    })
+
+    return containers
+      .map((c) => c.Names)
+      .flat()
+      .map((n) => n.replace(/^\//, ""))
       .filter(Boolean)
   } catch (error) {
     console.error("[ERROR] Failed to list containers by labels:", error)
@@ -448,3 +466,4 @@ export async function getContainerGitInfo(
     diff,
   }
 }
+

@@ -1,3 +1,3 @@
-// Deprecated: use ./webhook/router instead
-export { routeWebhookHandler } from "./webhook/router"
+// File intentionally left blank. Previous exports moved to ./webhook/router.
+// Please import from "@/lib/webhook/router" directly.
 
