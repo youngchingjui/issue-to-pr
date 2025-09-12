@@ -17,9 +17,14 @@ export function makeGetIssueUseCase({ issueReader }: GetIssueDeps) {
   return async function getIssue(
     input: GetIssueInput
   ): Promise<GetIssueOutput> {
-    if (!input?.repoFullName || !input?.number) {
+    if (
+      !input?.repoFullName ||
+      !Number.isInteger(input.number) ||
+      input.number <= 0
+    ) {
       return err("RepoNotFound")
     }
     return await issueReader.getIssue(input)
   }
 }
+

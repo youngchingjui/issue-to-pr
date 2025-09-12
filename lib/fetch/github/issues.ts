@@ -5,7 +5,6 @@ import {
   makeAccessTokenProviderFrom,
   makeSessionProvider,
 } from "@shared/providers/auth"
-import { makeOctokitProvider } from "@shared/providers/clients"
 import { makeGetIssueUseCase } from "@shared/usecases/getIssue"
 
 import { auth } from "@/auth"
@@ -23,14 +22,18 @@ export const getIssue = async (
       (s) => s?.token?.access_token as unknown as string | null | undefined
     )
 
-    // Provider: Octokit (lazy), not directly used here but ready for composition
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const _octokitProvider = makeOctokitProvider(accessTokenProvider)
+    // Ensure auth present; if not, treat as forbidden
+    let token: string
+    try {
+      token = await accessTokenProvider()
+    } catch {
+      return { type: "forbidden" }
+    }
 
     // Adapter: IssueReader using GitHub OAuth user token via provider
     const issueReader = makeIssueReaderAdapter(async () => ({
       type: "oauth_user" as const,
-      token: await accessTokenProvider(),
+      token,
     }))
 
     // Use case
@@ -63,10 +66,11 @@ export const getIssue = async (
       closed_at: d.closedAt ?? undefined,
       user: d.authorLogin ? { login: d.authorLogin } : undefined,
       repository: { full_name: d.repoFullName },
-    } as unknown as import("@/lib/types/github").GitHubIssue
+    } as import("@/lib/types/github").GitHubIssue
 
     return { type: "success", issue }
   } catch (error) {
     return { type: "other_error", error }
   }
 }
+
