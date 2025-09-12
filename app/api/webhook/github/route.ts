@@ -4,23 +4,38 @@ import { NextRequest } from "next/server"
 import { runWithInstallationId } from "@/lib/utils/utils-server"
 import { routeWebhookHandler } from "@/lib/webhook"
 
-async function verifySignature(
-  signature: string,
-  payload: object,
+function verifySignature({
+  signature,
+  rawBody,
+  secret,
+}: {
+  signature: string | null
+  rawBody: Uint8Array | Buffer
   secret: string
-) {
+}): boolean {
+  if (!signature || !signature.startsWith("sha256=")) return false
   const hmac = crypto.createHmac("sha256", secret)
-  hmac.update(JSON.stringify(payload))
-
-  const digest = `sha256=${hmac.digest("hex")}`
-  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(digest))
+  hmac.update(rawBody)
+  // Compare raw digest bytes
+  const expected = Buffer.from(hmac.digest("hex"), "hex")
+  let provided: Buffer
+  try {
+    provided = Buffer.from(signature.slice("sha256=".length), "hex")
+  } catch {
+    return false
+  }
+  if (provided.length !== expected.length) return false
+  try {
+    return crypto.timingSafeEqual(provided, expected)
+  } catch {
+    return false
+  }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const signature = req.headers.get("x-hub-signature-256") as string
-    const event = req.headers.get("x-github-event") as string
-    const payload = (await req.json()) as object
+    const signature = req.headers.get("x-hub-signature-256")
+    const event = req.headers.get("x-github-event")
     const secret = process.env.GITHUB_WEBHOOK_SECRET
 
     if (!secret) {
@@ -28,23 +43,39 @@ export async function POST(req: NextRequest) {
       return new Response("Webhook secret not configured", { status: 500 })
     }
 
-    if (!verifySignature(signature, payload, secret)) {
+    if (!event) {
+      console.error("[ERROR] Missing x-github-event header")
+      return new Response("Missing event header", { status: 400 })
+    }
+
+    // Read raw bytes for signature verification first
+    const rawBody = Buffer.from(await req.arrayBuffer())
+
+    if (!verifySignature({ signature, rawBody, secret })) {
       console.error("[ERROR] Invalid webhook signature")
       return new Response("Invalid signature", { status: 401 })
     }
 
-    const installationId = payload["installation"]["id"]
+    // Safe to parse after signature verification
+    const payload = JSON.parse(rawBody.toString("utf8")) as Record<string, unknown>
+
+    const installation = payload?.installation as Record<string, unknown> | undefined
+    const installationId = installation?.id as number | string | undefined
     if (!installationId) {
       console.error("[ERROR] No installation ID found in webhook payload")
       return new Response("No installation ID found", { status: 400 })
     }
 
     // Route the payload to the appropriate handler
-    runWithInstallationId(installationId, async () => {
-      await routeWebhookHandler({
-        event,
-        payload,
-      })
+    runWithInstallationId(String(installationId), async () => {
+      try {
+        await routeWebhookHandler({
+          event,
+          payload,
+        })
+      } catch (e) {
+        console.error("[ERROR] routeWebhookHandler threw:", e)
+      }
     })
 
     // Respond with a success status
@@ -54,3 +85,4 @@ export async function POST(req: NextRequest) {
     return new Response("Error", { status: 500 })
   }
 }
+
