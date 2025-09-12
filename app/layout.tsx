@@ -1,6 +1,7 @@
 import "./globals.css"
 import "./styles/custom.css"
 
+import { Metadata } from "next"
 import { Inter } from "next/font/google"
 import { SessionProvider } from "next-auth/react"
 
@@ -11,13 +12,10 @@ import { Toaster } from "@/components/ui/toaster"
 
 const inter = Inter({ subsets: ["latin"] })
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Issue-to-PR: Automated GitHub Issue Resolution",
   description:
     "Automatically resolve your GitHub issues and create Pull Requests using AI.",
-  icons: {
-    icon: "/favicon.svg",
-  },
 }
 
 export default async function RootLayout({
@@ -43,4 +41,3 @@ export default async function RootLayout({
     </html>
   )
 }
-

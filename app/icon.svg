@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect width="100%" height="100%" fill="white"/>
+  <circle cx="32" cy="32" r="32" fill="oklch(0.7124 0.1848 37.7682)"/>
+  <text x="50%" y="50%" dx="1%" dy="3.5%" dominant-baseline="central" text-anchor="middle" font-size="42">📝</text>
+</svg>
+
