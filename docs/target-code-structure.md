@@ -1,6 +1,6 @@
 # Target Code Structure
 
-We will slowly migrate to this structure over many commits. Each commit that moves files to their target destionation would require some amount of testing to make sure we dont' break anything, so we should do this over a series of commits and changes, gradually.
+We’ll gradually migrate to the following structure over a series of commits. Each step should include sufficient testing to ensure nothing breaks before moving on.
 
 ```
 .
@@ -11,7 +11,7 @@ We will slowly migrate to this structure over many commits. Each commit that mov
 │ │ │ ├─ api/
 │ │ │ ├─ layout.tsx
 │ │ │ └─ page.tsx
-│ │ ├─ components/ # shared UI only (no domain/infra)
+│ │ ├─ components/ # Shared UI only (no domain/infra)
 │ │ ├─ hooks/
 │ │ ├─ contracts/ # Next.js-specific contracts for boundary handling
 │ │ │ ├─ api/
@@ -53,14 +53,14 @@ We will slowly migrate to this structure over many commits. Each commit that mov
 │ ├─ entities/
 │ ├─ providers/
 │ ├─ ports/
-│ └─ usecases/ # From "/services"
+│ ├─ usecases/ # From "/services"
 │ ├─ ui/
 │ ├─ utils/
-│ ├─ contracts/ # zod DTOs/events/queue payloads
-│ ├─ config/ # runtime env parsing (zod)
+│ ├─ contracts/ # Zod DTOs/events/queue payloads
+│ ├─ config/ # Runtime env parsing (zod)
 │ └─ instrumentation/ # Langfuse/OTEL/logger init (node/edge)
 │
-├─ __tests__/ # Should match folder structure of file that it's testing, ie `__tests__/adapters/github/octokit/rest/issue.reader.test.ts`
+├─ __tests__/ # Mirrors folder structure of tested files
 │
 ├─ docs/
 │
@@ -76,102 +76,102 @@ We will slowly migrate to this structure over many commits. Each commit that mov
 └─ .env.example
 ```
 
-## Not sure where to put yet
+### Still to Decide
 
-- tailwind config (`tailwind.config.ts`)
-- eslint config (`eslint.config.js`)
-- prettierrc (`prettierrc`)
-- .env files (1 for each app or entry point, ie our main NextJS app, storybook, workers, neo4j, etc.)
+- tailwind.config.ts
+- eslint.config.js
+- .prettierrc
+- .env files (one per app/entry point: Next.js app, storybook, workers, Neo4j, etc.)
 
-## Example
+## Example Data Flow
 
-Here's an end-to-end example of what a data flow might look like, and why we separate concerns into different files / folders. I highlight some design decisions below.
+Here’s an example of how the layers work together when rendering a GitHub issue page:
 
-On /[username]/[repo]/issues/[issueId]/page.tsx, we retrieve the details of a single Github issue and display the results to the user.
+### React Server Component (RSC)
 
-### NextJS RSC
+app/[username]/[repo]/issues/[issueId]/page.tsx
 
-app/[username]/[repo]/issues/[issueId]/page.tsx:
-
-```
-'use server'
+```tsx
+"use server"
 
 const result = await getIssue(repoFullName, issueNumber)
 ```
 
-This is a React Server Component (RSC) - it can load data directly before returning the component, as per NextJS data fetching guidelines.
+- This RSC fetches data directly (per Next.js data fetching guidelines).
+- It calls a server-side fetching function, rather than an API route, because:
+- It’s faster and simpler.
+- Strong typing ensures type safety.
+- There’s no need to expose this API to external clients right now.
 
-We use a server-side data fetching function directly, instead of an API route, as it's easier / faster to write, we have strongly typed parameters and results, and we can use the same function in client components.
+API routes may still be introduced later if we need to support external consumers.
 
-API route handlers can also work, and we may consider them especially if there are external clients (not this NextJS app) that may call those routes. But currently there is no need to provide external client access, so internal server-side data fetching is sufficient.
+### Server-Side Data Fetching
 
----
+/lib/fetch/github/issues.ts
 
-### Data fetching (NextJS server-side)
-
-/lib/fetch/github/issues.ts:
-
-```
+```ts
 'use server'
 
 export const getIssue = async (repoFullName: string, issueNumber: number): Promise<GetIssueResult>
 ```
 
-We treat this border as an "orchestrator" of sorts. We gather the required adapters and inject these dependencies into the getIssue use case. This function exists on NextJS's NodeJS server runtime environment, so it has access to our `auth()` function.
+- Acts as an orchestrator: wires up adapters, providers, and dependencies, then passes them to the use case.
+- Runs in Next.js’s Node.js server runtime, so it has access to auth() and other server-only utilities.
+- Similar in concept to server actions, but reserved for read operations (GET).
+- Use server actions for mutations (POST, PUT, DELETE).
+- Only usable by RSCs.
+- For client components, use route handlers or hooks like swr.
 
-This server-side data fetching function is like a similar counterpart to server actions, but for fetching data (like `GET`). We'll reserve server actions for mutating data (like `POST`, `PUT`, `DELETE`).
-
-These server-side data fetching functions can only be used by RSCs. Client components should use route handlers or `swr` hooks.
-
-We add this layer between the RSC and the use case so we don't have to concern the RSC with importing adapters, providers, etc. The RSC can focus on the UI and front-end logic, with just a very minimal line for fetching the necessary data.
-
-Even though this could be considered a "boundary", we don't define any Zod schemas for the parameters or results here. We directly define the types for the parameters and results in the use case, and all subscribers remain typesafe.
-
-Other server-side boundaries include server actions and API route handlers.
-
----
+We don’t define Zod schemas here—the use case defines the types directly, keeping subscribers type-safe.
 
 ### Providers
 
-shared/src/providers/auth/index.ts:
+shared/src/providers/auth/auth.ts
 
-```
+```ts
 export const makeSessionProvider = (auth: () => Promise<Session>) => {}
 ```
 
-These serve to lazily supply a depency value when it's needed, mostly for adapters and sometimes memoized. For example, they provide the session tokens for `octokit` or a user's API key for `openai`.
+- Lazily supply dependencies (e.g., session tokens, API keys).
+- Often memoized, so they’re only created when needed.
+- Considered part of the infrastructure layer.
+- They may import third-party libraries.
+- Example: providing session tokens for Octokit or API keys for OpenAI.
 
-We wrap a `lazy()` helper wrapper around them so they are only instantiated and called when needed.
+### Adapters
 
-Like adapters, they also sit in the "infrastucture" layer. They can import 3rd party libraries.
+shared/src/adapters/github/octokit/rest/issue.reader.ts
 
-### Adapter
-
-shared/src/adapters/github/octokit/rest/issue.reader.ts:
-
-```
+```ts
 export function makeIssueReaderAdapter(params: {
   token: string
 }): IssueReaderPort
 ```
 
-This adapter implements the `IssueReaderPort`. It's a REST adapter, so it uses the Octokit library.
-This adapter is only concerned with the `octokit` SDK library, so it can be used by any app. It just needs an authentication token. It can also be lazily provided an authentication token.
-
-Adapaters are also the right place to identify the types of errors that can be returned from the adapter.
-
----
+    •	Implements a port (in this case, IssueReaderPort).
+    •	Concerned only with the Octokit SDK and GitHub’s REST API.
+    •	Can be reused by any app—only needs a token.
+    •	Responsible for:
+    •	Talking to third-party libraries.
+    •	Identifying possible error types returned by the external system.
 
 ### Use Case
 
-shared/src/usecases/getIssue.ts:
+shared/src/usecases/getIssue.ts
 
-```
+```ts
 export const getIssue = async (repoFullName: string, issueNumber: number): Promise<GetIssueResult>
 ```
 
-This use case only requires the `IssueReaderPort`. We import the `issueReader` adapter from the fetch file. We lazily instantiate the tokens required in the adapter as soon as the adapter is called.
+- Encapsulates domain logic and depends only on ports.
+- Imported into the fetch layer (which provides adapters/providers).
+- Lives in the shared library so it can be reused across apps.
+- Doesn’t deal with authentication or SDK specifics—that’s handled by adapters/providers.
 
-This is in the shared library, because other apps can also use this use case. This use case does not rely on app-specific dependencies, only ports. It's not concerned with auth, other implementations like Octokit, etc.
+## Summary of Design Decisions
 
----
+- RSCs → simple, UI-focused, and fetch data via server functions.
+- Server-side fetch functions → orchestrators; inject dependencies and call use cases.
+- Providers → supply dependencies (auth, API keys, sessions).
+- Adapters → handle external libraries/SDKs; implement ports.
+- Use cases → domain logic, reusable across apps, no infrastructure concerns.
