@@ -15,6 +15,7 @@ export const getIssue = async (
   issueNumber: number
 ): Promise<GetIssueResult> => {
   try {
+    // TODO: Not quite sure why we need a separate SessionProvider AND AccessTokenProvider
     // Boundary: obtain session from NextAuth on the server
     const sessionProvider = makeSessionProvider(() => auth())
     const accessTokenProvider = makeAccessTokenProviderFrom(
