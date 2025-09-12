@@ -48,7 +48,12 @@ const authenticatedNavItems = (
 
   if (isAdmin) {
     // Insert PRDs and Playground right after Workflows (index 1)
-    items.splice(1, 0, { label: "PRDs", href: "/prds" }, { label: "Playground", href: "/playground" })
+    items.splice(
+      1,
+      0,
+      { label: "PRDs", href: "/prds" },
+      { label: "Playground", href: "/playground" }
+    )
   }
 
   return items
@@ -61,7 +66,7 @@ export default function DynamicNavigation({
 }: {
   isAuthenticated: boolean
   isAdmin: boolean
-  avatarUrl?: string
+  avatarUrl: string
 }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -170,7 +175,7 @@ export default function DynamicNavigation({
             <DropdownMenuItem asChild>
               <Link href="/settings" className="flex items-center gap-2">
                 <Image
-                  src={avatarUrl || "/next.svg"}
+                  src={avatarUrl}
                   alt="Profile"
                   className="w-4 h-4 rounded-full border"
                   width={24}
@@ -227,4 +232,3 @@ export default function DynamicNavigation({
     </>
   )
 }
-
