@@ -41,7 +41,7 @@ const authenticatedNavItems = (
 ): Array<{ label: string; href: string }> => {
   const items = [
     { label: "Workflows", href: "/workflow-runs" },
-    { label: "MyRepositories", href: username ? `/${username}` : "/repositories" },
+    { label: "Repositories", href: "/repositories" },
     { label: "Issues", href: "/issues" },
     { label: "Kanban", href: "/kanban" },
     { label: "Contribute", href: "/contribute" },
@@ -178,7 +178,7 @@ export default function DynamicNavigation({
             <DropdownMenuItem asChild>
               <Link href="/settings" className="flex items-center gap-2">
                 <Image
-                  src={avatarUrl}
+                  src={avatarUrl || "/avatar.svg"}
                   alt="Profile"
                   className="w-4 h-4 rounded-full border"
                   width={24}
@@ -235,3 +235,4 @@ export default function DynamicNavigation({
     </>
   )
 }
+
