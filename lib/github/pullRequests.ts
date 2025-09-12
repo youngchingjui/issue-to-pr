@@ -68,12 +68,14 @@ export async function createPullRequest({
   title,
   body,
   issueNumber,
+  baseRefName = "main",
 }: {
   repoFullName: string
   branch: string
   title: string
   body: string
   issueNumber?: number
+  baseRefName?: string
 }) {
   const [owner, repo] = repoFullName.split("/")
   if (!owner || !repo) {
@@ -125,7 +127,7 @@ export async function createPullRequest({
   const variables = {
     input: {
       repositoryId,
-      baseRefName: "main",
+      baseRefName: baseRefName,
       headRefName: branch,
       title,
       body: fullBody,
@@ -134,7 +136,7 @@ export async function createPullRequest({
   }
 
   const response = await withTiming(
-    `GitHub GraphQL: createPullRequest ${repoFullName} ${branch}`,
+    `GitHub GraphQL: createPullRequest(base=${baseRefName}) ${repoFullName} ${branch}`,
     () => graphqlWithAuth<CreatePRGraphQLResponse>(createPRMutation, variables)
   )
 

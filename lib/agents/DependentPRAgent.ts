@@ -2,7 +2,7 @@ import { ResponsesAPIAgent } from "@/lib/agents/base"
 import { createBranchTool } from "@/lib/tools/Branch"
 import { createCommitTool } from "@/lib/tools/Commit"
 import { createContainerExecTool } from "@/lib/tools/ContainerExecTool"
-import { createCreateDependentPRTool } from "@/lib/tools/CreateDependentPRTool"
+import { createCreatePRTool } from "@/lib/tools/CreatePRTool"
 import { createFileCheckTool } from "@/lib/tools/FileCheckTool"
 import { createGetFileContentTool } from "@/lib/tools/GetFileContent"
 import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
@@ -10,7 +10,7 @@ import { createSetupRepoTool } from "@/lib/tools/SetupRepoTool"
 import { createSyncBranchTool } from "@/lib/tools/SyncBranchTool"
 import { createWriteFileContentTool } from "@/lib/tools/WriteFileContent"
 import { AgentConstructorParams, RepoEnvironment } from "@/lib/types"
-import { repoFullNameSchema } from "@/lib/types/github"
+import { GitHubRepository, repoFullNameSchema } from "@/lib/types/github"
 
 const DEVELOPER_PROMPT = `
 You are a senior software engineer focused on follow-up changes for an existing pull request.
@@ -37,10 +37,10 @@ Required end state
 export interface DependentPRAgentParams extends AgentConstructorParams {
   env: RepoEnvironment
   defaultBranch: string
-  /** Full repository name (e.g. owner/repo) */
-  repoFullName: string
-  /** The base ref name the PR must target (the repository's default branch) */
-  baseRefName: string
+  /** GitHub repository metadata */
+  repository?: GitHubRepository
+  /** Issue number that the dependent PR should close (if any) */
+  issueNumber?: number
   /** GitHub token with push permissions (for SyncBranchTool) */
   sessionToken?: string
   jobId?: string
@@ -51,8 +51,8 @@ export class DependentPRAgent extends ResponsesAPIAgent {
     const {
       env,
       defaultBranch,
-      repoFullName,
-      baseRefName,
+      repository,
+      issueNumber,
       sessionToken,
       jobId,
       ...base
@@ -84,12 +84,14 @@ export class DependentPRAgent extends ResponsesAPIAgent {
 
     // Remote tools
     try {
-      const repo = repoFullNameSchema.parse(repoFullName)
-      if (sessionToken) {
-        this.addTool(createSyncBranchTool(repo, env, sessionToken))
+      if (repository) {
+        const repo = repoFullNameSchema.parse(repository.full_name)
+        if (sessionToken) {
+          this.addTool(createSyncBranchTool(repo, env, sessionToken))
+        }
+        // Use the original Create PR tool so that the underlying issue is appended automatically.
+        this.addTool(createCreatePRTool(repository, issueNumber))
       }
-      // Always attach the dependent PR creation tool; it doesn't require the token directly
-      this.addTool(createCreateDependentPRTool(repo.fullName, baseRefName))
     } catch (err) {
       console.warn(
         "DependentPRAgent: Failed to attach remote tools – invalid repo info:",
