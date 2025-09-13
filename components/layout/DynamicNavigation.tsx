@@ -36,7 +36,8 @@ const landingNavItems = [
 
 // Shared navigation items for authenticated users
 const authenticatedNavItems = (
-  isAdmin: boolean
+  isAdmin: boolean,
+  username?: string
 ): Array<{ label: string; href: string }> => {
   const items = [
     { label: "Workflows", href: "/workflow-runs" },
@@ -63,10 +64,12 @@ export default function DynamicNavigation({
   isAuthenticated,
   isAdmin,
   avatarUrl,
+  username,
 }: {
   isAuthenticated: boolean
   isAdmin: boolean
-  avatarUrl: string
+  avatarUrl?: string
+  username?: string
 }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -145,7 +148,7 @@ export default function DynamicNavigation({
   }
 
   if (isAuthenticated) {
-    const navItems = authenticatedNavItems(isAdmin)
+    const navItems = authenticatedNavItems(isAdmin, username)
 
     const handleSignOut = async () => {
       await signOut({ redirect: false })
@@ -175,7 +178,7 @@ export default function DynamicNavigation({
             <DropdownMenuItem asChild>
               <Link href="/settings" className="flex items-center gap-2">
                 <Image
-                  src={avatarUrl}
+                  src={avatarUrl || "/avatar.svg"}
                   alt="Profile"
                   className="w-4 h-4 rounded-full border"
                   width={24}
@@ -232,3 +235,4 @@ export default function DynamicNavigation({
     </>
   )
 }
+

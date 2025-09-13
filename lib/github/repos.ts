@@ -6,6 +6,7 @@ import {
   getUserOctokit,
 } from "@/lib/github"
 import { AuthenticatedUserRepository } from "@/lib/types/github"
+import { combineRepositories, getUserRepositories } from "@/lib/github/content"
 
 /**
  * Returns a deduplicated list of repositories that the current user can access **and**
@@ -65,6 +66,37 @@ export async function listUserAppRepositories(): Promise<
   return Array.from(uniqueReposMap.values())
 }
 
+/**
+ * Helper for the user profile page: returns the UNION of
+ *  - repositories owned by the target username (public + what the API exposes)
+ *  - repositories that have our GitHub App installed AND are owned by the target username
+ *
+ * This avoids surfacing app-installed repositories owned by other users/orgs
+ * when viewing a specific user's profile.
+ */
+export async function listUserOwnedAndAppInstalledRepositories(
+  username: string
+): Promise<AuthenticatedUserRepository[]> {
+  // Fetch repos owned by the target username
+  const owned = await getUserRepositories(username, {
+    type: "owner",
+    sort: "updated",
+    direction: "desc",
+    per_page: 100,
+    page: 1,
+  })
+
+  // Fetch app-installed repos for the current authenticated user and
+  // narrow them down to those owned by the target username
+  const appRepos = await listUserAppRepositories()
+  const appOwnedByTarget = appRepos.filter(
+    (r) => r.owner?.login?.toLowerCase?.() === username.toLowerCase()
+  )
+
+  // Combine and dedupe by id
+  return combineRepositories(owned.repositories, appOwnedByTarget)
+}
+
 export async function getInstallationFromRepo({
   owner,
   repo,
@@ -84,3 +116,4 @@ export async function getInstallationFromRepo({
 
   return result
 }
+
