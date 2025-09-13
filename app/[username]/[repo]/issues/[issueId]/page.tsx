@@ -1,12 +1,13 @@
 import { ChevronLeft } from "lucide-react"
 import Link from "next/link"
+import { notFound } from "next/navigation"
 import { Suspense } from "react"
 
 import IssueDetailsWrapper from "@/components/issues/IssueDetailsWrapper"
 import IssueWorkflowRuns from "@/components/issues/IssueWorkflowRuns"
 import TableSkeleton from "@/components/layout/TableSkeleton"
 import { Button } from "@/components/ui/button"
-import { getIssue } from "@/lib/github/issues"
+import { getIssue } from "@/lib/fetch/github/issues"
 import { listWorkflowRuns } from "@/lib/neo4j/services/workflow"
 
 interface Props {
@@ -21,30 +22,18 @@ export default async function IssueDetailsPage({ params }: Props) {
   const { username, repo, issueId } = params
   const repoFullName = `${username}/${repo}`
   const issueNumber = Number.parseInt(issueId, 10)
+  if (
+    !Number.isFinite(issueNumber) ||
+    Number.isNaN(issueNumber) ||
+    issueNumber <= 0
+  ) {
+    return notFound()
+  }
 
-  const result = await getIssue({
-    fullName: repoFullName,
-    issueNumber,
-  })
+  const result = await getIssue(repoFullName, issueNumber)
 
   if (result.type === "not_found") {
-    return (
-      <main className="container mx-auto p-4">
-        <div className="flex flex-col gap-4 max-w-2xl mx-auto items-center justify-center py-10">
-          <h2 className="text-2xl font-bold text-red-500">Issue not found</h2>
-          <p>
-            The issue you are looking for does not exist. It may have been
-            deleted, or the link is incorrect.
-          </p>
-          <Link href={`/${username}/${repo}/issues`}>
-            <Button variant="secondary">
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              Back to Issues
-            </Button>
-          </Link>
-        </div>
-      </main>
-    )
+    return notFound()
   }
   if (result.type === "forbidden") {
     return (
