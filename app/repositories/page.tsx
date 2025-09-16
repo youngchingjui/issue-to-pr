@@ -1,6 +1,7 @@
+import Link from "next/link"
+
 import RepositoryList from "@/components/RepositoryList"
 import { listUserAppRepositories } from "@/lib/github/repos"
-import Link from "next/link"
 
 export const dynamic = "force-dynamic"
 
@@ -49,4 +50,3 @@ export default async function RepositoriesPage({
     </main>
   )
 }
-
