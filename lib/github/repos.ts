@@ -5,8 +5,8 @@ import {
   getUserInstallations,
   getUserOctokit,
 } from "@/lib/github"
-import { AuthenticatedUserRepository } from "@/lib/types/github"
 import { combineRepositories, getUserRepositories } from "@/lib/github/content"
+import { AuthenticatedUserRepository } from "@/lib/types/github"
 
 /**
  * Returns a deduplicated list of repositories that the current user can access **and**
@@ -116,4 +116,3 @@ export async function getInstallationFromRepo({
 
   return result
 }
-

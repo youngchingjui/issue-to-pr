@@ -1,10 +1,12 @@
+import Image from "next/image"
+import Link from "next/link"
+
 import RepositoryList from "@/components/RepositoryList"
+import getOctokit from "@/lib/github"
 import { GitHubError } from "@/lib/github/content"
 import { listUserOwnedAndAppInstalledRepositories } from "@/lib/github/repos"
-import getOctokit from "@/lib/github"
 import { getGithubUser } from "@/lib/github/users"
 import { AuthenticatedUserRepository } from "@/lib/types/github"
-import Link from "next/link"
 
 export const dynamic = "force-dynamic"
 
@@ -66,15 +68,18 @@ export default async function Repositories({
         <div className="z-10 w-full max-w-5xl space-y-6 font-mono text-sm">
           <div className="flex items-center gap-4">
             {profile?.avatar_url && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <Image
                 src={profile.avatar_url}
                 alt={`${profile.login || params.username} avatar`}
                 className="w-12 h-12 rounded-full border"
+                width={48}
+                height={48}
               />
             )}
             <div>
-              <h1 className="text-2xl font-bold">{profile?.name || params.username}</h1>
+              <h1 className="text-2xl font-bold">
+                {profile?.name || params.username}
+              </h1>
               {profile?.login && (
                 <div className="text-stone-600">@{profile.login}</div>
               )}
@@ -113,4 +118,3 @@ export default async function Repositories({
     throw new Error("Failed to fetch repositories")
   }
 }
-
