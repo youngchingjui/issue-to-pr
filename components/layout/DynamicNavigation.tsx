@@ -41,7 +41,11 @@ const authenticatedNavItems = (
 ): Array<{ label: string; href: string }> => {
   const items = [
     { label: "Workflows", href: "/workflow-runs" },
-    { label: "Repositories", href: "/repositories" },
+    // Link to the authenticated user's profile page as requested in #1239
+    {
+      label: "MyRepositories",
+      href: username ? `/${username}` : "/repositories",
+    },
     { label: "Issues", href: "/issues" },
     { label: "Kanban", href: "/kanban" },
     { label: "Contribute", href: "/contribute" },

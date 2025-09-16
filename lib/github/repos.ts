@@ -88,9 +88,16 @@ export async function listUserOwnedAndAppInstalledRepositories(
 
   // Fetch app-installed repos for the current authenticated user and
   // narrow them down to those owned by the target username
-  const appRepos = await listUserAppRepositories()
+  let appRepos: AuthenticatedUserRepository[] = []
+  try {
+    appRepos = await listUserAppRepositories()
+  } catch {
+    // Likely unauthenticated; proceed with owned-only
+    appRepos = []
+  }
+  const target = username.toLowerCase()
   const appOwnedByTarget = appRepos.filter(
-    (r) => r.owner?.login?.toLowerCase?.() === username.toLowerCase()
+    (r) => r.owner?.login?.toLowerCase() === target
   )
 
   // Combine and dedupe by id
@@ -116,3 +123,4 @@ export async function getInstallationFromRepo({
 
   return result
 }
+
