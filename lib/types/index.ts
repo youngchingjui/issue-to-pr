@@ -225,6 +225,18 @@ export const settingsSchema = z.object({
   // Add more user-specific settings here as needed
 })
 
+// Global/app-level settings
+export const globalSettingsSchema = z.object({
+  demoOpenAIApiKey: z
+    .string()
+    .optional()
+    .describe(
+      "Shared/demo OpenAI API key used as a fallback for users with 'demo' role."
+    ),
+  lastUpdated: z.date().optional(),
+})
+export type GlobalSettings = z.infer<typeof globalSettingsSchema>
+
 // ---- Repo-level Settings Schema ----
 export const environmentEnum = z
   .enum(["typescript", "python"])
@@ -319,3 +331,5 @@ export type WorkflowRun = z.infer<typeof workflowRunSchema>
 export type WorkflowRunState = z.infer<typeof workflowRunStateSchema>
 export type WorkflowStateEvent = z.infer<typeof workflowStateEventSchema>
 export type WorkflowType = z.infer<typeof workflowTypeEnum>
+export type GlobalSettings = z.infer<typeof globalSettingsSchema>
+
