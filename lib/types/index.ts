@@ -14,11 +14,31 @@ export interface Tool<Schema extends ZodType, Output> {
   handler: (params: z.input<Schema>) => Promise<Output> | Output
 }
 
+// ---- Repo Environment Type ----
+// Represents where repository operations are executed – either directly on the host
+// file-system or inside a named Docker container (optionally with a different mount path).
+export type RepoEnvironment =
+  | { kind: "host"; root: string }
+  | { kind: "container"; name: string; mount?: string }
+
+/**
+ * Helper to normalize legacy baseDir string to RepoEnvironment
+ */
+export function asRepoEnvironment(
+  arg: string | RepoEnvironment
+): RepoEnvironment {
+  return typeof arg === "string"
+    ? { kind: "host", root: arg } // auto-wrap legacy baseDir
+    : arg
+}
+
 // Agents
 export type AgentConstructorParams = {
   model?: ChatModel
   systemPrompt?: string
   apiKey?: string
+  /** Optional execution environment (host or container) associated with this agent */
+  env?: RepoEnvironment
 }
 
 // Issues
@@ -274,24 +294,6 @@ export const blogPostSchema = z.object({
   summary: z.string().optional(),
 })
 
-// ---- Repo Environment Type ----
-// Represents where repository operations are executed – either directly on the host
-// file-system or inside a named Docker container (optionally with a different mount path).
-export type RepoEnvironment =
-  | { kind: "host"; root: string }
-  | { kind: "container"; name: string; mount?: string }
-
-/**
- * Helper to normalize legacy baseDir string to RepoEnvironment
- */
-export function asRepoEnvironment(
-  arg: string | RepoEnvironment
-): RepoEnvironment {
-  return typeof arg === "string"
-    ? { kind: "host", root: arg } // auto-wrap legacy baseDir
-    : arg
-}
-
 // Type exports
 export type AnyEvent = z.infer<typeof anyEventSchema>
 export type BaseEvent = z.infer<typeof baseEventSchema>
@@ -319,3 +321,4 @@ export type WorkflowRun = z.infer<typeof workflowRunSchema>
 export type WorkflowRunState = z.infer<typeof workflowRunStateSchema>
 export type WorkflowStateEvent = z.infer<typeof workflowStateEventSchema>
 export type WorkflowType = z.infer<typeof workflowTypeEnum>
+
