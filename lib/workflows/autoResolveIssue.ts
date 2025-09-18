@@ -8,11 +8,6 @@ import { getInstallationTokenFromRepo } from "@/lib/github/installation"
 import { getIssueComments } from "@/lib/github/issues"
 import { checkRepoPermissions } from "@/lib/github/users"
 import { langfuse } from "@/lib/langfuse"
-import {
-  createErrorEvent,
-  createStatusEvent,
-  createWorkflowStateEvent,
-} from "@/lib/neo4j/services/event"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
 import { RepoEnvironment } from "@/lib/types"
 import { GitHubIssue, GitHubRepository } from "@/lib/types/github"
@@ -61,7 +56,7 @@ export const autoResolveIssue = async (
     throw new Error("Authentication required")
   }
 
-  const { user: login, token } = authResult.value
+  const { user: login } = authResult.value
   const apiKeyResult = await settings.getOpenAIKey(login.githubLogin)
   if (!apiKeyResult.ok || !apiKeyResult.value) {
     pub.workflow.error("No API key provided and no user settings found")
@@ -82,22 +77,18 @@ export const autoResolveIssue = async (
       postToGithub: true,
     })
 
-    await createWorkflowStateEvent({ workflowId, state: "running" })
-
-    await createStatusEvent({
-      workflowId,
-      content: `Starting auto resolve workflow for issue #${issue.number}`,
-    })
+    pub.workflow.started(
+      `Starting auto resolve workflow for issue #${issue.number}`
+    )
 
     const { canPush, canCreatePR } = await checkRepoPermissions(
       repository.full_name
     )
 
     if (!canCreatePR || !canPush) {
-      await createStatusEvent({
-        workflowId,
-        content: `[WARNING]: Insufficient permissions to push code changes or create PR\nCan push?: ${canPush}\nCan create PR?: ${canCreatePR}`,
-      })
+      pub.status(
+        `[WARNING]: Insufficient permissions to push code changes or create PR\nCan push?: ${canPush}\nCan create PR?: ${canCreatePR}`
+      )
     }
 
     // Decide the working branch first so we can set labels and network aliases on the container
@@ -106,10 +97,7 @@ export const autoResolveIssue = async (
 
     if (branch && branch.trim().length > 0) {
       workingBranch = branch.trim()
-      await createStatusEvent({
-        workflowId,
-        content: `Using provided branch: ${workingBranch}`,
-      })
+      pub.status(`Using provided branch: ${workingBranch}`)
     } else {
       try {
         // TODO: This is super messy.
@@ -127,17 +115,13 @@ export const autoResolveIssue = async (
           { owner, repo, context, prefix: "feature" }
         )
         workingBranch = generated
-        await createStatusEvent({
-          workflowId,
-          content: `Using working branch: ${generated}`,
-        })
+        pub.status(`Using working branch: ${generated}`)
       } catch (e) {
-        await createStatusEvent({
-          workflowId,
-          content: `[WARNING]: Failed to generate non-conflicting branch name, falling back to default branch ${repository.default_branch}. Error: ${String(
+        pub.status(
+          `[WARNING]: Failed to generate non-conflicting branch name, falling back to default branch ${repository.default_branch}. Error: ${String(
             e
-          )}`,
-        })
+          )}`
+        )
         workingBranch = repository.default_branch
       }
     }
@@ -212,22 +196,18 @@ export const autoResolveIssue = async (
       })
     }
 
-    await createStatusEvent({ workflowId, content: "Running agent" })
+    pub.status("Running agent")
 
     const result = await agent.runWithFunctions()
 
-    await createWorkflowStateEvent({ workflowId, state: "completed" })
+    pub.workflow.completed("AutoResolve workflow completed")
 
     return result
   } catch (error) {
-    await createErrorEvent({ workflowId, content: String(error) })
-    await createWorkflowStateEvent({
-      workflowId,
-      state: "error",
-      content: String(error),
-    })
+    pub.workflow.error(String(error))
     throw error
   }
 }
 
 export default autoResolveIssue
+
