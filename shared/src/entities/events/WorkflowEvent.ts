@@ -6,10 +6,14 @@ export type WorkflowEventType =
   | "workflow.started"
   | "workflow.completed"
   | "workflow.error"
+  | "workflow.state" // generic workflow state update
   | "status"
   | "issue.fetched"
   | "llm.started"
   | "llm.completed"
+  | "tool.call"
+  | "tool.result"
+  | "reasoning"
 
 export interface WorkflowEvent {
   type: WorkflowEventType
@@ -20,6 +24,8 @@ export interface WorkflowEvent {
   content?: string
   /**
    * Optional structured metadata, small and serializable.
+   * For tool events, include identifiers like toolName/toolCallId/args.
+   * For workflow.state, include `state` (running|completed|error|timedOut).
    */
   metadata?: Record<string, unknown>
 }

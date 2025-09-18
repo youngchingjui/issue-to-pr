@@ -1,4 +1,7 @@
+import type { MessageEvent } from "@shared/entities/events/MessageEvent"
 import type { WorkflowEvent } from "@shared/entities/events/WorkflowEvent"
+
+export type AnyEvent = WorkflowEvent | MessageEvent
 
 /**
  * Port for emitting workflow events to an event bus.
@@ -7,7 +10,7 @@ import type { WorkflowEvent } from "@shared/entities/events/WorkflowEvent"
  */
 export interface EventBusPort {
   /**
-   * Publish a workflow event to the event stream for the given workflowId.
+   * Publish an event (workflow or message) to the event stream for the given workflowId.
    */
-  publish(workflowId: string, event: WorkflowEvent): Promise<void>
+  publish(workflowId: string, event: AnyEvent): Promise<void>
 }

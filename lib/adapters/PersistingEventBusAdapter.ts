@@ -1,11 +1,17 @@
 import { EventBusAdapter } from "@shared/adapters/ioredis/EventBusAdapter"
+import type { MessageEvent } from "@shared/entities/events/MessageEvent"
 import type { WorkflowEvent } from "@shared/entities/events/WorkflowEvent"
 import type { EventBusPort } from "@shared/ports/events/eventBus"
 
 import {
   createErrorEvent,
   createLLMResponseEvent,
+  createReasoningEvent,
   createStatusEvent,
+  createSystemPromptEvent,
+  createToolCallEvent,
+  createToolCallResultEvent,
+  createUserResponseEvent,
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
 
@@ -20,7 +26,10 @@ export class PersistingEventBusAdapter implements EventBusPort {
     this.bus = redisUrl ? new EventBusAdapter(redisUrl) : undefined
   }
 
-  async publish(workflowId: string, event: WorkflowEvent): Promise<void> {
+  async publish(
+    workflowId: string,
+    event: WorkflowEvent | MessageEvent
+  ): Promise<void> {
     // Fire-and-forget publish to the bus if configured
     if (this.bus) {
       this.bus.publish(workflowId, event).catch(() => {})
@@ -33,9 +42,10 @@ export class PersistingEventBusAdapter implements EventBusPort {
 
 async function persistToNeo4j(
   workflowId: string,
-  event: WorkflowEvent
+  event: WorkflowEvent | MessageEvent
 ): Promise<void> {
   const content = event.content ?? undefined
+  const metadata = event.metadata
 
   switch (event.type) {
     case "workflow.started": {
@@ -59,6 +69,18 @@ async function persistToNeo4j(
       return
     }
 
+    case "workflow.state": {
+      const state =
+        (metadata?.["state"] as
+          | "running"
+          | "completed"
+          | "error"
+          | "timedOut"
+          | undefined) ?? "running"
+      await createWorkflowStateEvent({ workflowId, state, content })
+      return
+    }
+
     case "status": {
       if (content) await createStatusEvent({ workflowId, content })
       return
@@ -74,12 +96,65 @@ async function persistToNeo4j(
     }
 
     case "llm.completed": {
-      if (content) {
-        const model = (event.metadata?.model as string) || undefined
-        await createLLMResponseEvent({ workflowId, content, model })
-      } else {
-        await createStatusEvent({ workflowId, content: "LLM completed" })
-      }
+      await createStatusEvent({
+        workflowId,
+        content: content ?? "LLM completed",
+      })
+      return
+    }
+
+    // Message events
+    case "system_prompt": {
+      if (!content) return
+      await createSystemPromptEvent({ workflowId, content })
+      return
+    }
+
+    case "user_message": {
+      if (!content) return
+      await createUserResponseEvent({ workflowId, content })
+      return
+    }
+
+    case "assistant_message": {
+      if (!content) return
+      await createLLMResponseEvent({
+        workflowId,
+        content,
+        model: (metadata?.["model"] as string) || undefined,
+      })
+      return
+    }
+
+    case "tool.call": {
+      const toolName = (metadata?.["toolName"] as string) || "unknown"
+      const toolCallId = (metadata?.["toolCallId"] as string) || ""
+      const args = JSON.stringify(metadata?.["args"] || {})
+      await createToolCallEvent({
+        workflowId,
+        toolName,
+        toolCallId,
+        args,
+      })
+      return
+    }
+
+    case "tool.result": {
+      const toolName = (metadata?.["toolName"] as string) || "unknown"
+      const toolCallId = (metadata?.["toolCallId"] as string) || ""
+      await createToolCallResultEvent({
+        workflowId,
+        toolName,
+        toolCallId,
+        content: content ?? "",
+      })
+      return
+    }
+
+    case "reasoning": {
+      // prefer metadata.summary if provided, else use content
+      const summary = (metadata?.["summary"] as string) || content || ""
+      await createReasoningEvent({ workflowId, summary })
       return
     }
 
