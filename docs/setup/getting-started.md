@@ -82,6 +82,11 @@ UPSTASH_REDIS_REST_TOKEN=your_redis_token
 
 # OpenAI (optional for development)
 OPENAI_API_KEY=your_openai_key
+
+# Optional: Global LLM rate limit (calls per minute)
+# Set to a number to enable, or leave unset to disable.
+# This applies across web server and worker processes.
+LLM_CALLS_PER_MINUTE=30
 ```
 
 1. Configure GitHub App:
@@ -116,3 +121,4 @@ pnpm dev
 - [Authentication Setup](../guides/authentication.md)
 - [AI Integration](../guides/ai-integration.md)
 - [Architecture Overview](../guides/architecture.md)
+
