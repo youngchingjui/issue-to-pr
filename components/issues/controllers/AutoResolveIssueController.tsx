@@ -1,5 +1,6 @@
 "use client"
 
+import { autoResolveIssueAction } from "@/lib/actions/workflows/autoResolveIssue"
 import { toast } from "@/lib/hooks/use-toast"
 
 interface Props {
@@ -22,15 +23,14 @@ export default function AutoResolveIssueController({
   const execute = async () => {
     try {
       onStart()
-      const response = await fetch("/api/workflow/autoResolveIssue", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ issueNumber, repoFullName, branch }),
+      const result = await autoResolveIssueAction({
+        issueNumber,
+        repoFullName,
+        branch,
       })
 
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || "Failed to run workflow")
+      if (result.status !== "success") {
+        throw new Error(result.message || "Failed to run workflow")
       }
 
       toast({
