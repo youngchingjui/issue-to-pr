@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 
 import { auth } from "@/auth"
 import MicrophoneRecordingDraft from "@/components/playground/MicrophoneRecordingDraft"
+import TestEventBusCard from "@/components/playground/TestEventBusCard"
 import CreatedPullRequestCard from "@/components/pull-requests/CreatedPullRequestCard"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -122,6 +123,7 @@ export default async function ComponentsLibraryPage() {
         <h2 className="text-lg font-semibold">Use Cases</h2>
         <div className="grid gap-4">
           <ResolveIssueCard />
+          <TestEventBusCard />
         </div>
       </section>
 
@@ -134,3 +136,4 @@ export default async function ComponentsLibraryPage() {
     </div>
   )
 }
+
