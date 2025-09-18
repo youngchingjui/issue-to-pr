@@ -30,4 +30,3 @@ export class EventBusAdapter implements EventBusPort {
     )
   }
 }
-

@@ -42,4 +42,3 @@ export async function testEventInfrastructure(
   await delay(100)
   pub.workflow.completed("Test event workflow completed successfully")
 }
-

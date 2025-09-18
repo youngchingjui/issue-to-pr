@@ -1,5 +1,5 @@
-import type { WorkflowEvent } from "@shared/entities/events/WorkflowEvent"
 import type { MessageEvent } from "@shared/entities/events/MessageEvent"
+import type { WorkflowEvent } from "@shared/entities/events/WorkflowEvent"
 
 export type AnyEvent = WorkflowEvent | MessageEvent
 
@@ -14,4 +14,3 @@ export interface EventBusPort {
    */
   publish(workflowId: string, event: AnyEvent): Promise<void>
 }
-

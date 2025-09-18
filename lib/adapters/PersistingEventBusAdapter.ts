@@ -1,6 +1,6 @@
 import { EventBusAdapter } from "@shared/adapters/ioredis/EventBusAdapter"
-import type { WorkflowEvent } from "@shared/entities/events/WorkflowEvent"
 import type { MessageEvent } from "@shared/entities/events/MessageEvent"
+import type { WorkflowEvent } from "@shared/entities/events/WorkflowEvent"
 import type { EventBusPort } from "@shared/ports/events/eventBus"
 
 import {
@@ -168,4 +168,3 @@ async function persistToNeo4j(
 }
 
 export default PersistingEventBusAdapter
-

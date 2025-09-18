@@ -1,11 +1,11 @@
 import type {
-  WorkflowEvent,
-  WorkflowEventType,
-} from "@shared/entities/events/WorkflowEvent"
-import type {
   MessageEvent,
   MessageEventType,
 } from "@shared/entities/events/MessageEvent"
+import type {
+  WorkflowEvent,
+  WorkflowEventType,
+} from "@shared/entities/events/WorkflowEvent"
 import type { EventBusPort } from "@shared/ports/events/eventBus"
 
 type Metadata = Record<string, unknown> | undefined
@@ -102,4 +102,3 @@ export function createWorkflowEventPublisher(
 export type WorkflowEventPublisher = ReturnType<
   typeof createWorkflowEventPublisher
 >
-

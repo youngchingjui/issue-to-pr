@@ -19,4 +19,3 @@ export interface MessageEvent {
    */
   metadata?: Record<string, unknown>
 }
-
