@@ -5,7 +5,12 @@ import type { EventBusPort } from "@shared/ports/events/eventBus"
 import {
   createErrorEvent,
   createLLMResponseEvent,
+  createReasoningEvent,
   createStatusEvent,
+  createSystemPromptEvent,
+  createToolCallEvent,
+  createToolCallResultEvent,
+  createUserResponseEvent,
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
 
@@ -59,6 +64,17 @@ async function persistToNeo4j(
       return
     }
 
+    case "workflow.state": {
+      const state = (event.metadata?.state as
+        | "running"
+        | "completed"
+        | "error"
+        | "timedOut"
+        | undefined) ?? "running"
+      await createWorkflowStateEvent({ workflowId, state, content })
+      return
+    }
+
     case "status": {
       if (content) await createStatusEvent({ workflowId, content })
       return
@@ -83,6 +99,60 @@ async function persistToNeo4j(
       return
     }
 
+    case "llm.response": {
+      if (!content) return
+      await createLLMResponseEvent({
+        workflowId,
+        content,
+        model: (event.metadata?.model as string) || undefined,
+      })
+      return
+    }
+
+    case "system.prompt": {
+      if (!content) return
+      await createSystemPromptEvent({ workflowId, content })
+      return
+    }
+
+    case "user.message": {
+      if (!content) return
+      await createUserResponseEvent({ workflowId, content })
+      return
+    }
+
+    case "tool.call": {
+      const toolName = (event.metadata?.toolName as string) || "unknown"
+      const toolCallId = (event.metadata?.toolCallId as string) || ""
+      const args = (event.metadata?.args as string) || "{}"
+      await createToolCallEvent({
+        workflowId,
+        toolName,
+        toolCallId,
+        args,
+      })
+      return
+    }
+
+    case "tool.result": {
+      const toolName = (event.metadata?.toolName as string) || "unknown"
+      const toolCallId = (event.metadata?.toolCallId as string) || ""
+      await createToolCallResultEvent({
+        workflowId,
+        toolName,
+        toolCallId,
+        content: content ?? "",
+      })
+      return
+    }
+
+    case "reasoning": {
+      // prefer metadata.summary if provided, else use content
+      const summary = (event.metadata?.summary as string) || content || ""
+      await createReasoningEvent({ workflowId, summary })
+      return
+    }
+
     default: {
       // Unknown event type; store as status for debugging
       if (content) await createStatusEvent({ workflowId, content })
@@ -91,3 +161,4 @@ async function persistToNeo4j(
 }
 
 export default PersistingEventBusAdapter
+

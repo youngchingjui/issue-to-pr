@@ -30,13 +30,27 @@ export async function testEventInfrastructure(
   pub.workflow.started("Test event workflow started")
   pub.status("Initializing test steps…")
 
-  // Mock a short-running LLM step
+  // Simulate the kinds of events produced by autoResolveIssue and the agent
+  pub.message.systemPrompt("You are a helpful coding agent")
+  pub.message.userMessage("Resolve the bug described in issue #123")
+
+  pub.reasoning("Analyzing repository structure and selecting approach…")
+
+  pub.tool.call("ripgrep", "call-1", JSON.stringify({ query: "TODO:" }))
+  await delay(100)
+  pub.tool.result(
+    "ripgrep",
+    "call-1",
+    JSON.stringify({ matches: ["lib/utils.ts:12: // TODO"] })
+  )
+
   pub.llm.started("Mock LLM: generating response")
   await delay(150)
   pub.status("Mock LLM is thinking…")
   await delay(150)
-  pub.llm.completed(
-    "Here is a mocked LLM response that represents an assistant output for testing."
+  pub.llm.response(
+    "Here is a mocked LLM response that represents an assistant output for testing.",
+    "gpt-5"
   )
 
   pub.status("Finalizing…")
@@ -51,3 +65,4 @@ function delay(ms: number) {
 }
 
 export default testEventInfrastructure
+
