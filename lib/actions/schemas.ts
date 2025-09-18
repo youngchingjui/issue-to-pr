@@ -144,3 +144,36 @@ export const createDependentPRResultSchema = z.discriminatedUnion("status", [
 export type CreateDependentPRResult = z.infer<
   typeof createDependentPRResultSchema
 >
+
+// =================================================
+// Auto Resolve Issue Action
+// =================================================
+
+export const autoResolveIssueRequestSchema = z.object({
+  repoFullName: z.string().min(1),
+  issueNumber: z.number().int().positive(),
+  branch: z.string().min(1).optional(),
+  jobId: z.string().optional(),
+})
+export type AutoResolveIssueRequest = z.infer<
+  typeof autoResolveIssueRequestSchema
+>
+
+const autoResolveIssueSuccessSchema = z.object({
+  status: z.literal("success"),
+  jobId: z.string().min(1),
+})
+
+const autoResolveIssueErrorSchema = z.object({
+  status: z.literal("error"),
+  code: z.enum(["INVALID_INPUT", "UNKNOWN"]),
+  message: z.string().min(1),
+})
+
+export const autoResolveIssueResultSchema = z.discriminatedUnion("status", [
+  autoResolveIssueSuccessSchema,
+  autoResolveIssueErrorSchema,
+])
+export type AutoResolveIssueResult = z.infer<
+  typeof autoResolveIssueResultSchema
+>
