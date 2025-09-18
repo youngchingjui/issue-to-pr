@@ -1,5 +1,6 @@
 import { EventBusAdapter } from "@shared/adapters/ioredis/EventBusAdapter"
 import type { WorkflowEvent } from "@shared/entities/events/WorkflowEvent"
+import type { MessageEvent } from "@shared/entities/events/MessageEvent"
 import type { EventBusPort } from "@shared/ports/events/eventBus"
 
 import {
@@ -25,7 +26,10 @@ export class PersistingEventBusAdapter implements EventBusPort {
     this.bus = redisUrl ? new EventBusAdapter(redisUrl) : undefined
   }
 
-  async publish(workflowId: string, event: WorkflowEvent): Promise<void> {
+  async publish(
+    workflowId: string,
+    event: WorkflowEvent | MessageEvent
+  ): Promise<void> {
     // Fire-and-forget publish to the bus if configured
     if (this.bus) {
       this.bus.publish(workflowId, event).catch(() => {})
@@ -38,9 +42,10 @@ export class PersistingEventBusAdapter implements EventBusPort {
 
 async function persistToNeo4j(
   workflowId: string,
-  event: WorkflowEvent
+  event: WorkflowEvent | MessageEvent
 ): Promise<void> {
   const content = event.content ?? undefined
+  const metadata = event.metadata as Record<string, unknown> | undefined
 
   switch (event.type) {
     case "workflow.started": {
@@ -66,7 +71,7 @@ async function persistToNeo4j(
 
     case "workflow.state": {
       const state =
-        (event.metadata?.state as
+        (metadata?.["state"] as
           | "running"
           | "completed"
           | "error"
@@ -92,7 +97,7 @@ async function persistToNeo4j(
 
     case "llm.completed": {
       if (content) {
-        const model = (event.metadata?.model as string) || undefined
+        const model = (metadata?.["model"] as string) || undefined
         await createLLMResponseEvent({ workflowId, content, model })
       } else {
         await createStatusEvent({ workflowId, content: "LLM completed" })
@@ -100,32 +105,33 @@ async function persistToNeo4j(
       return
     }
 
-    case "llm.response": {
-      if (!content) return
-      await createLLMResponseEvent({
-        workflowId,
-        content,
-        model: (event.metadata?.model as string) || undefined,
-      })
-      return
-    }
-
-    case "system.prompt": {
+    // Message events
+    case "system_prompt": {
       if (!content) return
       await createSystemPromptEvent({ workflowId, content })
       return
     }
 
-    case "user.message": {
+    case "user_message": {
       if (!content) return
       await createUserResponseEvent({ workflowId, content })
       return
     }
 
+    case "assistant_message": {
+      if (!content) return
+      await createLLMResponseEvent({
+        workflowId,
+        content,
+        model: (metadata?.["model"] as string) || undefined,
+      })
+      return
+    }
+
     case "tool.call": {
-      const toolName = (event.metadata?.toolName as string) || "unknown"
-      const toolCallId = (event.metadata?.toolCallId as string) || ""
-      const args = (event.metadata?.args as string) || "{}"
+      const toolName = (metadata?.["toolName"] as string) || "unknown"
+      const toolCallId = (metadata?.["toolCallId"] as string) || ""
+      const args = (metadata?.["args"] as string) || "{}"
       await createToolCallEvent({
         workflowId,
         toolName,
@@ -136,8 +142,8 @@ async function persistToNeo4j(
     }
 
     case "tool.result": {
-      const toolName = (event.metadata?.toolName as string) || "unknown"
-      const toolCallId = (event.metadata?.toolCallId as string) || ""
+      const toolName = (metadata?.["toolName"] as string) || "unknown"
+      const toolCallId = (metadata?.["toolCallId"] as string) || ""
       await createToolCallResultEvent({
         workflowId,
         toolName,
@@ -149,7 +155,7 @@ async function persistToNeo4j(
 
     case "reasoning": {
       // prefer metadata.summary if provided, else use content
-      const summary = (event.metadata?.summary as string) || content || ""
+      const summary = (metadata?.["summary"] as string) || content || ""
       await createReasoningEvent({ workflowId, summary })
       return
     }
@@ -162,3 +168,4 @@ async function persistToNeo4j(
 }
 
 export default PersistingEventBusAdapter
+

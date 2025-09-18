@@ -11,10 +11,6 @@ export type WorkflowEventType =
   | "issue.fetched"
   | "llm.started"
   | "llm.completed"
-  // Events commonly emitted by autoResolveIssue and underlying agents
-  | "system.prompt"
-  | "user.message"
-  | "llm.response"
   | "tool.call"
   | "tool.result"
   | "reasoning"
@@ -29,8 +25,8 @@ export interface WorkflowEvent {
   /**
    * Optional structured metadata, small and serializable.
    * For tool events, include identifiers like toolName/toolCallId/args.
-   * For llm.response, include model under `model` when available.
    * For workflow.state, include `state` (running|completed|error|timedOut).
    */
   metadata?: Record<string, unknown>
 }
+

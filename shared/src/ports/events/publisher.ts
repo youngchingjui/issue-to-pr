@@ -2,26 +2,33 @@ import type {
   WorkflowEvent,
   WorkflowEventType,
 } from "@shared/entities/events/WorkflowEvent"
+import type {
+  MessageEvent,
+  MessageEventType,
+} from "@shared/entities/events/MessageEvent"
 import type { EventBusPort } from "@shared/ports/events/eventBus"
 
 type Metadata = Record<string, unknown> | undefined
+
+type AnyEvent = WorkflowEvent | MessageEvent
+type AnyEventType = WorkflowEventType | MessageEventType
 
 export function createWorkflowEventPublisher(
   eventBus?: EventBusPort,
   workflowId?: string
 ) {
   const safePublish = (
-    type: WorkflowEventType,
+    type: AnyEventType,
     content?: string,
     metadata?: Metadata
   ) => {
     if (!eventBus || !workflowId) return
-    const event: WorkflowEvent = {
+    const event: AnyEvent = {
       type,
       timestamp: new Date().toISOString(),
-      content,
-      metadata,
-    }
+      ...(content !== undefined ? { content } : {}),
+      ...(metadata ? { metadata } : {}),
+    } as AnyEvent
     void eventBus.publish(workflowId, event).catch(() => {})
   }
 
@@ -47,17 +54,21 @@ export function createWorkflowEventPublisher(
     },
     message: {
       systemPrompt: (content: string, metadata?: Metadata) =>
-        safePublish("system.prompt", content, metadata),
+        safePublish("system_prompt", content, metadata),
       userMessage: (content: string, metadata?: Metadata) =>
-        safePublish("user.message", content, metadata),
+        safePublish("user_message", content, metadata),
+      assistantMessage: (content: string, model?: string) =>
+        safePublish(
+          "assistant_message",
+          content,
+          model ? { model } : undefined
+        ),
     },
     llm: {
       started: (content?: string, metadata?: Metadata) =>
         safePublish("llm.started", content, metadata),
       completed: (content?: string, metadata?: Metadata) =>
         safePublish("llm.completed", content, metadata),
-      response: (content: string, model?: string) =>
-        safePublish("llm.response", content, model ? { model } : undefined),
     },
     tool: {
       call: (
@@ -91,3 +102,4 @@ export function createWorkflowEventPublisher(
 export type WorkflowEventPublisher = ReturnType<
   typeof createWorkflowEventPublisher
 >
+
