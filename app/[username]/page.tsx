@@ -2,9 +2,9 @@ import Image from "next/image"
 import Link from "next/link"
 
 import RepositoryList from "@/components/RepositoryList"
+import { getUserOctokit } from "@/lib/github"
 import { GitHubError } from "@/lib/github/content"
 import { listUserOwnedAndAppInstalledRepositories } from "@/lib/github/repos"
-import { getUserOctokit } from "@/lib/github"
 import { getGithubUser } from "@/lib/github/users"
 import { AuthenticatedUserRepository } from "@/lib/types/github"
 
@@ -27,11 +27,10 @@ export default async function Repositories({
   const installUrl = `https://github.com/apps/${appSlug}/installations/new`
 
   // Parse and clamp page request
-  const requestedPage =
-    Math.max(
-      1,
-      Number.parseInt(String(searchParams?.page ?? "1"), 10) || 1
-    )
+  const requestedPage = Math.max(
+    1,
+    Number.parseInt(String(searchParams?.page ?? "1"), 10) || 1
+  )
 
   try {
     // Basic profile info for the target username
@@ -101,8 +100,7 @@ export default async function Repositories({
             username={params.username}
           />
 
-          {authUser?.login?.toLowerCase() ===
-            params.username.toLowerCase() && (
+          {authUser?.login?.toLowerCase() === params.username.toLowerCase() && (
             <div className="pt-4">
               <Link
                 href={installUrl}
@@ -126,4 +124,3 @@ export default async function Repositories({
     throw new Error("Failed to fetch repositories")
   }
 }
-

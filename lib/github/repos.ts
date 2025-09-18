@@ -123,4 +123,3 @@ export async function getInstallationFromRepo({
 
   return result
 }
-

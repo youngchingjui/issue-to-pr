@@ -37,11 +37,10 @@ export default async function RepositoriesPage({
   }
 
   const maxPage = Math.max(1, Math.ceil(allRepos.length / perPage))
-  const requestedPage =
-    Math.max(
-      1,
-      Number.parseInt(String(searchParams?.page ?? "1"), 10) || 1
-    )
+  const requestedPage = Math.max(
+    1,
+    Number.parseInt(String(searchParams?.page ?? "1"), 10) || 1
+  )
   const currentPage = Math.min(requestedPage, maxPage)
   const start = (currentPage - 1) * perPage
   const end = start + perPage
@@ -73,4 +72,3 @@ export default async function RepositoriesPage({
     </main>
   )
 }
-
