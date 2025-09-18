@@ -177,4 +177,3 @@ export const autoResolveIssueResultSchema = z.discriminatedUnion("status", [
 export type AutoResolveIssueResult = z.infer<
   typeof autoResolveIssueResultSchema
 >
-
