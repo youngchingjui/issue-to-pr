@@ -6,10 +6,9 @@
  * event bus is fully implemented in our clean architecture and integrated
  * across real workflows.
  */
-import { v4 as uuidv4 } from "uuid"
-
 import type { EventBusPort } from "@shared/ports/events/eventBus"
 import { createWorkflowEventPublisher } from "@shared/ports/events/publisher"
+import { v4 as uuidv4 } from "uuid"
 
 export interface TestEventInfrastructureParams {
   /** Optional workflow id for emitting events; a new one will be generated if omitted */
@@ -52,4 +51,3 @@ function delay(ms: number) {
 }
 
 export default testEventInfrastructure
-

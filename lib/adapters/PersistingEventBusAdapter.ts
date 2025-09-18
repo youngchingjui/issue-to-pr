@@ -1,6 +1,6 @@
+import { EventBusAdapter } from "@shared/adapters/ioredis/EventBusAdapter"
 import type { WorkflowEvent } from "@shared/entities/events/WorkflowEvent"
 import type { EventBusPort } from "@shared/ports/events/eventBus"
-import { EventBusAdapter } from "@shared/adapters/ioredis/EventBusAdapter"
 
 import {
   createErrorEvent,
@@ -51,7 +51,10 @@ async function persistToNeo4j(
     }
 
     case "workflow.error": {
-      await createErrorEvent({ workflowId, content: content ?? "Unknown error" })
+      await createErrorEvent({
+        workflowId,
+        content: content ?? "Unknown error",
+      })
       await createWorkflowStateEvent({ workflowId, state: "error" })
       return
     }
@@ -88,4 +91,3 @@ async function persistToNeo4j(
 }
 
 export default PersistingEventBusAdapter
-

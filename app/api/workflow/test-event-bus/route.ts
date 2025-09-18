@@ -1,9 +1,9 @@
+import { testEventInfrastructure } from "@shared/usecases/workflows/testEventInfrastructure"
 import { NextResponse } from "next/server"
 import { v4 as uuidv4 } from "uuid"
 
 import PersistingEventBusAdapter from "@/lib/adapters/PersistingEventBusAdapter"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
-import { testEventInfrastructure } from "@shared/usecases/workflows/testEventInfrastructure"
 
 export const dynamic = "force-dynamic"
 
@@ -18,15 +18,14 @@ export async function POST() {
     const eventBus = new PersistingEventBusAdapter(redisUrl)
 
     // Fire the test workflow; it will emit events via the event bus
-    await testEventInfrastructure(
-      { eventBus },
-      { workflowId }
-    )
+    await testEventInfrastructure({ eventBus }, { workflowId })
 
     return NextResponse.json({ workflowId })
   } catch (err) {
     console.error("Error starting test event workflow:", err)
-    return NextResponse.json({ error: "Failed to start workflow" }, { status: 500 })
+    return NextResponse.json(
+      { error: "Failed to start workflow" },
+      { status: 500 }
+    )
   }
 }
-

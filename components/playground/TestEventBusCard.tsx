@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -32,9 +32,9 @@ export function TestEventBusCard() {
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Launches a simple workflow that emits events through the Event Bus
-          and persists them to Neo4j. Use this to validate end-to-end event
-          flow and UI rendering.
+          Launches a simple workflow that emits events through the Event Bus and
+          persists them to Neo4j. Use this to validate end-to-end event flow and
+          UI rendering.
         </p>
         <Button onClick={handleRun} disabled={isLoading} className="w-full">
           {isLoading ? "Running…" : "Run Test Workflow"}
@@ -45,4 +45,3 @@ export function TestEventBusCard() {
 }
 
 export default TestEventBusCard
-
