@@ -40,7 +40,9 @@ export default async function RepositoryList({
               >
                 Issues
               </Link>
-              <span className="text-stone-300" aria-hidden="true">|</span>
+              <span className="text-stone-300" aria-hidden="true">
+                |
+              </span>
               <Link
                 href={`/${repo.full_name}/pullRequests`}
                 className="text-stone-700 hover:underline"
@@ -68,4 +70,3 @@ export default async function RepositoryList({
     </ul>
   )
 }
-
