@@ -1,9 +1,9 @@
 import { err, ok, type Result } from "@shared/entities/result"
+import type { AutoResolveAgentPort } from "@shared/ports/agents/autoResolve"
 import type { AuthReaderPort } from "@shared/ports/auth/reader"
 import type { EventBusPort } from "@shared/ports/events/eventBus"
 import { createWorkflowEventPublisher } from "@shared/ports/events/publisher"
 import type { SettingsReaderPort } from "@shared/ports/repositories/settings.reader"
-import type { AutoResolveAgentPort } from "@shared/ports/agents/autoResolve"
 
 export interface AutoResolveIssueParams {
   /** Repository full name (e.g., "owner/repo") */
@@ -86,4 +86,3 @@ export async function autoResolveIssue<ResultT = unknown>(
     return err("UNKNOWN")
   }
 }
-

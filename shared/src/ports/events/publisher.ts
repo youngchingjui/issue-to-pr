@@ -7,11 +7,7 @@ import type { EventBusPort } from "@shared/ports/events/eventBus"
 type Metadata = Record<string, unknown> | undefined
 
 export interface WorkflowEventPublisherShape {
-  emit: (
-    type: WorkflowEventType,
-    content?: string,
-    metadata?: Metadata
-  ) => void
+  emit: (type: WorkflowEventType, content?: string, metadata?: Metadata) => void
   workflow: {
     started: (content: string, metadata?: Metadata) => void
     completed: (content?: string, metadata?: Metadata) => void
@@ -108,4 +104,3 @@ export function createWorkflowEventPublisher(
 }
 
 export type WorkflowEventPublisher = WorkflowEventPublisherShape
-
