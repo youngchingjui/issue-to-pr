@@ -751,4 +751,3 @@ export async function updatePullRequestBranch({
     throw err
   }
 }
-

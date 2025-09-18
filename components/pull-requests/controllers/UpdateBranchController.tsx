@@ -45,7 +45,9 @@ export default function UpdateBranchController({
       toast({
         title: "Update branch failed",
         description:
-          error instanceof Error ? error.message : "An unexpected error occurred",
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred",
         variant: "destructive",
       })
       onError()
@@ -55,4 +57,3 @@ export default function UpdateBranchController({
 
   return { execute }
 }
-

@@ -38,7 +38,10 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
   const [isLoading, setIsLoading] = useState(false)
   const [activeWorkflow, setActiveWorkflow] = useState<string | null>(null)
   const [prDetails, setPrDetails] = useState<PullRequestSingle | null>(null)
-  const [tooltipOpen, setTooltipOpen] = useState<{ comments: boolean; reviewComments: boolean }>({
+  const [tooltipOpen, setTooltipOpen] = useState<{
+    comments: boolean
+    reviewComments: boolean
+  }>({
     comments: false,
     reviewComments: false,
   })
@@ -50,7 +53,11 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
         const res = await fetch("/api/github/fetch", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ type: "pull", number: pr.number, fullName: pr.head.repo.full_name }),
+          body: JSON.stringify({
+            type: "pull",
+            number: pr.number,
+            fullName: pr.head.repo.full_name,
+          }),
         })
         if (!res.ok) return
         const data = await res.json()
@@ -248,7 +255,12 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
             />
             {/* Info icons */}
             <TooltipProvider>
-              <Tooltip open={tooltipOpen.comments} onOpenChange={(o) => setTooltipOpen((p) => ({ ...p, comments: o }))}>
+              <Tooltip
+                open={tooltipOpen.comments}
+                onOpenChange={(o) =>
+                  setTooltipOpen((p) => ({ ...p, comments: o }))
+                }
+              >
                 <TooltipTrigger asChild>
                   <button
                     type="button"
@@ -262,7 +274,12 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
                 </TooltipTrigger>
                 <TooltipContent>Comments</TooltipContent>
               </Tooltip>
-              <Tooltip open={tooltipOpen.reviewComments} onOpenChange={(o) => setTooltipOpen((p) => ({ ...p, reviewComments: o }))}>
+              <Tooltip
+                open={tooltipOpen.reviewComments}
+                onOpenChange={(o) =>
+                  setTooltipOpen((p) => ({ ...p, reviewComments: o }))
+                }
+              >
                 <TooltipTrigger asChild>
                   <button
                     type="button"
@@ -289,7 +306,9 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
               onClick={updateBranchWorkflow.execute}
               disabled={isLoading}
             >
-              {activeWorkflow === "Updating branch..." ? "Updating..." : "Update branch"}
+              {activeWorkflow === "Updating branch..."
+                ? "Updating..."
+                : "Update branch"}
             </Button>
           )}
           {hasConflicts && (
@@ -299,7 +318,9 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
               onClick={resolveConflictsWorkflow.execute}
               disabled={isLoading}
             >
-              {activeWorkflow === "Resolving conflicts..." ? "Resolving..." : "Auto resolve conflicts"}
+              {activeWorkflow === "Resolving conflicts..."
+                ? "Resolving..."
+                : "Auto resolve conflicts"}
             </Button>
           )}
           {hasCommentsOrReviews && (
@@ -379,4 +400,3 @@ export default function PullRequestRow({ pr }: { pr: PullRequest }) {
     </TableRow>
   )
 }
-

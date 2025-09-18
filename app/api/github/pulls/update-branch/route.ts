@@ -38,7 +38,9 @@ export async function POST(req: Request) {
       )
     }
     console.error("Failed to update branch:", err)
-    return NextResponse.json({ error: "Failed to update branch" }, { status: 500 })
+    return NextResponse.json(
+      { error: "Failed to update branch" },
+      { status: 500 }
+    )
   }
 }
-
