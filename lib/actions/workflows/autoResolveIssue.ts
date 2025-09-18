@@ -1,34 +1,54 @@
-import { NextRequest, NextResponse } from "next/server"
+"use server"
+
 import { v4 as uuidv4 } from "uuid"
-import { z } from "zod"
 
 import { nextAuthReader } from "@/lib/adapters/auth/AuthReader"
 import { getRepoFromString } from "@/lib/github/content"
 import { getIssue } from "@/lib/github/issues"
 import { neo4jDs } from "@/lib/neo4j"
 import * as userRepo from "@/lib/neo4j/repositories/user"
-import { AutoResolveIssueRequestSchema } from "@/lib/schemas/api"
-import autoResolveIssue from "@/lib/workflows/autoResolveIssue"
+import { autoResolveIssue } from "@/lib/workflows/autoResolveIssue"
 import { EventBusAdapter } from "@/shared/src/adapters/ioredis/EventBusAdapter"
 import { makeSettingsReaderAdapter } from "@/shared/src/adapters/neo4j/repositories/SettingsReaderAdapter"
 
-export async function POST(request: NextRequest) {
+import {
+  type AutoResolveIssueRequest,
+  autoResolveIssueRequestSchema,
+  type AutoResolveIssueResult,
+} from "../schemas"
+
+// Overload for typed usage
+export async function autoResolveIssueAction(
+  input: AutoResolveIssueRequest
+): Promise<AutoResolveIssueResult>
+// Accept unknown at boundary and validate
+export async function autoResolveIssueAction(
+  input: unknown
+): Promise<AutoResolveIssueResult>
+export async function autoResolveIssueAction(
+  input: unknown
+): Promise<AutoResolveIssueResult> {
   try {
     // =================================================
     // Step 1: Parse inputs
     // =================================================
-    const body = await request.json()
-    const { issueNumber, repoFullName, branch } =
-      AutoResolveIssueRequestSchema.parse(body)
+    const parsed = autoResolveIssueRequestSchema.safeParse(input)
+    if (!parsed.success) {
+      return {
+        status: "error",
+        code: "INVALID_INPUT",
+        message: parsed.error.message,
+      }
+    }
+    const { issueNumber, repoFullName, branch, jobId } = parsed.data
 
-    const jobId = uuidv4()
+    const effectiveJobId = jobId || uuidv4()
 
     const redisUrl = process.env.REDIS_URL
 
     // =================================================
     // Step 2: Prepare adapters
     // =================================================
-
     const settingsAdapter = makeSettingsReaderAdapter({
       getSession: () => neo4jDs.getSession(),
       userRepo: userRepo,
@@ -37,8 +57,9 @@ export async function POST(request: NextRequest) {
     const authAdapter = nextAuthReader
 
     const eventBus = redisUrl ? new EventBusAdapter(redisUrl) : undefined
+
     // =================================================
-    // Step 3: Launch the background job
+    // Step 3: Launch the background job (fire-and-forget)
     // =================================================
 
     ;(async () => {
@@ -57,7 +78,7 @@ export async function POST(request: NextRequest) {
           {
             issue: issueResult.issue,
             repository: repo,
-            jobId,
+            jobId: effectiveJobId,
             branch,
           },
           {
@@ -67,7 +88,7 @@ export async function POST(request: NextRequest) {
           }
         )
       } catch (error) {
-        console.error(error)
+        console.error("[autoResolveIssueAction] background run failed:", error)
       }
     })()
 
@@ -75,18 +96,13 @@ export async function POST(request: NextRequest) {
     // Step 4: Return the job ID
     // =================================================
 
-    return NextResponse.json({ jobId })
+    return { status: "success", jobId: effectiveJobId }
   } catch (error) {
-    console.error("Error processing request:", error)
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Invalid request data", details: error.errors },
-        { status: 400 }
-      )
+    console.error("[autoResolveIssueAction] Error:", error)
+    return {
+      status: "error",
+      code: "UNKNOWN",
+      message: "Failed to process request",
     }
-    return NextResponse.json(
-      { error: "Failed to process request" },
-      { status: 500 }
-    )
   }
 }

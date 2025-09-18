@@ -78,10 +78,3 @@ export const ResolveRequestSchema = z.object({
   installCommand: z.string().optional(),
   planId: z.string().optional(),
 })
-
-export const AutoResolveIssueRequestSchema = z.object({
-  issueNumber: z.number(),
-  repoFullName: z.string().min(1),
-  branch: z.string().min(1).optional(),
-})
-
