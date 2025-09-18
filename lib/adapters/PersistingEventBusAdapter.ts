@@ -65,12 +65,13 @@ async function persistToNeo4j(
     }
 
     case "workflow.state": {
-      const state = (event.metadata?.state as
-        | "running"
-        | "completed"
-        | "error"
-        | "timedOut"
-        | undefined) ?? "running"
+      const state =
+        (event.metadata?.state as
+          | "running"
+          | "completed"
+          | "error"
+          | "timedOut"
+          | undefined) ?? "running"
       await createWorkflowStateEvent({ workflowId, state, content })
       return
     }
@@ -161,4 +162,3 @@ async function persistToNeo4j(
 }
 
 export default PersistingEventBusAdapter
-

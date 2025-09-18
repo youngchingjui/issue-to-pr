@@ -65,4 +65,3 @@ function delay(ms: number) {
 }
 
 export default testEventInfrastructure
-
