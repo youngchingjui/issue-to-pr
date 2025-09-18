@@ -36,15 +36,14 @@ const landingNavItems = [
 
 // Shared navigation items for authenticated users
 const authenticatedNavItems = (
-  isAdmin: boolean,
-  username?: string
+  isAdmin: boolean
 ): Array<{ label: string; href: string }> => {
   const items = [
     { label: "Workflows", href: "/workflow-runs" },
     // Link to the authenticated user's profile page as requested in #1239
     {
-      label: "MyRepositories",
-      href: username ? `/${username}` : "/repositories",
+      label: "My Repositories",
+      href: "/repositories",
     },
     { label: "Issues", href: "/issues" },
     { label: "Kanban", href: "/kanban" },
@@ -68,12 +67,10 @@ export default function DynamicNavigation({
   isAuthenticated,
   isAdmin,
   avatarUrl,
-  username,
 }: {
   isAuthenticated: boolean
   isAdmin: boolean
   avatarUrl?: string
-  username?: string
 }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -152,7 +149,7 @@ export default function DynamicNavigation({
   }
 
   if (isAuthenticated) {
-    const navItems = authenticatedNavItems(isAdmin, username)
+    const navItems = authenticatedNavItems(isAdmin)
 
     const handleSignOut = async () => {
       await signOut({ redirect: false })
@@ -239,4 +236,3 @@ export default function DynamicNavigation({
     </>
   )
 }
-
