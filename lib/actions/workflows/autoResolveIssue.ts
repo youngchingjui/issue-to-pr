@@ -8,7 +8,7 @@ import { getIssue } from "@/lib/github/issues"
 import { neo4jDs } from "@/lib/neo4j"
 import * as userRepo from "@/lib/neo4j/repositories/user"
 import { autoResolveIssue } from "@/lib/workflows/autoResolveIssue"
-import { EventBusAdapter } from "@/shared/src/adapters/ioredis/EventBusAdapter"
+import { PersistingEventBusAdapter } from "@/lib/adapters/PersistingEventBusAdapter"
 import { makeSettingsReaderAdapter } from "@/shared/src/adapters/neo4j/repositories/SettingsReaderAdapter"
 
 import {
@@ -56,7 +56,9 @@ export async function autoResolveIssueAction(
 
     const authAdapter = nextAuthReader
 
-    const eventBus = redisUrl ? new EventBusAdapter(redisUrl) : undefined
+    const eventBus = redisUrl
+      ? new PersistingEventBusAdapter(redisUrl)
+      : undefined
 
     // =================================================
     // Step 3: Launch the background job (fire-and-forget)
@@ -106,3 +108,4 @@ export async function autoResolveIssueAction(
     }
   }
 }
+
