@@ -45,7 +45,7 @@ async function persistToNeo4j(
   event: WorkflowEvent | MessageEvent
 ): Promise<void> {
   const content = event.content ?? undefined
-  const metadata = event.metadata as Record<string, unknown> | undefined
+  const metadata = event.metadata
 
   switch (event.type) {
     case "workflow.started": {
@@ -96,12 +96,10 @@ async function persistToNeo4j(
     }
 
     case "llm.completed": {
-      if (content) {
-        const model = (metadata?.["model"] as string) || undefined
-        await createLLMResponseEvent({ workflowId, content, model })
-      } else {
-        await createStatusEvent({ workflowId, content: "LLM completed" })
-      }
+      await createStatusEvent({
+        workflowId,
+        content: content ?? "LLM completed",
+      })
       return
     }
 
@@ -131,7 +129,7 @@ async function persistToNeo4j(
     case "tool.call": {
       const toolName = (metadata?.["toolName"] as string) || "unknown"
       const toolCallId = (metadata?.["toolCallId"] as string) || ""
-      const args = (metadata?.["args"] as string) || "{}"
+      const args = JSON.stringify(metadata?.["args"] || {})
       await createToolCallEvent({
         workflowId,
         toolName,
