@@ -6,7 +6,7 @@ export interface EventRepository {
    * Implementation should set createdAt in the persistence layer.
    */
   createStatus(
-    ev: { id: string; content: string },
+    ev: { id: string; content: string; createdAt?: Date },
     tx: TxContext
   ): Promise<void>
 
