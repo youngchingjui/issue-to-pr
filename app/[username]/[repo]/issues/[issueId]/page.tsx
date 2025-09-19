@@ -8,6 +8,7 @@ import IssueWorkflowRuns from "@/components/issues/IssueWorkflowRuns"
 import TableSkeleton from "@/components/layout/TableSkeleton"
 import { Button } from "@/components/ui/button"
 import { getIssue } from "@/lib/fetch/github/issues"
+import { getIssueRequirements } from "@/lib/neo4j/services/issue"
 import { listWorkflowRuns } from "@/lib/neo4j/services/workflow"
 
 interface Props {
@@ -82,6 +83,10 @@ export default async function IssueDetailsPage({ params }: Props) {
   // Success path: Render issue details
   const issue = result.issue
   const runs = await listWorkflowRuns({ repoFullName, issueNumber })
+  const requirements = await getIssueRequirements({
+    repoFullName,
+    issueNumber,
+  })
 
   return (
     <main className="container mx-auto p-4">
@@ -102,7 +107,7 @@ export default async function IssueDetailsPage({ params }: Props) {
           </h1>
         </div>
         <Suspense fallback={<TableSkeleton />}>
-          <IssueDetailsWrapper issue={issue} />
+          <IssueDetailsWrapper issue={issue} requirements={requirements ?? undefined} />
         </Suspense>
 
         <Suspense fallback={<TableSkeleton />}>
@@ -116,3 +121,4 @@ export default async function IssueDetailsPage({ params }: Props) {
     </main>
   )
 }
+

@@ -4,6 +4,8 @@ import { makeIssueWriterAdapter } from "@shared/adapters/github/octokit/rest/iss
 import { createIssueForRepo } from "@shared/services/github/issues"
 
 import { auth } from "@/auth"
+import { getChatCompletion } from "@/lib/openai"
+import { upsertIssueRequirements } from "@/lib/neo4j/services/issue"
 
 import {
   CreateIssueActionParams,
@@ -44,6 +46,36 @@ export async function createIssueAction(
   const res = await createIssueForRepo(githubAdapter, parsed.data)
 
   if (res.ok) {
+    // Fire-and-forget: generate requirements markdown and store in Neo4j
+    const { owner, repo, body } = parsed.data
+    const repoFullName = `${owner}/${repo}`
+    const issueNumber = res.value.number
+
+    if (body && body.trim()) {
+      ;(async () => {
+        try {
+          if (!process.env.OPENAI_API_KEY) return
+          const systemPrompt =
+            "You extract clear, concise, testable software requirements."
+          const userPrompt = `Rewrite the following issue description as a bullet list of concrete requirements.\n\nRules:\n- Use markdown bullets (\"-\") only\n- Be specific and actionable\n- No preamble or epilogue, just the list\n\nDescription:\n${body}`
+          const requirements = await getChatCompletion({
+            systemPrompt,
+            userPrompt,
+          })
+
+          if (requirements && requirements.trim()) {
+            await upsertIssueRequirements({
+              repoFullName,
+              issueNumber,
+              requirements: requirements.trim(),
+            })
+          }
+        } catch (err) {
+          console.error("Failed to generate/store requirements:", err)
+        }
+      })()
+    }
+
     return {
       status: "success",
       issueUrl: res.value.url,
@@ -54,3 +86,4 @@ export async function createIssueAction(
   // Return only machine-readable code and optional details; UI will map to copy
   return { status: "error", code: res.error, message: res.error }
 }
+
