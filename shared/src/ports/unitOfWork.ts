@@ -1,4 +1,4 @@
-import type { EventRepository } from "./repositories/event.writer"
+import type { EventRepository } from "@shared/ports/repositories/event.writer"
 
 export interface TxContext {
   eventRepo: EventRepository

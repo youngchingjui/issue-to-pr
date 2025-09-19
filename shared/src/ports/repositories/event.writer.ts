@@ -1,4 +1,4 @@
-import type { TxContext } from "../unitOfWork"
+import type { TxContext } from "@shared/ports/unitOfWork"
 
 export interface EventRepository {
   /**
