@@ -77,7 +77,7 @@ export function createWorkflowEventPublisher(
         args: string,
         metadata?: Metadata
       ) =>
-        safePublish("tool.call", undefined, {
+        safePublish("tool_call", undefined, {
           toolName,
           toolCallId,
           args,
@@ -89,7 +89,7 @@ export function createWorkflowEventPublisher(
         content: string,
         metadata?: Metadata
       ) =>
-        safePublish("tool.result", content, {
+        safePublish("tool_call_result", content, {
           toolName,
           toolCallId,
           ...(metadata || {}),

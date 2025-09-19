@@ -11,9 +11,6 @@ export type WorkflowEventType =
   | "issue.fetched"
   | "llm.started"
   | "llm.completed"
-  | "tool.call"
-  | "tool.result"
-  | "reasoning"
 
 export interface WorkflowEvent {
   type: WorkflowEventType

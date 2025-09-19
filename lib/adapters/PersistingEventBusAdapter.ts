@@ -138,7 +138,7 @@ export class PersistingEventBusAdapter implements EventBusPort {
         return
       }
 
-      case "tool.call": {
+      case "tool_call": {
         const toolName = (metadata?.["toolName"] as string) || "unknown"
         const toolCallId = (metadata?.["toolCallId"] as string) || ""
         const args = JSON.stringify(metadata?.["args"] || {})
@@ -151,7 +151,7 @@ export class PersistingEventBusAdapter implements EventBusPort {
         return
       }
 
-      case "tool.result": {
+      case "tool_call_result": {
         const toolName = (metadata?.["toolName"] as string) || "unknown"
         const toolCallId = (metadata?.["toolCallId"] as string) || ""
         await createToolCallResultEvent({
