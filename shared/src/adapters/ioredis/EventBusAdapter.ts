@@ -1,4 +1,5 @@
 import { getRedisConnection } from "@shared/adapters/ioredis/client"
+import { ensureTimestamp } from "@shared/entities/events/contracts"
 import type { AnyEvent } from "@shared/ports/events/eventBus"
 import type { EventBusPort } from "@shared/ports/events/eventBus"
 
@@ -19,6 +20,7 @@ export class EventBusAdapter implements EventBusPort {
   async publish(workflowId: string, event: AnyEvent): Promise<void> {
     const client = getRedisConnection(this.redisUrl)
 
+    const payload = ensureTimestamp(event as { timestamp?: string })
     await client.xadd(
       this.streamKeyFor(workflowId),
       "MAXLEN",
@@ -26,7 +28,7 @@ export class EventBusAdapter implements EventBusPort {
       String(this.maxLen),
       "*",
       "event",
-      JSON.stringify(event)
+      JSON.stringify(payload)
     )
   }
 }

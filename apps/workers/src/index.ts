@@ -1,20 +1,16 @@
 /*
- * BullMQ worker with simple job routing.
+ * Worker that consumes Redis Streams for workflow events and persists them to Neo4j.
  *
- * To start the worker locally:
- *   pnpm dev:worker
- *
- *  This is a "controller" level file. It can identify the adapters to use and route jobs
- *  to appropriate processors and services, inject dependencies into the processors and services,
- *
- *  It should not define service-level helpers or define adapters to databases or 3rd party services.
+ * To start locally: pnpm dev:worker
  */
-import { Job, QueueEvents, Worker } from "bullmq"
 import dotenv from "dotenv"
-import IORedis from "ioredis"
-import OpenAI from "openai"
 import path from "path"
 import { fileURLToPath } from "url"
+import { RedisStreamsConsumer } from "@shared/adapters/ioredis/RedisStreamsConsumer"
+import { createNeo4jUnitOfWork } from "@shared/adapters/neo4j/Neo4jUnitOfWork"
+import { runEventIngestion } from "@shared/usecases/events/ingestStreamEvent"
+import { RandomUUIDGenerator } from "@shared/adapters/id/RandomUUIDGenerator"
+import { SystemClock } from "@shared/adapters/time/SystemClock"
 
 // Load environment variables from monorepo root regardless of CWD
 const __filename = fileURLToPath(import.meta.url)
@@ -26,100 +22,141 @@ const envFilename =
   process.env.NODE_ENV === "production" ? ".env.production.local" : ".env.local"
 
 dotenv.config({ path: path.join(repoRoot, envFilename) })
-// Optional: also load base .env as a fallback if present
 dotenv.config({ path: path.join(repoRoot, ".env") })
 
-// TODO: We should be using redis and openai adapters from /shared/src/adapters
-// to follow clean architecture principles, instead of importing
-// directly from these 3rd party libraries.
-
 const redisUrl = process.env.REDIS_URL
-const openaiApiKey = process.env.OPENAI_API_KEY
+const neo4jUri = process.env.NEO4J_URI
+const neo4jUser = process.env.NEO4J_USER
+const neo4jPassword = process.env.NEO4J_PASSWORD
 
-if (!redisUrl) {
-  throw new Error("REDIS_URL is not set")
-}
-if (!openaiApiKey) {
-  console.warn("OPENAI_API_KEY is not set; summarize jobs will fail.")
-}
+if (!redisUrl) throw new Error("REDIS_URL is not set")
+if (!neo4jUri || !neo4jUser || !neo4jPassword)
+  throw new Error(
+    "Neo4j env vars NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD are required"
+  )
 
-const connection = new IORedis(redisUrl, { maxRetriesPerRequest: null })
+const consumerGroup = process.env.EVENTS_CONSUMER_GROUP || "events-consumers"
+const consumerName =
+  process.env.EVENTS_CONSUMER_NAME ||
+  `worker-${Math.random().toString(36).slice(2)}`
 
-const openai = new OpenAI({ apiKey: openaiApiKey })
-
-// TODO: This is a service-level helper, and should be defined in /shared/src/services/job.ts
-// to follow clean architecture principles.
-async function publishStatus(jobId: string, status: string) {
-  try {
-    await connection.publish(
-      "jobStatusUpdate",
-      JSON.stringify({ jobId, status })
-    )
-  } catch (err) {
-    console.error("Failed to publish status update:", err)
-  }
-}
-
-// TODO: This is a service-level helper, and should be defined in /shared/src/services/issue.ts
-// to follow clean architecture principles.
-async function summarizeIssue(job: Job): Promise<string> {
-  if (!openaiApiKey) {
-    throw new Error(
-      "OpenAI API key is missing. Please set OPENAI_API_KEY on the worker server to enable issue summarization."
-    )
-  }
-
-  const { title, body } = job.data as { title?: string; body?: string }
-  const systemPrompt =
-    "You are an expert GitHub assistant. Given an issue title and body, produce a concise, actionable summary (2-4 sentences) highlighting the problem, scope, and desired outcome."
-  const userPrompt = `Title: ${title ?? "(none)"}\n\nBody:\n${body ?? "(empty)"}`
-
-  const completion = await openai.chat.completions.create({
-    model: "gpt-5",
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
-    ],
-  })
-  return completion.choices[0]?.message?.content?.trim() ?? ""
-}
-
-async function processor(job: Job) {
-  console.log(`Processing job ${job.id}: ${job.name}`)
-  await publishStatus(String(job.id), "Started: processing job")
-
-  try {
-    switch (job.name) {
-      case "summarizeIssue": {
-        const summary = await summarizeIssue(job)
-        const final = summary || "No summary generated"
-        await publishStatus(String(job.id), `Completed: ${final}`)
-        return { summary: final }
-      }
-      default: {
-        const msg = `Unknown job name: ${job.name}`
-        await publishStatus(String(job.id), `Failed: ${msg}`)
-        throw new Error(msg)
-      }
-    }
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    await publishStatus(String(job.id), `Failed: ${message}`)
-    throw err
-  }
-}
-
-// TODO: Refactor to allow for multiple workers, queues, etc.
-new Worker("default", processor, { connection })
-
-const events = new QueueEvents("default", { connection })
-
-events.on("completed", ({ jobId }) => {
-  console.log(`Job ${jobId} completed`)
+const consumer = new RedisStreamsConsumer(redisUrl)
+const uow = createNeo4jUnitOfWork({
+  uri: neo4jUri,
+  user: neo4jUser,
+  password: neo4jPassword,
 })
+const idGen = new RandomUUIDGenerator()
+const clock = new SystemClock()
 
-events.on("failed", ({ jobId, failedReason }) => {
-  console.error(`Job ${jobId} failed:`, failedReason)
-})
+async function main() {
+  // Each workflow has its own stream key. We cannot wildcard XREADGROUP across streams in Redis.
+  // A simple approach is to subscribe to a known list, but for now we'll demonstrate with ensureGroup
+  // on first use and consuming from a single stream when provided via env for local testing.
+  const singleStream = process.env.EVENTS_STREAM_KEY // e.g., workflow:{workflowId}:events
+  if (!singleStream) {
+    console.warn(
+      "EVENTS_STREAM_KEY not set. Set it to a specific stream like workflow:{id}:events to ingest."
+    )
+  }
 
-console.log("Worker started and listening for jobs on the 'default' queue…")
+  if (singleStream) {
+    await consumer.ensureGroup(singleStream, consumerGroup)
+    await consumer.readGroup({
+      stream: singleStream,
+      group: consumerGroup,
+      consumer: consumerName,
+      onMessage: async (msg) => {
+        await uow.withTransaction(async (tx) => {
+          // Delegate to the use case by simulating runEventIngestion handler per message
+          // Extract workflow id from stream key
+          const id = idGen.next()
+          const match = /^workflow:([^:]+):events$/.exec(msg.stream)
+          const workflowId = match?.[1]
+          const ev: any = msg.event
+          // Map and persist
+          if (ev?.type === "assistant_message") {
+            await tx.eventRepo.createGeneric(
+              {
+                id,
+                type: "assistant_message",
+                content: ev.content,
+                model: ev.model,
+              },
+              tx
+            )
+          } else if (ev?.type === "tool_call") {
+            await tx.eventRepo.createGeneric(
+              {
+                id,
+                type: "tool_call",
+                toolName: ev.toolName,
+                toolCallId: ev.toolCallId,
+                args: ev.args,
+              },
+              tx
+            )
+          } else if (ev?.type === "tool_call_result") {
+            await tx.eventRepo.createGeneric(
+              {
+                id,
+                type: "tool_call_result",
+                toolName: ev.toolName,
+                toolCallId: ev.toolCallId,
+                content: ev.content,
+              },
+              tx
+            )
+          } else if (ev?.type === "reasoning") {
+            await tx.eventRepo.createGeneric(
+              { id, type: "reasoning", summary: ev.summary },
+              tx
+            )
+          } else if (ev?.type === "system_prompt") {
+            await tx.eventRepo.createGeneric(
+              { id, type: "system_prompt", content: ev.content },
+              tx
+            )
+          } else if (ev?.type === "user_message") {
+            await tx.eventRepo.createGeneric(
+              { id, type: "user_message", content: ev.content },
+              tx
+            )
+          } else if (ev?.type === "status") {
+            await tx.eventRepo.createGeneric(
+              { id, type: "status", content: ev.content },
+              tx
+            )
+          } else if (ev?.type === "llm.started") {
+            await tx.eventRepo.createGeneric(
+              { id, type: "llm.started", content: ev.content },
+              tx
+            )
+          } else if (ev?.type === "llm.completed") {
+            await tx.eventRepo.createGeneric(
+              { id, type: "llm.completed", content: ev.content },
+              tx
+            )
+          }
+
+          if (workflowId) {
+            await tx.eventRepo.appendToWorkflowEnd(
+              workflowId,
+              id,
+              undefined,
+              tx
+            )
+          }
+        })
+      },
+    })
+  } else {
+    // Fallback: run generic ingestion loop requires a specific stream; left as future enhancement
+    console.error(
+      "No EVENTS_STREAM_KEY provided; cannot start ingestion loop without known stream key."
+    )
+    process.exit(1)
+  }
+}
+
+void main()

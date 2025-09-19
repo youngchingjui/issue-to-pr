@@ -1,18 +1,15 @@
-import type {
-  MessageEvent,
-  MessageEventType,
-} from "@shared/entities/events/MessageEvent"
-import type {
-  WorkflowEvent,
-  WorkflowEventType,
+import { type AnyEvent, type AnyEventType } from "@shared/entities/events/Event"
+import {
+  type Metadata,
+  type WorkflowId,
 } from "@shared/entities/events/WorkflowEvent"
+import type { SystemPrompt } from "@shared/entities/Message"
 import type { EventBusPort } from "@shared/ports/events/eventBus"
 
-type Metadata = Record<string, unknown> | undefined
-
-type AnyEvent = WorkflowEvent | MessageEvent
-type AnyEventType = WorkflowEventType | MessageEventType
-
+/**
+ *
+ * @deprecated Use EventPublisherPort instead
+ */
 export function createWorkflowEventPublisher(
   eventBus?: EventBusPort,
   workflowId?: string
@@ -77,7 +74,7 @@ export function createWorkflowEventPublisher(
         args: string,
         metadata?: Metadata
       ) =>
-        safePublish("tool.call", undefined, {
+        safePublish("tool_call", undefined, {
           toolName,
           toolCallId,
           args,
@@ -89,7 +86,7 @@ export function createWorkflowEventPublisher(
         content: string,
         metadata?: Metadata
       ) =>
-        safePublish("tool.result", content, {
+        safePublish("tool_call_result", content, {
           toolName,
           toolCallId,
           ...(metadata || {}),
@@ -99,6 +96,181 @@ export function createWorkflowEventPublisher(
   } as const
 }
 
+/**
+ * @deprecated Use EventPublisherPort instead
+ */
 export type WorkflowEventPublisher = ReturnType<
   typeof createWorkflowEventPublisher
 >
+
+/**
+ * Port for emitting events to an event bus.
+ */
+export interface EventPublisherPort {
+  /**
+   * Emit any event to the event bus.
+   */
+  emit: (
+    type: AnyEventType,
+    workflowId: WorkflowId,
+    content?: string,
+    metadata?: Metadata
+  ) => void
+
+  /**
+   * Emit workflow events to the event bus.
+   */
+  workflow: {
+    started: (
+      workflowId: WorkflowId,
+      content: string,
+      metadata?: Metadata
+    ) => void
+    completed: (
+      workflowId: WorkflowId,
+      content?: string,
+      metadata?: Metadata
+    ) => void
+    error: (
+      workflowId: WorkflowId,
+      content: string,
+      metadata?: Metadata
+    ) => void
+  }
+
+  /**
+   * Emit status events to the event bus.
+   */
+  status: (workflowId: WorkflowId, content: string, metadata?: Metadata) => void
+
+  /**
+   * Emit issue-related events to the event bus.
+   */
+  issue: {
+    fetched: (
+      workflowId: WorkflowId,
+      content?: string,
+      metadata?: Metadata
+    ) => void
+  }
+
+  /**
+   * Emit message-related events to the event bus.
+   */
+  message: {
+    systemPrompt: (message: SystemPrompt) => void
+    userMessage: (
+      workflowId: WorkflowId,
+      content: string,
+      metadata?: Metadata
+    ) => void
+    assistantMessage: (
+      workflowId: WorkflowId,
+      content: string,
+      model?: string,
+      metadata?: Metadata
+    ) => void
+    toolCall: (
+      workflowId: WorkflowId,
+      toolName: string,
+      toolCallId: string,
+      args: string,
+      metadata?: Metadata
+    ) => void
+    toolCallResult: (
+      workflowId: WorkflowId,
+      toolName: string,
+      toolCallId: string,
+      content: string,
+      metadata?: Metadata
+    ) => void
+    reasoning: (
+      workflowId: WorkflowId,
+      summary: string,
+      metadata?: Metadata
+    ) => void
+  }
+
+  /**
+   * Emit LLM-related events to the event bus.
+   */
+  llm: {
+    started: (
+      workflowId: WorkflowId,
+      content?: string,
+      metadata?: Metadata
+    ) => void
+    completed: (
+      workflowId: WorkflowId,
+      content?: string,
+      metadata?: Metadata
+    ) => void
+  }
+}
+
+export function withWorkflowId(
+  pub: EventPublisherPort,
+  workflowId: WorkflowId
+) {
+  return {
+    ...pub,
+    workflow: {
+      started: (content: string, metadata?: Metadata) =>
+        pub.workflow.started(workflowId, content, metadata),
+      completed: (content?: string, metadata?: Metadata) =>
+        pub.workflow.completed(workflowId, content, metadata),
+      error: (content: string, metadata?: Metadata) =>
+        pub.workflow.error(workflowId, content, metadata),
+    },
+    status: (content: string, metadata?: Metadata) =>
+      pub.status(workflowId, content, metadata),
+    issue: {
+      fetched: (content?: string, metadata?: Metadata) =>
+        pub.issue.fetched(workflowId, content, metadata),
+    },
+    message: {
+      systemPrompt: (content: string, metadata?: Metadata) =>
+        pub.message.systemPrompt({
+          type: "system_prompt",
+          workflowId,
+          content,
+          metadata,
+        }),
+      userMessage: (content: string, metadata?: Metadata) =>
+        pub.message.userMessage(workflowId, content, metadata),
+      assistantMessage: (
+        content: string,
+        model?: string,
+        metadata?: Metadata
+      ) => pub.message.assistantMessage(workflowId, content, model, metadata),
+      toolCall: (
+        toolName: string,
+        toolCallId: string,
+        args: string,
+        metadata?: Metadata
+      ) =>
+        pub.message.toolCall(workflowId, toolName, toolCallId, args, metadata),
+      toolCallResult: (
+        toolName: string,
+        toolCallId: string,
+        content: string,
+        metadata?: Metadata
+      ) =>
+        pub.message.toolCallResult(
+          workflowId,
+          toolName,
+          toolCallId,
+          content,
+          metadata
+        ),
+      reasoning: (summary: string, metadata?: Metadata) =>
+        pub.message.reasoning(workflowId, summary, metadata),
+    },
+    llm: {
+      started: (content?: string, metadata?: Metadata) =>
+        pub.llm.started(workflowId, content, metadata),
+      completed: (content?: string, metadata?: Metadata) =>
+        pub.llm.completed(workflowId, content, metadata),
+    },
+  }
+}
