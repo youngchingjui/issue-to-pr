@@ -50,8 +50,8 @@ export class Neo4jEventRepository implements EventRepository {
       { workflowId }
     )
     const rec = res.records[0]
-    const props = rec?.get("e")?.properties as any
-    return props ? { id: props.id as string } : null
+    const props = rec?.get("e")?.properties
+    return props ? { id: props.id } : null
   }
 
   private async findLast(workflowId: string) {
@@ -62,8 +62,8 @@ export class Neo4jEventRepository implements EventRepository {
       { workflowId }
     )
     const rec = res.records[0]
-    const props = rec?.get("e")?.properties as any
-    return props ? { id: props.id as string } : null
+    const props = rec?.get("e")?.properties
+    return props ? { id: props.id } : null
   }
 
   private async createStartsWith(workflowId: string, eventId: string) {
