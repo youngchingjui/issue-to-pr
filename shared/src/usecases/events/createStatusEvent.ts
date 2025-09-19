@@ -31,7 +31,10 @@ export class CreateStatusEventUseCase {
     const createdAt = this.clock.now()
 
     await this.uow.withTransaction(async (tx) => {
-      await tx.eventRepo.createStatus({ id, content: input.content }, tx)
+      await tx.eventRepo.createStatus(
+        { id, content: input.content, createdAt },
+        tx
+      )
       await tx.eventRepo.appendToWorkflowEnd(
         input.workflowId,
         id,
