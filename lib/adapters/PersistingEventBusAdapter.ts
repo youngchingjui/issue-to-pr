@@ -7,13 +7,16 @@ import {
   createErrorEvent,
   createLLMResponseEvent,
   createReasoningEvent,
-  createStatusEvent,
   createSystemPromptEvent,
   createToolCallEvent,
   createToolCallResultEvent,
   createUserResponseEvent,
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
+import { createNeo4jUnitOfWork } from "@shared/adapters/neo4j/Neo4jUnitOfWork"
+import { RandomUUIDGenerator } from "@shared/adapters/id/RandomUUIDGenerator"
+import { SystemClock } from "@shared/adapters/clock/SystemClock"
+import { CreateStatusEventUseCase } from "@shared/usecases/events/createStatusEvent"
 
 /**
  * EventBus adapter that both publishes to the transport (Redis Streams)
@@ -21,9 +24,19 @@ import {
  */
 export class PersistingEventBusAdapter implements EventBusPort {
   private readonly bus?: EventBusAdapter
+  private readonly createStatusUC: CreateStatusEventUseCase
 
   constructor(private readonly redisUrl?: string) {
     this.bus = redisUrl ? new EventBusAdapter(redisUrl) : undefined
+
+    // Wire ports/adapters for the status event use-case (ports & adapters style)
+    const uri = process.env.NEO4J_URI || "bolt://localhost:7687"
+    const user = process.env.NEO4J_USER || "neo4j"
+    const password = process.env.NEO4J_PASSWORD || "password"
+    const uow = createNeo4jUnitOfWork({ uri, user, password })
+    const ids = new RandomUUIDGenerator()
+    const clock = new SystemClock()
+    this.createStatusUC = new CreateStatusEventUseCase(uow, ids, clock)
   }
 
   async publish(
@@ -36,133 +49,136 @@ export class PersistingEventBusAdapter implements EventBusPort {
     }
 
     // Persist into Neo4j
-    await persistToNeo4j(workflowId, event)
+    await this.persistToNeo4j(workflowId, event)
   }
-}
 
-async function persistToNeo4j(
-  workflowId: string,
-  event: WorkflowEvent | MessageEvent
-): Promise<void> {
-  const content = event.content ?? undefined
-  const metadata = event.metadata
+  private async persistToNeo4j(
+    workflowId: string,
+    event: WorkflowEvent | MessageEvent
+  ): Promise<void> {
+    const content = event.content ?? undefined
+    const metadata = event.metadata
 
-  switch (event.type) {
-    case "workflow.started": {
-      await createWorkflowStateEvent({ workflowId, state: "running" })
-      if (content) await createStatusEvent({ workflowId, content })
-      return
-    }
+    switch (event.type) {
+      case "workflow.started": {
+        await createWorkflowStateEvent({ workflowId, state: "running" })
+        if (content)
+          await this.createStatusUC.exec({ workflowId, content })
+        return
+      }
 
-    case "workflow.completed": {
-      if (content) await createStatusEvent({ workflowId, content })
-      await createWorkflowStateEvent({ workflowId, state: "completed" })
-      return
-    }
+      case "workflow.completed": {
+        if (content)
+          await this.createStatusUC.exec({ workflowId, content })
+        await createWorkflowStateEvent({ workflowId, state: "completed" })
+        return
+      }
 
-    case "workflow.error": {
-      await createErrorEvent({
-        workflowId,
-        content: content ?? "Unknown error",
-      })
-      await createWorkflowStateEvent({ workflowId, state: "error" })
-      return
-    }
+      case "workflow.error": {
+        await createErrorEvent({
+          workflowId,
+          content: content ?? "Unknown error",
+        })
+        await createWorkflowStateEvent({ workflowId, state: "error" })
+        return
+      }
 
-    case "workflow.state": {
-      const state =
-        (metadata?.["state"] as
-          | "running"
-          | "completed"
-          | "error"
-          | "timedOut"
-          | undefined) ?? "running"
-      await createWorkflowStateEvent({ workflowId, state, content })
-      return
-    }
+      case "workflow.state": {
+        const state =
+          (metadata?.["state"] as
+            | "running"
+            | "completed"
+            | "error"
+            | "timedOut"
+            | undefined) ?? "running"
+        await createWorkflowStateEvent({ workflowId, state, content })
+        return
+      }
 
-    case "status": {
-      if (content) await createStatusEvent({ workflowId, content })
-      return
-    }
+      case "status": {
+        if (content) await this.createStatusUC.exec({ workflowId, content })
+        return
+      }
 
-    case "llm.started": {
-      // For now, track as a status event for visibility
-      await createStatusEvent({
-        workflowId,
-        content: content ?? "LLM started",
-      })
-      return
-    }
+      case "llm.started": {
+        // For now, track as a status event for visibility
+        await this.createStatusUC.exec({
+          workflowId,
+          content: content ?? "LLM started",
+        })
+        return
+      }
 
-    case "llm.completed": {
-      await createStatusEvent({
-        workflowId,
-        content: content ?? "LLM completed",
-      })
-      return
-    }
+      case "llm.completed": {
+        await this.createStatusUC.exec({
+          workflowId,
+          content: content ?? "LLM completed",
+        })
+        return
+      }
 
-    // Message events
-    case "system_prompt": {
-      if (!content) return
-      await createSystemPromptEvent({ workflowId, content })
-      return
-    }
+      // Message events
+      case "system_prompt": {
+        if (!content) return
+        await createSystemPromptEvent({ workflowId, content })
+        return
+      }
 
-    case "user_message": {
-      if (!content) return
-      await createUserResponseEvent({ workflowId, content })
-      return
-    }
+      case "user_message": {
+        if (!content) return
+        await createUserResponseEvent({ workflowId, content })
+        return
+      }
 
-    case "assistant_message": {
-      if (!content) return
-      await createLLMResponseEvent({
-        workflowId,
-        content,
-        model: (metadata?.["model"] as string) || undefined,
-      })
-      return
-    }
+      case "assistant_message": {
+        if (!content) return
+        await createLLMResponseEvent({
+          workflowId,
+          content,
+          model: (metadata?.["model"] as string) || undefined,
+        })
+        return
+      }
 
-    case "tool.call": {
-      const toolName = (metadata?.["toolName"] as string) || "unknown"
-      const toolCallId = (metadata?.["toolCallId"] as string) || ""
-      const args = JSON.stringify(metadata?.["args"] || {})
-      await createToolCallEvent({
-        workflowId,
-        toolName,
-        toolCallId,
-        args,
-      })
-      return
-    }
+      case "tool.call": {
+        const toolName = (metadata?.["toolName"] as string) || "unknown"
+        const toolCallId = (metadata?.["toolCallId"] as string) || ""
+        const args = JSON.stringify(metadata?.["args"] || {})
+        await createToolCallEvent({
+          workflowId,
+          toolName,
+          toolCallId,
+          args,
+        })
+        return
+      }
 
-    case "tool.result": {
-      const toolName = (metadata?.["toolName"] as string) || "unknown"
-      const toolCallId = (metadata?.["toolCallId"] as string) || ""
-      await createToolCallResultEvent({
-        workflowId,
-        toolName,
-        toolCallId,
-        content: content ?? "",
-      })
-      return
-    }
+      case "tool.result": {
+        const toolName = (metadata?.["toolName"] as string) || "unknown"
+        const toolCallId = (metadata?.["toolCallId"] as string) || ""
+        await createToolCallResultEvent({
+          workflowId,
+          toolName,
+          toolCallId,
+          content: content ?? "",
+        })
+        return
+      }
 
-    case "reasoning": {
-      // prefer metadata.summary if provided, else use content
-      const summary = (metadata?.["summary"] as string) || content || ""
-      await createReasoningEvent({ workflowId, summary })
-      return
-    }
+      case "reasoning": {
+        // prefer metadata.summary if provided, else use content
+        const summary = (metadata?.["summary"] as string) || content || ""
+        await createReasoningEvent({ workflowId, summary })
+        return
+      }
 
-    default: {
-      // Unknown event type; store as status for debugging
-      if (content) await createStatusEvent({ workflowId, content })
+      default: {
+        // Unknown event type; store as status for debugging
+        if (content) await this.createStatusUC.exec({ workflowId, content })
+      }
     }
   }
 }
 
 export default PersistingEventBusAdapter
+
