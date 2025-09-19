@@ -16,9 +16,27 @@ export interface MessageEvent {
   /**
    * Message content (may later expand to structured content blocks).
    */
-  content: string
+  content: Content
   /**
    * Optional metadata, e.g. model for assistant messages.
    */
   metadata?: Record<string, unknown>
 }
+
+// TODO: Expand this definition to be an object that can incorporate many things.
+// Like text, image URLs. Also should include more metadata like role, etc.
+export type Content =
+  | string
+  | {
+      type: "text"
+      text: string
+    }
+  | {
+      type: "image"
+      image_url: string
+    }
+  | {
+      type: "file"
+      file_url: string
+    }
+  | { type: "audio"; audio: { data: string; format: "mp3" | "wav" } }

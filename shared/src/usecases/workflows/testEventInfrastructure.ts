@@ -1,15 +1,17 @@
-import type { EventBusPort } from "@shared/ports/events/eventBus"
-import { createWorkflowEventPublisher } from "@shared/ports/events/publisher"
+import {
+  EventPublisherPort,
+  withWorkflowId,
+} from "@shared/ports/events/publisher"
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 export async function testEventInfrastructure(
-  { eventBus }: { eventBus: EventBusPort },
+  { rawPublisher }: { rawPublisher: EventPublisherPort },
   { workflowId }: { workflowId: string }
 ) {
-  const pub = createWorkflowEventPublisher(eventBus, workflowId)
+  const pub = withWorkflowId(rawPublisher, workflowId)
 
   pub.workflow.started("Test event workflow started")
   pub.status("Initializing test steps…")
@@ -18,11 +20,13 @@ export async function testEventInfrastructure(
   pub.message.systemPrompt("You are a helpful coding agent")
   pub.message.userMessage("Resolve the bug described in issue #123")
 
-  pub.reasoning("Analyzing repository structure and selecting approach…")
+  pub.message.reasoning(
+    "Analyzing repository structure and selecting approach…"
+  )
 
-  pub.tool.call("ripgrep", "call-1", JSON.stringify({ query: "TODO:" }))
+  pub.message.toolCall("ripgrep", "call-1", JSON.stringify({ query: "TODO:" }))
   await delay(100)
-  pub.tool.result(
+  pub.message.toolCallResult(
     "ripgrep",
     "call-1",
     JSON.stringify({ matches: ["lib/utils.ts:12: // TODO"] })
