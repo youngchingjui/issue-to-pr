@@ -61,7 +61,7 @@ export const autoResolveIssue = async (
     throw new Error("Authentication required")
   }
 
-  const { user: login, token } = authResult.value
+  const { user: login, token: _token } = authResult.value
   const apiKeyResult = await settings.getOpenAIKey(login.githubLogin)
   if (!apiKeyResult.ok || !apiKeyResult.value) {
     pub.workflow.error("No API key provided and no user settings found")
@@ -231,3 +231,4 @@ export const autoResolveIssue = async (
 }
 
 export default autoResolveIssue
+

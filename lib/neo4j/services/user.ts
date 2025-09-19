@@ -4,6 +4,7 @@ import { getGithubUser } from "@/lib/github/users"
 import { n4j } from "@/lib/neo4j/client"
 import { neo4jToJs } from "@/lib/neo4j/convert"
 import * as userRepo from "@/lib/neo4j/repositories/user"
+import { getDemoOpenAIApiKey as getGlobalDemoKey } from "@/lib/neo4j/services/appSettings"
 import { Settings, settingsSchema } from "@/lib/types"
 
 export async function getUserSettings(): Promise<Settings | null> {
@@ -48,10 +49,12 @@ export async function getUserOpenAIApiKey(): Promise<string | null> {
   const userKey = settings.openAIApiKey?.trim()
   if (userKey) return userKey
 
-  // 2) If user has demo access, fall back to the demo key from env
+  // 2) If user has demo access, fall back to the demo key stored in Neo4j
   const hasDemoAccess = settings.roles?.includes("demo")
-  const demoKey = process.env.OPENAI_DEMO_API_KEY?.trim()
-  if (hasDemoAccess && demoKey) return demoKey
+  if (hasDemoAccess) {
+    const demoKey = await getGlobalDemoKey()
+    if (demoKey) return demoKey
+  }
 
   // 3) Otherwise, no key available
   return null
@@ -134,3 +137,4 @@ export async function getUserRoles(username: string): Promise<string[]> {
     await session.close()
   }
 }
+

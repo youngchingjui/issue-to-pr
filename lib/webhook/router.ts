@@ -1,6 +1,6 @@
-import { WebhookRouter } from "./types"
 import { IssuesHandler } from "./handlers/issuesHandler"
 import { PullRequestHandler } from "./handlers/pullRequestHandler"
+import { WebhookRouter } from "./types"
 
 // Singleton router instance and handler registration
 export const webhookRouter = new WebhookRouter()
