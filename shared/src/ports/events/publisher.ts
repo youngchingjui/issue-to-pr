@@ -3,8 +3,13 @@ import {
   type Metadata,
   type WorkflowId,
 } from "@shared/entities/events/WorkflowEvent"
+import type { SystemPrompt } from "@shared/entities/Message"
 import type { EventBusPort } from "@shared/ports/events/eventBus"
 
+/**
+ *
+ * @deprecated Use EventPublisherPort instead
+ */
 export function createWorkflowEventPublisher(
   eventBus?: EventBusPort,
   workflowId?: string
@@ -91,6 +96,9 @@ export function createWorkflowEventPublisher(
   } as const
 }
 
+/**
+ * @deprecated Use EventPublisherPort instead
+ */
 export type WorkflowEventPublisher = ReturnType<
   typeof createWorkflowEventPublisher
 >
@@ -150,11 +158,7 @@ export interface EventPublisherPort {
    * Emit message-related events to the event bus.
    */
   message: {
-    systemPrompt: (
-      workflowId: WorkflowId,
-      content: string,
-      metadata?: Metadata
-    ) => void
+    systemPrompt: (message: SystemPrompt) => void
     userMessage: (
       workflowId: WorkflowId,
       content: string,
@@ -226,7 +230,12 @@ export function withWorkflowId(
     },
     message: {
       systemPrompt: (content: string, metadata?: Metadata) =>
-        pub.message.systemPrompt(workflowId, content, metadata),
+        pub.message.systemPrompt({
+          type: "system_prompt",
+          workflowId,
+          content,
+          metadata,
+        }),
       userMessage: (content: string, metadata?: Metadata) =>
         pub.message.userMessage(workflowId, content, metadata),
       assistantMessage: (

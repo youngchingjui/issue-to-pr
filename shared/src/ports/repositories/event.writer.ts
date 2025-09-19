@@ -11,6 +11,41 @@ export interface EventRepository {
   ): Promise<void>
 
   /**
+   * Generic create method for different event types keyed by `type`.
+   * Implementations may persist additional properties based on type.
+   */
+  createGeneric(
+    ev:
+      | { id: string; type: "status"; content: string }
+      | { id: string; type: "system_prompt"; content: string }
+      | { id: string; type: "user_message"; content: string }
+      | {
+          id: string
+          type: "assistant_message"
+          content: string
+          model?: string
+        }
+      | {
+          id: string
+          type: "tool_call"
+          toolName: string
+          toolCallId: string
+          args: string
+        }
+      | {
+          id: string
+          type: "tool_call_result"
+          toolName: string
+          toolCallId: string
+          content: string
+        }
+      | { id: string; type: "reasoning"; summary: string }
+      | { id: string; type: "llm.started"; content?: string }
+      | { id: string; type: "llm.completed"; content?: string },
+    tx: TxContext
+  ): Promise<void>
+
+  /**
    * Append the given event to the end of the workflow chain or link from parentId when provided.
    */
   appendToWorkflowEnd(

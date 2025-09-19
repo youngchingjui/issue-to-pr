@@ -1,3 +1,4 @@
+import { ensureTimestamp } from "@shared/entities/events/contracts"
 import { type AnyEventType } from "@shared/entities/events/Event"
 import {
   type Metadata,
@@ -22,6 +23,7 @@ export class EventPublisherAdapter implements EventPublisherPort {
     content?: string,
     metadata?: Metadata
   ): void {
+    const event = ensureTimestamp({ type, content, metadata })
     this.client.xadd(
       this.streamKeyFor(workflowId),
       "MAXLEN",
@@ -29,7 +31,7 @@ export class EventPublisherAdapter implements EventPublisherPort {
       String(this.maxLen),
       "*",
       "event",
-      JSON.stringify({ workflowId, type, content, metadata })
+      JSON.stringify(event)
     )
   }
 
@@ -63,6 +65,12 @@ export class EventPublisherAdapter implements EventPublisherPort {
       this.emit("user_message", workflowId, content, metadata)
     },
     assistantMessage: (workflowId, content, model, metadata) => {
+      const event = ensureTimestamp({
+        type: "assistant_message" as const,
+        content,
+        model,
+        metadata,
+      })
       this.client.xadd(
         this.streamKeyFor(workflowId),
         "MAXLEN",
@@ -70,16 +78,17 @@ export class EventPublisherAdapter implements EventPublisherPort {
         String(this.maxLen),
         "*",
         "event",
-        JSON.stringify({
-          workflowId,
-          type: "assistant_message",
-          content,
-          model,
-          metadata,
-        })
+        JSON.stringify(event)
       )
     },
     toolCall: (workflowId, toolName, toolCallId, args, metadata) => {
+      const event = ensureTimestamp({
+        type: "tool_call" as const,
+        toolName,
+        toolCallId,
+        args,
+        metadata,
+      })
       this.client.xadd(
         this.streamKeyFor(workflowId),
         "MAXLEN",
@@ -87,17 +96,17 @@ export class EventPublisherAdapter implements EventPublisherPort {
         String(this.maxLen),
         "*",
         "event",
-        JSON.stringify({
-          workflowId,
-          type: "tool_call",
-          toolName,
-          toolCallId,
-          args,
-          metadata,
-        })
+        JSON.stringify(event)
       )
     },
     toolCallResult: (workflowId, toolName, toolCallId, content, metadata) => {
+      const event = ensureTimestamp({
+        type: "tool_call_result" as const,
+        toolName,
+        toolCallId,
+        content,
+        metadata,
+      })
       this.client.xadd(
         this.streamKeyFor(workflowId),
         "MAXLEN",
@@ -105,14 +114,7 @@ export class EventPublisherAdapter implements EventPublisherPort {
         String(this.maxLen),
         "*",
         "event",
-        JSON.stringify({
-          workflowId,
-          type: "tool_call_result",
-          toolName,
-          toolCallId,
-          content,
-          metadata,
-        })
+        JSON.stringify(event)
       )
     },
     reasoning: (workflowId, summary, metadata) => {
