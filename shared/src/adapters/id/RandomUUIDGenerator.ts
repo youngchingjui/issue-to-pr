@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto"
+
 import type { IdGenerator } from "@shared/ports/utils/id"
 
 export class RandomUUIDGenerator implements IdGenerator {
@@ -8,4 +9,3 @@ export class RandomUUIDGenerator implements IdGenerator {
 }
 
 export default RandomUUIDGenerator
-

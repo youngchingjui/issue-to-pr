@@ -1,7 +1,11 @@
+import { SystemClock } from "@shared/adapters/clock/SystemClock"
+import { RandomUUIDGenerator } from "@shared/adapters/id/RandomUUIDGenerator"
 import { EventBusAdapter } from "@shared/adapters/ioredis/EventBusAdapter"
+import { createNeo4jUnitOfWork } from "@shared/adapters/neo4j/Neo4jUnitOfWork"
 import type { MessageEvent } from "@shared/entities/events/MessageEvent"
 import type { WorkflowEvent } from "@shared/entities/events/WorkflowEvent"
 import type { EventBusPort } from "@shared/ports/events/eventBus"
+import { CreateStatusEventUseCase } from "@shared/usecases/events/createStatusEvent"
 
 import {
   createErrorEvent,
@@ -13,10 +17,6 @@ import {
   createUserResponseEvent,
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
-import { createNeo4jUnitOfWork } from "@shared/adapters/neo4j/Neo4jUnitOfWork"
-import { RandomUUIDGenerator } from "@shared/adapters/id/RandomUUIDGenerator"
-import { SystemClock } from "@shared/adapters/clock/SystemClock"
-import { CreateStatusEventUseCase } from "@shared/usecases/events/createStatusEvent"
 
 /**
  * EventBus adapter that both publishes to the transport (Redis Streams)
@@ -62,14 +62,12 @@ export class PersistingEventBusAdapter implements EventBusPort {
     switch (event.type) {
       case "workflow.started": {
         await createWorkflowStateEvent({ workflowId, state: "running" })
-        if (content)
-          await this.createStatusUC.exec({ workflowId, content })
+        if (content) await this.createStatusUC.exec({ workflowId, content })
         return
       }
 
       case "workflow.completed": {
-        if (content)
-          await this.createStatusUC.exec({ workflowId, content })
+        if (content) await this.createStatusUC.exec({ workflowId, content })
         await createWorkflowStateEvent({ workflowId, state: "completed" })
         return
       }
@@ -181,4 +179,3 @@ export class PersistingEventBusAdapter implements EventBusPort {
 }
 
 export default PersistingEventBusAdapter
-

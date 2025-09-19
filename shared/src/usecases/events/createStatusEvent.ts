@@ -1,7 +1,7 @@
-import { z } from "zod"
 import type { UnitOfWork } from "@shared/ports/unitOfWork"
-import type { IdGenerator } from "@shared/ports/utils/id"
 import type { Clock } from "@shared/ports/utils/clock"
+import type { IdGenerator } from "@shared/ports/utils/id"
+import { z } from "zod"
 
 const CreateStatusEventInput = z.object({
   workflowId: z.string().min(1),
@@ -49,4 +49,3 @@ export class CreateStatusEventUseCase {
     }
   }
 }
-

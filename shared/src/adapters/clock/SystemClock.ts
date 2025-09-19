@@ -7,4 +7,3 @@ export class SystemClock implements Clock {
 }
 
 export default SystemClock
-

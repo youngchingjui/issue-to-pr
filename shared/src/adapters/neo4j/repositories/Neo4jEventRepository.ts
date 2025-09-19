@@ -1,11 +1,14 @@
-import type { ManagedTransaction } from "neo4j-driver"
 import type { EventRepository } from "@shared/ports/repositories/event.writer"
 import type { TxContext } from "@shared/ports/unitOfWork"
+import type { ManagedTransaction } from "neo4j-driver"
 
 export class Neo4jEventRepository implements EventRepository {
   constructor(private readonly tx: ManagedTransaction) {}
 
-  async createStatus(ev: { id: string; content: string }, _txCtx: TxContext): Promise<void> {
+  async createStatus(
+    ev: { id: string; content: string },
+    _txCtx: TxContext
+  ): Promise<void> {
     await this.tx.run(
       `
       CREATE (e:Event {id: $id, createdAt: datetime(), type: 'status', content: $content})
@@ -81,4 +84,3 @@ export class Neo4jEventRepository implements EventRepository {
     )
   }
 }
-

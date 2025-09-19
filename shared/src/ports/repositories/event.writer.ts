@@ -5,7 +5,10 @@ export interface EventRepository {
    * Create a Status event node.
    * Implementation should set createdAt in the persistence layer.
    */
-  createStatus(ev: { id: string; content: string }, tx: TxContext): Promise<void>
+  createStatus(
+    ev: { id: string; content: string },
+    tx: TxContext
+  ): Promise<void>
 
   /**
    * Append the given event to the end of the workflow chain or link from parentId when provided.
@@ -17,4 +20,3 @@ export interface EventRepository {
     tx: TxContext
   ): Promise<void>
 }
-

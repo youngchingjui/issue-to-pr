@@ -7,4 +7,3 @@ export interface TxContext {
 export interface UnitOfWork {
   withTransaction<T>(fn: (tx: TxContext) => Promise<T>): Promise<T>
 }
-
