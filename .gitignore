@@ -28,6 +28,9 @@ backups
 /apps/workers/dist
 /shared/dist
 
+# ignore build outputs for all apps
+apps/**/dist
+
 # misc
 .DS_Store
 *.pem
@@ -65,5 +68,5 @@ apps/openai-realtime-agents/.env*
 !apps/openai-realtime-agents/.env.example
 
 # Allow example env files for worker groups
-!apps/ingest-workers/.env.example
+!apps/*-workers/.env.example
 

@@ -15,10 +15,19 @@ Environment
 - INGEST_BLOCK_MS: XREADGROUP block timeout (default: 5000)
 - INGEST_BATCH_SIZE: Messages per read (default: 1)
 
+Usage
+
+- Build and run (single instance):
+  - `docker compose -f docker/docker-compose.yml up -d ingest`
+- Scale up:
+  - `docker compose -f docker/docker-compose.yml up -d --scale ingest=3`
+- Tip: the compose service config sets `stop_signal: SIGTERM` and `stop_grace_period: 30s` to allow a clean drain.
+
 Graceful shutdown
 
-- On SIGTERM/SIGINT, the worker stops fetching new messages, completes the current one, acknowledges it, and exits cleanly.
+- On SIGTERM/SIGINT, the worker stops fetching new messages, completes the current one, acknowledges it, and exits cleanly. On startup it also attempts to reclaim stale pending messages.
 
 Notes
 
 - This lays the foundation. Mapping of all event variants is TODO; currently status, workflow.error, and workflow.state are persisted.
+

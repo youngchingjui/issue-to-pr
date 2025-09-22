@@ -8,18 +8,19 @@
  *
  * This is a controller-level entry point. Business logic lives in lib/neo4j/services.
  */
-import type { AllEvents } from "@shared/entities/events"
 import dotenv from "dotenv"
 import IORedis from "ioredis"
 import path from "path"
 import { fileURLToPath } from "url"
 
-import { n4j } from "@/lib/neo4j/client"
+// Use explicit relative imports so compiled JS runs under Node without alias rewriting
+import { n4j } from "../../../lib/neo4j/client"
 import {
   createErrorEvent,
   createStatusEvent,
   createWorkflowStateEvent,
-} from "@/lib/neo4j/services/event"
+} from "../../../lib/neo4j/services/event"
+import type { AllEvents } from "../../../shared/src/entities/events"
 
 // Load environment variables from monorepo root regardless of CWD
 const __filename = fileURLToPath(import.meta.url)
@@ -52,10 +53,10 @@ const redis = new IORedis(REDIS_URL, { maxRetriesPerRequest: null })
 
 async function ensureGroup() {
   try {
-    // Create group starting from the end (\">\") so new messages only
+    // Create group starting from the end (">") so new messages only
     await redis.xgroup("CREATE", STREAM_KEY, GROUP_NAME, ">", "MKSTREAM")
     console.log(`Created consumer group ${GROUP_NAME} on ${STREAM_KEY}`)
-  } catch (err) {
+  } catch (err: any) {
     const msg = err?.message || String(err)
     if (msg.includes("BUSYGROUP")) {
       // Group already exists
@@ -63,6 +64,31 @@ async function ensureGroup() {
       console.error("Failed to create consumer group:", err)
       throw err
     }
+  }
+}
+
+async function reclaimPending(minIdleMs = 60_000) {
+  try {
+    // Re-claim stale pending entries so they don't get stuck in the PEL
+    // Only if Redis supports XAUTOCLAIM (>=6.2)
+    const anyRedis: any = redis as any
+    if (typeof anyRedis.xautoclaim === "function") {
+      const [, entries] = await anyRedis.xautoclaim(
+        STREAM_KEY,
+        GROUP_NAME,
+        CONSUMER_NAME,
+        minIdleMs,
+        "0-0",
+        "COUNT",
+        BATCH_SIZE
+      )
+      for (const entry of entries ?? []) {
+        const { id, ok } = await processEntry(entry)
+        if (ok) await redis.xack(STREAM_KEY, GROUP_NAME, id)
+      }
+    }
+  } catch (e) {
+    console.warn("[ingest] Pending reclaim skipped:", e)
   }
 }
 
@@ -98,7 +124,7 @@ async function persistEvent(workflowId: string, event: AllEvents) {
     default: {
       // TODO: Map remaining event types to specific persistence functions
       // For now, we store high-signal events and log the rest.
-      console.log("[ingest] Unhandled event type (skipped)", event.type)
+      console.log("[ingest] Unhandled event type (skipped)", (event as any).type)
     }
   }
 }
@@ -138,6 +164,7 @@ async function main() {
   })
   await n4j.connect()
   await ensureGroup()
+  await reclaimPending()
 
   while (!shuttingDown) {
     try {
@@ -165,9 +192,12 @@ async function main() {
       for (const entry of entries) {
         if (shuttingDown) break
         processing = true
-        const { id, ok } = await processEntry(entry)
-        if (ok) await redis.xack(STREAM_KEY, GROUP_NAME, id)
-        processing = false
+        try {
+          const { id, ok } = await processEntry(entry)
+          if (ok) await redis.xack(STREAM_KEY, GROUP_NAME, id)
+        } finally {
+          processing = false
+        }
       }
     } catch (err) {
       if (shuttingDown) break
@@ -193,6 +223,7 @@ function requestShutdown(signal: string) {
   // If we're blocked waiting for new messages, end the connection to unblock
   // but only after we finish currently processing message.
   if (!processing) {
+    console.log("[ingest] Not processing; disconnecting to break BLOCK...")
     // No processing at the moment; nudge the loop by disconnecting
     redis.disconnect()
   }
@@ -205,3 +236,4 @@ main().catch((err) => {
   console.error("[ingest] Fatal error:", err)
   process.exit(1)
 })
+

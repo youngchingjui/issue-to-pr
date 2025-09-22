@@ -5,17 +5,16 @@ services:
       dockerfile: apps/ingest-workers/Dockerfile
     environment:
       - NODE_ENV=production
-      - REDIS_URL=redis://redis:6379
-      - NEO4J_URI=bolt://neo4j:7687
-      - NEO4J_USER=${NEO4J_USER:-neo4j}
-      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-password}
-      - INGEST_STREAM_KEY=${INGEST_STREAM_KEY:-workflow:events:ingest}
-      - INGEST_GROUP=${INGEST_GROUP:-ingest}
     env_file:
       - ${INGEST_ENV_FILE:-.env.ingest.local}
+    stop_signal: SIGTERM
+    stop_grace_period: 30s
     restart: unless-stopped
     depends_on:
-      - redis
-      - neo4j
+      redis:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
     networks:
       - issue-to-pr-network
+
