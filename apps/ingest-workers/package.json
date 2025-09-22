@@ -1,0 +1,19 @@
+{
+  "name": "@issue-to-pr/ingest-workers",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "ts-node src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.5.0",
+    "ioredis": "^5.3.4",
+    "neo4j-driver": "^5.28.1",
+    "uuid": "^11.0.5"
+  }
+}
+

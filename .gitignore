@@ -63,3 +63,7 @@ storybook-static
 # /apps/openai-realtime-agents
 apps/openai-realtime-agents/.env*
 !apps/openai-realtime-agents/.env.example
+
+# Allow example env files for worker groups
+!apps/ingest-workers/.env.example
+
