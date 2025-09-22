@@ -86,9 +86,13 @@ export const statusEventSchema = appStatusEventSchema
     workflowId: true,
   })
 
-export const workflowStateEventSchema = appWorkflowStateEventSchema.merge(
-  z.object({ createdAt: z.instanceof(DateTime) })
-)
+export const workflowStateEventSchema = z.object({
+  id: z.string(),
+  createdAt: z.instanceof(DateTime),
+  type: z.literal("workflowState"),
+  state: z.enum(["running", "completed", "error", "timedOut"]),
+  content: z.string().optional(),
+})
 
 export const systemPromptSchema = appSystemPromptSchema
   .omit({ workflowId: true })

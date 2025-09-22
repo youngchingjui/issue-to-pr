@@ -394,7 +394,6 @@ export async function createWorkflowStateEvent({
           id,
           state,
           content,
-          timestamp: new Date(), // Temporary fix. We will deprecate this whole file later
         })
 
         // Attach it to the workflow
