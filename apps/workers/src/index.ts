@@ -15,6 +15,7 @@ import IORedis from "ioredis"
 import OpenAI from "openai"
 import path from "path"
 import { fileURLToPath } from "url"
+import { rateLimitOpenAI } from "@shared/services/rateLimiter"
 
 // Load environment variables from monorepo root regardless of CWD
 const __filename = fileURLToPath(import.meta.url)
@@ -74,6 +75,7 @@ async function summarizeIssue(job: Job): Promise<string> {
     "You are an expert GitHub assistant. Given an issue title and body, produce a concise, actionable summary (2-4 sentences) highlighting the problem, scope, and desired outcome."
   const userPrompt = `Title: ${title ?? "(none)"}\n\nBody:\n${body ?? "(empty)"}`
 
+  await rateLimitOpenAI("chat")
   const completion = await openai.chat.completions.create({
     model: "gpt-5",
     messages: [
@@ -123,3 +125,4 @@ events.on("failed", ({ jobId, failedReason }) => {
 })
 
 console.log("Worker started and listening for jobs on the 'default' queue…")
+

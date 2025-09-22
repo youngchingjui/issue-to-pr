@@ -2,6 +2,7 @@
 
 import OpenAI from "openai"
 import { ChatCompletionMessageParam } from "openai/resources/chat/completions"
+import { rateLimitOpenAI } from "@shared/services/rateLimiter"
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -31,6 +32,9 @@ export async function transcribeAudio(audioFile: File): Promise<
           "OpenAI API key is not configured on the server. Set OPENAI_API_KEY or add your key in Settings.",
       }
     }
+
+    // Enforce rate limit for audio (uses separate scope in case you want a separate budget)
+    await rateLimitOpenAI("audio")
 
     // Create the transcription
     const transcription = await openai.audio.transcriptions.create({
@@ -63,9 +67,12 @@ export async function getChatCompletion({
     )
   }
 
+  await rateLimitOpenAI("chat")
+
   const res = await openai.chat.completions.create({
     model: "gpt-5",
     messages,
   })
   return res.choices[0]?.message?.content || ""
 }
+
