@@ -66,9 +66,18 @@ export async function toAppEvent(
         editMessage: editMessage,
       },
     }
-  } else if (dbEvent.type === "workflow.state" || dbEvent.type === "status") {
+  } else if (dbEvent.type === "workflowState") {
     return {
-      ...dbEvent,
+      state: dbEvent.state,
+      content: dbEvent.content,
+      type: "workflow.state",
+      timestamp: dbEvent.createdAt.toStandardDate(),
+      id: workflowId,
+    }
+  } else if (dbEvent.type === "status") {
+    return {
+      type: "status",
+      content: dbEvent.content,
       timestamp: dbEvent.createdAt.toStandardDate(),
       id: workflowId,
     }
