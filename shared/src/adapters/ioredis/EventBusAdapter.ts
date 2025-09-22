@@ -1,5 +1,5 @@
 import { getRedisConnection } from "@shared/adapters/ioredis/client"
-import type { AnyEvent } from "@shared/ports/events/eventBus"
+import type { AllEvents } from "@shared/entities/events"
 import type { EventBusPort } from "@shared/ports/events/eventBus"
 
 /**
@@ -16,7 +16,7 @@ export class EventBusAdapter implements EventBusPort {
     return `workflow:${workflowId}:events`
   }
 
-  async publish(workflowId: string, event: AnyEvent): Promise<void> {
+  async publish(workflowId: string, event: AllEvents): Promise<void> {
     const client = getRedisConnection(this.redisUrl)
 
     await client.xadd(

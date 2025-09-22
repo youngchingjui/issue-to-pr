@@ -1,6 +1,5 @@
 import { EventBusAdapter } from "@shared/adapters/ioredis/EventBusAdapter"
-import type { MessageEvent } from "@shared/entities/events/MessageEvent"
-import type { WorkflowEvent } from "@shared/entities/events/WorkflowEvent"
+import type { AllEvents } from "@shared/entities/events"
 import type { EventBusPort } from "@shared/ports/events/eventBus"
 
 import {
@@ -26,10 +25,7 @@ export class PersistingEventBusAdapter implements EventBusPort {
     this.bus = redisUrl ? new EventBusAdapter(redisUrl) : undefined
   }
 
-  async publish(
-    workflowId: string,
-    event: WorkflowEvent | MessageEvent
-  ): Promise<void> {
+  async publish(workflowId: string, event: AllEvents): Promise<void> {
     // Fire-and-forget publish to the bus if configured
     if (this.bus) {
       this.bus.publish(workflowId, event).catch(() => {})
@@ -42,20 +38,15 @@ export class PersistingEventBusAdapter implements EventBusPort {
 
 async function persistToNeo4j(
   workflowId: string,
-  event: WorkflowEvent | MessageEvent
+  event: AllEvents
 ): Promise<void> {
-  const content = event.content ?? undefined
-  const metadata = event.metadata
-
   switch (event.type) {
     case "workflow.started": {
       await createWorkflowStateEvent({ workflowId, state: "running" })
-      if (content) await createStatusEvent({ workflowId, content })
       return
     }
 
     case "workflow.completed": {
-      if (content) await createStatusEvent({ workflowId, content })
       await createWorkflowStateEvent({ workflowId, state: "completed" })
       return
     }
@@ -63,26 +54,23 @@ async function persistToNeo4j(
     case "workflow.error": {
       await createErrorEvent({
         workflowId,
-        content: content ?? "Unknown error",
+        content: event.message,
       })
       await createWorkflowStateEvent({ workflowId, state: "error" })
       return
     }
 
     case "workflow.state": {
-      const state =
-        (metadata?.["state"] as
-          | "running"
-          | "completed"
-          | "error"
-          | "timedOut"
-          | undefined) ?? "running"
-      await createWorkflowStateEvent({ workflowId, state, content })
+      await createWorkflowStateEvent({
+        workflowId,
+        state: event.state,
+        content: event.content,
+      })
       return
     }
 
     case "status": {
-      if (content) await createStatusEvent({ workflowId, content })
+      await createStatusEvent({ workflowId, content: event.content })
       return
     }
 
@@ -90,7 +78,7 @@ async function persistToNeo4j(
       // For now, track as a status event for visibility
       await createStatusEvent({
         workflowId,
-        content: content ?? "LLM started",
+        content: event.content ?? "LLM started",
       })
       return
     }
@@ -98,38 +86,35 @@ async function persistToNeo4j(
     case "llm.completed": {
       await createStatusEvent({
         workflowId,
-        content: content ?? "LLM completed",
+        content: event.content ?? "LLM completed",
       })
       return
     }
 
     // Message events
     case "system_prompt": {
-      if (!content) return
-      await createSystemPromptEvent({ workflowId, content })
+      await createSystemPromptEvent({ workflowId, content: event.content })
       return
     }
 
     case "user_message": {
-      if (!content) return
-      await createUserResponseEvent({ workflowId, content })
+      await createUserResponseEvent({ workflowId, content: event.content })
       return
     }
 
     case "assistant_message": {
-      if (!content) return
       await createLLMResponseEvent({
         workflowId,
-        content,
-        model: (metadata?.["model"] as string) || undefined,
+        content: event.content,
+        model: (event.metadata?.["model"] as string) || undefined,
       })
       return
     }
 
     case "tool.call": {
-      const toolName = (metadata?.["toolName"] as string) || "unknown"
-      const toolCallId = (metadata?.["toolCallId"] as string) || ""
-      const args = JSON.stringify(metadata?.["args"] || {})
+      const toolName = (event.metadata?.["toolName"] as string) || "unknown"
+      const toolCallId = (event.metadata?.["toolCallId"] as string) || ""
+      const args = JSON.stringify(event.metadata?.["args"] || {})
       await createToolCallEvent({
         workflowId,
         toolName,
@@ -140,27 +125,26 @@ async function persistToNeo4j(
     }
 
     case "tool.result": {
-      const toolName = (metadata?.["toolName"] as string) || "unknown"
-      const toolCallId = (metadata?.["toolCallId"] as string) || ""
+      const toolName = (event.metadata?.["toolName"] as string) || "unknown"
+      const toolCallId = (event.metadata?.["toolCallId"] as string) || ""
       await createToolCallResultEvent({
         workflowId,
         toolName,
         toolCallId,
-        content: content ?? "",
+        content: event.content ?? "",
       })
       return
     }
 
     case "reasoning": {
-      // prefer metadata.summary if provided, else use content
-      const summary = (metadata?.["summary"] as string) || content || ""
-      await createReasoningEvent({ workflowId, summary })
+      await createReasoningEvent({ workflowId, summary: event.content })
       return
     }
 
     default: {
       // Unknown event type; store as status for debugging
-      if (content) await createStatusEvent({ workflowId, content })
+      await createStatusEvent({ workflowId, content: event.content ?? "" })
+      return
     }
   }
 }

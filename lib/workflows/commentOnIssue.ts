@@ -24,6 +24,7 @@ import {
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
+import { AllEvents } from "@/shared/src/entities/events"
 
 interface GitHubError extends Error {
   status?: number
@@ -44,7 +45,7 @@ export default async function commentOnIssue(
   const trace = langfuse.trace({ name: "commentOnIssue" })
   let initialCommentId: number | null = null
 
-  let latestEvent: appBaseEvent | null = null
+  let latestEvent: appBaseEvent | AllEvents | null = null
   let containerCleanup: (() => Promise<void>) | null = null
 
   try {

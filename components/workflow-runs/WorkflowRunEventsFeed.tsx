@@ -42,7 +42,7 @@ function EventRenderer({ event, issue }: { event: AnyEvent; issue?: Issue }) {
       return <ToolCallEvent event={event} />
     case "toolCallResult":
       return <ToolCallResultEvent event={event} />
-    case "workflowState":
+    case "workflow.state":
       return <StatusUpdate event={event} />
     case "reviewComment":
       return <UserMessageEvent event={event} />
@@ -67,12 +67,12 @@ export default function WorkflowRunEventsFeed({
   const isWorkflowComplete = (events: AnyEvent[]) => {
     const latestWorkflowStateEvent = [...events]
       .reverse()
-      .find((event) => event.type === "workflowState")
+      .find((event) => event.type === "workflow.state")
 
     if (!latestWorkflowStateEvent) return false
 
     // WorkflowStateEvent has a 'state' property
-    if (latestWorkflowStateEvent.type === "workflowState") {
+    if (latestWorkflowStateEvent.type === "workflow.state") {
       const state = latestWorkflowStateEvent.state
       return state === "completed" || state === "error"
     }

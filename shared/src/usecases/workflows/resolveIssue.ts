@@ -124,10 +124,9 @@ export async function resolveIssue(
     })
 
     if (!issueResult.ok) {
-      pub.workflow.error("Failed to fetch issue", {
-        repoFullName: params.repoFullName,
-        issueNumber: params.issueNumber,
-      })
+      pub.workflow.error(
+        `Failed to fetch Issue #${params.issueNumber}, ${params.repoFullName}`
+      )
       return err("ISSUE_FETCH_FAILED", {
         issueRef: {
           repoFullName: params.repoFullName,
@@ -138,12 +137,14 @@ export async function resolveIssue(
 
     const issue = Issue.fromDetails(issueResult.value)
 
-    pub.issue.fetched(`Fetched issue #${issue.ref.number}`, {
+    pub.github.issue.fetched(`Fetched issue #${issue.ref.number}`, {
       state: issue.state,
+      repoFullName: params.repoFullName,
+      number: params.issueNumber,
     })
 
     if (!issue.isResolvable) {
-      pub.workflow.error("Issue is not open/resolvable")
+      pub.workflow.error(`Issue #${issue.ref.number} is not open/resolvable`)
       return err("ISSUE_NOT_OPEN", { issue, issueRef: issue.ref })
     }
 

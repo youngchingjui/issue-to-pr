@@ -66,6 +66,12 @@ export async function toAppEvent(
         editMessage: editMessage,
       },
     }
+  } else if (dbEvent.type === "workflow.state" || dbEvent.type === "status") {
+    return {
+      ...dbEvent,
+      timestamp: dbEvent.createdAt.toStandardDate(),
+      id: workflowId,
+    }
   }
   return {
     ...dbEvent,
