@@ -10,7 +10,6 @@ import {
   repoSettingsSchema as appRepoSettingsSchema,
   reviewCommentSchema as appReviewCommentSchema,
   settingsSchema as appSettingsSchema,
-  statusEventSchema as appStatusEventSchema,
   systemPromptSchema as appSystemPromptSchema,
   taskSchema as appTaskSchema,
   toolCallResultSchema as appToolCallResultSchema,
@@ -22,7 +21,6 @@ import {
   WorkflowType,
   workflowTypeEnum,
 } from "@/lib/types"
-import { WorkflowStateEventSchema as appWorkflowStateEventSchema } from "@/shared/src/entities/events/WorkflowEvent"
 
 // Re-export for Neo4j DB layer
 export { workflowRunStateSchema, workflowTypeEnum }
@@ -76,19 +74,20 @@ export const errorEventSchema = appErrorEventSchema
     workflowId: true,
   })
 
-export const statusEventSchema = appStatusEventSchema
-  .merge(
-    z.object({
-      createdAt: z.instanceof(DateTime),
-    })
-  )
-  .omit({
-    workflowId: true,
-  })
+export const statusEventSchema = z.object({
+  id: z.string(),
+  createdAt: z.instanceof(DateTime),
+  type: z.literal("status"),
+  content: z.string(),
+})
 
-export const workflowStateEventSchema = appWorkflowStateEventSchema.merge(
-  z.object({ createdAt: z.instanceof(DateTime) })
-)
+export const workflowStateEventSchema = z.object({
+  id: z.string(),
+  createdAt: z.instanceof(DateTime),
+  type: z.literal("workflowState"),
+  state: z.enum(["running", "completed", "error", "timedOut"]),
+  content: z.string().optional(),
+})
 
 export const systemPromptSchema = appSystemPromptSchema
   .omit({ workflowId: true })
