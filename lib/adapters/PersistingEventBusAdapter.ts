@@ -137,10 +137,7 @@ async function persistToNeo4j(
     }
 
     case "reasoning": {
-      // prefer metadata.summary if provided, else use content
-      const summary =
-        (event.metadata?.["summary"] as string) || event.content || ""
-      await createReasoningEvent({ workflowId, summary })
+      await createReasoningEvent({ workflowId, summary: event.content })
       return
     }
 
