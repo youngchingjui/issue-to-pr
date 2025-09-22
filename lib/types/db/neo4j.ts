@@ -19,10 +19,10 @@ import {
   workflowRunSchema as appWorkflowRunSchema,
   WorkflowRunState,
   workflowRunStateSchema,
-  workflowStateEventSchema as appWorkflowStateEventSchema,
   WorkflowType,
   workflowTypeEnum,
 } from "@/lib/types"
+import { WorkflowStateEventSchema as appWorkflowStateEventSchema } from "@/shared/src/entities/events/WorkflowEvent"
 
 // Re-export for Neo4j DB layer
 export { workflowRunStateSchema, workflowTypeEnum }
@@ -86,9 +86,9 @@ export const statusEventSchema = appStatusEventSchema
     workflowId: true,
   })
 
-export const workflowStateEventSchema = appWorkflowStateEventSchema
-  .omit({ workflowId: true })
-  .merge(z.object({ createdAt: z.instanceof(DateTime) }))
+export const workflowStateEventSchema = appWorkflowStateEventSchema.merge(
+  z.object({ createdAt: z.instanceof(DateTime) })
+)
 
 export const systemPromptSchema = appSystemPromptSchema
   .omit({ workflowId: true })

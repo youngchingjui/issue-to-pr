@@ -1,6 +1,11 @@
 import { ChatModel } from "openai/resources"
 import { z, ZodType } from "zod"
 
+import {
+  WorkflowStateEventSchema,
+  WorkflowStatusEventSchema,
+} from "@/shared/src/entities/events/WorkflowEvent"
+
 // Tools
 export interface Tool<Schema extends ZodType, Output> {
   type: "function"
@@ -161,11 +166,6 @@ export const workflowRunStateSchema = z.enum([
   "timedOut",
 ])
 
-export const workflowStateEventSchema = baseEventSchema.extend({
-  type: z.literal("workflowState"),
-  state: workflowRunStateSchema,
-})
-
 export const reviewCommentSchema = baseEventSchema.extend({
   type: z.literal("reviewComment"),
   content: z.string(),
@@ -191,8 +191,8 @@ export const anyEventSchema = z.discriminatedUnion("type", [
   ...messageEventSchema.options,
   errorEventSchema,
   reviewCommentSchema,
-  statusEventSchema,
-  workflowStateEventSchema,
+  WorkflowStatusEventSchema,
+  WorkflowStateEventSchema,
 ])
 
 // ---- Settings Schemas ----
@@ -316,5 +316,4 @@ export type Task = z.infer<typeof taskSchema>
 export type UserMessage = z.infer<typeof userMessageSchema>
 export type WorkflowRun = z.infer<typeof workflowRunSchema>
 export type WorkflowRunState = z.infer<typeof workflowRunStateSchema>
-export type WorkflowStateEvent = z.infer<typeof workflowStateEventSchema>
 export type WorkflowType = z.infer<typeof workflowTypeEnum>

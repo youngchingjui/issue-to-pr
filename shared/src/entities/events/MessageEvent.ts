@@ -6,6 +6,9 @@ export type MessageEventType =
   | "system_prompt"
   | "user_message"
   | "assistant_message"
+  | "tool.call"
+  | "tool.result"
+  | "reasoning"
 
 export interface MessageEvent {
   type: MessageEventType

@@ -19,7 +19,6 @@ import {
   get as repoGet,
 } from "@/lib/neo4j/repositories/event"
 import {
-  ErrorEvent,
   LLMResponse,
   ReasoningEvent,
   SystemPrompt,
@@ -27,11 +26,10 @@ import {
   ToolCallResult,
   UserMessage,
   WorkflowRunState,
-  WorkflowStateEvent,
 } from "@/lib/types"
 import {
   WorkflowErrorEvent,
-  WorkflowEvent,
+  WorkflowStateEvent,
   WorkflowStatusEvent,
 } from "@/shared/src/entities/events/WorkflowEvent"
 
@@ -396,6 +394,7 @@ export async function createWorkflowStateEvent({
           id,
           state,
           content,
+          timestamp: new Date(), // Temporary fix. We will deprecate this whole file later
         })
 
         // Attach it to the workflow
@@ -406,9 +405,10 @@ export async function createWorkflowStateEvent({
     )
 
     return {
-      ...result,
-      createdAt: result.createdAt.toStandardDate(),
-      workflowId,
+      type: "workflow.state",
+      state: result.state,
+      timestamp: result.createdAt.toStandardDate(),
+      id: workflowId,
     }
   } catch (e) {
     console.error(e)
