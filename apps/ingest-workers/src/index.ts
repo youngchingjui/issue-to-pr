@@ -8,6 +8,7 @@
  *
  * This is a controller-level entry point. Business logic lives in lib/neo4j/services.
  */
+import type { AllEvents } from "@shared/entities/events"
 import dotenv from "dotenv"
 import IORedis from "ioredis"
 import path from "path"
@@ -19,7 +20,6 @@ import {
   createStatusEvent,
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
-import type { AllEvents } from "@shared/entities/events"
 
 // Load environment variables from monorepo root regardless of CWD
 const __filename = fileURLToPath(import.meta.url)
@@ -39,7 +39,9 @@ const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379"
 // For the ingest foundation, we use a single stream key that an upstream fan-in can write to.
 const STREAM_KEY = process.env.INGEST_STREAM_KEY || "workflow:events:ingest"
 const GROUP_NAME = process.env.INGEST_GROUP || "ingest"
-const CONSUMER_NAME = process.env.INGEST_CONSUMER || `consumer-${Math.random().toString(36).slice(2, 8)}`
+const CONSUMER_NAME =
+  process.env.INGEST_CONSUMER ||
+  `consumer-${Math.random().toString(36).slice(2, 8)}`
 const BLOCK_MS = Number(process.env.INGEST_BLOCK_MS || 5000)
 const BATCH_SIZE = Number(process.env.INGEST_BATCH_SIZE || 1)
 
@@ -86,7 +88,11 @@ async function persistEvent(workflowId: string, event: AllEvents) {
       return
     }
     case "workflow.state": {
-      await createWorkflowStateEvent({ workflowId, state: event.state, content: event.content })
+      await createWorkflowStateEvent({
+        workflowId,
+        state: event.state,
+        content: event.content,
+      })
       return
     }
     default: {
@@ -105,7 +111,8 @@ async function processEntry(entry: [string, string[]]) {
   for (let i = 0; i < fields.length; i += 2) obj[fields[i]] = fields[i + 1]
 
   const payload = obj["event"]
-  const workflowId = obj["workflowId"] || obj["workflow_id"] || obj["wf"] || "unknown"
+  const workflowId =
+    obj["workflowId"] || obj["workflow_id"] || obj["wf"] || "unknown"
   if (!payload) {
     console.warn(`[ingest] Missing 'event' field in stream entry ${id}`)
     return { id, ok: true }
@@ -124,7 +131,11 @@ async function processEntry(entry: [string, string[]]) {
 }
 
 async function main() {
-  console.log("[ingest] Starting ingest worker...", { STREAM_KEY, GROUP_NAME, CONSUMER_NAME })
+  console.log("[ingest] Starting ingest worker...", {
+    STREAM_KEY,
+    GROUP_NAME,
+    CONSUMER_NAME,
+  })
   await n4j.connect()
   await ensureGroup()
 
@@ -194,4 +205,3 @@ main().catch((err) => {
   console.error("[ingest] Fatal error:", err)
   process.exit(1)
 })
-

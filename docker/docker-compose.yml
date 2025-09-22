@@ -12,4 +12,3 @@ name: issue-to-pr
 networks:
   issue-to-pr-network:
     external: false
-
