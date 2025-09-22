@@ -56,7 +56,7 @@ async function ensureGroup() {
     await redis.xgroup("CREATE", STREAM_KEY, GROUP_NAME, ">", "MKSTREAM")
     console.log(`Created consumer group ${GROUP_NAME} on ${STREAM_KEY}`)
   } catch (err) {
-    const msg = (err as any)?.message || String(err)
+    const msg = err?.message || String(err)
     if (msg.includes("BUSYGROUP")) {
       // Group already exists
     } else {
