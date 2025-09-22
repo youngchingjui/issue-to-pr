@@ -1,101 +1,141 @@
-import type {
-  MessageEvent,
-  MessageEventType,
-} from "@shared/entities/events/MessageEvent"
-import type {
-  WorkflowEvent,
-  WorkflowEventType,
-} from "@shared/entities/events/WorkflowEvent"
+import { AllEvents } from "@shared/entities/events"
 import type { EventBusPort } from "@shared/ports/events/eventBus"
+import { v4 as uuidv4 } from "uuid"
 
 type Metadata = Record<string, unknown> | undefined
-
-type AnyEvent = WorkflowEvent | MessageEvent
-type AnyEventType = WorkflowEventType | MessageEventType
 
 export function createWorkflowEventPublisher(
   eventBus?: EventBusPort,
   workflowId?: string
 ) {
-  const safePublish = (
-    type: AnyEventType,
-    content?: string,
-    metadata?: Metadata
-  ) => {
+  const publish = (event: AllEvents) => {
     if (!eventBus || !workflowId) return
-    const event: AnyEvent = {
-      type,
-      timestamp: new Date().toISOString(),
-      ...(content !== undefined ? { content } : {}),
-      ...(metadata ? { metadata } : {}),
-    } as AnyEvent
     void eventBus.publish(workflowId, event).catch(() => {})
   }
 
+  const nowIso = () => new Date().toISOString()
+  const nowDate = () => new Date()
+  const newId = () => uuidv4()
+
   return {
-    emit: safePublish,
+    // Accept a fully formed event if the caller wants to construct it explicitly
+    emit: (event: AllEvents) => publish(event),
+
     workflow: {
-      started: (content: string, metadata?: Metadata) =>
-        safePublish("workflow.started", content, metadata),
-      completed: (content?: string, metadata?: Metadata) =>
-        safePublish("workflow.completed", content, metadata),
-      error: (content: string, metadata?: Metadata) =>
-        safePublish("workflow.error", content, metadata),
+      started: (content?: string) =>
+        publish({
+          type: "workflow.started",
+          id: newId(),
+          timestamp: nowDate(),
+          ...(content ? { content } : {}),
+        }),
+      completed: (content?: string) =>
+        publish({
+          type: "workflow.completed",
+          id: newId(),
+          timestamp: nowDate(),
+          ...(content ? { content } : {}),
+        }),
+      error: (message: string) =>
+        publish({
+          type: "workflow.error",
+          id: newId(),
+          timestamp: nowDate(),
+          message,
+        }),
       state: (
         state: "running" | "completed" | "error" | "timedOut",
         content?: string
-      ) => safePublish("workflow.state", content, { state }),
+      ) =>
+        publish({
+          type: "workflow.state",
+          id: newId(),
+          timestamp: nowDate(),
+          state,
+          ...(content ? { content } : {}),
+        }),
+      status: (content: string) =>
+        publish({
+          type: "status",
+          id: newId(),
+          timestamp: nowDate(),
+          content,
+        }),
     },
-    status: (content: string, metadata?: Metadata) =>
-      safePublish("status", content, metadata),
-    issue: {
-      fetched: (content?: string, metadata?: Metadata) =>
-        safePublish("issue.fetched", content, metadata),
+
+    github: {
+      issue: {
+        // metadata param kept for backward compatibility but ignored to match schema
+        fetched: (content?: string, _metadata?: Metadata) =>
+          publish({
+            type: "issue.fetched",
+            id: newId(),
+            timestamp: nowDate(),
+            ...(content ? { content } : {}),
+          }),
+      },
     },
+
     message: {
       systemPrompt: (content: string, metadata?: Metadata) =>
-        safePublish("system_prompt", content, metadata),
-      userMessage: (content: string, metadata?: Metadata) =>
-        safePublish("user_message", content, metadata),
-      assistantMessage: (content: string, model?: string) =>
-        safePublish(
-          "assistant_message",
+        publish({
+          type: "system_prompt",
+          timestamp: nowIso(),
           content,
-          model ? { model } : undefined
-        ),
+          ...(metadata ? { metadata } : {}),
+        }),
+      userMessage: (content: string, metadata?: Metadata) =>
+        publish({
+          type: "user_message",
+          timestamp: nowIso(),
+          content,
+          ...(metadata ? { metadata } : {}),
+        }),
+      assistantMessage: (content: string, model?: string) =>
+        publish({
+          type: "assistant_message",
+          timestamp: nowIso(),
+          content,
+          ...(model ? { metadata: { model } } : {}),
+        }),
+      toolCall: (content: string, metadata?: Metadata) =>
+        publish({
+          type: "tool.call",
+          timestamp: nowIso(),
+          content,
+          ...(metadata ? { metadata } : {}),
+        }),
+      toolResult: (content: string, metadata?: Metadata) =>
+        publish({
+          type: "tool.result",
+          timestamp: nowIso(),
+          content,
+          ...(metadata ? { metadata } : {}),
+        }),
+      reasoning: (content: string) =>
+        publish({
+          type: "reasoning",
+          timestamp: nowIso(),
+          content,
+        }),
     },
+
     llm: {
-      started: (content?: string, metadata?: Metadata) =>
-        safePublish("llm.started", content, metadata),
-      completed: (content?: string, metadata?: Metadata) =>
-        safePublish("llm.completed", content, metadata),
-    },
-    tool: {
-      call: (
-        toolName: string,
-        toolCallId: string,
-        args: string,
-        metadata?: Metadata
-      ) =>
-        safePublish("tool.call", undefined, {
-          toolName,
-          toolCallId,
-          args,
-          ...(metadata || {}),
+      started: (content?: string) =>
+        publish({
+          type: "llm.started",
+          id: newId(),
+          timestamp: nowIso(),
+          ...(content ? { content } : {}),
         }),
-      result: (
-        toolName: string,
-        toolCallId: string,
-        content: string,
-        metadata?: Metadata
-      ) =>
-        safePublish("tool.result", content, {
-          toolName,
-          toolCallId,
-          ...(metadata || {}),
+      completed: (content?: string) =>
+        publish({
+          type: "llm.completed",
+          id: newId(),
+          timestamp: nowIso(),
+          ...(content ? { content } : {}),
         }),
     },
-    reasoning: (summary: string) => safePublish("reasoning", summary),
   } as const
 }
 
