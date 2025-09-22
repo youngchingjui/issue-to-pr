@@ -139,6 +139,8 @@ export async function resolveIssue(
 
     pub.github.issue.fetched(`Fetched issue #${issue.ref.number}`, {
       state: issue.state,
+      repoFullName: params.repoFullName,
+      number: params.issueNumber,
     })
 
     if (!issue.isResolvable) {
