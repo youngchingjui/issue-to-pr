@@ -12,7 +12,7 @@ const BaseFields = z.object({
   timestamp: z.date(), // ISO timestamp
 })
 
-// workflow.started — required content
+// workflow.started
 export const WorkflowStartedEventSchema = BaseFields.extend({
   type: z.literal("workflow.started"),
   content: z.string().optional(),
