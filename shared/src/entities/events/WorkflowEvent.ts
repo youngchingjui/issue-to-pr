@@ -58,13 +58,6 @@ export const WorkflowStatusEventSchema = BaseFields.extend({
 })
 export type WorkflowStatusEvent = z.infer<typeof WorkflowStatusEventSchema>
 
-// issue.fetched — optional content/metadata
-export const IssueFetchedEventSchema = BaseFields.extend({
-  type: z.literal("issue.fetched"),
-  content: z.string().optional(),
-})
-export type IssueFetchedEvent = z.infer<typeof IssueFetchedEventSchema>
-
 export const WorkflowCheckpointSavedEventSchema = BaseFields.extend({
   type: z.literal("workflow.checkpoint.saved"),
   content: z.string().optional(),
@@ -101,7 +94,6 @@ export const WorkflowEventSchema = z.discriminatedUnion("type", [
   WorkflowStateEventSchema,
   WorkflowStatusEventSchema,
   WorkflowCancelledEventSchema,
-  IssueFetchedEventSchema,
   WorkflowCheckpointSavedEventSchema,
   WorkflowCheckpointRestoredEventSchema,
 ])
