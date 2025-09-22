@@ -309,7 +309,6 @@ export type PlanMeta = z.infer<typeof planMetaSchema>
 export type ReviewComment = z.infer<typeof reviewCommentSchema>
 export type Settings = z.infer<typeof settingsSchema>
 export type SettingsType = z.infer<typeof settingsTypeEnum>
-export type StatusEvent = z.infer<typeof statusEventSchema>
 export type SystemPrompt = z.infer<typeof systemPromptSchema>
 export type ToolCall = z.infer<typeof toolCallSchema>
 export type ToolCallResult = z.infer<typeof toolCallResultSchema>

@@ -22,7 +22,6 @@ import {
   ErrorEvent,
   LLMResponse,
   ReasoningEvent,
-  StatusEvent,
   SystemPrompt,
   ToolCall,
   ToolCallResult,
@@ -30,6 +29,11 @@ import {
   WorkflowRunState,
   WorkflowStateEvent,
 } from "@/lib/types"
+import {
+  WorkflowErrorEvent,
+  WorkflowEvent,
+  WorkflowStatusEvent,
+} from "@/shared/src/entities/events/WorkflowEvent"
 
 // This function creates a message event node and connects it to the workflow event chain.
 // If a parentId is provided, the event is connected to the parent node using a NEXT relationship.
@@ -301,7 +305,7 @@ export async function createStatusEvent({
   workflowId: string
   content: string
   parentId?: string
-}): Promise<StatusEvent> {
+}): Promise<WorkflowStatusEvent> {
   const session = await n4j.getSession()
   try {
     const result = await session.executeWrite(
@@ -320,9 +324,10 @@ export async function createStatusEvent({
     )
 
     return {
-      ...result,
-      createdAt: result.createdAt.toStandardDate(),
-      workflowId,
+      type: "status",
+      content: result.content,
+      timestamp: result.createdAt.toStandardDate(),
+      id: workflowId,
     }
   } catch (e) {
     console.error(e)
@@ -340,7 +345,7 @@ export async function createErrorEvent({
   workflowId: string
   content: string
   parentId?: string
-}): Promise<ErrorEvent> {
+}): Promise<WorkflowErrorEvent> {
   const session = await n4j.getSession()
   try {
     const result = await session.executeWrite(
@@ -360,9 +365,10 @@ export async function createErrorEvent({
     )
 
     return {
-      ...result,
-      createdAt: result.createdAt.toStandardDate(),
-      workflowId,
+      type: "workflow.error",
+      message: result.content,
+      timestamp: result.createdAt.toStandardDate(),
+      id: workflowId,
     }
   } catch (e) {
     console.error(e)

@@ -3,17 +3,20 @@
 import { CheckCircle2 } from "lucide-react"
 
 import { EventTime } from "@/components/workflow-runs/events/EventTime"
-import { StatusEvent, WorkflowStateEvent } from "@/lib/types"
+import {
+  WorkflowStateEvent,
+  WorkflowStatusEvent,
+} from "@/shared/src/entities/events/WorkflowEvent"
 
 interface Props {
-  event: StatusEvent | WorkflowStateEvent
+  event: WorkflowStatusEvent | WorkflowStateEvent
 }
 
 export function StatusUpdate({ event }: Props) {
   let displayText: string | undefined
   if (event.type === "status") {
     displayText = event.content
-  } else if (event.type === "workflowState") {
+  } else if (event.type === "workflow.state") {
     displayText = event.content || event.state
   }
   return (
@@ -22,7 +25,7 @@ export function StatusUpdate({ event }: Props) {
         <CheckCircle2 className="w-4 h-4 text-green-500" />
       </div>
       <span className="text-sm text-muted-foreground">{displayText}</span>
-      <EventTime timestamp={event.createdAt} />
+      <EventTime timestamp={event.timestamp} />
     </div>
   )
 }
