@@ -43,12 +43,8 @@ const WorkflowStateEventSchema = z.object({
   type: z.literal("workflow.state"),
   ...BaseFields,
   content: z.string().optional(),
-  metadata: z
-    .object({
-      state: z.enum(["running", "completed", "error", "timedOut"]),
-    })
-    .passthrough()
-    .optional(),
+  state: z.enum(["running", "completed", "error", "timedOut"]),
+  metadata: Metadata.optional(),
 })
 
 // status — required content
@@ -148,4 +144,3 @@ export const isWorkflowEvent = (value: unknown): value is WorkflowEvent => {
   const res = WorkflowEventSchema.safeParse(value)
   return res.success
 }
-
