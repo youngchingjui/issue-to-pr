@@ -8,10 +8,10 @@
  *
  * This is a controller-level entry point. Business logic lives in lib/neo4j/services.
  */
-import type { AllEvents } from "@shared/entities/events"
 import dotenv from "dotenv"
 import IORedis from "ioredis"
 import path from "path"
+import type { AllEvents } from "shared/entities/events/index"
 import { fileURLToPath } from "url"
 
 import { n4j } from "@/lib/neo4j/client"

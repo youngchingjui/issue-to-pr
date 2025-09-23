@@ -5,8 +5,7 @@
     /* Isolation: override inherited baseUrl/paths to only what we want */
     "baseUrl": "./src",
     "paths": {
-      "@/*": ["*"],
-      "@shared/*": ["../../shared/src/*"] // allowed cross-package import
+      "@/*": ["*"]
     },
     /* Project build */
     "composite": true, // enables project references / --build

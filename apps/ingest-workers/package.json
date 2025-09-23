@@ -5,6 +5,7 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
+    "predev": "pnpm --filter shared build",
     "dev": "tsx watch src/index.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "build": "tsc -b",
@@ -21,9 +22,9 @@
   },
   "devDependencies": {
     "@types/node": "^20",
-    "typescript": "workspace:^",
+    "typescript": "^5",
     "tsx": "^4.19.0",
-    "eslint": "workspace:^",
+    "eslint": "^8",
     "rimraf": "^6.0.1"
   }
 }
