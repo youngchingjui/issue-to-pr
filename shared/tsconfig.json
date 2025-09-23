@@ -4,6 +4,7 @@
     "module": "es2022",
     "moduleResolution": "bundler",
     "lib": ["ES2022"],
+    "composite": true,
 
     /* Emit */
     "noEmit": false,

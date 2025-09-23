@@ -5,14 +5,25 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "ts-node src/index.ts",
-    "build": "tsc -p tsconfig.json",
-    "start": "node dist/index.js"
+    "dev": "tsx watch src/index.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "tsc -b",
+    "start": "node --enable-source-maps dist/index.js",
+    "lint": "eslint src --ext .ts --max-warnings=0",
+    "clean": "rimraf dist"
   },
   "dependencies": {
     "dotenv": "^16.5.0",
     "ioredis": "^5.3.4",
     "neo4j-driver": "^5.28.1",
-    "uuid": "^11.0.5"
+    "uuid": "^11.0.5",
+    "shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "typescript": "workspace:^",
+    "tsx": "^4.19.0",
+    "eslint": "workspace:^",
+    "rimraf": "^6.0.1"
   }
 }

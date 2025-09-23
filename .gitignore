@@ -26,6 +26,7 @@ backups
 # production
 /build
 /apps/workers/dist
+/apps/ingest-workers/dist
 /shared/dist
 
 # misc

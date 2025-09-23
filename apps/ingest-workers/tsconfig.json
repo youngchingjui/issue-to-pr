@@ -1,18 +1,37 @@
+// apps/ingest-workers/tsconfig.json
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    /* Isolation: override inherited baseUrl/paths to only what we want */
+    "baseUrl": "./src",
     "paths": {
-      "@/*": ["./src/*"],
-      "@shared/*": ["../../shared/src/*"],
-      "@lib/*": ["../../lib/*"]
+      "@/*": ["*"],
+      "@shared/*": ["../../shared/src/*"] // allowed cross-package import
     },
+    /* Project build */
+    "composite": true, // enables project references / --build
     "rootDir": "./src",
     "outDir": "./dist",
     "noEmit": false,
-    "target": "ES2020",
-    "module": "ES2020",
-    "moduleResolution": "node"
+
+    /* Runtime: Node ESM */
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "verbatimModuleSyntax": true, // keeps import/export syntax as-is
+    "sourceMap": true,
+
+    /* Types */
+    "types": ["node"],
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "strict": true
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist"],
+
+  /* Optional: if you want TS --build to compile shared first.
+     This requires a tiny change in shared/tsconfig (see note below). */
+  "references": [{ "path": "../../shared" }]
 }
