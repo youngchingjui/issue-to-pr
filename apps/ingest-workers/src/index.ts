@@ -5,8 +5,6 @@
  *  - Use Redis Streams consumer groups for reliability and scaling
  *  - Load env from monorepo root .env files and per-worker-group env_file
  *  - Graceful shutdown: finish current message, stop reading new ones
- *
- * This is a controller-level entry point. Business logic lives in lib/neo4j/services.
  */
 import dotenv from "dotenv"
 import IORedis from "ioredis"
