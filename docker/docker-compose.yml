@@ -3,7 +3,6 @@ include:
   - compose/neo4j.yml
   - compose/redis.yml
   - compose/worker.yml
-  - compose/ingest.yml
   # Add more service configurations here as needed
   # - compose/other-service.yml
 
