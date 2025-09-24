@@ -13,6 +13,7 @@
     "start:workflow-workers": "pnpm --filter @issue-to-pr/workflow-workers start",
     "build": "next build",
     "build:workflow-workers": "pnpm --filter @issue-to-pr/workflow-workers build",
+    "build:shared": "pnpm --filter shared build",
     "analyze": "ANALYZE=true next build",
     "lint": "next lint",
     "lint:eslint": "next lint",

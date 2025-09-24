@@ -3,12 +3,27 @@
  *
  * This file is responsible for handling incoming jobs and routing them to the appropriate processor.
  * Worker will call this handler when receiving jobs from the queue.
+ *
+ * File responsibilities:
+ * - Parse job data
+ * - Route job to the appropriate processor
  */
 
 import { Job } from "bullmq"
+import { JobEventSchema } from "shared/entities/events"
 
 export async function handler(job: Job) {
   console.log(`Received job ${job.id}: ${job.name}`)
+
+  const { name, data } = JobEventSchema.parse(job.data)
+  switch (name) {
+    case "summarizeIssue": {
+      return summarizeIssue(data)
+    }
+    default: {
+      throw new Error(`Unknown job name: ${job.name}`)
+    }
+  }
 }
 
 // TODO: This is a service-level helper, and should be defined in /shared/src/services/job.ts
