@@ -15,13 +15,11 @@ import { QueueEvents, Worker } from "bullmq"
 import dotenv from "dotenv"
 import IORedis from "ioredis"
 import path from "path"
+import { WORKFLOW_JOBS_QUEUE } from "shared/entities"
 import { fileURLToPath } from "url"
 
 import { handler } from "./handler"
 import { envSchema } from "./schemas"
-
-// TODO: Import WORKFLOW_JOBS_QUEUE from shared/entities/Queue instead
-const WORKFLOW_JOBS_QUEUE = "workflow-jobs"
 
 // Load environment variables from monorepo root regardless of CWD
 const __filename = fileURLToPath(import.meta.url)
