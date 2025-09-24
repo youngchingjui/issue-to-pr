@@ -5,38 +5,21 @@
  *   pnpm dev:workflow-workers
  *
  * Jobs in this file:
- * - Load all necessary environment variables
  * - Manage worker lifecycle (start, stop, shutdown), including graceful shutdown of worker when receiving SIGINT or SIGTERM
  * - Attach worker to a specific queue
  * - Attach "handler" to the worker
 
  */
 import { QueueEvents, Worker } from "bullmq"
-import dotenv from "dotenv"
 import IORedis from "ioredis"
-import path from "path"
 import { WORKFLOW_JOBS_QUEUE } from "shared/entities"
-import { fileURLToPath } from "url"
 
 import { handler } from "./handler"
-import { envSchema } from "./schemas"
+import { getEnvVar } from "./helper"
 
-// Load environment variables from monorepo root regardless of CWD
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-// dist -> workers -> apps -> repoRoot
-const repoRoot = path.resolve(__dirname, "../../../../")
+const { REDIS_URL } = getEnvVar()
 
-const envFilename =
-  process.env.NODE_ENV === "production" ? ".env.production.local" : ".env.local"
-
-dotenv.config({ path: path.join(repoRoot, envFilename) })
-// Optional: also load base .env as a fallback if present
-dotenv.config({ path: path.join(repoRoot, ".env") })
-
-const env = envSchema.parse(process.env)
-
-const connection = new IORedis(env.REDIS_URL, { maxRetriesPerRequest: null })
+const connection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null })
 
 const worker = new Worker(WORKFLOW_JOBS_QUEUE, handler, { connection })
 
