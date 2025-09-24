@@ -1,17 +1,15 @@
 /*
  * BullMQ worker with simple job routing.
  *
- * To start the worker locally:
- *   pnpm dev:worker
+ * To start the worker locally from root directory:
+ *   pnpm dev:workflow-workers
  *
  * Jobs in this file:
  * - Load all necessary environment variables
- * - Manage worker lifecycle (start, stop, shutdown)
+ * - Manage worker lifecycle (start, stop, shutdown), including graceful shutdown of worker when receiving SIGINT or SIGTERM
  * - Attach worker to a specific queue
- * - Worker should run "handler" on receiving a job
- * - Handle graceful shutdown of worker when receiving SIGINT or SIGTERM
- *   - Worker should complete existing job and stop receiving new jobs before shutting down
- * - Setup event listeners
+ * - Attach "handler" to the worker
+
  */
 import { QueueEvents, Worker } from "bullmq"
 import dotenv from "dotenv"
@@ -51,15 +49,21 @@ worker.on("ready", () => {
 })
 
 worker.on("progress", (job) => {
-  console.log(`${job.id} has progress ${job.progress}`)
+  console.log(
+    `Worker is processing job ${job.id} with progress ${job.progress}`
+  )
 })
 
 worker.on("completed", (job) => {
-  console.log(`${job.id} has completed and returned ${job.returnvalue}`)
+  console.log(
+    `Worker has completed job ${job.id} and returned ${job.returnvalue}`
+  )
 })
 
 worker.on("failed", (job) => {
-  console.log(`${job?.id} has failed with reason ${job?.failedReason}`)
+  console.log(
+    `Worker has failed job ${job?.id} with reason ${job?.failedReason}`
+  )
 })
 
 // Events don't belong here, but putting in for debugging for now.
@@ -67,17 +71,23 @@ worker.on("failed", (job) => {
 const queueEvents = new QueueEvents(WORKFLOW_JOBS_QUEUE, { connection })
 
 queueEvents.on("waiting", ({ jobId, prev }) => {
-  console.log(`A job with ID ${jobId} is waiting; previous status was ${prev}`)
+  console.log(
+    `A job event with ID ${jobId} is waiting; previous status was ${prev}`
+  )
 })
 
 queueEvents.on("active", ({ jobId, prev }) => {
-  console.log(`Job ${jobId} is now active; previous status was ${prev}`)
+  console.log(`Job event ${jobId} is now active; previous status was ${prev}`)
 })
 
-queueEvents.on("completed", ({ jobId, returnvalue }) => {
-  console.log(`${jobId} has completed and returned ${returnvalue}`)
+queueEvents.on("completed", ({ jobId, returnvalue, prev }) => {
+  console.log(
+    `Job event ${jobId} has completed and returned ${returnvalue}; previous status was ${prev}`
+  )
 })
 
-queueEvents.on("failed", ({ jobId, failedReason }) => {
-  console.log(`${jobId} has failed with reason ${failedReason}`)
+queueEvents.on("failed", ({ jobId, failedReason, prev }) => {
+  console.log(
+    `Job event ${jobId} has failed with reason ${failedReason}; previous status was ${prev}`
+  )
 })

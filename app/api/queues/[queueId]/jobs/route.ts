@@ -1,3 +1,4 @@
+import { QueueEnum } from "@shared/entities/Queue"
 import { addJob } from "@shared/services/job"
 import { NextRequest, NextResponse } from "next/server"
 
@@ -9,6 +10,7 @@ export async function POST(
 ) {
   const { queueId } = params
 
+  const queue = QueueEnum.parse(queueId)
   const { data, error } = enqueueJobsRequestSchema.safeParse(await req.json())
 
   if (error) {
@@ -43,7 +45,7 @@ export async function POST(
 
   const jobIds = await Promise.all(
     jobs.map((job) =>
-      addJob(queueId, job.name, job.data ?? {}, job.opts, redisUrl)
+      addJob(queue, job.name, job.data ?? {}, job.opts, redisUrl)
     )
   )
 
