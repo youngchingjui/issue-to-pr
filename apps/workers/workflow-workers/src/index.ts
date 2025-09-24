@@ -22,7 +22,7 @@ import { fileURLToPath } from "url"
 import { handler } from "./handler"
 import { envSchema } from "./schemas"
 
-const QUEUE_NAME = "default"
+const QUEUE_NAME = "workflow-jobs"
 // Load environment variables from monorepo root regardless of CWD
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
