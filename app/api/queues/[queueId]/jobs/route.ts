@@ -1,3 +1,4 @@
+import { JobEventSchema } from "@shared/entities/events/Job"
 import { QueueEnum } from "@shared/entities/Queue"
 import { addJob } from "@shared/services/job"
 import { NextRequest, NextResponse } from "next/server"
@@ -44,9 +45,10 @@ export async function POST(
   }
 
   const jobIds = await Promise.all(
-    jobs.map((job) =>
-      addJob(queue, job.name, job.data ?? {}, job.opts, redisUrl)
-    )
+    jobs.map((job) => {
+      const parsedJob = JobEventSchema.parse(job)
+      addJob(queue, parsedJob.name, parsedJob, job.opts, redisUrl)
+    })
   )
 
   return NextResponse.json({ success: true, jobIds })
