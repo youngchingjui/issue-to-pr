@@ -11,3 +11,4 @@ export type AllEventsType =
   | GithubEventType
 
 export * from "./Job"
+export * from "./JobStatus"

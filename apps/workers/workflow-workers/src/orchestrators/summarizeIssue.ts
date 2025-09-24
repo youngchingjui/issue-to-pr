@@ -20,7 +20,7 @@ export const summarizeIssue = async ({
     "You are an expert GitHub assistant. Given an issue title and body, produce a concise, actionable summary (2-4 sentences) highlighting the problem, scope, and desired outcome."
   const userPrompt = `Title: ${title ?? "(none)"}\n\nBody:\n${body ?? "(empty)"}`
   const completion = await openai.chat.completions.create({
-    model: "gpt-5",
+    model: "gpt-4o",
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
