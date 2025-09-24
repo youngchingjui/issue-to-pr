@@ -4,18 +4,25 @@
  * To start the worker locally:
  *   pnpm dev:worker
  *
- *  This is a "controller" level file. It can identify the adapters to use and route jobs
- *  to appropriate processors and services, inject dependencies into the processors and services,
- *
- *  It should not define service-level helpers or define adapters to databases or 3rd party services.
+ * Jobs in this file:
+ * - Load all necessary environment variables
+ * - Manage worker lifecycle (start, stop, shutdown)
+ * - Attach worker to a specific queue
+ * - Worker should run "handler" on receiving a job
+ * - Handle graceful shutdown of worker when receiving SIGINT or SIGTERM
+ *   - Worker should complete existing job and stop receiving new jobs before shutting down
+ * - Setup event listeners
  */
-import { Job, QueueEvents, Worker } from "bullmq"
+import { QueueEvents, Worker } from "bullmq"
 import dotenv from "dotenv"
 import IORedis from "ioredis"
-import OpenAI from "openai"
 import path from "path"
 import { fileURLToPath } from "url"
 
+import { handler } from "./handler"
+import { envSchema } from "./schemas"
+
+const QUEUE_NAME = "default"
 // Load environment variables from monorepo root regardless of CWD
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -29,97 +36,46 @@ dotenv.config({ path: path.join(repoRoot, envFilename) })
 // Optional: also load base .env as a fallback if present
 dotenv.config({ path: path.join(repoRoot, ".env") })
 
-// TODO: We should be using redis and openai adapters from /shared/src/adapters
-// to follow clean architecture principles, instead of importing
-// directly from these 3rd party libraries.
+const env = envSchema.parse(process.env)
 
-const redisUrl = process.env.REDIS_URL
-const openaiApiKey = process.env.OPENAI_API_KEY
+const connection = new IORedis(env.REDIS_URL, { maxRetriesPerRequest: null })
 
-if (!redisUrl) {
-  throw new Error("REDIS_URL is not set")
-}
-if (!openaiApiKey) {
-  console.warn("OPENAI_API_KEY is not set; summarize jobs will fail.")
-}
+const worker = new Worker(QUEUE_NAME, handler, { connection })
 
-const connection = new IORedis(redisUrl, { maxRetriesPerRequest: null })
-
-const openai = new OpenAI({ apiKey: openaiApiKey })
-
-// TODO: This is a service-level helper, and should be defined in /shared/src/services/job.ts
-// to follow clean architecture principles.
-async function publishStatus(jobId: string, status: string) {
-  try {
-    await connection.publish(
-      "jobStatusUpdate",
-      JSON.stringify({ jobId, status })
-    )
-  } catch (err) {
-    console.error("Failed to publish status update:", err)
-  }
-}
-
-// TODO: This is a service-level helper, and should be defined in /shared/src/services/issue.ts
-// to follow clean architecture principles.
-async function summarizeIssue(job: Job): Promise<string> {
-  if (!openaiApiKey) {
-    throw new Error(
-      "OpenAI API key is missing. Please set OPENAI_API_KEY on the worker server to enable issue summarization."
-    )
-  }
-
-  const { title, body } = job.data as { title?: string; body?: string }
-  const systemPrompt =
-    "You are an expert GitHub assistant. Given an issue title and body, produce a concise, actionable summary (2-4 sentences) highlighting the problem, scope, and desired outcome."
-  const userPrompt = `Title: ${title ?? "(none)"}\n\nBody:\n${body ?? "(empty)"}`
-
-  const completion = await openai.chat.completions.create({
-    model: "gpt-5",
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
-    ],
-  })
-  return completion.choices[0]?.message?.content?.trim() ?? ""
-}
-
-async function processor(job: Job) {
-  console.log(`Processing job ${job.id}: ${job.name}`)
-  await publishStatus(String(job.id), "Started: processing job")
-
-  try {
-    switch (job.name) {
-      case "summarizeIssue": {
-        const summary = await summarizeIssue(job)
-        const final = summary || "No summary generated"
-        await publishStatus(String(job.id), `Completed: ${final}`)
-        return { summary: final }
-      }
-      default: {
-        const msg = `Unknown job name: ${job.name}`
-        await publishStatus(String(job.id), `Failed: ${msg}`)
-        throw new Error(msg)
-      }
-    }
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    await publishStatus(String(job.id), `Failed: ${message}`)
-    throw err
-  }
-}
-
-// TODO: Refactor to allow for multiple workers, queues, etc.
-new Worker("default", processor, { connection })
-
-const events = new QueueEvents("default", { connection })
-
-events.on("completed", ({ jobId }) => {
-  console.log(`Job ${jobId} completed`)
+worker.on("ready", () => {
+  console.log(
+    `Worker is ready and listening for jobs on the '${QUEUE_NAME}' queue…`
+  )
 })
 
-events.on("failed", ({ jobId, failedReason }) => {
-  console.error(`Job ${jobId} failed:`, failedReason)
+worker.on("progress", (job) => {
+  console.log(`${job.id} has progress ${job.progress}`)
 })
 
-console.log("Worker started and listening for jobs on the 'default' queue…")
+worker.on("completed", (job) => {
+  console.log(`${job.id} has completed and returned ${job.returnvalue}`)
+})
+
+worker.on("failed", (job) => {
+  console.log(`${job?.id} has failed with reason ${job?.failedReason}`)
+})
+
+// Events don't belong here, but putting in for debugging for now.
+
+const queueEvents = new QueueEvents(QUEUE_NAME, { connection })
+
+queueEvents.on("waiting", ({ jobId, prev }) => {
+  console.log(`A job with ID ${jobId} is waiting; previous status was ${prev}`)
+})
+
+queueEvents.on("active", ({ jobId, prev }) => {
+  console.log(`Job ${jobId} is now active; previous status was ${prev}`)
+})
+
+queueEvents.on("completed", ({ jobId, returnvalue }) => {
+  console.log(`${jobId} has completed and returned ${returnvalue}`)
+})
+
+queueEvents.on("failed", ({ jobId, failedReason }) => {
+  console.log(`${jobId} has failed with reason ${failedReason}`)
+})

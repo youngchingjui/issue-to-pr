@@ -5,14 +5,17 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "ts-node src/index.ts",
+    "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js"
   },
   "dependencies": {
     "bullmq": "~5.56.0",
-    "ioredis": "^5.3.4",
     "dotenv": "^16.5.0",
+    "ioredis": "^5.3.4",
     "openai": "^5.12.2"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.5"
   }
 }
