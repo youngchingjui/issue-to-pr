@@ -1,4 +1,5 @@
-import OpenAI from "openai"
+import { OpenAIAdapter } from "@shared/adapters/llm/OpenAIAdapter"
+import summarizeIssueUseCase from "@shared/usecases/workflows/summarizeIssue"
 
 import { getEnvVar } from "../helper"
 
@@ -9,22 +10,11 @@ export const summarizeIssue = async ({
   title: string
   body: string
 }): Promise<string> => {
-  // TODO: This is a service-level helper, and should be defined in /shared/src/services/issue.ts
-  // to follow clean architecture principles.
-
+  // Orchestrator: instantiate adapters and call the shared use case.
   const { OPENAI_API_KEY } = getEnvVar()
 
-  const openai = new OpenAI({ apiKey: OPENAI_API_KEY })
+  const llm = new OpenAIAdapter(OPENAI_API_KEY)
 
-  const systemPrompt =
-    "You are an expert GitHub assistant. Given an issue title and body, produce a concise, actionable summary (2-4 sentences) highlighting the problem, scope, and desired outcome."
-  const userPrompt = `Title: ${title ?? "(none)"}\n\nBody:\n${body ?? "(empty)"}`
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o",
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
-    ],
-  })
-  return completion.choices[0]?.message?.content?.trim() ?? ""
+  return summarizeIssueUseCase(llm, { title, body }, { model: "gpt-4o" })
 }
+
