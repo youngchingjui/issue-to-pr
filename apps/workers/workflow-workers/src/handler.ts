@@ -40,7 +40,7 @@ export async function handler(job: Job): Promise<string> {
       case "summarizeIssue": {
         await publishJobStatus(job.id, "Job: Summarize issue")
         const result = await summarizeIssue(jobData)
-        await publishJobStatus(job.id, "Completed: Summarize issue")
+        await publishJobStatus(job.id, `Completed: ${result}`)
         return result
       }
       default: {
