@@ -1,5 +1,6 @@
 "use client"
 
+import { WORKFLOW_JOBS_QUEUE } from "@shared/entities/Queue"
 import { useEffect, useRef, useState } from "react"
 
 import { type EnqueueJobsRequest } from "@/app/api/queues/[queueId]/jobs/schemas"
@@ -75,7 +76,7 @@ export default function IssueSummaryCard() {
     setStatus(null)
 
     try {
-      const queueId = "default"
+      const queueId = WORKFLOW_JOBS_QUEUE
       const data: EnqueueJobsRequest = {
         jobs: [
           {

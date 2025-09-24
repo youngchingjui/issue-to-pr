@@ -1,15 +1,22 @@
 import { getRedisConnection } from "@shared/adapters/ioredis/client"
+import { QueueEnum } from "@shared/entities/Queue"
 import { Queue } from "bullmq"
 
 const queuesByKey = new Map<string, Queue>()
-export function getQueue(name: string, redisUrl: string): Queue {
+export function getQueue(name: QueueEnum, redisUrl: string): Queue {
   const key = `${name}::${redisUrl}`
-  if (queuesByKey.has(key)) return queuesByKey.get(key) as Queue
 
-  const queue = new Queue(name, { connection: getRedisConnection(redisUrl) })
-  queuesByKey.set(key, queue)
+  const queue = queuesByKey.get(key)
+  // Existing queue found, return it
+  if (queue) return queue
 
-  return queue
+  // Create a new queue
+  const newQueue = new Queue(name.toString(), {
+    connection: getRedisConnection(redisUrl),
+  })
+  queuesByKey.set(key, newQueue)
+
+  return newQueue
 }
 
 // TODO: Define a core entity Queue in src/core/entities/queue.ts

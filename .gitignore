@@ -3,6 +3,7 @@
 # dependencies
 /node_modules
 /apps/**/node_modules
+/apps/workers/**/node_modules
 /shared/**/node_modules
 /.pnp
 .pnp.*
@@ -25,7 +26,7 @@ backups
 
 # production
 /build
-/apps/workers/dist
+/apps/workers/**/dist
 /shared/dist
 
 # misc
@@ -40,6 +41,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel

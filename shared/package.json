@@ -13,6 +13,14 @@
     "./*": {
       "types": "./dist/*.d.ts",
       "import": "./dist/*.js"
+    },
+    "./entities": {
+      "types": "./dist/entities/index.d.ts",
+      "import": "./dist/entities/index.js"
+    },
+    "./entities/*": {
+      "types": "./dist/entities/*/index.d.ts",
+      "import": "./dist/entities/*/index.js"
     }
   },
   "files": [
