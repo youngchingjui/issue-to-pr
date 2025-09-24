@@ -8,12 +8,11 @@ import { JobsOptions } from "bullmq"
  */
 export async function addJob(
   queueName: QueueEnum,
-  jobName: string,
-  data: JobEvent,
+  job: JobEvent,
   opts: JobsOptions = {},
   redisUrl: string
 ): Promise<string | undefined> {
   const queue = getQueue(queueName, redisUrl)
-  const job = await queue.add(jobName, data, opts)
-  return job.id
+  const { id } = await queue.add(job.name, job.data, opts)
+  return id
 }

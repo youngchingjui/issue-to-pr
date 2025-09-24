@@ -47,7 +47,7 @@ export async function POST(
   const jobIds = await Promise.all(
     jobs.map((job) => {
       const parsedJob = JobEventSchema.parse(job)
-      addJob(queue, parsedJob.name, parsedJob, job.opts, redisUrl)
+      return addJob(queue, parsedJob, job.opts, redisUrl)
     })
   )
 
