@@ -22,7 +22,9 @@ import { fileURLToPath } from "url"
 import { handler } from "./handler"
 import { envSchema } from "./schemas"
 
-const QUEUE_NAME = "workflow-jobs"
+// TODO: Import WORKFLOW_JOBS_QUEUE from shared/entities/Queue instead
+const WORKFLOW_JOBS_QUEUE = "workflow-jobs"
+
 // Load environment variables from monorepo root regardless of CWD
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -40,11 +42,11 @@ const env = envSchema.parse(process.env)
 
 const connection = new IORedis(env.REDIS_URL, { maxRetriesPerRequest: null })
 
-const worker = new Worker(QUEUE_NAME, handler, { connection })
+const worker = new Worker(WORKFLOW_JOBS_QUEUE, handler, { connection })
 
 worker.on("ready", () => {
   console.log(
-    `Worker is ready and listening for jobs on the '${QUEUE_NAME}' queue…`
+    `Worker is ready and listening for jobs on the '${WORKFLOW_JOBS_QUEUE}' queue…`
   )
 })
 
@@ -62,7 +64,7 @@ worker.on("failed", (job) => {
 
 // Events don't belong here, but putting in for debugging for now.
 
-const queueEvents = new QueueEvents(QUEUE_NAME, { connection })
+const queueEvents = new QueueEvents(WORKFLOW_JOBS_QUEUE, { connection })
 
 queueEvents.on("waiting", ({ jobId, prev }) => {
   console.log(`A job with ID ${jobId} is waiting; previous status was ${prev}`)
