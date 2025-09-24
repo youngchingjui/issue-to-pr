@@ -21,11 +21,11 @@ export async function summarizeIssue(
   })
 
   if (!result.ok) {
-    throw new Error("LLM error")
+    const reason = "error" in result ? result.error : "unknown"
+    throw new Error(`LLM error: ${reason}`)
   }
 
   return result.value.trim()
 }
 
 export default summarizeIssue
-
