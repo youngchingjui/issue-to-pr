@@ -4,7 +4,7 @@ import path from "path"
 import { JOB_STATUS_CHANNEL, JobStatusUpdateSchema } from "shared/entities"
 import { fileURLToPath } from "url"
 
-import { envSchema, EnvVariables } from "./schemas"
+import { envSchema, type EnvVariables } from "./schemas"
 
 let envLoaded = false
 
