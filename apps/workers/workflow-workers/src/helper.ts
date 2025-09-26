@@ -60,9 +60,9 @@ export function registerGracefulShutdown(opts: {
   connection: IORedis
   timeoutMs?: number
 }) {
-  const { worker, queueEvents, connection } = opts
-  const SHUTDOWN_TIMEOUT_MS =
-    opts.timeoutMs ?? Number(process.env.SHUTDOWN_TIMEOUT_MS ?? 3600000)
+  const { worker, queueEvents, connection, timeoutMs: timeoutMsOpt } = opts
+  const { SHUTDOWN_TIMEOUT_MS: timeoutMsEnv } = getEnvVar()
+  const timeoutMs = timeoutMsOpt ?? Number(timeoutMsEnv)
 
   let shuttingDown = false
 
@@ -73,14 +73,14 @@ export function registerGracefulShutdown(opts: {
     console.log(`[worker] Received ${signal}. Beginning graceful shutdown…`)
     const timeout = setTimeout(() => {
       console.warn(
-        `[worker] Graceful shutdown timed out after ${SHUTDOWN_TIMEOUT_MS}ms. Forcing exit.`
+        `[worker] Graceful shutdown timed out after ${timeoutMs}ms. Forcing exit.`
       )
       // Ensure connections are dropped before forcing exit (fire-and-forget)
       try {
         connection.disconnect()
       } catch {}
       process.exit(1)
-    }, SHUTDOWN_TIMEOUT_MS)
+    }, timeoutMs)
 
     try {
       // Close the worker: this stops fetching new jobs and waits for the current one to finish
