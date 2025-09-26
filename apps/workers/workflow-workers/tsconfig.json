@@ -1,16 +1,25 @@
 {
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
+    /* Make @/<...> resolve to this package's src like in Next.js apps */
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["src/*"]
     },
+
+    /* Emit */
     "rootDir": "./src",
     "outDir": "./dist",
     "noEmit": false,
+
+    /* Modules */
     "target": "ES2020",
     "module": "ES2020",
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": false
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }
+

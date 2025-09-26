@@ -4,30 +4,37 @@ import path from "path"
 import { JOB_STATUS_CHANNEL, JobStatusUpdateSchema } from "shared/entities"
 import { fileURLToPath } from "url"
 
-import { envSchema, EnvVariables } from "./schemas"
+import { envSchema, type EnvVariables } from "./schemas"
 
 let envLoaded = false
 
-function loadEnvFromRepoRoot(): void {
+function loadEnvFromWorkerRoot(): void {
   if (envLoaded) return
 
-  const __filename = fileURLToPath(import.meta.url)
-  const __dirname = path.dirname(__filename)
-  const repoRoot = path.resolve(__dirname, "../../../../")
+  const filename = fileURLToPath(import.meta.url)
+  const dirname = path.dirname(filename)
+  const workerRoot = path.resolve(dirname, "..")
 
-  const envFilename =
-    process.env.NODE_ENV === "production"
-      ? ".env.production.local"
-      : ".env.local"
+  const nodeEnv = process.env.NODE_ENV ?? "development"
 
-  dotenv.config({ path: path.join(repoRoot, envFilename) })
-  dotenv.config({ path: path.join(repoRoot, ".env") })
+  // Follow Next.js load order (highest precedence first):
+  // process.env → .env.$NODE_ENV.local → .env.local (skip in test) → .env.$NODE_ENV → .env
+  const orderedEnvFiles: string[] = [
+    `.env.${nodeEnv}.local`,
+    ...(nodeEnv === "test" ? [] : [`.env.local`]),
+    `.env.${nodeEnv}`,
+    `.env`,
+  ]
+
+  for (const envFile of orderedEnvFiles) {
+    dotenv.config({ path: path.join(workerRoot, envFile) })
+  }
 
   envLoaded = true
 }
 
 export function ensureEnvLoaded(): void {
-  loadEnvFromRepoRoot()
+  loadEnvFromWorkerRoot()
 }
 
 export function getEnvVar(): EnvVariables {
