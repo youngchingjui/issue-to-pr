@@ -24,7 +24,6 @@ import AgentWorkflowClient from "@/components/playground/AgentWorkflowClient"
 import AnthropicIssueTitleCard from "@/components/playground/AnthropicIssueTitleCard"
 import ApplyPatchCard from "@/components/playground/ApplyPatchCard"
 import DockerodeExecCard from "@/components/playground/DockerodeExecCard"
-import IssueSummaryCard from "@/components/playground/IssueSummaryCard"
 import IssueTitleCard from "@/components/playground/IssueTitleCard"
 import NewLocalTaskInput from "@/components/playground/NewLocalTaskInput"
 import RipgrepSearchCard from "@/components/playground/RipgrepSearchCard"
@@ -85,7 +84,6 @@ export default async function PlaygroundToolsPage() {
           </div>
           <IssueTitleCard />
           <AnthropicIssueTitleCard />
-          <IssueSummaryCard />
           <RipgrepSearchCard />
           <WriteFileCard />
           <ApplyPatchCard />
@@ -110,3 +108,4 @@ export default async function PlaygroundToolsPage() {
     </div>
   )
 }
+

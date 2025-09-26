@@ -16,6 +16,7 @@ import { Job } from "bullmq"
 import { JobEventSchema } from "shared/entities/events"
 
 import { publishJobStatus } from "./helper"
+import { simulateLongRunningWorkflow } from "./orchestrators/simulateLongRunningWorkflow"
 import { summarizeIssue } from "./orchestrators/summarizeIssue"
 
 export async function handler(job: Job): Promise<string> {
@@ -43,6 +44,12 @@ export async function handler(job: Job): Promise<string> {
         await publishJobStatus(job.id, `Completed: ${result}`)
         return result
       }
+      case "simulateLongRunningWorkflow": {
+        await publishJobStatus(job.id, `Job: Simulate long-running (${jobData.seconds}s)`) // type-safe via zod
+        const result = await simulateLongRunningWorkflow(jobData.seconds, job.id)
+        await publishJobStatus(job.id, `Completed: ${result}`)
+        return result
+      }
       default: {
         await publishJobStatus(job.id, "Failed: Unknown job name")
         throw new Error(`Unknown job name: ${job.name}`)
@@ -50,6 +57,7 @@ export async function handler(job: Job): Promise<string> {
     }
   } catch (error) {
     await publishJobStatus(job.id, `Failed: ${error}`)
-    throw error
+    throw error as Error
   }
 }
+

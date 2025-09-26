@@ -73,7 +73,22 @@ export default async function PlaygroundHubPage() {
             </Link>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Workers</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2">
+            <p className="text-sm text-muted-foreground">
+              Test workflow-workers and BullMQ queue workflows.
+            </p>
+            <Link href="/playground/workers/workflow-worker">
+              <Button size="sm">Open Workers</Button>
+            </Link>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
 }
+
