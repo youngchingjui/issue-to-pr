@@ -75,4 +75,3 @@ queueEvents.on("failed", ({ jobId, failedReason, prev }) => {
 
 // Register graceful shutdown with a default 1 hour timeout (overridable via SHUTDOWN_TIMEOUT_MS)
 registerGracefulShutdown({ worker, queueEvents, connection })
-

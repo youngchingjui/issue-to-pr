@@ -17,4 +17,3 @@ services:
       - redis
     networks:
       - issue-to-pr-network
-

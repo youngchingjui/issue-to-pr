@@ -1,9 +1,9 @@
+import type { QueueEvents, Worker } from "bullmq"
 import dotenv from "dotenv"
 import IORedis from "ioredis"
 import path from "path"
 import { JOB_STATUS_CHANNEL, JobStatusUpdateSchema } from "shared/entities"
 import { fileURLToPath } from "url"
-import type { QueueEvents, Worker } from "bullmq"
 
 import { envSchema, type EnvVariables } from "./schemas"
 
@@ -112,4 +112,3 @@ export function registerGracefulShutdown(opts: {
     void gracefulShutdown("SIGTERM")
   })
 }
-
