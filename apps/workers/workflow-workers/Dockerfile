@@ -8,6 +8,8 @@ RUN corepack enable && corepack prepare pnpm@10.6.4 --activate
 # Copy workspace manifests first for better caching
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/workers/workflow-workers/package.json apps/workers/workflow-workers/
+# Include workspace dependency manifests needed by the worker (for proper filtered install and caching)
+COPY shared/package.json shared/
 
 # Install deps only for the workflow worker (and its transitive deps)
 RUN pnpm install --frozen-lockfile --filter @issue-to-pr/workflow-workers...
@@ -17,7 +19,7 @@ RUN pnpm install --frozen-lockfile --filter @issue-to-pr/workflow-workers...
 COPY . .
 
 # Build and prepare a production-ready deployable package for the workflow worker
-RUN pnpm --filter @issue-to-pr/workflow-workers build \
+RUN pnpm --filter @issue-to-pr/workflow-workers... build \
   && pnpm --filter @issue-to-pr/workflow-workers deploy --prod /app/workflow-workers-deploy
 
 # Production stage

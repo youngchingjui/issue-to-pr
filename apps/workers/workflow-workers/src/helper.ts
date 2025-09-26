@@ -49,6 +49,8 @@ export async function publishJobStatus(jobId: string, status: string) {
   const redis = new IORedis(REDIS_URL)
   const jobStatusUpdate = JobStatusUpdateSchema.parse({ jobId, status })
   await redis.publish(JOB_STATUS_CHANNEL, JSON.stringify(jobStatusUpdate))
+  // Ensure we close the short-lived connection to avoid leaks
+  await redis.quit()
 }
 
 // Register graceful shutdown handlers for the worker process.
