@@ -14,12 +14,8 @@
     "dotenv": "^16.5.0",
     "ioredis": "^5.3.4",
     "openai": "^5.12.2",
-    "shared": "workspace:*"
-  },
-  "dependenciesMeta": {
-    "shared": {
-      "injected": true
-    }
+    "shared": "workspace:*",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "tsc-alias": "^1.8.16",
