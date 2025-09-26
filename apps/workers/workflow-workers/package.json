@@ -16,6 +16,11 @@
     "openai": "^5.12.2",
     "shared": "workspace:*"
   },
+  "dependenciesMeta": {
+    "shared": {
+      "injected": true
+    }
+  },
   "devDependencies": {
     "tsc-alias": "^1.8.16",
     "tsc-esm-fix": "^3.1.2",

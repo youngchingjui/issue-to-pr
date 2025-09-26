@@ -565,7 +565,10 @@ importers:
         version: 5.12.2(ws@8.18.3)(zod@3.25.67)
       shared:
         specifier: workspace:*
-        version: link:../../../shared
+        version: file:shared(ws@8.18.3)
+    dependenciesMeta:
+      shared:
+        injected: true
     devDependencies:
       tsc-alias:
         specifier: ^1.8.16
@@ -8140,6 +8143,9 @@ packages:
     resolution: {integrity: sha512-8LzC5+bvI45BjpfXU8V5fdU2mfeKiQe1D1gIMn7XUlF3OTUrpdJpPPH4EMAnF0DsHHdSZqCdSss5qCmJKuiO3w==}
     engines: {node: '>= 0.10'}
     hasBin: true
+
+  shared@file:shared:
+    resolution: {directory: shared, type: directory}
 
   sharp@0.34.3:
     resolution: {integrity: sha512-eX2IQ6nFohW4DbvHIOLRB3MHFpYqaqvXd3Tp5e/T/dSH83fxaNJQRvDMhASmkNTsNTVF2/OOopzRCt7xokgPfg==}
@@ -18591,6 +18597,19 @@ snapshots:
       inherits: 2.0.4
       safe-buffer: 5.2.1
       to-buffer: 1.2.1
+
+  shared@file:shared(ws@8.18.3):
+    dependencies:
+      '@anthropic-ai/sdk': 0.59.0
+      '@octokit/graphql': 8.2.1
+      '@octokit/rest': 21.1.1
+      bullmq: 5.56.10
+      ioredis: 5.7.0
+      openai: 5.12.2(ws@8.18.3)(zod@3.25.67)
+      zod: 3.25.67
+    transitivePeerDependencies:
+      - supports-color
+      - ws
 
   sharp@0.34.3:
     dependencies:
