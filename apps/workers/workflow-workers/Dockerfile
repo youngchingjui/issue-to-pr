@@ -2,8 +2,8 @@
 FROM node:22-alpine AS builder
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm
+# Enable Corepack and activate the pinned pnpm version from packageManager
+RUN corepack enable && corepack prepare pnpm@10.6.4 --activate
 
 # Copy workspace manifests first for better caching
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
@@ -16,27 +16,23 @@ RUN pnpm install --frozen-lockfile --filter @issue-to-pr/workflow-workers...
 # TODO: Investigate NOT copying the NextJS-related files
 COPY . .
 
-# Build the workflow worker
-RUN pnpm --filter @issue-to-pr/workflow-workers build
+# Build and prepare a production-ready deployable package for the workflow worker
+RUN pnpm --filter @issue-to-pr/workflow-workers build \
+  && pnpm --filter @issue-to-pr/workflow-workers deploy --prod /app/workflow-workers-deploy
 
 # Production stage
 FROM node:22-alpine AS production
 WORKDIR /app
 
-RUN npm install -g pnpm
+# Enable Corepack (not strictly needed at runtime since we copy a pruned deploy)
+RUN corepack enable && corepack prepare pnpm@10.6.4 --activate
 
-# Copy workspace manifests for production install
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
-COPY apps/workers/workflow-workers/package.json apps/workers/workflow-workers/
-
-# Install only production deps for the workflow worker
-RUN pnpm install --frozen-lockfile --prod --filter @issue-to-pr/workflow-workers...
-
-# Copy the built workflow worker
-COPY --from=builder /app/apps/workers/workflow-workers/dist ./apps/workers/workflow-workers/dist
+# Copy the prepared deploy (includes node_modules and built dist)
+COPY --from=builder /app/workflow-workers-deploy/ /app/
 
 ENV NODE_ENV=production
 # Send SIGTERM and allow time to shutdown gracefully
 STOPSIGNAL SIGTERM
-CMD ["pnpm", "--filter", "@issue-to-pr/workflow-workers", "start"]
+# Start directly with node; no pnpm needed at runtime
+CMD ["node", "dist/index.js"]
 

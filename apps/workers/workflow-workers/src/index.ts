@@ -15,7 +15,7 @@ import IORedis from "ioredis"
 import { WORKFLOW_JOBS_QUEUE } from "shared/entities"
 
 import { handler } from "./handler"
-import { getEnvVar } from "./helper"
+import { getEnvVar, registerGracefulShutdown } from "./helper"
 
 const { REDIS_URL } = getEnvVar()
 
@@ -73,53 +73,6 @@ queueEvents.on("failed", ({ jobId, failedReason, prev }) => {
   )
 })
 
-// Graceful shutdown handling: stop taking new jobs, wait for in-flight jobs to finish, then exit.
-const SHUTDOWN_TIMEOUT_MS = Number(process.env.SHUTDOWN_TIMEOUT_MS ?? 30000)
-let shuttingDown = false
-
-async function gracefulShutdown(signal: NodeJS.Signals) {
-  if (shuttingDown) return
-  shuttingDown = true
-
-  console.log(`[worker] Received ${signal}. Beginning graceful shutdown…`)
-  const timeout = setTimeout(() => {
-    console.warn(
-      `[worker] Graceful shutdown timed out after ${SHUTDOWN_TIMEOUT_MS}ms. Forcing exit.`
-    )
-    // Ensure connections are dropped before forcing exit
-    try {
-      connection.disconnect()
-    } catch {}
-    process.exit(1)
-  }, SHUTDOWN_TIMEOUT_MS)
-
-  try {
-    // Close the worker: this stops fetching new jobs and waits for the current one to finish
-    await worker.close()
-    // Close queue event listener
-    await queueEvents.close()
-    // Close the redis connection
-    await connection.quit()
-    clearTimeout(timeout)
-    console.log("[worker] Shutdown complete. Exiting…")
-    process.exit(0)
-  } catch (err) {
-    console.error("[worker] Error during shutdown:", err)
-    clearTimeout(timeout)
-    process.exit(1)
-  }
-}
-
-process.on("SIGTERM", gracefulShutdown)
-process.on("SIGINT", gracefulShutdown)
-
-process.on("unhandledRejection", (reason) => {
-  console.error("[worker] Unhandled promise rejection:", reason)
-})
-
-process.on("uncaughtException", (err) => {
-  console.error("[worker] Uncaught exception:", err)
-  // Try to shutdown gracefully as well
-  void gracefulShutdown("SIGTERM")
-})
+// Register graceful shutdown with a default 1 hour timeout (overridable via SHUTDOWN_TIMEOUT_MS)
+registerGracefulShutdown({ worker, queueEvents, connection })
 

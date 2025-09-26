@@ -6,11 +6,12 @@ services:
     environment:
       - NODE_ENV=production
       - REDIS_URL=redis://redis:6379
+      - SHUTDOWN_TIMEOUT_MS=3600000
     env_file:
       - ${ENV_FILE}
     # Give the worker time to finish in-flight jobs before stopping
     stop_signal: SIGTERM
-    stop_grace_period: 60s
+    stop_grace_period: 1h
     restart: unless-stopped
     depends_on:
       - redis

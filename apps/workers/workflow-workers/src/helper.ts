@@ -3,6 +3,7 @@ import IORedis from "ioredis"
 import path from "path"
 import { JOB_STATUS_CHANNEL, JobStatusUpdateSchema } from "shared/entities"
 import { fileURLToPath } from "url"
+import type { QueueEvents, Worker } from "bullmq"
 
 import { envSchema, type EnvVariables } from "./schemas"
 
@@ -49,3 +50,66 @@ export async function publishJobStatus(jobId: string, status: string) {
   const jobStatusUpdate = JobStatusUpdateSchema.parse({ jobId, status })
   await redis.publish(JOB_STATUS_CHANNEL, JSON.stringify(jobStatusUpdate))
 }
+
+// Register graceful shutdown handlers for the worker process.
+// Stops taking new jobs, waits for in-flight jobs to finish, then exits.
+// If the timeout elapses, forces exit(1) after disconnecting Redis.
+export function registerGracefulShutdown(opts: {
+  worker: Worker
+  queueEvents: QueueEvents
+  connection: IORedis
+  timeoutMs?: number
+}) {
+  const { worker, queueEvents, connection } = opts
+  const SHUTDOWN_TIMEOUT_MS =
+    opts.timeoutMs ?? Number(process.env.SHUTDOWN_TIMEOUT_MS ?? 3600000)
+
+  let shuttingDown = false
+
+  async function gracefulShutdown(signal: NodeJS.Signals) {
+    if (shuttingDown) return
+    shuttingDown = true
+
+    console.log(`[worker] Received ${signal}. Beginning graceful shutdown…`)
+    const timeout = setTimeout(() => {
+      console.warn(
+        `[worker] Graceful shutdown timed out after ${SHUTDOWN_TIMEOUT_MS}ms. Forcing exit.`
+      )
+      // Ensure connections are dropped before forcing exit (fire-and-forget)
+      try {
+        connection.disconnect()
+      } catch {}
+      process.exit(1)
+    }, SHUTDOWN_TIMEOUT_MS)
+
+    try {
+      // Close the worker: this stops fetching new jobs and waits for the current one to finish
+      await worker.close()
+      // Close queue event listener
+      await queueEvents.close()
+      // Close the redis connection
+      await connection.quit()
+      clearTimeout(timeout)
+      console.log("[worker] Shutdown complete. Exiting…")
+      process.exit(0)
+    } catch (err) {
+      console.error("[worker] Error during shutdown:", err)
+      clearTimeout(timeout)
+      process.exit(1)
+    }
+  }
+
+  process.on("SIGTERM", gracefulShutdown)
+  process.on("SIGINT", gracefulShutdown)
+
+  process.on("unhandledRejection", (reason) => {
+    console.error("[worker] Unhandled promise rejection:", reason)
+    void gracefulShutdown("SIGTERM")
+  })
+
+  process.on("uncaughtException", (err) => {
+    console.error("[worker] Uncaught exception:", err)
+    void gracefulShutdown("SIGTERM")
+  })
+}
+
