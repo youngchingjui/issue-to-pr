@@ -27,7 +27,7 @@
     "jsx": "preserve",
 
     /* Paths */
-    "baseUrl": ".",
+    // "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
       "@/components/*": ["components/*"],
@@ -39,5 +39,6 @@
     /* Incremental */
     "incremental": true
   },
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules"],
+  "references": []
 }
