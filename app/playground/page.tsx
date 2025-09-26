@@ -1,3 +1,4 @@
+import dynamic from "next/dynamic"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 
@@ -5,7 +6,13 @@ import { auth } from "@/auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getGithubUser } from "@/lib/github/users"
+import { getDemoOpenAIApiKey } from "@/lib/neo4j/services/appSettings"
 import { getUserRoles } from "@/lib/neo4j/services/user"
+
+const DemoOpenAIApiKeyCard = dynamic(
+  () => import("@/components/playground/DemoOpenAIApiKeyCard"),
+  { ssr: false }
+)
 
 export default async function PlaygroundHubPage() {
   const session = await auth()
@@ -21,6 +28,8 @@ export default async function PlaygroundHubPage() {
   if (!isAdmin) {
     redirect("/")
   }
+
+  const demoKey = await getDemoOpenAIApiKey()
 
   return (
     <div className="space-y-8 px-4 py-8 md:container md:mx-auto">
@@ -74,6 +83,9 @@ export default async function PlaygroundHubPage() {
           </CardContent>
         </Card>
       </div>
+
+      <DemoOpenAIApiKeyCard initialKey={demoKey ?? ""} />
     </div>
   )
 }
+

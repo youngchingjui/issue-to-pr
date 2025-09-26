@@ -3,6 +3,7 @@ import { z } from "zod"
 
 import {
   errorEventSchema as appErrorEventSchema,
+  globalSettingsSchema as appGlobalSettingsSchema,
   issueSchema as appIssueSchema,
   llmResponseSchema as appLLMResponseSchema,
   planSchema as appPlanSchema,
@@ -192,3 +193,15 @@ export const userSettingsSchema = appSettingsSchema.merge(
 )
 
 export type UserSettings = z.infer<typeof userSettingsSchema>
+
+// ---- Global/App Settings ----
+export const globalSettingsSchema = appGlobalSettingsSchema.merge(
+  z.object({
+    lastUpdated: z.custom<DateTime>(isDateTime, {
+      message: "Input not instance of DateTime",
+    }).optional(),
+  })
+)
+
+export type GlobalSettings = z.infer<typeof globalSettingsSchema>
+
