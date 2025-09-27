@@ -113,7 +113,7 @@ export default function LongRunningWorkflowCard() {
           <Input
             type="number"
             min={1}
-            value={seconds}
+            value={Number.isFinite(seconds) ? seconds : ""}
             onChange={(e) => setSeconds(Math.max(1, Number(e.target.value)))}
           />
         </div>
