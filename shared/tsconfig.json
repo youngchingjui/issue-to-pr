@@ -5,6 +5,11 @@
     "moduleResolution": "bundler",
     "lib": ["ES2022"],
 
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+
     /* Emit */
     "noEmit": false,
 
@@ -13,7 +18,11 @@
 
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true
+    "sourceMap": true,
+
+    "composite": true,
+
+    "jsx": "react-jsx"
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

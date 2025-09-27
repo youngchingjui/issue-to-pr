@@ -1,7 +1,7 @@
 "use server"
 
-import { makeIssueWriterAdapter } from "@shared/adapters/github/octokit/rest/issue.writer"
-import { createIssueForRepo } from "@shared/services/github/issues"
+import { makeIssueWriterAdapter } from "shared/adapters/github/octokit/rest/issue.writer"
+import { createIssueForRepo } from "shared/services/github/issues"
 
 import { auth } from "@/auth"
 

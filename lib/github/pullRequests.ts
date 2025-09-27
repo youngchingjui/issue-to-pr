@@ -1,4 +1,4 @@
-import { logEnd, logStart, withTiming } from "@shared/utils/telemetry"
+import { logEnd, logStart, withTiming } from "shared/utils/telemetry"
 
 import getOctokit, { getGraphQLClient } from "@/lib/github"
 import {
@@ -703,4 +703,3 @@ export async function getLinkedIssuesForPR({
     response.repository?.pullRequest?.closingIssuesReferences?.nodes || []
   return nodes.map((n) => n.number)
 }
-

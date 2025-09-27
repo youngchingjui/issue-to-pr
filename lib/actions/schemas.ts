@@ -1,4 +1,4 @@
-import { modelList } from "@shared/entities/llm/models"
+import { modelList } from "shared/entities/llm/models"
 import { z } from "zod"
 
 // =================================================

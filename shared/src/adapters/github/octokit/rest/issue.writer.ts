@@ -1,11 +1,12 @@
 import { Octokit } from "@octokit/rest"
-import { err, ok, type Result } from "@shared/entities/result"
+
+import { err, ok, type Result } from "@/entities/result"
 import {
   type CreateIssueInput,
   type GithubIssueErrors,
   type Issue,
   IssueWriterPort,
-} from "@shared/ports/github/issue.writer"
+} from "@/ports/github/issue.writer"
 
 /**
  * Factory to create a REST-based GitHub adapter implementing IssueWriterPort.

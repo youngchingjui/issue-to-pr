@@ -1,12 +1,13 @@
 import { graphql } from "@octokit/graphql"
-import { err, ok, type Result } from "@shared/entities/result"
+
+import { err, ok, type Result } from "@/entities/result"
 import type {
   GetIssueErrors,
   IssueDetails,
   IssueReaderPort,
   IssueRef,
   IssueTitleResult,
-} from "@shared/ports/github/issue.reader"
+} from "@/ports/github/issue.reader"
 
 /**
  * Minimal Octokit GraphQL adapter focused on GitHub IssueReaderPort.

@@ -14,31 +14,9 @@ docker/
 
 ## Environment Variables
 
-The application uses environment variables from `.env.local` (development) or `.env.production.local` (production). These files should never be committed to the repository.
+In this monorepo we have multiple environment variables entry points. Everywhere there is a form of `.env.example` or `.env.*.example` file, you can copy the file to your own `.env` file and edit it as needed. Be sure to remove the `.example` suffix.
 
-The `scripts/start-services.sh` script automatically loads the appropriate environment file based on the `NODE_ENV`:
-
-- Development: `.env.local`
-- Production: `.env.production.local`
-
-### Required Environment Variables
-
-#### Neo4j
-
-- `NEO4J_USER`: Neo4j database username
-- `NEO4J_PASSWORD`: Neo4j database password
-
-These variables are used both by the application and by Docker Compose to configure the Neo4j container.
-
-## Usage
-
-To start all services (Neo4j and Redis):
-
-```bash
-./scripts/start-services.sh
-```
-
-This will start Neo4j and Redis with healthchecks to ensure they're ready.
+Except for the main root of the folder. For now, that `.env.local` or `.env.production.local` is being managed by a cloud secrets provider on the Vercel platform. If the repo is connected to our Vercel project, you can use `vercel env pull` to sync the environment variables to your local machine.
 
 ## Services
 

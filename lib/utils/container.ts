@@ -1,8 +1,8 @@
-import { buildPreviewSubdomainSlug } from "@shared/entities/previewSlug"
 import { exec as hostExec } from "child_process"
 import Docker from "dockerode"
 import os from "os"
 import path from "path"
+import { buildPreviewSubdomainSlug } from "shared/entities/previewSlug"
 import util from "util"
 import { v4 as uuidv4 } from "uuid"
 

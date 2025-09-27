@@ -1,4 +1,4 @@
-import { Result } from "../../entities/result"
+import { Result } from "@/entities/result"
 
 // shared/src/entities/User.ts
 export type AuthenticatedUser = {

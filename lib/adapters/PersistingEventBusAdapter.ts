@@ -1,6 +1,6 @@
-import { EventBusAdapter } from "@shared/adapters/ioredis/EventBusAdapter"
-import type { AllEvents } from "@shared/entities/events"
-import type { EventBusPort } from "@shared/ports/events/eventBus"
+import { EventBusAdapter } from "shared/adapters/ioredis/EventBusAdapter"
+import type { AllEvents } from "shared/entities/events/index"
+import type { EventBusPort } from "shared/ports/events/eventBus"
 
 import {
   createErrorEvent,

@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 jest.mock("node:child_process", () => {
   return {
     exec: jest.fn(),
@@ -24,15 +22,21 @@ describe("setupEnv utility", () => {
 
   it("returns confirmation when 'pnpm i' succeeds", async () => {
     // Arrange mocked successful exec
-    execMock.mockImplementation((cmd: any, options: any, callback: any) => {
-      // Support optional options argument
-      if (typeof options === "function") {
-        callback = options
+    execMock.mockImplementation(
+      (
+        cmd: string,
+        options: unknown,
+        callback: (error: Error | null, stdout: string, stderr: string) => void
+      ) => {
+        // Support optional options argument
+        if (typeof options === "function") {
+          callback = options
+        }
+        callback(null, "installation complete", "")
+        // Return dummy ChildProcess object
+        return {}
       }
-      callback(null, "installation complete", "")
-      // Return dummy ChildProcess object
-      return {} as any
-    })
+    )
 
     const result = await setupEnv(baseDir, "pnpm i")
 
@@ -47,16 +51,22 @@ describe("setupEnv utility", () => {
 
   it("throws a helpful error when the command fails", async () => {
     // Arrange mocked failing exec
-    execMock.mockImplementation((cmd: any, options: any, callback: any) => {
-      if (typeof options === "function") {
-        callback = options
+    execMock.mockImplementation(
+      (
+        cmd: string,
+        options: unknown,
+        callback: (error: Error | null, stdout: string, stderr: string) => void
+      ) => {
+        if (typeof options === "function") {
+          callback = options
+        }
+        const error = new Error("mock failure")
+        error.stdout = "some stdout"
+        error.stderr = "some stderr"
+        callback(error, "some stdout", "some stderr")
+        return {}
       }
-      const error = new Error("mock failure") as any
-      error.stdout = "some stdout"
-      error.stderr = "some stderr"
-      callback(error, "some stdout", "some stderr")
-      return {} as any
-    })
+    )
 
     await expect(setupEnv(baseDir, "pnpm i")).rejects.toThrow(
       /Setup command failed/

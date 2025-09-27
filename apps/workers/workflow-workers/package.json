@@ -1,12 +1,12 @@
 {
-  "name": "@issue-to-pr/workflow-workers",
+  "name": "workflow-workers",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc && tsc-esm-fix && tsc-alias",
+    "build": "tsc && tsc-alias && tsc-esm-fix",
     "start": "node dist/index.js"
   },
   "dependencies": {
@@ -14,7 +14,8 @@
     "dotenv": "^16.5.0",
     "ioredis": "^5.3.4",
     "openai": "^5.12.2",
-    "shared": "workspace:*"
+    "shared": "workspace:*",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "tsc-alias": "^1.8.16",

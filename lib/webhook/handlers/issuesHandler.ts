@@ -1,4 +1,5 @@
-import { makeSettingsReaderAdapter } from "@shared/adapters/neo4j/repositories/SettingsReaderAdapter"
+import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
+import { AuthReaderPort } from "shared/ports/auth/reader"
 import { v4 as uuidv4 } from "uuid"
 
 import { getRepoFromString } from "@/lib/github/content"
@@ -9,7 +10,6 @@ import * as userRepo from "@/lib/neo4j/repositories/user"
 import { updateJobStatus } from "@/lib/redis-old"
 import { autoResolveIssue } from "@/lib/workflows/autoResolveIssue"
 import { resolveIssue } from "@/lib/workflows/resolveIssue"
-import { AuthReaderPort } from "@/shared/src/ports/auth/reader"
 
 import { IssuesPayload, WebhookHandler } from "../types"
 
@@ -220,4 +220,3 @@ export class IssuesHandler implements WebhookHandler<IssuesPayload> {
     })()
   }
 }
-

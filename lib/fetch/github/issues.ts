@@ -1,11 +1,11 @@
 "use server"
 
-import { makeIssueReaderAdapter } from "@shared/adapters/github/IssueReaderAdapter"
+import { makeIssueReaderAdapter } from "shared/adapters/github/IssueReaderAdapter"
 import {
   makeAccessTokenProviderFrom,
   makeSessionProvider,
-} from "@shared/providers/auth"
-import { makeGetIssueUseCase } from "@shared/usecases/getIssue"
+} from "shared/providers/auth"
+import { makeGetIssueUseCase } from "shared/usecases/getIssue"
 
 import { auth } from "@/auth"
 import type { GetIssueResult } from "@/lib/types/github"

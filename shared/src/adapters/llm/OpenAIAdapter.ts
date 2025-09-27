@@ -1,6 +1,7 @@
-import { err, ok, type Result } from "@shared/entities/result"
-import type { LLMErrorCode, LLMFactoryPort, LLMPort } from "@shared/ports/llm"
 import OpenAI from "openai"
+
+import { err, ok, type Result } from "@/entities/result"
+import type { LLMErrorCode, LLMFactoryPort, LLMPort } from "@/ports/llm"
 
 /**
  * OpenAI adapter implementing the LLMPort interface.

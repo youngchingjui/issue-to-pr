@@ -1,14 +1,13 @@
 services:
-  worker:
-    # TODO: The build process does not activate when there are new updates to the worker code
+  workflow-workers:
     build:
       context: ../../
-      dockerfile: apps/workers/Dockerfile
-    environment:
-      - NODE_ENV=production
-      - REDIS_URL=redis://redis:6379
+      dockerfile: apps/workers/workflow-workers/Dockerfile
     env_file:
-      - ${ENV_FILE}
+      - ../env/.env.worker
+    # Give the worker time to finish in-flight jobs before stopping
+    stop_signal: SIGTERM
+    stop_grace_period: 1h
     restart: unless-stopped
     depends_on:
       - redis

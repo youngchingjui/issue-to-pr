@@ -1,5 +1,5 @@
-import { withTiming } from "@shared/utils/telemetry"
 import { int } from "neo4j-driver"
+import { withTiming } from "shared/utils/telemetry"
 
 import { n4j } from "@/lib/neo4j/client"
 import { neo4jToJs, toAppEvent, toAppMessageEvent } from "@/lib/neo4j/convert"

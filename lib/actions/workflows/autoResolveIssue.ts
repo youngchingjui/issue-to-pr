@@ -1,5 +1,7 @@
 "use server"
 
+import { EventBusAdapter } from "shared/adapters/ioredis/EventBusAdapter"
+import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
 import { v4 as uuidv4 } from "uuid"
 
 import { nextAuthReader } from "@/lib/adapters/auth/AuthReader"
@@ -8,8 +10,6 @@ import { getIssue } from "@/lib/github/issues"
 import { neo4jDs } from "@/lib/neo4j"
 import * as userRepo from "@/lib/neo4j/repositories/user"
 import { autoResolveIssue } from "@/lib/workflows/autoResolveIssue"
-import { EventBusAdapter } from "@/shared/src/adapters/ioredis/EventBusAdapter"
-import { makeSettingsReaderAdapter } from "@/shared/src/adapters/neo4j/repositories/SettingsReaderAdapter"
 
 import {
   type AutoResolveIssueRequest,
