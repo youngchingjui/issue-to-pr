@@ -1,6 +1,6 @@
 "use server"
 
-import { withTiming } from "@shared/utils/telemetry"
+import { withTiming } from "shared/utils/telemetry"
 
 import getOctokit, { getGraphQLClient, getUserOctokit } from "@/lib/github"
 import {

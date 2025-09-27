@@ -4,7 +4,7 @@
 // listBranchesSortedByCommitDate
 // but separate the concerns and save it in @shared folder
 
-import type { GitHubRefsPort } from "@shared/ports/refs"
+import type { GitHubRefsPort } from "shared/ports/refs"
 
 import { listBranchesSortedByCommitDate } from "@/lib/github/refs"
 

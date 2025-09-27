@@ -1,4 +1,4 @@
-import { type Result } from "@shared/entities/result"
+import { type Result } from "@/entities/result"
 
 export interface IssueRef {
   repoFullName: string // e.g. "owner/repo"

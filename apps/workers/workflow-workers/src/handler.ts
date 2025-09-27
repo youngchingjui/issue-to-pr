@@ -12,8 +12,8 @@
  * @returns The result of the job. Currently, this is not being used.
  */
 
-import { JobEventSchema } from "@shared/entities/events"
 import { Job } from "bullmq"
+import { JobEventSchema } from "shared/entities/events/Job"
 
 import { publishJobStatus } from "./helper"
 import { summarizeIssue } from "./orchestrators/summarizeIssue"

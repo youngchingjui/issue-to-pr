@@ -1,6 +1,7 @@
 import { Octokit } from "@octokit/rest"
-import { lazy } from "@shared/utils/lazy"
 import type OpenAI from "openai"
+
+import { lazy } from "@/utils/lazy"
 
 export type OctokitProvider = () => Promise<Octokit>
 export type OpenAIProvider = () => Promise<OpenAI>

@@ -1,6 +1,7 @@
-import { JOB_STATUS_CHANNEL, JobStatusUpdateSchema } from "@shared/entities"
 import Redis, { type Redis as RedisClient } from "ioredis"
 import { NextRequest, NextResponse } from "next/server"
+import { JOB_STATUS_CHANNEL } from "shared/entities/Channels"
+import { JobStatusUpdateSchema } from "shared/entities/events/JobStatus"
 
 import { SSEUtils } from "@/lib/utils/utils-common"
 

@@ -1,6 +1,6 @@
 "use server"
 
-import { withTiming } from "@shared/utils/telemetry"
+import { withTiming } from "shared/utils/telemetry"
 import { z } from "zod"
 
 import { getUserOctokit } from "@/lib/github"

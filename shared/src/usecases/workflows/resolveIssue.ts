@@ -1,11 +1,11 @@
-import { Issue } from "@shared/entities/Issue"
-import { err, ok, type Result } from "@shared/entities/result"
-import type { AuthReaderPort } from "@shared/ports/auth/reader"
-import type { EventBusPort } from "@shared/ports/events/eventBus"
-import { createWorkflowEventPublisher } from "@shared/ports/events/publisher"
-import type { IssueReaderPort } from "@shared/ports/github/issue.reader"
-import type { LLMPort } from "@shared/ports/llm"
-import type { SettingsReaderPort } from "@shared/ports/repositories/settings.reader"
+import { Issue } from "@/entities/Issue"
+import { err, ok, type Result } from "@/entities/result"
+import type { AuthReaderPort } from "@/ports/auth/reader"
+import type { EventBusPort } from "@/ports/events/eventBus"
+import { createWorkflowEventPublisher } from "@/ports/events/publisher"
+import type { IssueReaderPort } from "@/ports/github/issue.reader"
+import type { LLMPort } from "@/ports/llm"
+import type { SettingsReaderPort } from "@/ports/repositories/settings.reader"
 
 /**
  * Parameters for resolving an issue

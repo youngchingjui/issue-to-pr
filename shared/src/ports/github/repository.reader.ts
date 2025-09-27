@@ -1,4 +1,4 @@
-import { type Result } from "@shared/entities/result"
+import { type Result } from "@/entities/result"
 
 export interface RepositoryRef {
   /** Full repository name (owner/repo) */
@@ -40,4 +40,3 @@ export interface RepositoryReaderPort {
     ref: RepositoryRef
   ): Promise<Result<RepositoryDetails, GetRepositoryErrors>>
 }
-

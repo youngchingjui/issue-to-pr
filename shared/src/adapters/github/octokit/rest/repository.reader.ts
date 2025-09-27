@@ -1,11 +1,12 @@
 import { Octokit } from "@octokit/rest"
-import { err, ok, type Result } from "@shared/entities/result"
+
+import { err, ok, type Result } from "@/entities/result"
 import type {
   GetRepositoryErrors,
   RepositoryDetails,
   RepositoryReaderPort,
   RepositoryRef,
-} from "@shared/ports/github/repository.reader"
+} from "@/ports/github/repository.reader"
 
 /**
  * Factory to create a REST-based GitHub adapter implementing RepositoryReaderPort.
@@ -24,10 +25,9 @@ export function makeRepositoryReaderAdapter(params: {
     try {
       const { data } = await octokit.repos.get({ owner, repo })
 
-      const visibility = (data.visibility || (data.private ? "private" : "public")).toUpperCase() as
-        | "PUBLIC"
-        | "PRIVATE"
-        | "INTERNAL"
+      const visibility = (
+        data.visibility || (data.private ? "private" : "public")
+      ).toUpperCase() as "PUBLIC" | "PRIVATE" | "INTERNAL"
 
       const details: RepositoryDetails = {
         repoFullName: ref.repoFullName,
@@ -60,4 +60,3 @@ export function makeRepositoryReaderAdapter(params: {
 }
 
 export default makeRepositoryReaderAdapter
-

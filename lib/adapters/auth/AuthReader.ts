@@ -6,7 +6,7 @@ import {
   AccessToken,
   AuthenticatedUser,
   AuthReaderPort,
-} from "@shared/ports/auth/reader"
+} from "shared/ports/auth/reader"
 
 import { auth } from "@/auth"
 

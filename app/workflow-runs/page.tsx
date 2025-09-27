@@ -1,5 +1,5 @@
-import { withTiming } from "@shared/utils/telemetry"
 import { Suspense } from "react"
+import { withTiming } from "shared/utils/telemetry"
 
 import { auth } from "@/auth"
 import TableSkeleton from "@/components/layout/TableSkeleton"

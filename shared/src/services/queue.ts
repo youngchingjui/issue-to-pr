@@ -1,6 +1,7 @@
-import { getRedisConnection } from "@shared/adapters/ioredis/client"
-import { QueueEnum } from "@shared/entities/Queue"
 import { Queue } from "bullmq"
+
+import { getRedisConnection } from "@/adapters/ioredis/client"
+import { QueueEnum } from "@/entities/Queue"
 
 const queuesByKey = new Map<string, Queue>()
 export function getQueue(name: QueueEnum, redisUrl: string): Queue {

@@ -1,7 +1,7 @@
-import { JobEventSchema } from "@shared/entities/events/Job"
-import { QueueEnum } from "@shared/entities/Queue"
-import { addJob } from "@shared/services/job"
 import { NextRequest, NextResponse } from "next/server"
+import { JobEventSchema } from "shared/entities/events/Job"
+import { QueueEnum } from "shared/entities/Queue"
+import { addJob } from "shared/services/job"
 
 import { enqueueJobsRequestSchema } from "./schemas"
 

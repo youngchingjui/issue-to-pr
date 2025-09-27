@@ -1,7 +1,8 @@
-import { JobEvent } from "@shared/entities/events/Job"
-import type { QueueEnum } from "@shared/entities/Queue"
-import { getQueue } from "@shared/services/queue"
 import { JobsOptions } from "bullmq"
+
+import { JobEvent } from "@/entities/events/Job"
+import type { QueueEnum } from "@/entities/Queue"
+import { getQueue } from "@/services/queue"
 
 /**
  * Enqueue a job onto a specific queue with a specific job name.

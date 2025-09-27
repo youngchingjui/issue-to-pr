@@ -1,6 +1,7 @@
-import { AllEvents } from "@shared/entities/events"
-import type { EventBusPort } from "@shared/ports/events/eventBus"
 import { v4 as uuidv4 } from "uuid"
+
+import { AllEvents } from "@/entities/events"
+import type { EventBusPort } from "@/ports/events/eventBus"
 
 type Metadata = Record<string, unknown> | undefined
 

@@ -1,8 +1,9 @@
-import { JOB_STATUS_CHANNEL, JobStatusUpdateSchema } from "@shared/entities"
 import type { QueueEvents, Worker } from "bullmq"
 import dotenv from "dotenv"
 import IORedis from "ioredis"
 import path from "path"
+import { JOB_STATUS_CHANNEL } from "shared/entities/Channels"
+import { JobStatusUpdateSchema } from "shared/entities/events/JobStatus"
 import { fileURLToPath } from "url"
 
 import { envSchema, type EnvVariables } from "./schemas"

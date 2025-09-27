@@ -1,5 +1,5 @@
-import type { EventBusPort } from "@shared/ports/events/eventBus"
-import { createWorkflowEventPublisher } from "@shared/ports/events/publisher"
+import type { EventBusPort } from "@/ports/events/eventBus"
+import { createWorkflowEventPublisher } from "@/ports/events/publisher"
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))

@@ -13,14 +13,6 @@
     "./*": {
       "types": "./dist/*.d.ts",
       "import": "./dist/*.js"
-    },
-    "./entities": {
-      "types": "./dist/entities/index.d.ts",
-      "import": "./dist/entities/index.js"
-    },
-    "./entities/*": {
-      "types": "./dist/entities/*/index.d.ts",
-      "import": "./dist/entities/*/index.js"
     }
   },
   "files": [
@@ -38,13 +30,15 @@
     "@octokit/rest": "^21.1.0",
     "bullmq": "^5.0.0",
     "ioredis": "^5.3.2",
-    "openai": "^5.12.2",
-    "zod": "^3.22.4"
+    "openai": "^5.12.2"
   },
   "devDependencies": {
     "@types/node": "^20",
     "tsc-alias": "^1.8.16",
     "tsc-esm-fix": "^3.1.2",
     "typescript": "^5"
+  },
+  "peerDependencies": {
+    "zod": ">=3.24.0"
   }
 }

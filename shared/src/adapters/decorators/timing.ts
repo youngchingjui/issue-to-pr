@@ -1,18 +1,18 @@
-import type { Result } from "@shared/entities/result"
+import type { Result } from "@/entities/result"
 import {
   type GetIssueErrors,
   type IssueDetails,
   IssueReaderPort,
   type IssueRef,
   type IssueTitleResult,
-} from "@shared/ports/github/issue.reader"
+} from "@/ports/github/issue.reader"
 import {
   type CreateIssueInput,
   type GithubIssueErrors,
   IssueWriterPort,
-} from "@shared/ports/github/issue.writer"
-import { Issue } from "@shared/ports/github/issue.writer"
-import { withTiming } from "@shared/utils/telemetry"
+} from "@/ports/github/issue.writer"
+import { Issue } from "@/ports/github/issue.writer"
+import { withTiming } from "@/utils/telemetry"
 
 /**
  * Timing decorator for GitHubIssuesPort that adds telemetry to all methods.
