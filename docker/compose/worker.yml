@@ -4,7 +4,7 @@ services:
       context: ../../
       dockerfile: apps/workers/workflow-workers/Dockerfile
     env_file:
-      - ../../apps/workers/workflow-workers/.env.local
+      - ../env/.env.worker
     # Give the worker time to finish in-flight jobs before stopping
     stop_signal: SIGTERM
     stop_grace_period: 1h
