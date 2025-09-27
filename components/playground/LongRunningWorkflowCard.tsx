@@ -1,7 +1,7 @@
 "use client"
 
-import { WORKFLOW_JOBS_QUEUE } from "@shared/entities/Queue"
 import { useEffect, useRef, useState } from "react"
+import { WORKFLOW_JOBS_QUEUE } from "shared/entities/Queue"
 
 import { type EnqueueJobsRequest } from "@/app/api/queues/[queueId]/jobs/schemas"
 import { Button } from "@/components/ui/button"
@@ -131,4 +131,3 @@ export default function LongRunningWorkflowCard() {
     </Card>
   )
 }
-

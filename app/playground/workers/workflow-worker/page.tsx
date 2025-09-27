@@ -31,11 +31,9 @@ export default async function WorkflowWorkersPlaygroundPage() {
           Test workflow workers backed by BullMQ queues.
         </p>
         <div className="mt-3">
-          <Link href="/playground">
-            <Button variant="secondary" size="sm">
-              Back to Playground
-            </Button>
-          </Link>
+          <Button asChild variant="secondary" size="sm">
+            <Link href="/playground">Back to Playground</Link>
+          </Button>
         </div>
       </div>
 
@@ -46,4 +44,3 @@ export default async function WorkflowWorkersPlaygroundPage() {
     </div>
   )
 }
-
