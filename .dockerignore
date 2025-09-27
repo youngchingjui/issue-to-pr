@@ -1,0 +1,31 @@
+# Global dockerignore for repository root (build context)
+# Prevent sending unnecessary files to the Docker daemon
+
+# VCS
+.git
+.gitignore
+
+# Node installs
+node_modules
+**/node_modules
+
+# Build artifacts
+apps/**/dist
+shared/dist
+build
+.next
+out
+
+# Tests and coverage
+__tests__
+coverage
+.nyc_output
+*.test.ts
+*.test.js
+
+# Env files
+.env*
+
+# Misc
+.DS_Store
+
