@@ -11,7 +11,7 @@
 
  */
 import { QueueEvents, Worker } from "bullmq"
-import IORedis from "ioredis"
+import { getRedisConnection } from "shared/adapters/ioredis/client"
 import { WORKFLOW_JOBS_QUEUE } from "shared/entities/Queue"
 
 import { handler } from "./handler"
@@ -19,9 +19,14 @@ import { getEnvVar, registerGracefulShutdown } from "./helper"
 
 const { REDIS_URL } = getEnvVar()
 
-const connection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null })
+const workerConn = getRedisConnection(REDIS_URL, "bullmq:worker")
+const eventsConn = getRedisConnection(REDIS_URL, "bullmq:events")
 
-const worker = new Worker(WORKFLOW_JOBS_QUEUE, handler, { connection })
+const worker = new Worker(WORKFLOW_JOBS_QUEUE, handler, {
+  connection: workerConn,
+})
+
+worker.on("active", (job) => {})
 
 worker.on("ready", () => {
   console.log(
@@ -47,9 +52,17 @@ worker.on("failed", (job) => {
   )
 })
 
+worker.on("error", (err) => {
+  console.error("Worker error:", err)
+})
+
+worker.on("closed", () => {})
+
 // Events don't belong here, but putting in for debugging for now.
 
-const queueEvents = new QueueEvents(WORKFLOW_JOBS_QUEUE, { connection })
+const queueEvents = new QueueEvents(WORKFLOW_JOBS_QUEUE, {
+  connection: eventsConn,
+})
 
 queueEvents.on("waiting", ({ jobId, prev }) => {
   console.log(
@@ -73,5 +86,9 @@ queueEvents.on("failed", ({ jobId, failedReason, prev }) => {
   )
 })
 
+queueEvents.on("error", (err) => {
+  console.error("Queue events error:", err)
+})
+
 // Register graceful shutdown with a default 1 hour timeout (overridable via SHUTDOWN_TIMEOUT_MS)
-registerGracefulShutdown({ worker, queueEvents, connection })
+registerGracefulShutdown({ worker, queueEvents, connection: workerConn })

@@ -1,5 +1,6 @@
-import Redis, { type Redis as RedisClient } from "ioredis"
+import { type Redis as RedisClient } from "ioredis"
 import { NextRequest, NextResponse } from "next/server"
+import { createEphemeralSubscriber } from "shared/adapters/ioredis/client"
 import { JOB_STATUS_CHANNEL } from "shared/entities/Channels"
 import { JobStatusUpdateSchema } from "shared/entities/events/JobStatus"
 
@@ -21,22 +22,29 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "REDIS_URL is not set" }, { status: 500 })
   }
 
-  // Note: ioredis connects automatically unless you configured lazyConnect: true
-  const redis = new Redis(redisUrl)
-
   try {
     let sub: RedisClient | undefined
 
     return new NextResponse(
       new ReadableStream({
         start(controller) {
-          sub = redis.duplicate()
+          sub = createEphemeralSubscriber(redisUrl)
 
           // Subscribe and handle messages
           sub.subscribe(JOB_STATUS_CHANNEL).catch((err) => {
             console.error("Failed to subscribe:", err)
+            if (sub)
+              sub.quit().catch((err) => {
+                console.error("Failed to quit subscriber:", err)
+              })
             controller.error(err)
           })
+
+          sub.on("connecting", () => {})
+
+          sub.on("connect", () => {})
+
+          sub.on("ready", () => {})
 
           sub.on("message", (channel, message) => {
             switch (channel) {
@@ -79,6 +87,8 @@ export async function GET(request: NextRequest) {
           sub.on("error", (err) => {
             console.error("Redis subscriber error:", err)
           })
+
+          sub.on("end", () => {})
         },
 
         cancel() {
@@ -87,8 +97,8 @@ export async function GET(request: NextRequest) {
             sub.unsubscribe(JOB_STATUS_CHANNEL).catch(() => {})
             sub.quit().catch(() => {})
           }
-          if (redis && redis.status !== "end") {
-            redis.quit().catch(() => {})
+          if (sub && sub.status !== "end") {
+            sub.quit().catch(() => {})
           }
         },
       }),
@@ -102,10 +112,6 @@ export async function GET(request: NextRequest) {
     )
   } catch (err) {
     console.error("Error accessing Redis:", err)
-    // Ensure base client is closed on failure
-    if (redis && redis.status !== "end") {
-      await redis.quit().catch(() => {})
-    }
     return NextResponse.json(
       { error: "Internal server error. Please try again later." },
       { status: 500 }

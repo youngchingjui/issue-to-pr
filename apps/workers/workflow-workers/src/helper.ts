@@ -1,7 +1,8 @@
 import type { QueueEvents, Worker } from "bullmq"
 import dotenv from "dotenv"
-import IORedis from "ioredis"
+import type IORedis from "ioredis"
 import path from "path"
+import { getRedisConnection } from "shared/adapters/ioredis/client"
 import { JOB_STATUS_CHANNEL } from "shared/entities/Channels"
 import { JobStatusUpdateSchema } from "shared/entities/events/JobStatus"
 import { fileURLToPath } from "url"
@@ -47,7 +48,7 @@ export function getEnvVar(): EnvVariables {
 export async function publishJobStatus(jobId: string, status: string) {
   const { REDIS_URL } = getEnvVar()
 
-  const redis = new IORedis(REDIS_URL)
+  const redis = getRedisConnection(REDIS_URL, "general")
   const jobStatusUpdate = JobStatusUpdateSchema.parse({ jobId, status })
   await redis.publish(JOB_STATUS_CHANNEL, JSON.stringify(jobStatusUpdate))
 }
