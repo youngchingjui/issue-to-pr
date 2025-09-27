@@ -3,12 +3,8 @@ services:
     build:
       context: ../../
       dockerfile: apps/workers/workflow-workers/Dockerfile
-    environment:
-      - NODE_ENV=production
-      - REDIS_URL=redis://redis:6379
-      - SHUTDOWN_TIMEOUT_MS=3600000
     env_file:
-      - ${ENV_FILE}
+      - ../../apps/workers/workflow-workers/.env.local
     # Give the worker time to finish in-flight jobs before stopping
     stop_signal: SIGTERM
     stop_grace_period: 1h
