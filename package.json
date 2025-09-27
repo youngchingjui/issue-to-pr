@@ -13,7 +13,7 @@
     "prestart": "pnpm docker:up",
     "start": "next start",
     "start:workflow-workers": "pnpm --filter workflow-workers start",
-    "build": "next build",
+    "build": "pnpm run build:shared && next build",
     "build:workflow-workers": "pnpm --filter workflow-workers build",
     "build:shared": "pnpm --filter shared build",
     "analyze": "ANALYZE=true next build",
