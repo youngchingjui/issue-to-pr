@@ -33,6 +33,10 @@ export async function GET(request: NextRequest) {
           // Subscribe and handle messages
           sub.subscribe(JOB_STATUS_CHANNEL).catch((err) => {
             console.error("Failed to subscribe:", err)
+            if (sub)
+              sub.quit().catch((err) => {
+                console.error("Failed to quit subscriber:", err)
+              })
             controller.error(err)
           })
 
