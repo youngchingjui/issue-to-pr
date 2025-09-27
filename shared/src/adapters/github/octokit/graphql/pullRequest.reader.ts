@@ -1,5 +1,6 @@
 import { graphql } from "@octokit/graphql"
-import { err, ok, type Result } from "@shared/entities/result"
+
+import { err, ok, type Result } from "@/entities/result"
 import {
   type PRFileChange,
   type PRIssueComment,
@@ -9,7 +10,7 @@ import {
   type PullRequestErrors,
   type PullRequestReaderPort,
   type PullRequestRef,
-} from "@shared/ports/github/pullRequest.reader"
+} from "@/ports/github/pullRequest.reader"
 
 export function makeGitHubPRGraphQLAdapter(params: {
   token: string

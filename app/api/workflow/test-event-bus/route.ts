@@ -1,5 +1,5 @@
-import { testEventInfrastructure } from "@shared/usecases/workflows/testEventInfrastructure"
 import { NextResponse } from "next/server"
+import { testEventInfrastructure } from "shared/usecases/workflows/testEventInfrastructure"
 import { v4 as uuidv4 } from "uuid"
 
 import PersistingEventBusAdapter from "@/lib/adapters/PersistingEventBusAdapter"

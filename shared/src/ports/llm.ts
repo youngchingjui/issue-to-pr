@@ -1,4 +1,4 @@
-import { Result } from "@shared/entities/result"
+import type { Result } from "@/entities/result"
 
 export interface LLMMessage {
   role: "user" | "assistant"

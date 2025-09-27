@@ -29,6 +29,7 @@ const nextConfig = {
       },
     ]
   },
+  transpilePackages: ["shared"],
   webpack: (config, { isServer }) => {
     // Add mini-css-extract-plugin
     config.plugins.push(

@@ -2,38 +2,40 @@
 FROM node:22-alpine AS builder
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm
+# Enable Corepack and activate the pinned pnpm version from packageManager
+RUN corepack enable && corepack prepare pnpm@10.6.4 --activate
 
 # Copy workspace manifests first for better caching
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
-COPY apps/workers/package.json apps/workers/
+COPY apps/workers/workflow-workers/package.json apps/workers/workflow-workers/
+# Ensure the shared workspace exists for pnpm’s resolver
+COPY shared/package.json shared/
 
-# Install deps only for the worker (and its transitive deps)
-RUN pnpm install --frozen-lockfile --filter @issue-to-pr/worker...
+# Install deps only for the workflow worker (and its transitive deps)
+RUN pnpm install --frozen-lockfile --filter workflow-workers...
 
 # Copy source
-# TODO: Investigate NOT copying the NextJS-related files
-COPY . .
+COPY tsconfig.base.json ./
+COPY apps/workers/workflow-workers/ ./apps/workers/workflow-workers/
+COPY shared/ ./shared/
 
-# Build the worker
-RUN pnpm --filter @issue-to-pr/worker build
+# Build and prepare a production-ready deployable package for the workflow worker
+RUN pnpm --filter workflow-workers... build \
+  && pnpm --filter workflow-workers deploy --prod /app/workflow-workers-deploy
 
 # Production stage
 FROM node:22-alpine AS production
 WORKDIR /app
 
-RUN npm install -g pnpm
+# Enable Corepack (not strictly needed at runtime since we copy a pruned deploy)
+RUN corepack enable && corepack prepare pnpm@10.6.4 --activate
 
-# Copy workspace manifests for production install
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
-COPY apps/workers/package.json apps/workers/
-
-# Install only production deps for the worker
-RUN pnpm install --frozen-lockfile --prod --filter @issue-to-pr/worker...
-
-# Copy the built worker
-COPY --from=builder /app/apps/workers/dist ./apps/workers/dist
+# Copy the prepared deploy (includes node_modules and built dist)
+COPY --from=builder /app/workflow-workers-deploy/ /app/
 
 ENV NODE_ENV=production
-CMD ["pnpm", "--filter", "@issue-to-pr/worker", "start"]
+# Send SIGTERM and allow time to shutdown gracefully
+STOPSIGNAL SIGTERM
+# Start directly with node; no pnpm needed at runtime
+CMD ["node", "dist/index.js"]
+

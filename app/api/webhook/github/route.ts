@@ -1,6 +1,7 @@
 import crypto from "crypto"
 import { NextRequest } from "next/server"
 
+import { runWithInstallationId } from "@/lib/utils/utils-server"
 import { routeWebhookHandler } from "@/lib/webhook/router"
 import {
   GithubEventSchema,
@@ -8,7 +9,6 @@ import {
   PullRequestPayloadSchema,
   PushPayloadSchema,
 } from "@/lib/webhook/types"
-import { runWithInstallationId } from "@/lib/utils/utils-server"
 
 // Hoisted schema map for per-event payload validation
 const schemas = {
@@ -112,4 +112,3 @@ export async function POST(req: NextRequest) {
     return new Response("Error", { status: 500 })
   }
 }
-

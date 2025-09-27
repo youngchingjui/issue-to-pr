@@ -12,10 +12,10 @@
  */
 import { QueueEvents, Worker } from "bullmq"
 import IORedis from "ioredis"
-import { WORKFLOW_JOBS_QUEUE } from "shared/entities"
+import { WORKFLOW_JOBS_QUEUE } from "shared/entities/Queue"
 
 import { handler } from "./handler"
-import { getEnvVar } from "./helper"
+import { getEnvVar, registerGracefulShutdown } from "./helper"
 
 const { REDIS_URL } = getEnvVar()
 
@@ -72,3 +72,6 @@ queueEvents.on("failed", ({ jobId, failedReason, prev }) => {
     `Job event ${jobId} has failed with reason ${failedReason}; previous status was ${prev}`
   )
 })
+
+// Register graceful shutdown with a default 1 hour timeout (overridable via SHUTDOWN_TIMEOUT_MS)
+registerGracefulShutdown({ worker, queueEvents, connection })

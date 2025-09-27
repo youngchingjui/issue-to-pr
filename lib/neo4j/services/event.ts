@@ -1,4 +1,9 @@
 import { ManagedTransaction } from "neo4j-driver"
+import {
+  WorkflowErrorEvent,
+  WorkflowStateEvent,
+  WorkflowStatusEvent,
+} from "shared/entities/events/WorkflowEvent"
 import { v4 as uuidv4 } from "uuid"
 
 import { n4j } from "@/lib/neo4j/client"
@@ -27,11 +32,6 @@ import {
   UserMessage,
   WorkflowRunState,
 } from "@/lib/types"
-import {
-  WorkflowErrorEvent,
-  WorkflowStateEvent,
-  WorkflowStatusEvent,
-} from "@/shared/src/entities/events/WorkflowEvent"
 
 // This function creates a message event node and connects it to the workflow event chain.
 // If a parentId is provided, the event is connected to the parent node using a NEXT relationship.

@@ -1,8 +1,9 @@
 "use client"
 
-import { WORKFLOW_JOBS_QUEUE } from "@shared/entities/Queue"
 import { useEffect, useRef, useState } from "react"
+import { WORKFLOW_JOBS_QUEUE } from "shared/entities/Queue"
 
+// TODO: Move this to shared
 import { type EnqueueJobsRequest } from "@/app/api/queues/[queueId]/jobs/schemas"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"

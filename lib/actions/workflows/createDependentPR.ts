@@ -1,6 +1,6 @@
 "use server"
 
-import { makeSettingsReaderAdapter } from "@shared/adapters/neo4j/repositories/SettingsReaderAdapter"
+import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
 import { v4 as uuidv4 } from "uuid"
 
 import { nextAuthReader } from "@/lib/adapters/auth/AuthReader"

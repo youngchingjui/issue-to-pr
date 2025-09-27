@@ -1,4 +1,5 @@
-import { type IssueDetails } from "@shared/ports/github/issue.reader"
+// TODO: Should not be importing from ports. Move directly here
+import { type IssueDetails } from "@/ports/github/issue.reader"
 
 /**
  * Core Issue entity following clean architecture principles.

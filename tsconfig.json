@@ -14,6 +14,14 @@
     "jsx": "preserve",
     /* Paths */
     "baseUrl": ".",
+    "paths": {
+      "@/app/*": ["app/*"],
+      "@/tailwind.config": ["tailwind.config"],
+      "@/auth": ["auth"],
+      "@/lib/*": ["lib/*"],
+      "@/components/*": ["components/*"],
+      "@/styles/*": ["styles/*"]
+    },
 
     /* TO SORT */
     "resolveJsonModule": true,

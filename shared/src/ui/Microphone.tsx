@@ -1,13 +1,7 @@
 "use client"
 
+import { AlertTriangle, CheckCircle2, Loader2, Mic, Square } from "lucide-react"
 import React, { useCallback, useMemo, useState } from "react"
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Loader2,
-  Mic,
-  Square,
-} from "lucide-react"
 
 export type MicrophoneState =
   | "idle"
@@ -54,9 +48,8 @@ export function Microphone({
   successLabel = "Transcribed",
   errorLabel = "Something went wrong",
 }: MicrophoneProps) {
-  const [internalState, setInternalState] = useState<MicrophoneState>(
-    initialState
-  )
+  const [internalState, setInternalState] =
+    useState<MicrophoneState>(initialState)
   const [lastError, setLastError] = useState<string | null>(null)
 
   const effectiveState = state ?? internalState
@@ -195,7 +188,9 @@ export function Microphone({
           "transition-colors duration-200 ease-out",
           ringClass,
           bgClass,
-          disabled || isBusy ? "opacity-60 cursor-not-allowed" : "hover:opacity-90",
+          disabled || isBusy
+            ? "opacity-60 cursor-not-allowed"
+            : "hover:opacity-90",
         ].join(" ")}
         aria-label={label}
       >
@@ -253,4 +248,3 @@ export function Microphone({
 }
 
 export default Microphone
-

@@ -5,14 +5,17 @@
   "type": "module",
   "packageManager": "pnpm@10.6.4",
   "scripts": {
-    "predev": "./scripts/start-services.sh && pnpm i",
+    "docker:up": "docker-compose -f docker/docker-compose.yml up -d",
+    "docker:down": "docker-compose -f docker/docker-compose.yml down",
+    "predev": "pnpm docker:up && pnpm i",
     "dev": "next dev",
-    "dev:workflow-workers": "pnpm --filter @issue-to-pr/workflow-workers dev",
-    "prestart": "./scripts/start-services.sh",
+    "dev:workflow-workers": "pnpm --filter workflow-workers dev",
+    "prestart": "pnpm docker:up",
     "start": "next start",
-    "start:workflow-workers": "pnpm --filter @issue-to-pr/workflow-workers start",
+    "start:workflow-workers": "pnpm --filter workflow-workers start",
+    "prebuild": "pnpm --filter shared install && pnpm run build:shared && pnpm i",
     "build": "next build",
-    "build:workflow-workers": "pnpm --filter @issue-to-pr/workflow-workers build",
+    "build:workflow-workers": "pnpm --filter workflow-workers build",
     "build:shared": "pnpm --filter shared build",
     "analyze": "ANALYZE=true next build",
     "lint": "next lint",
@@ -128,7 +131,8 @@
     "ts-node": "^10.9.2",
     "typescript": "^5",
     "typescript-eslint": "^8.19.0",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "shared": "workspace:*"
   },
   "msw": {
     "workerDirectory": [

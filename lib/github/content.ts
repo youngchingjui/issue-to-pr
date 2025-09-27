@@ -1,4 +1,4 @@
-import { withTiming } from "@shared/utils/telemetry"
+import { withTiming } from "shared/utils/telemetry"
 
 import getOctokit from "@/lib/github"
 import {
