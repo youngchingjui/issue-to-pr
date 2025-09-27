@@ -45,8 +45,14 @@ export async function handler(job: Job): Promise<string> {
         return result
       }
       case "simulateLongRunningWorkflow": {
-        await publishJobStatus(job.id, `Job: Simulate long-running (${jobData.seconds}s)`) // type-safe via zod
-        const result = await simulateLongRunningWorkflow(jobData.seconds, job.id)
+        await publishJobStatus(
+          job.id,
+          `Job: Simulate long-running (${jobData.seconds}s)`
+        )
+        const result = await simulateLongRunningWorkflow(
+          jobData.seconds,
+          job.id
+        )
         await publishJobStatus(job.id, `Completed: ${result}`)
         return result
       }
@@ -60,4 +66,3 @@ export async function handler(job: Job): Promise<string> {
     throw error as Error
   }
 }
-

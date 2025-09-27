@@ -27,4 +27,3 @@ export const JobEventSchema = z.discriminatedUnion("name", [
 ])
 
 export type JobEvent = z.infer<typeof JobEventSchema>
-

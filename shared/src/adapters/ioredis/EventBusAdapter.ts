@@ -17,7 +17,7 @@ export class EventBusAdapter implements EventBusPort {
   }
 
   async publish(workflowId: string, event: AllEvents): Promise<void> {
-    const client = getRedisConnection(this.redisUrl)
+    const client = getRedisConnection(this.redisUrl, "general")
 
     await client.xadd(
       this.streamKeyFor(workflowId),

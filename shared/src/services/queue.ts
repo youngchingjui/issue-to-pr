@@ -13,7 +13,7 @@ export function getQueue(name: QueueEnum, redisUrl: string): Queue {
 
   // Create a new queue
   const newQueue = new Queue(name.toString(), {
-    connection: getRedisConnection(redisUrl),
+    connection: getRedisConnection(redisUrl, "bullmq:queue"),
   })
   queuesByKey.set(key, newQueue)
 
