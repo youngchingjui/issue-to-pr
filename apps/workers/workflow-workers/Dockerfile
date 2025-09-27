@@ -11,11 +11,6 @@ COPY apps/workers/workflow-workers/package.json apps/workers/workflow-workers/
 # Ensure the shared workspace exists for pnpm’s resolver
 COPY shared/package.json shared/
 
-# Enable inject-workspace-packages for the workflow worker
-# Otherwise, shared dependencies are only symlinked and not included in the final bundle
-# This setting is NOT carried over from host, so must be set here.
-RUN pnpm config set inject-workspace-packages true
-
 # Install deps only for the workflow worker (and its transitive deps)
 RUN pnpm install --frozen-lockfile --filter @issue-to-pr/workflow-workers...
 

@@ -1,4 +1,8 @@
-# pnpm-workspace.yaml
+# Enable inject-workspace-packages for workflow-workers
+# This allows the Dockerfile to include the shared dependencies in the final bundle
+# Otherwise, shared dependencies are only symlinked and not included in the final bundle
+injectWorkspacePackages: true
+
 packages:
   - .
   - apps/*
