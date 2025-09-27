@@ -1,14 +1,7 @@
 {
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
-    /* Make @/<...> resolve to this package's src like in Next.js apps */
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"]
-    },
-
     /* Emit */
-    "rootDir": "./src",
     "outDir": "./dist",
     "noEmit": false,
 
@@ -22,4 +15,3 @@
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }
-
