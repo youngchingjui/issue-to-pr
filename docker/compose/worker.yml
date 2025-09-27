@@ -1,5 +1,5 @@
 services:
-  worker:
+  workflow-workers:
     build:
       context: ../../
       dockerfile: apps/workers/workflow-workers/Dockerfile

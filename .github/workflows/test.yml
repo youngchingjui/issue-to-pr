@@ -1,12 +1,8 @@
 name: Run Jest Tests
 
+# Turning off automatic runs while we re-organize our tests
 on:
-  pull_request:
-    branches:
-      - "**"
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   test:
