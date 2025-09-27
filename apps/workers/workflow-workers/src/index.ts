@@ -10,9 +10,9 @@
  * - Attach "handler" to the worker
 
  */
+import { WORKFLOW_JOBS_QUEUE } from "@shared/entities"
 import { QueueEvents, Worker } from "bullmq"
 import IORedis from "ioredis"
-import { WORKFLOW_JOBS_QUEUE } from "shared/entities"
 
 import { handler } from "./handler"
 import { getEnvVar, registerGracefulShutdown } from "./helper"

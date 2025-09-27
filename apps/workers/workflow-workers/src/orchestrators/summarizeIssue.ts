@@ -1,5 +1,5 @@
-import { OpenAIAdapter } from "shared/adapters/llm/OpenAIAdapter"
-import summarizeIssueUseCase from "shared/usecases/workflows/summarizeIssue"
+import { OpenAIAdapter } from "@shared/adapters/llm/OpenAIAdapter"
+import summarizeIssueUseCase from "@shared/usecases/workflows/summarizeIssue"
 
 import { getEnvVar } from "../helper"
 
