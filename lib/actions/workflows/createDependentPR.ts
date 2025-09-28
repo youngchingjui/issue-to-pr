@@ -1,9 +1,10 @@
 "use server"
 
+import { createAuthReaderAdapter } from "shared/adapters/auth/reader"
 import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
 import { v4 as uuidv4 } from "uuid"
 
-import { nextAuthReader } from "@/lib/adapters/auth/AuthReader"
+import { auth } from "@/auth"
 import { neo4jDs } from "@/lib/neo4j"
 import * as userRepo from "@/lib/neo4j/repositories/user"
 import { createDependentPRWorkflow } from "@/lib/workflows/createDependentPR"
@@ -37,7 +38,9 @@ export async function createDependentPRAction(
   const { repoFullName, pullNumber, jobId } = parsed.data
 
   // Auth
-  const user = await nextAuthReader.getAuthenticatedUser()
+  const session = await auth()
+  const authAdapter = createAuthReaderAdapter(session)
+  const user = await authAdapter.getAuthenticatedUser()
   const login = user?.githubLogin
   if (!login) {
     return {

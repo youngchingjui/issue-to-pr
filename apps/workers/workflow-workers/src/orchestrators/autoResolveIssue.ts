@@ -1,8 +1,9 @@
+import type { Transaction } from "neo4j-driver"
+import { createAuthReaderAdapter } from "shared/adapters/auth/reader"
 import { makeIssueReaderAdapter } from "shared/adapters/github/IssueReaderAdapter"
 import { OpenAIAdapter } from "shared/adapters/llm/OpenAIAdapter"
 import { createNeo4jDataSource } from "shared/adapters/neo4j/dataSource"
 import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
-import type { AuthReaderPort } from "shared/ports/auth/reader"
 import type { GitHubAuthMethod } from "shared/ports/github/issue.reader"
 import { resolveIssue } from "shared/usecases/workflows/resolveIssue"
 
@@ -10,7 +11,7 @@ import { getEnvVar, publishJobStatus } from "../helper"
 
 // Minimal user repository implementation for SettingsReaderAdapter
 const userRepo = {
-  async getUserSettings(tx: any, username: string) {
+  async getUserSettings(tx: Transaction, username: string) {
     const res = await tx.run(
       `
       MATCH (u:User {username: $username})-[:HAS_SETTINGS]->(s:Settings)
@@ -37,7 +38,7 @@ export async function autoResolveIssue(
   jobId: string,
   data: AutoResolveJobData
 ) {
-  const { repoFullName, issueNumber, githubLogin } = data
+  const { repoFullName, issueNumber, githubLogin, branch } = data
 
   await publishJobStatus(
     jobId,
@@ -51,15 +52,7 @@ export async function autoResolveIssue(
     NEO4J_PASSWORD,
     GITHUB_APP_ID,
     GITHUB_APP_PRIVATE_KEY,
-    GITHUB_APP_INSTALLATION_ID,
-  } = getEnvVar() as unknown as {
-    NEO4J_URI: string
-    NEO4J_USER: string
-    NEO4J_PASSWORD: string
-    GITHUB_APP_ID: string
-    GITHUB_APP_PRIVATE_KEY: string
-    GITHUB_APP_INSTALLATION_ID: string
-  }
+  } = getEnvVar()
 
   // Settings adapter (loads OpenAI API key from Neo4j)
   const neo4jDs = createNeo4jDataSource({
@@ -74,40 +67,7 @@ export async function autoResolveIssue(
   })
 
   // Auth adapter (provides the triggering user's login for settings lookup)
-  const auth: AuthReaderPort = {
-    async getAuthenticatedUser() {
-      return { id: githubLogin, githubLogin }
-    },
-    async getAccessToken() {
-      // Not needed when using app installation auth for GitHub API calls
-      return {
-        access_token: "",
-        refresh_token: "",
-        expires_at: 0,
-        expires_in: 0,
-        scope: "",
-        token_type: "",
-        id_token: "",
-      }
-    },
-    async getAuth() {
-      return {
-        ok: true as const,
-        value: {
-          user: { id: githubLogin, githubLogin },
-          token: {
-            access_token: "",
-            refresh_token: "",
-            expires_at: 0,
-            expires_in: 0,
-            scope: "",
-            token_type: "",
-            id_token: "",
-          },
-        },
-      }
-    },
-  }
+  const auth = createAuthReaderAdapter(session)
 
   // GitHub API via App Installation
   const ghAuth: GitHubAuthMethod = {

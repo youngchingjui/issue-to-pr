@@ -1,10 +1,11 @@
 "use server"
 
+import { createAuthReaderAdapter } from "shared/adapters/auth/reader"
 import { EventBusAdapter } from "shared/adapters/ioredis/EventBusAdapter"
 import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
 import { v4 as uuidv4 } from "uuid"
 
-import { nextAuthReader } from "@/lib/adapters/auth/AuthReader"
+import { auth } from "@/auth"
 import { getRepoFromString } from "@/lib/github/content"
 import { getIssue } from "@/lib/github/issues"
 import { neo4jDs } from "@/lib/neo4j"
@@ -54,7 +55,8 @@ export async function autoResolveIssueAction(
       userRepo: userRepo,
     })
 
-    const authAdapter = nextAuthReader
+    const session = await auth()
+    const authAdapter = createAuthReaderAdapter(session)
 
     const eventBus = redisUrl ? new EventBusAdapter(redisUrl) : undefined
 
