@@ -16,9 +16,9 @@ import { Job } from "bullmq"
 import { JobEventSchema } from "shared/entities/events/Job"
 
 import { publishJobStatus } from "./helper"
+import { autoResolveIssue } from "./orchestrators/autoResolveIssue"
 import { simulateLongRunningWorkflow } from "./orchestrators/simulateLongRunningWorkflow"
 import { summarizeIssue } from "./orchestrators/summarizeIssue"
-import { autoResolveIssue } from "./orchestrators/autoResolveIssue"
 
 export async function handler(job: Job): Promise<string> {
   console.log(`Received job ${job.id}: ${job.name}`)
@@ -60,7 +60,10 @@ export async function handler(job: Job): Promise<string> {
       case "autoResolveIssue": {
         await publishJobStatus(job.id, "Job: Auto resolve issue")
         const result = await autoResolveIssue(job.id, jobData)
-        await publishJobStatus(job.id, `Completed: ${result.substring(0, 1000)}`)
+        await publishJobStatus(
+          job.id,
+          `Completed: ${result.substring(0, 1000)}`
+        )
         return result
       }
       default: {
@@ -73,4 +76,3 @@ export async function handler(job: Job): Promise<string> {
     throw error as Error
   }
 }
-

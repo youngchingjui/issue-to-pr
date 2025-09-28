@@ -1,5 +1,5 @@
-import { OpenAIAdapter } from "shared/adapters/llm/OpenAIAdapter"
 import { makeIssueReaderAdapter } from "shared/adapters/github/IssueReaderAdapter"
+import { OpenAIAdapter } from "shared/adapters/llm/OpenAIAdapter"
 import { createNeo4jDataSource } from "shared/adapters/neo4j/dataSource"
 import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
 import type { AuthReaderPort } from "shared/ports/auth/reader"
@@ -33,10 +33,16 @@ export type AutoResolveJobData = {
   githubLogin: string
 }
 
-export async function autoResolveIssue(jobId: string, data: AutoResolveJobData) {
+export async function autoResolveIssue(
+  jobId: string,
+  data: AutoResolveJobData
+) {
   const { repoFullName, issueNumber, githubLogin } = data
 
-  await publishJobStatus(jobId, `Preparing to resolve ${repoFullName}#${issueNumber}`)
+  await publishJobStatus(
+    jobId,
+    `Preparing to resolve ${repoFullName}#${issueNumber}`
+  )
 
   // Load environment
   const {
@@ -131,4 +137,3 @@ export async function autoResolveIssue(jobId: string, data: AutoResolveJobData) 
   await publishJobStatus(jobId, "Completed: Generated resolution")
   return result.value.response
 }
-

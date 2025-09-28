@@ -83,7 +83,10 @@ export default function AutoResolveIssueCard({ githubLogin }: Props) {
             name: "autoResolveIssue",
             data: {
               repoFullName,
-              issueNumber: typeof issueNumber === "string" ? Number(issueNumber) : issueNumber,
+              issueNumber:
+                typeof issueNumber === "string"
+                  ? Number(issueNumber)
+                  : issueNumber,
               branch: branch.trim() || undefined,
               githubLogin,
             },
@@ -135,7 +138,9 @@ export default function AutoResolveIssueCard({ githubLogin }: Props) {
             type="number"
             min={1}
             value={issueNumber}
-            onChange={(e) => setIssueNumber(Math.max(1, Number(e.target.value)))}
+            onChange={(e) =>
+              setIssueNumber(Math.max(1, Number(e.target.value)))
+            }
             placeholder="123"
           />
         </div>
@@ -161,4 +166,3 @@ export default function AutoResolveIssueCard({ githubLogin }: Props) {
     </Card>
   )
 }
-
