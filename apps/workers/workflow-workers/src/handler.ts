@@ -72,7 +72,9 @@ export async function handler(job: Job): Promise<string> {
       }
     }
   } catch (error) {
-    await publishJobStatus(job.id, `Failed: ${error}`)
-    throw error as Error
+    const msg = error instanceof Error ? error.message : JSON.stringify(error)
+    await publishJobStatus(job.id, `Failed: ${msg}`)
+    throw error instanceof Error ? error : new Error(msg)
   }
 }
+

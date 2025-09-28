@@ -35,6 +35,12 @@ export default function AutoResolveIssueCard({ githubLogin }: Props) {
   }, [])
 
   const startSSE = (id: string) => {
+    // Close any existing stream before opening a new one
+    if (esRef.current) {
+      esRef.current.close()
+      esRef.current = null
+    }
+
     const es = new EventSource(`/api/sse?jobId=${id}`)
     esRef.current = es
 
@@ -166,3 +172,4 @@ export default function AutoResolveIssueCard({ githubLogin }: Props) {
     </Card>
   )
 }
+

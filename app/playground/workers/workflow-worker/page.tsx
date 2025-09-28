@@ -6,24 +6,21 @@ import AutoResolveIssueCard from "@/components/playground/AutoResolveIssueCard"
 import IssueSummaryCard from "@/components/playground/IssueSummaryCard"
 import LongRunningWorkflowCard from "@/components/playground/LongRunningWorkflowCard"
 import { Button } from "@/components/ui/button"
-import { getGithubUser } from "@/lib/github/users"
 import { getUserRoles } from "@/lib/neo4j/services/user"
 
 export default async function WorkflowWorkersPlaygroundPage() {
-  // TODO: In auth.js, I think we've attached the user's Github username to the session object somewhere.
-  // It would be nice to use that username here instead of retrieving it with the `getGithubUser()` function,
-  // which we've deprecated.
-
-  // By getting the username from the session object, we don't have to conditionally provide the <AutoResolveIssueCard /> component below. We can just directly provide it.
   const session = await auth()
   if (!session?.user) {
     redirect("/")
   }
 
-  const githubUser = await getGithubUser()
-  const roles = githubUser
-    ? await getUserRoles(githubUser.login).catch(() => [])
-    : []
+  // Prefer GitHub login from session; this avoids extra API calls
+  const githubLogin = session.profile?.login
+  if (!githubLogin) {
+    redirect("/")
+  }
+
+  const roles = await getUserRoles(githubLogin).catch(() => [])
   const isAdmin = roles.includes("admin")
   if (!isAdmin) {
     redirect("/")
@@ -46,8 +43,9 @@ export default async function WorkflowWorkersPlaygroundPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <IssueSummaryCard />
         <LongRunningWorkflowCard />
-        {githubUser && <AutoResolveIssueCard githubLogin={githubUser.login} />}
+        <AutoResolveIssueCard githubLogin={githubLogin} />
       </div>
     </div>
   )
 }
+

@@ -1,9 +1,10 @@
 import type { Transaction } from "neo4j-driver"
-import { createAuthReaderAdapter } from "shared/adapters/auth/reader"
-import { makeIssueReaderAdapter } from "shared/adapters/github/IssueReaderAdapter"
 import { OpenAIAdapter } from "shared/adapters/llm/OpenAIAdapter"
+import { makeIssueReaderAdapter } from "shared/adapters/github/IssueReaderAdapter"
 import { createNeo4jDataSource } from "shared/adapters/neo4j/dataSource"
 import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
+import { ok } from "shared/entities/result"
+import type { AuthReaderPort } from "shared/ports/auth/reader"
 import type { GitHubAuthMethod } from "shared/ports/github/issue.reader"
 import { resolveIssue } from "shared/usecases/workflows/resolveIssue"
 
@@ -43,7 +44,6 @@ export async function autoResolveIssue(
     repoFullName,
     issueNumber,
     githubLogin,
-    branch,
     githubInstallationId,
   } = data
 
@@ -53,13 +53,8 @@ export async function autoResolveIssue(
   )
 
   // Load environment
-  const {
-    NEO4J_URI,
-    NEO4J_USER,
-    NEO4J_PASSWORD,
-    GITHUB_APP_ID,
-    GITHUB_APP_PRIVATE_KEY,
-  } = getEnvVar()
+  const { NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD, GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY } =
+    getEnvVar()
 
   // Settings adapter (loads OpenAI API key from Neo4j)
   const neo4jDs = createNeo4jDataSource({
@@ -73,8 +68,38 @@ export async function autoResolveIssue(
     userRepo,
   })
 
-  // Auth adapter (provides the triggering user's login for settings lookup)
-  const auth = createAuthReaderAdapter(session)
+  // Minimal Auth adapter: provides the triggering user's login for settings lookup
+  const auth: AuthReaderPort = {
+    async getAuthenticatedUser() {
+      return { id: githubLogin, githubLogin }
+    },
+    async getAccessToken() {
+      // Not used in this orchestrator because we pre-authenticate the issueReader via App Installation
+      return {
+        access_token: "github_app",
+        refresh_token: "",
+        expires_at: 0,
+        expires_in: 0,
+        scope: "",
+        token_type: "",
+        id_token: "",
+      }
+    },
+    async getAuth() {
+      return ok({
+        user: { id: githubLogin, githubLogin },
+        token: {
+          access_token: "github_app",
+          refresh_token: "",
+          expires_at: 0,
+          expires_in: 0,
+          scope: "",
+          token_type: "",
+          id_token: "",
+        },
+      })
+    },
+  }
 
   // GitHub API via App Installation
   const ghAuth: GitHubAuthMethod = {
@@ -101,6 +126,7 @@ export async function autoResolveIssue(
     throw new Error(`ResolveIssue failed: ${result.error}`)
   }
 
-  await publishJobStatus(jobId, "Completed: Generated resolution")
+  // Handler will publish the completion status
   return result.value.response
 }
+

@@ -4,6 +4,7 @@ import { QueueEnum } from "shared/entities/Queue"
 import { addJob } from "shared/services/job"
 
 import { enqueueJobsRequestSchema } from "./schemas"
+import { getInstallationFromRepo } from "@/lib/github/repos"
 
 export async function POST(
   req: NextRequest,
@@ -22,11 +23,6 @@ export async function POST(
   }
 
   const { jobs } = data
-
-  // TODO:
-  // For autoResolveIssue job, we'll need to retrieve the githubInstallationId
-  // using the `getInstallationFromRepo` function.
-  // Then we can include that in the job data.
 
   // Proactively validate OpenAI API key for summarize jobs to provide a clear error
   const requiresOpenAI = jobs.some((j) => j.name === "summarizeIssue")
@@ -50,7 +46,33 @@ export async function POST(
   }
 
   const jobIds = await Promise.all(
-    jobs.map((job) => {
+    jobs.map(async (job) => {
+      // Augment autoResolveIssue jobs with installation id derived from repo
+      if (job.name === "autoResolveIssue") {
+        try {
+          const full = job.data?.repoFullName as string
+          const [owner, repo] = (full || "").split("/")
+          if (!owner || !repo) {
+            throw new Error("Invalid repoFullName; expected 'owner/repo'")
+          }
+          const installation = await getInstallationFromRepo({ owner, repo })
+          const githubInstallationId = String(installation?.data?.id ?? "")
+          if (!githubInstallationId) {
+            throw new Error("Failed to resolve GitHub App installation id")
+          }
+          job = {
+            ...job,
+            data: {
+              ...job.data,
+              githubInstallationId,
+            },
+          } as typeof job
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e)
+          throw new Error(`autoResolveIssue setup failed: ${msg}`)
+        }
+      }
+
       const parsedJob = JobEventSchema.parse(job)
       return addJob(queue, parsedJob, job.opts, redisUrl)
     })
@@ -66,3 +88,4 @@ export async function GET(
   // TODO: Implement this.
   return NextResponse.json({ success: false, status: "not implemented yet" })
 }
+
