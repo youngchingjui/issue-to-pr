@@ -13,9 +13,15 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/lib/hooks/use-toast"
 
-export default function LongRunningWorkflowCard() {
+interface Props {
+  githubLogin: string
+}
+
+export default function AutoResolveIssueCard({ githubLogin }: Props) {
   const { toast } = useToast()
-  const [seconds, setSeconds] = useState<number>(10)
+  const [repoFullName, setRepoFullName] = useState("")
+  const [issueNumber, setIssueNumber] = useState<number | "">("")
+  const [branch, setBranch] = useState("")
   const [status, setStatus] = useState<string | null>(null)
   const [jobId, setJobId] = useState<string | null>(null)
   const [isRunning, setIsRunning] = useState(false)
@@ -32,6 +38,12 @@ export default function LongRunningWorkflowCard() {
   }, [])
 
   const startSSE = (id: string) => {
+    // Close any existing stream before opening a new one
+    if (esRef.current) {
+      esRef.current.close()
+      esRef.current = null
+    }
+
     const es = new EventSource(`/api/sse?jobId=${id}`)
     esRef.current = es
 
@@ -41,7 +53,7 @@ export default function LongRunningWorkflowCard() {
       setStatus(data)
 
       if (data.startsWith("Completed:")) {
-        toast({ title: "Long-running workflow complete" })
+        toast({ title: "Auto-resolve workflow completed" })
         es.close()
         esRef.current = null
         setIsRunning(false)
@@ -49,7 +61,7 @@ export default function LongRunningWorkflowCard() {
         const message = data.replace(/^Failed:\s*/, "")
         setError(message)
         toast({
-          title: "Long-running workflow failed",
+          title: "Auto-resolve workflow failed",
           description: message,
           variant: "destructive",
         })
@@ -75,8 +87,14 @@ export default function LongRunningWorkflowCard() {
     try {
       const queueId = WORKFLOW_JOBS_QUEUE
       const job: EnqueueJobsRequest = {
-        name: "simulateLongRunningWorkflow",
-        data: { seconds },
+        name: "autoResolveIssue",
+        data: {
+          repoFullName,
+          issueNumber:
+            typeof issueNumber === "string" ? Number(issueNumber) : issueNumber,
+          branch: branch.trim() || undefined,
+          githubLogin,
+        },
       }
       const res = await fetch(`/api/queues/${queueId}/jobs`, {
         method: "POST",
@@ -101,23 +119,44 @@ export default function LongRunningWorkflowCard() {
     }
   }
 
+  const canSubmit = Boolean(repoFullName.trim()) && Number(issueNumber) > 0
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Simulate Long-running Workflow (Worker Queue)</CardTitle>
+        <CardTitle>Auto-Resolve Issue (Worker Queue)</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label>Seconds to run</Label>
+          <Label>Repository Full Name</Label>
+          <Input
+            value={repoFullName}
+            onChange={(e) => setRepoFullName(e.target.value)}
+            placeholder="owner/repo"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Issue Number</Label>
           <Input
             type="number"
             min={1}
-            value={Number.isFinite(seconds) ? seconds : ""}
-            onChange={(e) => setSeconds(Math.max(1, Number(e.target.value)))}
+            value={issueNumber}
+            onChange={(e) =>
+              setIssueNumber(Math.max(1, Number(e.target.value)))
+            }
+            placeholder="123"
           />
         </div>
-        <Button onClick={handleSubmit} disabled={isRunning}>
-          {isRunning ? "Running..." : "Enqueue job"}
+        <div className="space-y-2">
+          <Label>Branch (optional)</Label>
+          <Input
+            value={branch}
+            onChange={(e) => setBranch(e.target.value)}
+            placeholder="feature/my-branch"
+          />
+        </div>
+        <Button onClick={handleSubmit} disabled={isRunning || !canSubmit}>
+          {isRunning ? "Starting..." : "Enqueue job"}
         </Button>
         {status && (
           <p className="text-sm text-muted-foreground">Status: {status}</p>

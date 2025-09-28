@@ -16,6 +16,7 @@ import { Job } from "bullmq"
 import { JobEventSchema } from "shared/entities/events/Job"
 
 import { publishJobStatus } from "./helper"
+import { autoResolveIssue } from "./orchestrators/autoResolveIssue"
 import { simulateLongRunningWorkflow } from "./orchestrators/simulateLongRunningWorkflow"
 import { summarizeIssue } from "./orchestrators/summarizeIssue"
 
@@ -56,13 +57,23 @@ export async function handler(job: Job): Promise<string> {
         await publishJobStatus(job.id, `Completed: ${result}`)
         return result
       }
+      case "autoResolveIssue": {
+        await publishJobStatus(job.id, "Job: Auto resolve issue")
+        const result = await autoResolveIssue(job.id, jobData)
+        await publishJobStatus(
+          job.id,
+          `Completed: ${result.substring(0, 1000)}`
+        )
+        return result
+      }
       default: {
         await publishJobStatus(job.id, "Failed: Unknown job name")
         throw new Error(`Unknown job name: ${job.name}`)
       }
     }
   } catch (error) {
-    await publishJobStatus(job.id, `Failed: ${error}`)
-    throw error as Error
+    const msg = error instanceof Error ? error.message : JSON.stringify(error)
+    await publishJobStatus(job.id, `Failed: ${msg}`)
+    throw error instanceof Error ? error : new Error(msg)
   }
 }

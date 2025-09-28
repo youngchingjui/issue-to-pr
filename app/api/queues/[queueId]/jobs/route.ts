@@ -1,7 +1,14 @@
+/*
+ * API endpoint for enqueuing jobs onto a specific queue.
+ * Responsible for loading NextJS-specific variables, if needed,
+ * Such as data that requires the user's authenticated state
+ */
+
 import { NextRequest, NextResponse } from "next/server"
-import { JobEventSchema } from "shared/entities/events/Job"
 import { QueueEnum } from "shared/entities/Queue"
 import { addJob } from "shared/services/job"
+
+import { getInstallationFromRepo } from "@/lib/github/repos"
 
 import { enqueueJobsRequestSchema } from "./schemas"
 
@@ -12,7 +19,9 @@ export async function POST(
   const { queueId } = params
 
   const queue = QueueEnum.parse(queueId)
-  const { data, error } = enqueueJobsRequestSchema.safeParse(await req.json())
+  const { data: job, error } = enqueueJobsRequestSchema.safeParse(
+    await req.json()
+  )
 
   if (error) {
     return NextResponse.json(
@@ -21,10 +30,8 @@ export async function POST(
     )
   }
 
-  const { jobs } = data
-
   // Proactively validate OpenAI API key for summarize jobs to provide a clear error
-  const requiresOpenAI = jobs.some((j) => j.name === "summarizeIssue")
+  const requiresOpenAI = job.name === "summarizeIssue"
   if (requiresOpenAI && !process.env.OPENAI_API_KEY) {
     return NextResponse.json(
       {
@@ -44,14 +51,40 @@ export async function POST(
     )
   }
 
-  const jobIds = await Promise.all(
-    jobs.map((job) => {
-      const parsedJob = JobEventSchema.parse(job)
-      return addJob(queue, parsedJob, job.opts, redisUrl)
-    })
-  )
+  if (job.name === "autoResolveIssue") {
+    try {
+      const full = job.data.repoFullName
+      const [owner, repo] = (full || "").split("/")
+      if (!owner || !repo) {
+        throw new Error("Invalid repoFullName; expected 'owner/repo'")
+      }
+      const installation = await getInstallationFromRepo({ owner, repo })
+      const githubInstallationId = String(installation?.data?.id ?? "")
+      if (!githubInstallationId) {
+        throw new Error("Failed to resolve GitHub App installation id")
+      }
 
-  return NextResponse.json({ success: true, jobIds })
+      const jobId = await addJob(
+        queue,
+        {
+          name: "autoResolveIssue",
+          data: {
+            ...job.data,
+            githubInstallationId,
+          },
+        },
+        {},
+        redisUrl
+      )
+      return NextResponse.json({ success: true, jobId })
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      throw new Error(`autoResolveIssue setup failed: ${msg}`)
+    }
+  }
+
+  const jobId = await addJob(queue, job, {}, redisUrl)
+  return NextResponse.json({ success: true, jobId })
 }
 
 export async function GET(
