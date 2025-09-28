@@ -32,13 +32,20 @@ export type AutoResolveJobData = {
   issueNumber: number
   branch?: string
   githubLogin: string
+  githubInstallationId: string
 }
 
 export async function autoResolveIssue(
   jobId: string,
   data: AutoResolveJobData
 ) {
-  const { repoFullName, issueNumber, githubLogin, branch } = data
+  const {
+    repoFullName,
+    issueNumber,
+    githubLogin,
+    branch,
+    githubInstallationId,
+  } = data
 
   await publishJobStatus(
     jobId,
@@ -74,7 +81,7 @@ export async function autoResolveIssue(
     type: "app_installation",
     appId: GITHUB_APP_ID,
     privateKey: GITHUB_APP_PRIVATE_KEY,
-    installationId: GITHUB_APP_INSTALLATION_ID,
+    installationId: githubInstallationId,
   }
   const issueReader = makeIssueReaderAdapter(ghAuth)
 

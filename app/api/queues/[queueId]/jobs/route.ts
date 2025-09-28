@@ -23,6 +23,11 @@ export async function POST(
 
   const { jobs } = data
 
+  // TODO:
+  // For autoResolveIssue job, we'll need to retrieve the githubInstallationId
+  // using the `getInstallationFromRepo` function.
+  // Then we can include that in the job data.
+
   // Proactively validate OpenAI API key for summarize jobs to provide a clear error
   const requiresOpenAI = jobs.some((j) => j.name === "summarizeIssue")
   if (requiresOpenAI && !process.env.OPENAI_API_KEY) {

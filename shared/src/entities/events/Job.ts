@@ -28,6 +28,7 @@ export const AutoResolveIssueJobSchema = z.object({
     issueNumber: z.number().int().positive(),
     branch: z.string().optional(),
     githubLogin: z.string(),
+    githubInstallationId: z.string(),
   }),
 })
 
