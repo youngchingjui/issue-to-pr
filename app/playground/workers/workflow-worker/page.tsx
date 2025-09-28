@@ -2,6 +2,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 
 import { auth } from "@/auth"
+import AutoResolveIssueCard from "@/components/playground/AutoResolveIssueCard"
 import IssueSummaryCard from "@/components/playground/IssueSummaryCard"
 import LongRunningWorkflowCard from "@/components/playground/LongRunningWorkflowCard"
 import { Button } from "@/components/ui/button"
@@ -40,7 +41,9 @@ export default async function WorkflowWorkersPlaygroundPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <IssueSummaryCard />
         <LongRunningWorkflowCard />
+        {githubUser && <AutoResolveIssueCard githubLogin={githubUser.login} />}
       </div>
     </div>
   )
 }
+

@@ -21,9 +21,23 @@ export type SimulateLongRunningWorkflowJob = z.infer<
   typeof SimulateLongRunningWorkflowJobSchema
 >
 
+export const AutoResolveIssueJobSchema = z.object({
+  name: z.literal("autoResolveIssue"),
+  data: z.object({
+    repoFullName: z.string(),
+    issueNumber: z.number().int().positive(),
+    branch: z.string().optional(),
+    githubLogin: z.string(),
+  }),
+})
+
+export type AutoResolveIssueJob = z.infer<typeof AutoResolveIssueJobSchema>
+
 export const JobEventSchema = z.discriminatedUnion("name", [
   SummarizeIssueJobSchema,
   SimulateLongRunningWorkflowJobSchema,
+  AutoResolveIssueJobSchema,
 ])
 
 export type JobEvent = z.infer<typeof JobEventSchema>
+
