@@ -1,6 +1,5 @@
 "use server"
 
-import { createAuthReaderAdapter } from "shared/adapters/auth/reader"
 import { EventBusAdapter } from "shared/adapters/ioredis/EventBusAdapter"
 import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
 import { v4 as uuidv4 } from "uuid"
@@ -47,6 +46,16 @@ export async function autoResolveIssueAction(
 
     const redisUrl = process.env.REDIS_URL
 
+    const session = await auth()
+    if (!session || !session.profile?.login) {
+      return {
+        status: "error",
+        code: "AUTH_REQUIRED",
+        message: "Failed to authenticate",
+      }
+    }
+
+    const login = session.profile?.login
     // =================================================
     // Step 2: Prepare adapters
     // =================================================
@@ -54,9 +63,6 @@ export async function autoResolveIssueAction(
       getSession: () => neo4jDs.getSession(),
       userRepo: userRepo,
     })
-
-    const session = await auth()
-    const authAdapter = createAuthReaderAdapter(session)
 
     const eventBus = redisUrl ? new EventBusAdapter(redisUrl) : undefined
 
@@ -80,11 +86,11 @@ export async function autoResolveIssueAction(
           {
             issue: issueResult.issue,
             repository: repo,
+            login,
             jobId: effectiveJobId,
             branch,
           },
           {
-            auth: authAdapter,
             settings: settingsAdapter,
             eventBus: eventBus,
           }

@@ -166,7 +166,7 @@ const autoResolveIssueSuccessSchema = z.object({
 
 const autoResolveIssueErrorSchema = z.object({
   status: z.literal("error"),
-  code: z.enum(["INVALID_INPUT", "UNKNOWN"]),
+  code: z.enum(["INVALID_INPUT", "AUTH_REQUIRED", "UNKNOWN"]),
   message: z.string().min(1),
 })
 

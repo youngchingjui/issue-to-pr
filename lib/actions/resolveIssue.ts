@@ -52,16 +52,35 @@ export async function resolveIssueAction(
     }
   }
 
+  const session = await auth()
+
+  if (!session) {
+    return {
+      status: "error",
+      code: "AUTH_REQUIRED",
+      message: "Authentication required",
+    }
+  }
+  const login = session.profile?.login
+  const accessToken = session.token?.access_token
+  if (!login || !accessToken) {
+    return {
+      status: "error",
+      code: "AUTH_REQUIRED",
+      message: "Login or access token not found",
+    }
+  }
+
+  const authMethod: GitHubAuthMethod = {
+    type: "oauth_user",
+    token: accessToken,
+  }
+
   // =================================================
   // Step 2: Prepare adapters
   // =================================================
-  const issueReaderAdapter = (token: string) =>
-    makeIssueReaderAdapter(
-      async (): Promise<GitHubAuthMethod> => ({
-        type: "oauth_user",
-        token,
-      })
-    )
+
+  const issueReaderAdapter = makeIssueReaderAdapter(authMethod)
 
   const llmAdapter = (apiKey: string) => new OpenAIAdapter(apiKey)
 
@@ -70,9 +89,6 @@ export async function resolveIssueAction(
     userRepo: userRepo,
   })
 
-  const session = await auth()
-  const authAdapter = createAuthReaderAdapter(session)
-
   const eventBus = redisUrl ? new EventBusAdapter(redisUrl) : undefined
 
   // =================================================
@@ -80,7 +96,6 @@ export async function resolveIssueAction(
   // =================================================
   const result = await resolveIssue(
     {
-      auth: authAdapter,
       settings: settingsAdapter,
       llm: llmAdapter,
       issueReader: issueReaderAdapter,
@@ -88,6 +103,7 @@ export async function resolveIssueAction(
     },
     {
       repoFullName,
+      login,
       issueNumber,
       model,
       maxTokens,

@@ -1,6 +1,5 @@
 "use server"
 
-import { createAuthReaderAdapter } from "shared/adapters/auth/reader"
 import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
 import { v4 as uuidv4 } from "uuid"
 
@@ -39,14 +38,19 @@ export async function createDependentPRAction(
 
   // Auth
   const session = await auth()
-  const authAdapter = createAuthReaderAdapter(session)
-  const user = await authAdapter.getAuthenticatedUser()
-  const login = user?.githubLogin
+  if (!session) {
+    return {
+      status: "error",
+      code: "AUTH_REQUIRED",
+      message: "Authentication required",
+    }
+  }
+  const login = session.profile?.login
   if (!login) {
     return {
       status: "error",
       code: "AUTH_REQUIRED",
-      message: "Authentication required. Please sign in.",
+      message: "Login not found",
     }
   }
 

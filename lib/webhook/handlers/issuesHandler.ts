@@ -1,9 +1,7 @@
 import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
-import { AuthReaderPort } from "shared/ports/auth/reader"
 import { v4 as uuidv4 } from "uuid"
 
 import { getRepoFromString } from "@/lib/github/content"
-import { getInstallationTokenFromRepo } from "@/lib/github/installation"
 import { getIssue } from "@/lib/github/issues"
 import { neo4jDs } from "@/lib/neo4j"
 import * as userRepo from "@/lib/neo4j/repositories/user"
@@ -140,13 +138,6 @@ export class IssuesHandler implements WebhookHandler<IssuesPayload> {
       getSession: () => neo4jDs.getSession(),
       userRepo: userRepo,
     })
-    const apiKeyResult = await settingsReader.getOpenAIKey(labelerLogin)
-    if (!apiKeyResult.ok || !apiKeyResult.value) {
-      console.error(
-        `Missing OpenAI API key for user ${labelerLogin}. Skipping autoResolveIssue.`
-      )
-      return
-    }
 
     ;(async () => {
       try {
@@ -168,49 +159,14 @@ export class IssuesHandler implements WebhookHandler<IssuesPayload> {
           return
         }
 
-        // Create GitHub App Auth adapter for webhook context
-        const webhookAuthAdapter: AuthReaderPort = {
-          async getAuthenticatedUser() {
-            // In webhook context, return the labeler as the "authenticated" user
-            return {
-              id: labelerLogin,
-              githubLogin: labelerLogin,
-            }
-          },
-          async getAccessToken() {
-            // Get installation token for GitHub App authentication
-            const token = await getInstallationTokenFromRepo({
-              owner: fullRepo.owner.login,
-              repo: fullRepo.name,
-            })
-            return {
-              access_token: token,
-              refresh_token: "",
-              expires_at: Math.floor(Date.now() / 1000) + 3600,
-              expires_in: 3600,
-              scope: "",
-              token_type: "installation",
-              id_token: "",
-            }
-          },
-          async getAuth() {
-            const user = await this.getAuthenticatedUser()
-            const token = await this.getAccessToken()
-            if (!user || !token) {
-              return { ok: false, error: "AuthRequired" as const }
-            }
-            return { ok: true, value: { user, token } }
-          },
-        }
-
         await autoResolveIssue(
           {
             issue: issue.issue,
             repository: fullRepo,
+            login: labelerLogin,
             jobId,
           },
           {
-            auth: webhookAuthAdapter,
             settings: settingsReader,
           }
         )

@@ -29,13 +29,14 @@ import { setupLocalRepository } from "@/lib/utils/utils-server"
 interface Params {
   issue: GitHubIssue
   repository: GitHubRepository
+  /** User GitHub login, in order to lookup their OpenAI API key */
+  login: string
   jobId?: string
   /** Optional branch to run the workflow on. If omitted, a new feature branch is generated. */
   branch?: string
 }
 
 interface AutoResolveIssuePorts {
-  auth: AuthReaderPort
   settings: SettingsReaderPort
   eventBus?: EventBusPort
 }
@@ -43,8 +44,8 @@ export const autoResolveIssue = async (
   params: Params,
   ports: AutoResolveIssuePorts
 ) => {
-  const { issue, repository, jobId, branch } = params
-  const { auth, settings, eventBus } = ports
+  const { issue, repository, login, jobId, branch } = params
+  const { settings, eventBus } = ports
 
   // =================================================
   // Step 0: Setup workflow publisher
@@ -55,14 +56,8 @@ export const autoResolveIssue = async (
   // =================================================
   // Step 1: Get API key
   // =================================================
-  const authResult = await auth.getAuth()
-  if (!authResult.ok) {
-    pub.workflow.error("Authentication required")
-    throw new Error("Authentication required")
-  }
 
-  const { user: login } = authResult.value
-  const apiKeyResult = await settings.getOpenAIKey(login.githubLogin)
+  const apiKeyResult = await settings.getOpenAIKey(login)
   if (!apiKeyResult.ok || !apiKeyResult.value) {
     pub.workflow.error("No API key provided and no user settings found")
     throw new Error("No API key provided and no user settings found")
