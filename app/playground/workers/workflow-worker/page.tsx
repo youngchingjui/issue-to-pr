@@ -20,7 +20,7 @@ export default async function WorkflowWorkersPlaygroundPage() {
     redirect("/")
   }
 
-  const roles = await getUserRoles(githubLogin).catch(() => [])
+  const roles = await getUserRoles(githubLogin)
   const isAdmin = roles.includes("admin")
   if (!isAdmin) {
     redirect("/")

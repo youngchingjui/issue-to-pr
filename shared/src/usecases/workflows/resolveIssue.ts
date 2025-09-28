@@ -1,6 +1,5 @@
 import { Issue } from "@/entities/Issue"
 import { err, ok, type Result } from "@/entities/result"
-import type { AuthReaderPort } from "@/ports/auth/reader"
 import type { EventBusPort } from "@/ports/events/eventBus"
 import { createWorkflowEventPublisher } from "@/ports/events/publisher"
 import type { IssueReaderPort } from "@/ports/github/issue.reader"
@@ -11,6 +10,8 @@ import type { SettingsReaderPort } from "@/ports/repositories/settings.reader"
  * Parameters for resolving an issue
  */
 export interface ResolveIssueParams {
+  /** User GitHub login, in order to lookup their OpenAI API key */
+  login: string
   /** Repository full name (e.g., "owner/repo") */
   repoFullName: string
   /** Issue number */
@@ -80,45 +81,28 @@ Format your response as a clear, structured solution that a developer can follow
  */
 export async function resolveIssue(
   ports: {
-    auth: AuthReaderPort
     settings: SettingsReaderPort
     llm: LLMPort | ((apiKey: string) => LLMPort)
-    issueReader: IssueReaderPort | ((token: string) => IssueReaderPort)
+    issueReader: IssueReaderPort
     eventBus?: EventBusPort
   },
   params: ResolveIssueParams
 ): Promise<
   Result<ResolveIssueOk, ResolveIssueErrorCode, ResolveIssueErrorDetails>
 > {
-  const { auth, settings, eventBus } = ports
+  const { settings, eventBus, issueReader } = ports
   const pub = createWorkflowEventPublisher(eventBus, params.workflowId)
 
   try {
     // =================================================
-    // Step 1: Get login and token
+    // Step 1: Fetch the issue details
     // =================================================
+
     pub.workflow.started(
       `Resolving issue #${params.issueNumber} in ${params.repoFullName}`
     )
 
-    const authResult = await auth.getAuth()
-    if (!authResult.ok) {
-      pub.workflow.error("Authentication required")
-      return err("AUTH_REQUIRED")
-    }
-    const { user: login, token } = authResult.value
-
-    // =================================================
-    // Step 2: Fetch the issue details
-    // =================================================
-    const issueReaderPort: IssueReaderPort =
-      typeof ports.issueReader === "function"
-        ? (ports.issueReader as (token: string) => IssueReaderPort)(
-            token.access_token
-          )
-        : ports.issueReader
-
-    const issueResult = await issueReaderPort.getIssue({
+    const issueResult = await issueReader.getIssue({
       repoFullName: params.repoFullName,
       number: params.issueNumber,
     })
@@ -149,16 +133,16 @@ export async function resolveIssue(
     }
 
     // =================================================
-    // Step 3: Get OpenAI API key
+    // Step 2: Get OpenAI API key
     // =================================================
-    const apiKeyResult = await settings.getOpenAIKey(login.githubLogin)
+    const apiKeyResult = await settings.getOpenAIKey(params.login)
     if (!apiKeyResult.ok || !apiKeyResult.value) {
       pub.workflow.error("Missing OpenAI API key")
       return err("MISSING_API_KEY")
     }
     const apiKey = apiKeyResult.value
     // =================================================
-    // Step 4: Create LLM Port
+    // Step 3: Create LLM Port
     // =================================================
     const llmPort: LLMPort =
       typeof ports.llm === "function"
@@ -166,7 +150,7 @@ export async function resolveIssue(
         : ports.llm
 
     // =================================================
-    // Step 5: Generate LLM response
+    // Step 4: Generate LLM response
     // =================================================
     const userMessage = `Please analyze and provide a solution for this GitHub issue:\n\n${issue.summary}\n\nRepository: ${params.repoFullName}`
 
