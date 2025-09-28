@@ -1,6 +1,6 @@
 import type { Transaction } from "neo4j-driver"
-import { OpenAIAdapter } from "shared/adapters/llm/OpenAIAdapter"
 import { makeIssueReaderAdapter } from "shared/adapters/github/IssueReaderAdapter"
+import { OpenAIAdapter } from "shared/adapters/llm/OpenAIAdapter"
 import { createNeo4jDataSource } from "shared/adapters/neo4j/dataSource"
 import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
 import { ok } from "shared/entities/result"
@@ -40,12 +40,7 @@ export async function autoResolveIssue(
   jobId: string,
   data: AutoResolveJobData
 ) {
-  const {
-    repoFullName,
-    issueNumber,
-    githubLogin,
-    githubInstallationId,
-  } = data
+  const { repoFullName, issueNumber, githubLogin, githubInstallationId } = data
 
   await publishJobStatus(
     jobId,
@@ -53,8 +48,13 @@ export async function autoResolveIssue(
   )
 
   // Load environment
-  const { NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD, GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY } =
-    getEnvVar()
+  const {
+    NEO4J_URI,
+    NEO4J_USER,
+    NEO4J_PASSWORD,
+    GITHUB_APP_ID,
+    GITHUB_APP_PRIVATE_KEY,
+  } = getEnvVar()
 
   // Settings adapter (loads OpenAI API key from Neo4j)
   const neo4jDs = createNeo4jDataSource({
@@ -129,4 +129,3 @@ export async function autoResolveIssue(
   // Handler will publish the completion status
   return result.value.response
 }
-

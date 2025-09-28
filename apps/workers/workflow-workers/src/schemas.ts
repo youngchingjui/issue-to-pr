@@ -14,4 +14,3 @@ export const envSchema = z.object({
 })
 
 export type EnvVariables = z.infer<typeof envSchema>
-

@@ -77,4 +77,3 @@ export async function handler(job: Job): Promise<string> {
     throw error instanceof Error ? error : new Error(msg)
   }
 }
-

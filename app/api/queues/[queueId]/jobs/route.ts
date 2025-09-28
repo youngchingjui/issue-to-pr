@@ -3,8 +3,9 @@ import { JobEventSchema } from "shared/entities/events/Job"
 import { QueueEnum } from "shared/entities/Queue"
 import { addJob } from "shared/services/job"
 
-import { enqueueJobsRequestSchema } from "./schemas"
 import { getInstallationFromRepo } from "@/lib/github/repos"
+
+import { enqueueJobsRequestSchema } from "./schemas"
 
 export async function POST(
   req: NextRequest,
@@ -88,4 +89,3 @@ export async function GET(
   // TODO: Implement this.
   return NextResponse.json({ success: false, status: "not implemented yet" })
 }
-
