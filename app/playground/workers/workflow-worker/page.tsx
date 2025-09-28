@@ -10,6 +10,11 @@ import { getGithubUser } from "@/lib/github/users"
 import { getUserRoles } from "@/lib/neo4j/services/user"
 
 export default async function WorkflowWorkersPlaygroundPage() {
+  // TODO: In auth.js, I think we've attached the user's Github username to the session object somewhere.
+  // It would be nice to use that username here instead of retrieving it with the `getGithubUser()` function,
+  // which we've deprecated.
+
+  // By getting the username from the session object, we don't have to conditionally provide the <AutoResolveIssueCard /> component below. We can just directly provide it.
   const session = await auth()
   if (!session?.user) {
     redirect("/")
@@ -46,4 +51,3 @@ export default async function WorkflowWorkersPlaygroundPage() {
     </div>
   )
 }
-
