@@ -28,13 +28,14 @@ const SimulateLongRunningWorkflowJobSchema = z.object({
 
 // Note: githubInstallationId is added by the API endpoint,
 // so we do not include it in the API request schema
+// The `githubLogin` is also identified from within
+// the API route, so we do not include it in the API request schema
 const AutoResolveIssueJobSchema = z.object({
   name: z.literal("autoResolveIssue"),
   data: z.object({
     repoFullName: z.string(),
     issueNumber: z.number().int().positive(),
     branch: z.string().optional(),
-    githubLogin: z.string(),
   }),
 })
 

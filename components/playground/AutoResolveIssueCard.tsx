@@ -13,11 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/lib/hooks/use-toast"
 
-interface Props {
-  githubLogin: string
-}
-
-export default function AutoResolveIssueCard({ githubLogin }: Props) {
+export default function AutoResolveIssueCard() {
   const { toast } = useToast()
   const [repoFullName, setRepoFullName] = useState("")
   const [issueNumber, setIssueNumber] = useState<number | "">("")
@@ -93,7 +89,6 @@ export default function AutoResolveIssueCard({ githubLogin }: Props) {
           issueNumber:
             typeof issueNumber === "string" ? Number(issueNumber) : issueNumber,
           branch: branch.trim() || undefined,
-          githubLogin,
         },
       }
       const res = await fetch(`/api/queues/${queueId}/jobs`, {

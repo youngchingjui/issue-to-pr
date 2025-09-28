@@ -43,7 +43,7 @@ export default async function WorkflowWorkersPlaygroundPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <IssueSummaryCard />
         <LongRunningWorkflowCard />
-        <AutoResolveIssueCard githubLogin={githubLogin} />
+        <AutoResolveIssueCard />
       </div>
     </div>
   )

@@ -2,12 +2,14 @@
  * API endpoint for enqueuing jobs onto a specific queue.
  * Responsible for loading NextJS-specific variables, if needed,
  * Such as data that requires the user's authenticated state
+ * We avoid putting sensitive data in the job queue.
  */
 
 import { NextRequest, NextResponse } from "next/server"
 import { QueueEnum } from "shared/entities/Queue"
 import { addJob } from "shared/services/job"
 
+import { auth } from "@/auth"
 import { getInstallationFromRepo } from "@/lib/github/repos"
 
 import { enqueueJobsRequestSchema } from "./schemas"
@@ -53,6 +55,17 @@ export async function POST(
 
   if (job.name === "autoResolveIssue") {
     try {
+      // We need to get the authenticated user's login
+      // So that the use case can fetch their OpenAI API key
+
+      const session = await auth()
+      if (!session) {
+        throw new Error("Authentication required")
+      }
+      const { profile } = session
+      if (!profile) {
+        throw new Error("Authentication failed, could not find profile")
+      }
       const full = job.data.repoFullName
       const [owner, repo] = (full || "").split("/")
       if (!owner || !repo) {
@@ -70,6 +83,7 @@ export async function POST(
           name: "autoResolveIssue",
           data: {
             ...job.data,
+            githubLogin: profile.login,
             githubInstallationId,
           },
         },
