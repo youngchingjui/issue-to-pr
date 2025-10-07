@@ -79,33 +79,10 @@ export async function getGraphQLClient(): Promise<typeof graphql | null> {
   return octokit.graphql
 }
 
-/**
- * Returns the permissions object for the current GitHub App installation.
- */
-export async function getInstallationPermissions() {
-  try {
-    const privateKey = await getPrivateKeyFromFile()
-    if (!process.env.GITHUB_APP_ID) throw new Error("GITHUB_APP_ID is not set")
-    const installationId = getInstallationId()
-    if (!installationId) throw new Error("Installation ID not found")
-
-    const auth = createAppAuth({
-      appId: process.env.GITHUB_APP_ID,
-      privateKey,
-      installationId: Number(installationId),
-    })
-
-    // Get the installation token and permissions
-    const { permissions } = await auth({ type: "installation" })
-    return permissions
-  } catch (error) {
-    console.error("[ERROR] Failed to get installation permissions:", error)
-    return null
-  }
-}
-
 // TODO: Get rid of
-export async function getTestInstallationOctokit(installationId?: number) {
+export async function getTestInstallationOctokit(
+  installationId?: number
+): Promise<ExtendedOctokit> {
   // Installation ID for user: "youngchingjui" and Github App: "dev-issue-to-pr"
   const BACKUP_INSTALLATION_ID = 77503233
 
@@ -135,7 +112,7 @@ export async function getTestInstallationOctokit(installationId?: number) {
  *
  * @returns An authenticated Octokit instance or throws an error if authentication fails
  */
-export async function getUserOctokit() {
+export async function getUserOctokit(): Promise<Octokit> {
   const session = await auth()
 
   if (!session?.token?.access_token) {
@@ -170,7 +147,9 @@ export async function getUserInstallations() {
   return installations.installations
 }
 
-export async function getInstallationOctokit(installationId: number) {
+export async function getInstallationOctokit(
+  installationId: number
+): Promise<Octokit> {
   const appId = process.env.GITHUB_APP_ID
   if (!appId) throw new Error("GITHUB_APP_ID is not set")
 
@@ -184,7 +163,7 @@ export async function getInstallationOctokit(installationId: number) {
   return installationOctokit
 }
 
-export async function getAppOctokit() {
+export async function getAppOctokit(): Promise<App> {
   const appId = process.env.GITHUB_APP_ID
   if (!appId) throw new Error("GITHUB_APP_ID is not set")
 
