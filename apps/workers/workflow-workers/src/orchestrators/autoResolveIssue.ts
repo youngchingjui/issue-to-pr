@@ -5,7 +5,7 @@ import { createNeo4jDataSource } from "shared/adapters/neo4j/dataSource"
 import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
 import type { GitHubAuthMethod } from "shared/ports/github/issue.reader"
 import { getPrivateKeyFromFile } from "shared/services/fs"
-import { resolveIssue } from "shared/usecases/workflows/resolveIssue"
+import { autoResolveIssue } from "shared/usecases/workflows/autoResolveIssue"
 
 import { getEnvVar, publishJobStatus } from "../helper"
 
@@ -27,6 +27,8 @@ const userRepo = {
   },
 }
 
+// TODO: Explore should the `githubInstallationId` be passed here as a parameter?
+// Or should it be retrieved from within the workflow run?
 export type AutoResolveJobData = {
   repoFullName: string
   issueNumber: number
@@ -67,6 +69,8 @@ export async function autoResolveIssue(
     userRepo,
   })
 
+  // TODO: Maybe we should move all data-loading functions (something akin to all `async` functions), anything that accesses
+  // information from another source (database, file system, cache, etc.) into the workflow itself.
   const privateKey = await getPrivateKeyFromFile(GITHUB_APP_PRIVATE_KEY_PATH)
   // GitHub API via App Installation
   const ghAuth: GitHubAuthMethod = {
@@ -79,7 +83,7 @@ export async function autoResolveIssue(
 
   await publishJobStatus(jobId, "Fetching issue and running LLM")
 
-  const result = await resolveIssue(
+  const result = await autoResolveIssue(
     {
       settings: settingsAdapter,
       llm: (apiKey: string) => new OpenAIAdapter(apiKey),

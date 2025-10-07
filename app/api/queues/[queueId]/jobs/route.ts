@@ -5,6 +5,13 @@
  * We avoid putting sensitive data in the job queue.
  */
 
+// TODO: Generally, NextJS API routes are good places to verify process.env variables.
+// TODO: Make a .env helper that returns a validated (maybe with zod) object including
+// all of our env variables, so we can use them in API routes easily.
+// The helper can just handle missing env variables for us. Or, maybe not. Maybe some env variables are OK to leave blank.
+// To be determined.
+
+// TODO: This can be converted to a server action.
 import { NextRequest, NextResponse } from "next/server"
 import { QueueEnum } from "shared/entities/Queue"
 import { addJob } from "shared/services/job"
@@ -71,6 +78,9 @@ export async function POST(
       if (!owner || !repo) {
         throw new Error("Invalid repoFullName; expected 'owner/repo'")
       }
+
+      // TODO: Explore, should the installation ID be retrieved here in the API route?
+      // Or should it be retrieved by the worker / workflow?
       const installation = await getInstallationFromRepo({ owner, repo })
       const githubInstallationId = String(installation?.data?.id ?? "")
       if (!githubInstallationId) {
