@@ -104,13 +104,18 @@ export async function listUserOwnedAndAppInstalledRepositories(
   return combineRepositories(owned.repositories, appOwnedByTarget)
 }
 
+type AppOctokit = Awaited<ReturnType<typeof getAppOctokit>>
+type GetInstallationFromRepoResponse = Awaited<
+  ReturnType<AppOctokit["octokit"]["request"]>
+>
+
 export async function getInstallationFromRepo({
   owner,
   repo,
 }: {
   owner: string
   repo: string
-}) {
+}): Promise<GetInstallationFromRepoResponse> {
   const app = await getAppOctokit()
 
   const result = await app.octokit.request(

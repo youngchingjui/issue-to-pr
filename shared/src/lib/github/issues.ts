@@ -1,5 +1,3 @@
-"use server"
-
 import { withTiming } from "shared/utils/telemetry"
 
 import getOctokit, { getGraphQLClient, getUserOctokit } from "@/lib/github"
@@ -22,12 +20,18 @@ type CreateIssueParams = {
   body: string
 }
 
+// Derive the exact response type from the installed Octokit method
+type UserOctokit = Awaited<ReturnType<typeof getUserOctokit>>
+type CreateIssueResponse = Awaited<
+  ReturnType<UserOctokit["rest"]["issues"]["create"]>
+>
+
 export async function createIssue({
   repo,
   owner,
   title,
   body,
-}: CreateIssueParams) {
+}: CreateIssueParams): Promise<CreateIssueResponse> {
   const octokit = await getUserOctokit()
   if (!octokit) throw new Error("No octokit found")
   return await octokit.rest.issues.create({ owner, repo, title, body })
