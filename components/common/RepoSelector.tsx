@@ -84,15 +84,12 @@ export default function RepoSelector({
     }
   }, [open])
 
-  const filteredRepos = useMemo(
-    () =>
-      query
-        ? repos.filter((r) =>
-            r.full_name.toLowerCase().includes(query.toLowerCase())
-          )
-        : repos,
-    [query, repos]
-  )
+  const filteredRepos = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return q
+      ? repos.filter((r) => r.full_name.toLowerCase().includes(q))
+      : repos
+  }, [query, repos])
 
   // Ensure that the currently selected repository is always present in the list.
   // When it vanishes due to a search filter Radix re-calculates focus which causes
@@ -141,16 +138,21 @@ export default function RepoSelector({
       value={value}
       name="repo"
       onValueChange={(val) => {
+        if (val === value) {
+          setOpen(false)
+          return
+        }
         // Update UI instantly so the user sees their selection immediately
         setValue(val)
         setOpen(false)
         // Then perform navigation
         router.push(`/issues?repo=${encodeURIComponent(val)}`)
+        // Consider: router.replace(...) if you don't want back button to step through every selection.
       }}
       onOpenChange={setOpen}
     >
       <SelectTrigger className="w-64">
-        <SelectValue placeholder="Select repository">{value}</SelectValue>
+        <SelectValue placeholder="Select repository" />
       </SelectTrigger>
       <SelectContent align={isDesktop ? "end" : "start"}>
         {/* Search input */}
@@ -187,4 +189,3 @@ export default function RepoSelector({
     </Select>
   )
 }
-
