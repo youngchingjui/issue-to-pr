@@ -1,5 +1,4 @@
 import { OpenAIAdapter } from "shared/adapters/llm/OpenAIAdapter"
-import { AuthReaderPort } from "shared/ports/auth/reader"
 import { EventBusPort } from "shared/ports/events/eventBus"
 import { createWorkflowEventPublisher } from "shared/ports/events/publisher"
 import { SettingsReaderPort } from "shared/ports/repositories/settings.reader"

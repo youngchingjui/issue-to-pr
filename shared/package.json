@@ -25,27 +25,35 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@octokit/auth-app": "^7.2.0",
+    "exponential-backoff": "^3.1.2",
     "@anthropic-ai/sdk": "^0.59.0",
-    "@octokit/graphql": "^8.2.1",
-    "@octokit/rest": "^21.1.0",
     "bullmq": "^5.0.0",
+    "octokit": "^4.0.2",
     "ioredis": "^5.3.2",
     "clsx": "^2.1.1",
     "tailwind-merge": "^2.6.0",
     "openai": "^5.12.2",
     "neo4j-driver": "^5.28.1",
-    "uuid": "^11.0.5"
+    "uuid": "^11.0.5",
+    "zod-to-json-schema": "^3.24.5",
+    "dockerode": "^4.0.7"
   },
   "devDependencies": {
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@types/node": "^20",
+    "@octokit/openapi-types": "^24.0.0",
     "tsc-alias": "^1.8.16",
     "tsc-esm-fix": "^3.1.2",
     "typescript": "^5"
   },
   "peerDependencies": {
-    "zod": ">=3.24.0"
+    "zod": ">=3.24.0",
+    "langfuse": "^3.32.0",
+    "langfuse-core": "^3.37.0",
+    "@octokit/auth-app": "^7.2.0",
+    "@octokit/auth-oauth-user": "^6.0.0",
+    "@octokit/rest": "^21.0.2",
+    "@octokit/graphql": "^8.2.1"
   }
 }

@@ -1,5 +1,6 @@
 "use server"
 
+// TODO: Not used anywhere anymore. Delete.
 import { EventBusAdapter } from "shared/adapters/ioredis/EventBusAdapter"
 import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
 import { v4 as uuidv4 } from "uuid"
