@@ -91,6 +91,8 @@ export default function AutoResolveIssueCard() {
           branch: branch.trim() || undefined,
         },
       }
+      // TODO: Switch to server action, since this is a POST request
+      // TODO: `queueId` is not appropriately named. It should just be called `queueName` or something similar
       const res = await fetch(`/api/queues/${queueId}/jobs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
