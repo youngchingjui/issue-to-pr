@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -48,6 +48,10 @@ export default function RepoSelector({
   const [open, setOpen] = useState(false)
   const isDesktop = useMediaQuery("md")
 
+  // Local selected value so the UI updates immediately on user choice
+  const [value, setValue] = useState<string>(selectedRepo)
+  useEffect(() => setValue(selectedRepo), [selectedRepo])
+
   // Search query state
   const [query, setQuery] = useState("")
 
@@ -80,29 +84,30 @@ export default function RepoSelector({
     }
   }, [open])
 
-  const filteredRepos = query
-    ? repos.filter((r) =>
-        r.full_name.toLowerCase().includes(query.toLowerCase())
-      )
-    : repos
+  const filteredRepos = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return q
+      ? repos.filter((r) => r.full_name.toLowerCase().includes(q))
+      : repos
+  }, [query, repos])
 
   // Ensure that the currently selected repository is always present in the list.
   // When it vanishes due to a search filter Radix re-calculates focus which causes
   // the <Input> to lose focus (mobile keyboards collapse). By force-including the
   // selected repo we keep the internal focus management stable.
-  const visibleRepos = (() => {
-    if (filteredRepos.some((r) => r.full_name === selectedRepo)) {
+  const visibleRepos = useMemo(() => {
+    if (filteredRepos.some((r) => r.full_name === value)) {
       return filteredRepos
     }
 
-    const selectedEntry = repos.find((r) => r.full_name === selectedRepo)
+    const selectedEntry = repos.find((r) => r.full_name === value)
     if (!selectedEntry) {
       return filteredRepos
     }
 
     // Prepend to avoid changing the relative ordering of the filtered list.
     return [selectedEntry, ...filteredRepos]
-  })()
+  }, [filteredRepos, repos, value])
 
   // 1. Loading state
   if (loading) {
@@ -130,17 +135,24 @@ export default function RepoSelector({
   // 3. Repositories available – show repo selector dropdown
   return (
     <Select
-      defaultValue={selectedRepo}
+      value={value}
       name="repo"
       onValueChange={(val) => {
+        if (val === value) {
+          setOpen(false)
+          return
+        }
+        // Update UI instantly so the user sees their selection immediately
+        setValue(val)
+        setOpen(false)
+        // Then perform navigation
         router.push(`/issues?repo=${encodeURIComponent(val)}`)
+        // Consider: router.replace(...) if you don't want back button to step through every selection.
       }}
       onOpenChange={setOpen}
     >
       <SelectTrigger className="w-64">
-        <SelectValue placeholder="Select repository">
-          {selectedRepo}
-        </SelectValue>
+        <SelectValue placeholder="Select repository" />
       </SelectTrigger>
       <SelectContent align={isDesktop ? "end" : "start"}>
         {/* Search input */}
