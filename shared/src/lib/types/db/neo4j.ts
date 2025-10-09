@@ -26,6 +26,13 @@ import {
 export { workflowRunStateSchema, workflowTypeEnum }
 export type { WorkflowRunState, WorkflowType }
 
+// Use a predicate instead of z.instanceof(DateTime) to avoid TS2742.
+// instanceof leaks neo4j-driver-core types into inferred exports; this keeps
+// runtime validation (DateTime-like) while keeping inferred types portable.
+const Neo4jDateTime = z.custom<DateTime>(isDateTime, {
+  message: "Input not instance of DateTime",
+})
+
 // Neo4j data model schemas
 export const issueSchema = appIssueSchema
   .omit({
@@ -45,20 +52,20 @@ export const issueSchema = appIssueSchema
 
 export const workflowRunSchema = appWorkflowRunSchema.merge(
   z.object({
-    createdAt: z.instanceof(DateTime),
+    createdAt: Neo4jDateTime,
   })
 )
 
 export const planSchema = appPlanSchema.merge(
   z.object({
     version: z.instanceof(Integer),
-    createdAt: z.instanceof(DateTime),
+    createdAt: Neo4jDateTime,
   })
 )
 
 export const taskSchema = appTaskSchema.merge(
   z.object({
-    createdAt: z.instanceof(DateTime),
+    createdAt: Neo4jDateTime,
     githubIssueNumber: z.instanceof(Integer).optional(),
   })
 )
@@ -67,7 +74,7 @@ export const taskSchema = appTaskSchema.merge(
 export const errorEventSchema = appErrorEventSchema
   .merge(
     z.object({
-      createdAt: z.instanceof(DateTime),
+      createdAt: Neo4jDateTime,
     })
   )
   .omit({
@@ -76,14 +83,14 @@ export const errorEventSchema = appErrorEventSchema
 
 export const statusEventSchema = z.object({
   id: z.string(),
-  createdAt: z.instanceof(DateTime),
+  createdAt: Neo4jDateTime,
   type: z.literal("status"),
   content: z.string(),
 })
 
 export const workflowStateEventSchema = z.object({
   id: z.string(),
-  createdAt: z.instanceof(DateTime),
+  createdAt: Neo4jDateTime,
   type: z.literal("workflowState"),
   state: z.enum(["running", "completed", "error", "timedOut"]),
   content: z.string().optional(),
@@ -91,19 +98,19 @@ export const workflowStateEventSchema = z.object({
 
 export const systemPromptSchema = appSystemPromptSchema
   .omit({ workflowId: true })
-  .merge(z.object({ createdAt: z.instanceof(DateTime) }))
+  .merge(z.object({ createdAt: Neo4jDateTime }))
 
 export const userMessageSchema = appUserMessageSchema
   .omit({ workflowId: true })
-  .merge(z.object({ createdAt: z.instanceof(DateTime) }))
+  .merge(z.object({ createdAt: Neo4jDateTime }))
 
 export const llmResponseSchema = appLLMResponseSchema
   .omit({ workflowId: true })
-  .merge(z.object({ createdAt: z.instanceof(DateTime) }))
+  .merge(z.object({ createdAt: Neo4jDateTime }))
 
 export const reasoningEventSchema = appReasoningEventSchema
   .omit({ workflowId: true })
-  .merge(z.object({ createdAt: z.instanceof(DateTime) }))
+  .merge(z.object({ createdAt: Neo4jDateTime }))
 
 export const llmResponseWithPlanSchema = llmResponseSchema.merge(
   planSchema.omit({ createdAt: true })
@@ -111,15 +118,15 @@ export const llmResponseWithPlanSchema = llmResponseSchema.merge(
 
 export const toolCallSchema = appToolCallSchema
   .omit({ workflowId: true })
-  .merge(z.object({ createdAt: z.instanceof(DateTime) }))
+  .merge(z.object({ createdAt: Neo4jDateTime }))
 
 export const toolCallResultSchema = appToolCallResultSchema
   .omit({ workflowId: true })
-  .merge(z.object({ createdAt: z.instanceof(DateTime) }))
+  .merge(z.object({ createdAt: Neo4jDateTime }))
 
 export const reviewCommentSchema = appReviewCommentSchema
   .omit({ workflowId: true })
-  .merge(z.object({ createdAt: z.instanceof(DateTime) }))
+  .merge(z.object({ createdAt: Neo4jDateTime }))
 
 export const messageEventSchema = z.union([
   llmResponseWithPlanSchema,
@@ -174,9 +181,7 @@ export function isLLMResponseWithPlan(
 export const repoSettingsSchema = appRepoSettingsSchema.merge(
   z.object({
     // Ensure Neo4j temporal type is preserved while at repository layer
-    lastUpdated: z.custom<DateTime>(isDateTime, {
-      message: "Input not instance of DateTime",
-    }),
+    lastUpdated: Neo4jDateTime,
   })
 )
 
@@ -185,9 +190,7 @@ export type RepoSettings = z.infer<typeof repoSettingsSchema>
 // ---- User Settings ----
 export const userSettingsSchema = appSettingsSchema.merge(
   z.object({
-    lastUpdated: z.custom<DateTime>(isDateTime, {
-      message: "Input not instance of DateTime",
-    }),
+    lastUpdated: Neo4jDateTime,
   })
 )
 
