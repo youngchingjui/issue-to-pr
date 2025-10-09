@@ -7,9 +7,8 @@ import { Octokit } from "@octokit/rest"
 import * as fs from "fs/promises"
 import { App } from "octokit"
 
-import { auth } from "@/auth"
+import { getAccessTokenOrThrow } from "@/auth"
 import { ExtendedOctokit } from "@/lib/types/github"
-import { getInstallationId } from "@/lib/utils/utils-server"
 
 export async function getPrivateKeyFromFile(): Promise<string> {
   const privateKeyPath = process.env.GITHUB_APP_PRIVATE_KEY_PATH
@@ -30,40 +29,11 @@ export async function getPrivateKeyFromFile(): Promise<string> {
  * @deprecated Use getUserOctokit or getInstallationOctokit instead
  */
 export default async function getOctokit(): Promise<ExtendedOctokit | null> {
-  const session = await auth()
+  const token = getAccessTokenOrThrow()
 
-  if (session?.token?.access_token) {
-    const userOctokit = new Octokit({ auth: session.token.access_token })
+  const userOctokit = new Octokit({ auth: token })
 
-    return { ...userOctokit, authType: "user" }
-  }
-
-  // Fallback to GitHub App authentication
-  const appId = process.env.GITHUB_APP_ID
-
-  if (!appId) {
-    throw new Error("GITHUB_APP_ID is not set")
-  }
-
-  try {
-    const privateKey = await getPrivateKeyFromFile()
-
-    // Assuming you have the installation ID from the webhook or other source
-    const installationId = getInstallationId()
-    if (!installationId) {
-      return null
-    }
-
-    const installationOctokit = new Octokit({
-      authStrategy: createAppAuth,
-      auth: { appId, privateKey, installationId },
-    })
-
-    return { ...installationOctokit, authType: "app" }
-  } catch (error) {
-    console.error("[ERROR] Failed to setup GitHub App authentication:", error)
-    return null
-  }
+  return { ...userOctokit, authType: "user" }
 }
 
 /**
@@ -113,15 +83,7 @@ export async function getTestInstallationOctokit(
  * @returns An authenticated Octokit instance or throws an error if authentication fails
  */
 export async function getUserOctokit(): Promise<Octokit> {
-  const session = await auth()
-
-  if (!session?.token?.access_token) {
-    throw new Error("No session token found")
-  }
-
-  if (typeof session.token.access_token !== "string") {
-    throw new Error("Access token is not a string")
-  }
+  const token = getAccessTokenOrThrow()
 
   // `clientId` and `clientSecret` are already determined by
   // auth.js library when authenticating user in `auth.js`.
@@ -130,7 +92,7 @@ export async function getUserOctokit(): Promise<Octokit> {
     authStrategy: createOAuthUserAuth,
     auth: {
       clientType: "github-app",
-      token: session.token.access_token,
+      token,
     },
   })
 

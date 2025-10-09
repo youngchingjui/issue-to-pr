@@ -1,11 +1,12 @@
+import { createAppAuth } from "@octokit/auth-app"
+import { Octokit } from "@octokit/rest"
 import type { Transaction } from "neo4j-driver"
-import { makeIssueReaderAdapter } from "shared/adapters/github/IssueReaderAdapter"
-import { OpenAIAdapter } from "shared/adapters/llm/OpenAIAdapter"
+import { EventBusAdapter } from "shared/adapters/ioredis/EventBusAdapter"
 import { createNeo4jDataSource } from "shared/adapters/neo4j/dataSource"
 import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
-import type { GitHubAuthMethod } from "shared/ports/github/issue.reader"
+import { setAccessToken } from "shared/auth"
 import { getPrivateKeyFromFile } from "shared/services/fs"
-import { autoResolveIssue } from "shared/usecases/workflows/autoResolveIssue"
+import { autoResolveIssue as autoResolveIssueWorkflow } from "shared/usecases/workflows/autoResolveIssue"
 
 import { getEnvVar, publishJobStatus } from "../helper"
 
@@ -27,22 +28,28 @@ const userRepo = {
   },
 }
 
-// TODO: Explore should the `githubInstallationId` be passed here as a parameter?
-// Or should it be retrieved from within the workflow run?
 export type AutoResolveJobData = {
   repoFullName: string
   issueNumber: number
   branch?: string
   githubLogin: string
+  // `githubInstallationId` must be passed through the job data,
+  // As it can only be obtained through 1) the Github webhook payload, or 2) through an authenticated
+  // Github API request to `GET /users/{username}/installation`, `GET /repos/{owner}/{repo}/installation`
+  // or `GET /app/installations`
   githubInstallationId: string
 }
 
 export async function autoResolveIssue(
   jobId: string,
-  data: AutoResolveJobData
+  {
+    repoFullName,
+    issueNumber,
+    githubLogin,
+    githubInstallationId,
+    branch,
+  }: AutoResolveJobData
 ) {
-  const { repoFullName, issueNumber, githubLogin, githubInstallationId } = data
-
   await publishJobStatus(
     jobId,
     `Preparing to resolve ${repoFullName}#${issueNumber}`
@@ -55,6 +62,7 @@ export async function autoResolveIssue(
     NEO4J_PASSWORD,
     GITHUB_APP_ID,
     GITHUB_APP_PRIVATE_KEY_PATH,
+    REDIS_URL,
   } = getEnvVar()
 
   // Settings adapter (loads OpenAI API key from Neo4j)
@@ -73,35 +81,46 @@ export async function autoResolveIssue(
   // information from another source (database, file system, cache, etc.) into the workflow itself.
   const privateKey = await getPrivateKeyFromFile(GITHUB_APP_PRIVATE_KEY_PATH)
   // GitHub API via App Installation
-  const ghAuth: GitHubAuthMethod = {
-    type: "app_installation",
-    appId: GITHUB_APP_ID,
-    privateKey,
-    installationId: githubInstallationId,
+
+  // Temporary: set the access token for the workflow
+  const octokit = new Octokit({
+    authStrategy: createAppAuth,
+    auth: {
+      appId: GITHUB_APP_ID,
+      privateKey,
+      installationId: githubInstallationId,
+    },
+  })
+
+  // Setup adapters for event bus
+  const eventBusAdapter = new EventBusAdapter(REDIS_URL)
+  const auth = await octokit.auth({ type: "installation" })
+  if (
+    !auth ||
+    typeof auth !== "object" ||
+    !("token" in auth) ||
+    typeof auth.token !== "string"
+  ) {
+    throw new Error("Failed to get installation token")
   }
-  const issueReader = makeIssueReaderAdapter(ghAuth)
+  setAccessToken(auth.token)
 
   await publishJobStatus(jobId, "Fetching issue and running LLM")
 
-  const result = await autoResolveIssue(
+  const result = await autoResolveIssueWorkflow(
     {
-      settings: settingsAdapter,
-      llm: (apiKey: string) => new OpenAIAdapter(apiKey),
-      issueReader,
-    },
-    {
+      issueNumber,
       repoFullName,
       login: githubLogin,
-      issueNumber,
-      workflowId: jobId,
-      model: "gpt-4o",
+      jobId,
+      branch,
+    },
+    {
+      settings: settingsAdapter,
+      eventBus: eventBusAdapter,
     }
   )
 
-  if (!result.ok) {
-    throw new Error(`ResolveIssue failed: ${result.error}`)
-  }
-
   // Handler will publish the completion status
-  return result.value.response
+  return result.messages
 }

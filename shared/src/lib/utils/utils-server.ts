@@ -2,7 +2,7 @@
 
 import { AsyncLocalStorage } from "node:async_hooks"
 
-import { auth } from "@/auth"
+import { getAccessToken } from "@/auth"
 import { getLocalRepoDir } from "@/lib/fs"
 import {
   cleanCheckout,
@@ -80,12 +80,9 @@ export async function setupLocalRepository({
     let cloneUrl: string
 
     // 1. Determine an authenticated clone URL
-    const session = await auth()
-    if (session?.token?.access_token) {
-      cloneUrl = getCloneUrlWithAccessToken(
-        repoFullName,
-        session.token.access_token as string
-      )
+    const token = getAccessToken()
+    if (token) {
+      cloneUrl = getCloneUrlWithAccessToken(repoFullName, token)
     } else {
       // Fallback to GitHub App authentication
       const octokit = await getOctokit()

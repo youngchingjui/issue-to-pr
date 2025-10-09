@@ -3,13 +3,15 @@
 // We should slowly rearrange and factor as we go along
 // To match our desired architecture.
 
+import { Octokit } from "@octokit/rest"
 import { v4 as uuidv4 } from "uuid"
 
 import GitHubRefsAdapter from "@/adapters/github/GitHubRefsAdapter"
 import { OpenAIAdapter } from "@/adapters/llm/OpenAIAdapter"
+import { getAccessTokenOrThrow } from "@/auth"
 import PlanAndCodeAgent from "@/lib/agents/PlanAndCodeAgent"
 import { getInstallationTokenFromRepo } from "@/lib/github/installation"
-import { getIssueComments } from "@/lib/github/issues"
+import { getIssue, getIssueComments } from "@/lib/github/issues"
 import { checkRepoPermissions } from "@/lib/github/users"
 import { langfuse } from "@/lib/langfuse"
 import {
@@ -19,7 +21,6 @@ import {
 } from "@/lib/neo4j/services/event"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
 import { RepoEnvironment } from "@/lib/types"
-import { GitHubIssue, GitHubRepository } from "@/lib/types/github"
 import {
   createContainerizedDirectoryTree,
   createContainerizedWorkspace,
@@ -31,8 +32,8 @@ import { SettingsReaderPort } from "@/ports/repositories/settings.reader"
 import { generateNonConflictingBranchName } from "@/usecases/git/generateBranchName"
 
 interface Params {
-  issue: GitHubIssue
-  repository: GitHubRepository
+  issueNumber: number
+  repoFullName: string
   /** User GitHub login, in order to lookup their OpenAI API key */
   login: string
   jobId?: string
@@ -48,7 +49,7 @@ export const autoResolveIssue = async (
   params: Params,
   ports: AutoResolveIssuePorts
 ) => {
-  const { issue, repository, login, jobId, branch } = params
+  const { issueNumber, repoFullName, login, jobId, branch } = params
   const { settings, eventBus } = ports
 
   // =================================================
@@ -69,6 +70,25 @@ export const autoResolveIssue = async (
   const apiKey = apiKeyResult.value
 
   // =================================================
+  // Step 2: Get issue and repository
+  // =================================================
+
+  // TODO: These should be managed by ports. The adapters will have authentication baked in.
+  const [owner, repo] = repoFullName.split("/")
+  const issueResult = await getIssue({ fullName: repoFullName, issueNumber })
+  if (issueResult.type !== "success") {
+    await createErrorEvent({
+      workflowId,
+      content: `Failed to fetch issue #${issueNumber}, ${repoFullName}`,
+    })
+    throw new Error(`Failed to fetch issue #${issueNumber}, ${repoFullName}`)
+  }
+  const issue = issueResult.issue
+  const access_token = getAccessTokenOrThrow()
+  const octokit = new Octokit({ auth: access_token })
+  const repository = await octokit.rest.repos.get({ owner, repo })
+
+  // =================================================
   // Step 2: Initialize workflow
   // =================================================
 
@@ -76,8 +96,8 @@ export const autoResolveIssue = async (
     await initializeWorkflowRun({
       id: workflowId,
       type: "autoResolveIssue",
-      issueNumber: issue.number,
-      repoFullName: repository.full_name,
+      issueNumber,
+      repoFullName,
       postToGithub: true,
     })
 
@@ -85,12 +105,10 @@ export const autoResolveIssue = async (
 
     await createStatusEvent({
       workflowId,
-      content: `Starting auto resolve workflow for issue #${issue.number}`,
+      content: `Starting auto resolve workflow for issue #${issueNumber}`,
     })
 
-    const { canPush, canCreatePR } = await checkRepoPermissions(
-      repository.full_name
-    )
+    const { canPush, canCreatePR } = await checkRepoPermissions(repoFullName)
 
     if (!canCreatePR || !canPush) {
       await createStatusEvent({
@@ -100,8 +118,8 @@ export const autoResolveIssue = async (
     }
 
     // Decide the working branch first so we can set labels and network aliases on the container
-    const [owner, repo] = repository.full_name.split("/")
-    let workingBranch = repository.default_branch
+
+    let workingBranch = repository.data.default_branch
 
     if (branch && branch.trim().length > 0) {
       workingBranch = branch.trim()
@@ -126,23 +144,23 @@ export const autoResolveIssue = async (
       } catch (e) {
         await createStatusEvent({
           workflowId,
-          content: `[WARNING]: Failed to generate non-conflicting branch name, falling back to default branch ${repository.default_branch}. Error: ${String(
+          content: `[WARNING]: Failed to generate non-conflicting branch name, falling back to default branch ${repository.data.default_branch}. Error: ${String(
             e
           )}`,
         })
-        workingBranch = repository.default_branch
+        workingBranch = repository.data.default_branch
       }
     }
 
     const hostRepoPath = await setupLocalRepository({
-      repoFullName: repository.full_name,
+      repoFullName,
       // Always prepare local repo on the default branch to ensure fetch/checkout succeeds,
       // we will create/switch to the workingBranch inside the container as needed.
-      workingBranch: repository.default_branch,
+      workingBranch: repository.data.default_branch,
     })
 
     const { containerName } = await createContainerizedWorkspace({
-      repoFullName: repository.full_name,
+      repoFullName,
       branch: workingBranch,
       workflowId,
       hostRepoPath,
@@ -161,9 +179,9 @@ export const autoResolveIssue = async (
     const agent = new PlanAndCodeAgent({
       apiKey,
       env,
-      defaultBranch: repository.default_branch,
-      issueNumber: issue.number,
-      repository,
+      defaultBranch: repository.data.default_branch,
+      issueNumber,
+      repository: repository.data,
       sessionToken,
       jobId: workflowId,
     })
@@ -171,13 +189,13 @@ export const autoResolveIssue = async (
 
     const tree = await createContainerizedDirectoryTree(containerName)
     const comments = await getIssueComments({
-      repoFullName: repository.full_name,
-      issueNumber: issue.number,
+      repoFullName,
+      issueNumber,
     })
 
     await agent.addInput({
       role: "user",
-      content: `Github issue title: ${issue.title}\nGithub issue description: ${issue.body}`,
+      content: `Github issue title: ${issueResult.issue.title}\nGithub issue description: ${issue.body}`,
       type: "message",
     })
 
