@@ -11,17 +11,21 @@ COPY apps/workers/workflow-workers/package.json apps/workers/workflow-workers/
 # Ensure the shared workspace exists for pnpm’s resolver
 COPY shared/package.json shared/
 
-# Install deps only for the workflow worker (and its transitive deps)
-RUN pnpm install --frozen-lockfile --filter workflow-workers...
-
 # Copy source
 COPY tsconfig.base.json ./
 COPY apps/workers/workflow-workers/ ./apps/workers/workflow-workers/
 COPY shared/ ./shared/
 
-# Build and prepare a production-ready deployable package for the workflow worker
-RUN pnpm --filter workflow-workers... build \
-  && pnpm --filter workflow-workers deploy --prod /app/workflow-workers-deploy
+# Install and build shared package first
+RUN pnpm install --frozen-lockfile --filter shared...
+RUN pnpm --filter shared... build
+
+# Then install and build the workflow worker, which relies on the shared package
+RUN pnpm install --frozen-lockfile --filter workflow-workers...
+RUN pnpm --filter workflow-workers... build
+
+# Finally, deploy the workflow worker
+RUN pnpm --filter workflow-workers deploy --prod /app/workflow-workers-deploy
 
 # Production stage
 FROM node:22-alpine AS production
