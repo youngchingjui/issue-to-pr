@@ -269,10 +269,11 @@ export async function createContainerizedWorkspace({
     await exec(`mkdir -p ${mountPath}`)
 
     // Copy contents (including hidden files) from hostRepoPath -> container
-    // Use docker cp with trailing /. to copy directory contents, not parent dir
-    await execHost(
-      `docker cp "${hostRepoPath}/." ${containerName}:${mountPath}`
-    )
+    await copyRepoToExistingContainer({
+      hostRepoPath,
+      containerName,
+      mountPath,
+    })
 
     // Fix ownership of the repository inside the container to avoid
     // Git "dubious ownership" warnings caused by mismatched host UIDs.

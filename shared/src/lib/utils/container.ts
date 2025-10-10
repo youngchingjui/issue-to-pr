@@ -1,9 +1,8 @@
-import { exec as hostExec } from "child_process"
 import Docker from "dockerode"
 import os from "os"
 import path from "path"
 import { buildPreviewSubdomainSlug } from "shared/entities/previewSlug"
-import util from "util"
+import { pack } from "tar-fs"
 import { v4 as uuidv4 } from "uuid"
 
 import {
@@ -16,9 +15,6 @@ import { getInstallationTokenFromRepo } from "@/lib/github/installation"
 import { AGENT_BASE_IMAGE } from "@/lib/types/docker"
 import { containerNameForTrace } from "@/lib/utils/utils-common"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
-
-// Promisified exec for host-side commands (e.g., docker cp)
-const execHost = util.promisify(hostExec)
 
 interface ContainerizedWorktreeResult {
   worktreeDir: string
@@ -269,10 +265,11 @@ export async function createContainerizedWorkspace({
     await exec(`mkdir -p ${mountPath}`)
 
     // Copy contents (including hidden files) from hostRepoPath -> container
-    // Use docker cp with trailing /. to copy directory contents, not parent dir
-    await execHost(
-      `docker cp "${hostRepoPath}/." ${containerName}:${mountPath}`
-    )
+    await copyRepoToExistingContainer({
+      hostRepoPath,
+      containerName,
+      mountPath,
+    })
 
     // Fix ownership of the repository inside the container to avoid
     // Git "dubious ownership" warnings caused by mismatched host UIDs.
@@ -320,48 +317,48 @@ export async function copyRepoToExistingContainer({
   hostRepoPath,
   containerName,
   mountPath = "/workspace",
+  chownTo, //e.g. "root:root" or "1000:1000"; omit to skip chown
 }: {
   hostRepoPath: string
   containerName: string
   mountPath?: string
+  chownTo?: string
 }): Promise<void> {
   // Initialize dockerode
-  let docker: Docker
-  try {
-    docker = new Docker({ socketPath: "/var/run/docker.sock" })
-  } catch (e: unknown) {
-    throw new Error(`Failed to initialize Dockerode: ${e}`)
+  const docker: Docker = new Docker({ socketPath: "/var/run/docker.sock" })
+  const container: Docker.Container = docker.getContainer(containerName)
+  const info = await container.inspect()
+  if (!info.State.Running) {
+    throw new Error("Container is not running")
   }
 
-  // Get the container
-  let container: Docker.Container
-  try {
-    container = docker.getContainer(containerName)
-    // Check if the container exists & is running
-    const data = await container.inspect()
-    if (!data.State.Running) {
-      throw new Error("Container is not running")
-    }
-  } catch (e: unknown) {
-    throw new Error(`Container not found or not running: ${e}`)
-  }
+  // Ensure destination exists
 
-  try {
-    // Copy files directly from host to target directory in container
-    await execHost(
-      `docker cp "${hostRepoPath}/." ${containerName}:${mountPath}`
-    )
-
-    // Fix ownership using dockerode exec
-    const chownExec = await container.exec({
-      Cmd: ["chown", "-R", "root:root", mountPath],
+  {
+    const mkdirExec = await container.exec({
+      Cmd: ["sh", "-c", `mkdir -p '${mountPath}'`],
       AttachStdout: true,
       AttachStderr: true,
       User: "root:root",
     })
+    await mkdirExec.start({})
+  }
 
+  // Pack directory contents (including dotfiles) as a NodeJS.ReadableStream
+  const archive: NodeJS.ReadableStream = await pack(hostRepoPath)
+
+  // Put archive into the container at the target path
+  container.putArchive(archive, { path: mountPath })
+  // Note: docker extracts within the given path; we’ve already ensured it exist
+
+  // Fix ownership using dockerode exec
+  if (chownTo) {
+    const chownExec = await container.exec({
+      Cmd: ["chown", "-R", chownTo, mountPath],
+      AttachStdout: true,
+      AttachStderr: true,
+      User: "root:root",
+    })
     await chownExec.start({})
-  } catch (e: unknown) {
-    throw new Error(`Failed to copy repository to container: ${e}`)
   }
 }

@@ -73,59 +73,57 @@ export async function startContainer({
   labels,
   network,
 }: StartDetachedContainerOptions): Promise<string> {
-  // 1. Build volume flags: -v "host:container[:ro]"
-  const volumeFlags = mounts.map(({ hostPath, containerPath, readOnly }) => {
-    const ro = readOnly ? ":ro" : ""
-    return `-v \"${hostPath}:${containerPath}${ro}\"`
-  })
+  // Determine working directory (fallback to first mount or "/")
+  const workingDir = workdir ?? (mounts.length ? mounts[0].containerPath : "/")
 
-  // 2. Build environment variable flags: -e "KEY=value"
-  const envFlags = Object.entries(env).map(
-    ([key, value]) => `-e \"${key}=${value.replace(/"/g, '\\\\"')}\"`
+  // Translate mounts to HostConfig.Binds strings: "host:container[:ro]"
+  const binds = mounts.map(
+    ({ hostPath, containerPath, readOnly }) =>
+      `${hostPath}:${containerPath}${readOnly ? ":ro" : ""}`
   )
 
-  // 3. Build label flags: --label key=value
-  const labelFlags = labels
-    ? Object.entries(labels).map(
-        ([key, value]) => `--label ${key}=${String(value).replace(/\s/g, "-")}`
-      )
-    : []
+  // Translate env object to array of "KEY=VALUE" strings
+  const envList = Object.entries(env).map(([k, v]) => `${k}=${v}`)
 
-  // 4. Build network flags: --network <name> and --network-alias <alias>
-  const networkFlags: string[] = []
-  if (network?.name) {
-    networkFlags.push(`--network ${network.name}`)
-    if (Array.isArray(network.aliases)) {
-      for (const alias of network.aliases) {
-        if (alias && alias.trim().length > 0) {
-          networkFlags.push(`--network-alias ${alias}`)
-        }
+  // Prepare networking configuration if a network is requested
+  const endpointsConfig = network?.name
+    ? {
+        [network.name]: {
+          Aliases: Array.isArray(network.aliases)
+            ? network.aliases.filter((a) => a && a.trim().length > 0)
+            : [],
+        },
       }
-    }
+    : undefined
+
+  // Initialize docker client
+  const docker = new Docker({ socketPath: "/var/run/docker.sock" })
+
+  // Create container definition
+  const createOptions: Docker.ContainerCreateOptions = {
+    name,
+    Image: image,
+    User: user,
+    WorkingDir: workingDir,
+    Labels: labels,
+    Env: envList,
+    Cmd: ["tail", "-f", "/dev/null"],
+    HostConfig: {
+      Binds: binds,
+      // Mirror `--network` behavior
+      ...(network?.name ? { NetworkMode: network.name } : {}),
+    },
+    ...(endpointsConfig
+      ? { NetworkingConfig: { EndpointsConfig: endpointsConfig } }
+      : {}),
   }
 
-  // 5. Determine working directory
-  const wdPath = workdir ?? (mounts.length ? mounts[0].containerPath : "/")
-  const wdFlag = wdPath ? `-w \"${wdPath}\"` : undefined
+  // Create and start the container
+  const container = await docker.createContainer(createOptions)
+  await container.start()
 
-  // 6. Assemble command parts and filter out undefined entries
-  const cmd = [
-    "docker run -d",
-    `--name ${name}`,
-    `-u ${user}`,
-    ...envFlags,
-    ...labelFlags,
-    ...networkFlags,
-    ...volumeFlags,
-    wdFlag,
-    image,
-    "tail -f /dev/null",
-  ]
-    .filter(Boolean)
-    .join(" ")
-
-  const { stdout } = await execPromise(cmd)
-  return stdout.trim()
+  // Return the container id (similar to `docker run -d` output)
+  return container.id
 }
 
 /**

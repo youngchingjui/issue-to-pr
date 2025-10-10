@@ -112,7 +112,6 @@ export async function autoResolveIssue(
       issueNumber,
       repoFullName,
       login: githubLogin,
-      jobId,
       branch,
     },
     {
