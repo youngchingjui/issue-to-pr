@@ -67,22 +67,7 @@ pnpm install
 
 ## Configuration
 
-1. Create `.env.local` file:
-
-```env
-# GitHub App (optional)
-GITHUB_APP_ID=your_app_id
-GITHUB_APP_CLIENT_ID=your_app_client_id
-GITHUB_APP_CLIENT_SECRET=your_app_client_secret
-GITHUB_APP_PRIVATE_KEY=your_private_key
-
-# Redis
-UPSTASH_REDIS_REST_URL=your_redis_url
-UPSTASH_REDIS_REST_TOKEN=your_redis_token
-
-# OpenAI (optional for development)
-OPENAI_API_KEY=your_openai_key
-```
+1. Create `.env.local` file. We manage our NextJS secrets on the Vercel platform.
 
 1. Configure GitHub App:
 
