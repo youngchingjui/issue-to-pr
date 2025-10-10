@@ -30,6 +30,19 @@ WORKDIR /app
 # Enable Corepack (not strictly needed at runtime since we copy a pruned deploy)
 RUN corepack enable && corepack prepare pnpm@10.6.4 --activate
 
+# Add required CLIs for host-side operations run by the worker
+# - git: required for setupLocalRepository clone/fetch operations
+# - bash: sometimes used by scripts
+# - openssh-client, ca-certificates: robust HTTPS/SSH git operations
+# - ripgrep, tree: optional but handy if you ever run checks on host
+RUN apk add --no-cache \
+  git \
+  bash \
+  openssh-client \
+  ca-certificates \
+  ripgrep \
+  tree
+
 # Copy the prepared deploy (includes node_modules and built dist)
 COPY --from=builder /app/workflow-workers-deploy/ /app/
 
