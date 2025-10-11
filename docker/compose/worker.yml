@@ -1,8 +1,6 @@
 services:
   workflow-workers:
-    build:
-      context: ../../
-      dockerfile: apps/workers/workflow-workers/Dockerfile
+    image: ghcr.io/youngchingjui/workflow-workers:latest
     env_file:
       - ../env/.env.worker
     environment:
