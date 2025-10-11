@@ -1,4 +1,10 @@
-name: Build and Push Worker Docker Image
+name: Build and Push Worker Docker Image (Template)
+
+# NOTE:
+# This is a workflow template. To enable it in your repository,
+# copy or move this file to .github/workflows/build-worker-image.yml.
+# Some GitHub Apps (including CI bots) cannot modify .github/workflows
+# without the `workflows` permission, so we keep this as a template by default.
 
 on:
   push:
@@ -68,3 +74,4 @@ jobs:
         if: always()
         run: |
           docker buildx prune --builder "${{ steps.buildx.outputs.name }}" -f || true
+
