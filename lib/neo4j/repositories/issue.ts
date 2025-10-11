@@ -35,3 +35,22 @@ export async function getOrCreate(
   )
   return issueSchema.parse(result.records[0].get("i").properties)
 }
+
+export async function setRequirements(
+  tx: ManagedTransaction,
+  issue: DbIssue,
+  requirements: string
+): Promise<DbIssue> {
+  const result = await tx.run(
+    `MERGE (i:Issue {number: $number, repoFullName: $repo})
+     SET i.requirements = $requirements
+     RETURN i`,
+    {
+      number: issue.number,
+      repo: issue.repoFullName,
+      requirements,
+    }
+  )
+  return issueSchema.parse(result.records[0].get("i").properties)
+}
+
