@@ -50,4 +50,3 @@ export async function handlePullRequestClosedRemoveContainer({
     `[Webhook] Cleaned up ${unique.length - failed} container(s) for merged PR ${owner}/${repo}@${branch}`
   )
 }
-

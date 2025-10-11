@@ -6,9 +6,9 @@ import { getIssue } from "@/lib/github/issues"
 import { neo4jDs } from "@/lib/neo4j"
 import * as userRepo from "@/lib/neo4j/repositories/user"
 import { updateJobStatus } from "@/lib/redis-old"
-import { resolveIssue } from "@/lib/workflows/resolveIssue"
-import type { IssuesPayload } from "@/lib/webhook/github/types"
 import { runWithInstallationId } from "@/lib/utils/utils-server"
+import type { IssuesPayload } from "@/lib/webhook/github/types"
+import { resolveIssue } from "@/lib/workflows/resolveIssue"
 
 const POST_TO_GITHUB_SETTING = true // TODO: Set setting in database
 const CREATE_PR_SETTING = true // TODO: Set setting in database
@@ -86,4 +86,3 @@ export async function handleIssueLabelResolve({
     }
   })
 }
-

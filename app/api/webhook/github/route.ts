@@ -7,7 +7,6 @@ import { NextRequest } from "next/server"
 // - Route events to modular handlers in a clear, tree-like series of switch statements
 // - Pass along the installation ID and any needed data directly to handlers
 // - Handlers are responsible for doing any authenticated GitHub actions or enqueuing jobs
-
 import { handleIssueLabelAutoResolve } from "@/lib/webhook/github/handlers/issue/label.autoResolveIssue.handler"
 import { handleIssueLabelResolve } from "@/lib/webhook/github/handlers/issue/label.resolve.handler"
 import { handlePullRequestClosedRemoveContainer } from "@/lib/webhook/github/handlers/pullRequest/closed.removeContainer.handler"
@@ -17,13 +16,6 @@ import {
   PullRequestPayloadSchema,
   PushPayloadSchema,
 } from "@/lib/webhook/github/types"
-
-// Hoisted schema map for per-event payload validation
-const schemas = {
-  issues: IssuesPayloadSchema,
-  pull_request: PullRequestPayloadSchema,
-  push: PushPayloadSchema,
-} as const
 
 function verifySignature({
   signature,
@@ -105,7 +97,8 @@ export async function POST(req: NextRequest) {
         const action = parsedPayload.action
         switch (action) {
           case "labeled": {
-            const labelName: string | undefined = parsedPayload.label?.name?.trim()
+            const labelName: string | undefined =
+              parsedPayload.label?.name?.trim()
             switch (labelName?.toLowerCase()) {
               case "resolve": {
                 await handleIssueLabelResolve({
@@ -186,4 +179,3 @@ export async function POST(req: NextRequest) {
     return new Response("Error", { status: 500 })
   }
 }
-

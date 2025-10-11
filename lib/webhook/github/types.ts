@@ -37,4 +37,3 @@ export const PushPayloadSchema = z.object({
   installation: InstallationSchema,
 })
 export type PushPayload = z.infer<typeof PushPayloadSchema>
-
