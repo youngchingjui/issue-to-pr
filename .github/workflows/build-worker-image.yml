@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+  # Allow manual runs on any branch
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -22,6 +24,7 @@ jobs:
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
+        id: buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to GitHub Container Registry
@@ -60,9 +63,9 @@ jobs:
           cache-to: type=gha,mode=max
           provenance: false
 
-      - name: Prune local Docker artifacts
+      # Safer, targeted cleanup: only prune the Buildx cache for the builder created above.
+      - name: Prune Buildx cache for this builder
         if: always()
         run: |
-          docker image prune -af || true
-          docker builder prune -af || true
-          docker system prune -af --volumes || true
+          docker buildx prune --builder "${{ steps.buildx.outputs.name }}" -f || true
+
