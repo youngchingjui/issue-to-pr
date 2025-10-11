@@ -151,7 +151,7 @@ export default function RepoSelector({
       }}
       onOpenChange={setOpen}
     >
-      <SelectTrigger className="w-64">
+      <SelectTrigger className="w-auto min-w-[16rem] max-w-[32rem]">
         <SelectValue placeholder="Select repository" />
       </SelectTrigger>
       <SelectContent align={isDesktop ? "end" : "start"}>
@@ -189,3 +189,4 @@ export default function RepoSelector({
     </Select>
   )
 }
+
