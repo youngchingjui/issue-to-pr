@@ -1,8 +1,8 @@
 "use server"
 
-import { getUserOctokit } from "@/lib/github"
+import { getInstallationPermissions, getUserOctokit } from "@/lib/github"
 import { listUserRepositories } from "@/lib/github/graphql/queries/listUserRepositories"
-import { listUserAppRepositories } from "@/lib/github/repos"
+import { getInstallationFromRepo, listUserAppRepositories } from "@/lib/github/repos"
 import { GitHubUser, RepoPermissions } from "@/lib/types/github"
 
 /**
@@ -25,14 +25,16 @@ export async function getGithubUser(): Promise<GitHubUser | null> {
 }
 
 /**
- * Check if the currently authenticated user has the right permissions on the
- * provided repository.  The function **never throws** for the common "repo not
- * found / not installed" case because the caller should be able to rely on the
- * boolean flags instead of handling exceptions.
+ * Check if the currently authenticated user (if available) or the GitHub App installation
+ * handling the current request has the right permissions on the provided repository.
+ *
+ * The function never throws for the common "repo not found / not installed / unauthenticated"
+ * cases. It only throws on truly unexpected failures.
  */
 export async function checkRepoPermissions(
   repoFullName: string
 ): Promise<RepoPermissions> {
+  // Try the OAuth user flow first (when a session is present)
   try {
     const repos = await listUserAppRepositories()
 
@@ -40,9 +42,7 @@ export async function checkRepoPermissions(
     const repoData = repos.find((r) => r.full_name === repoFullName)
 
     // If the repository is not returned from the GitHub App installation list
-    // we treat it as "not found / not installed" and **do not throw**.  This
-    // allows consumers to render proper UI messages without having to perform
-    // exception control-flow.
+    // we treat it as "not found / not installed" and do not throw.
     if (!repoData) {
       return {
         canPush: false,
@@ -54,15 +54,14 @@ export async function checkRepoPermissions(
     const { permissions } = repoData
 
     if (!permissions) {
-      // This should not normally happen – log & propagate as an error because
-      // it indicates an unexpected response shape from GitHub.
+      // Unexpected response shape – surface as an error
       throw new Error(`There were no permissions, strange: ${permissions}`)
     }
 
     const canPush = permissions.push || permissions.admin || false
     const canCreatePR = permissions.pull || permissions.admin || false
 
-    if (!canPush && !canCreatePR) {
+    if (!canPush || !canCreatePR) {
       return {
         canPush,
         canCreatePR,
@@ -71,20 +70,69 @@ export async function checkRepoPermissions(
       }
     }
 
-    return {
-      canPush,
-      canCreatePR,
-      reason:
-        canPush && canCreatePR ? undefined : "Limited permissions available",
+    return { canPush, canCreatePR }
+  } catch {
+    // If the user flow isn't available (e.g., no session token), fall back to
+    // checking the GitHub App installation permissions for this repository.
+    try {
+      const [owner, repo] = repoFullName.split("/")
+      if (!owner || !repo) {
+        return {
+          canPush: false,
+          canCreatePR: false,
+          reason: `Invalid repo full name: ${repoFullName}`,
+        }
+      }
+
+      // Verify this repository has our GitHub App installed. If not, report gracefully.
+      try {
+        await getInstallationFromRepo({ owner, repo })
+      } catch {
+        return {
+          canPush: false,
+          canCreatePR: false,
+          reason: "Repository not found or not installed for the GitHub App.",
+        }
+      }
+
+      // Read installation permissions from the current async context's installation ID
+      const installationPerms = await getInstallationPermissions()
+      if (!installationPerms) {
+        return {
+          canPush: false,
+          canCreatePR: false,
+          reason:
+            "Unable to determine installation permissions (missing auth context).",
+        }
+      }
+
+      // Map GitHub App installation permissions to our booleans
+      const contentsPerm = installationPerms.contents
+      const prPerm = installationPerms.pull_requests
+
+      const canPush = contentsPerm === "write"
+      const canCreatePR = prPerm === "write"
+
+      return {
+        canPush,
+        canCreatePR,
+        reason:
+          canPush && canCreatePR
+            ? undefined
+            : "Limited installation permissions available",
+      }
+    } catch (installationFlowError) {
+      // Only now do we report a hard failure – network, configuration, etc.
+      console.error(
+        "Error checking repository permissions (installation flow):",
+        installationFlowError
+      )
+      throw new Error(
+        `Failed to check permissions: ${installationFlowError instanceof Error ? installationFlowError.message : String(installationFlowError)}`
+      )
     }
-  } catch (error) {
-    // Other errors (network, auth, etc.) are still surfaced so that calling
-    // code can decide how to handle them.
-    console.error("Error checking repository permissions:", error)
-    throw new Error(
-      `Failed to check permissions: ${error instanceof Error ? error.message : String(error)}`
-    )
   }
 }
 
 export { listUserRepositories }
+
