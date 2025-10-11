@@ -1,9 +1,9 @@
 name: Build and Push Worker Docker Image
 
 on:
-  push:
-    branches:
-      - main
+  # push:
+  # branches:
+  # - main
   # Allow manual runs on any branch
   workflow_dispatch:
 
