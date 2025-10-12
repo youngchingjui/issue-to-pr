@@ -88,7 +88,10 @@ const SelectContent = React.forwardRef<
         className={cn(
           "p-1",
           position === "popper" &&
-            "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]"
+            // Allow the viewport to grow with available space instead of forcing
+            // it to match the trigger height (which makes long lists unusably short
+            // especially when extra UI like a search bar is rendered above).
+            "w-full min-w-[var(--radix-select-trigger-width)]"
         )}
       >
         {children}
@@ -157,3 +160,4 @@ export {
   SelectTrigger,
   SelectValue,
 }
+
