@@ -481,4 +481,3 @@ export async function getLinkedPRNumbersForIssues({
 
   return result
 }
-

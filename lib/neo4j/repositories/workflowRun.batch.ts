@@ -70,4 +70,3 @@ export async function listLatestStatesForIssues(
     state: WorkflowRunState | null
   }[]
 }
-
