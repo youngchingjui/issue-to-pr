@@ -7,7 +7,7 @@ import {
   getLatestPlanIdsForIssues,
   getPlanStatusForIssues,
 } from "@/lib/neo4j/services/plan"
-import { listWorkflowRuns } from "@/lib/neo4j/services/workflow"
+import { getIssuesActiveWorkflowMap } from "@/lib/neo4j/services/workflow"
 import {
   GetIssueResult,
   GitHubIssue,
@@ -200,45 +200,30 @@ export async function getIssueListWithStatus({
 
   // 2. Query Neo4j for plans using the service layer
   const issueNumbers = issues.map((issue) => issue.number)
-  const [issuePlanStatus, issuePlanIds] = await Promise.all([
+  const [issuePlanStatus, issuePlanIds, activeWorkflowMap] = await Promise.all([
     withTiming(`Neo4j: getPlanStatusForIssues ${repoFullName}`, () =>
       getPlanStatusForIssues({ repoFullName, issueNumbers })
     ),
     withTiming(`Neo4j: getLatestPlanIdsForIssues ${repoFullName}`, () =>
       getLatestPlanIdsForIssues({ repoFullName, issueNumbers })
     ),
+    withTiming(`Neo4j: getIssuesActiveWorkflowMap ${repoFullName}`, () =>
+      getIssuesActiveWorkflowMap({ repoFullName, issueNumbers })
+    ),
   ])
 
-  // 3. Determine active workflows for each issue (simple sequential for now)
-  const withStatus: IssueWithStatus[] = await Promise.all(
-    issues.map(async (issue) => {
-      let hasActiveWorkflow = false
-      try {
-        const runs = await withTiming(
-          `Neo4j: listWorkflowRuns ${repoFullName}#${issue.number}`,
-          () =>
-            listWorkflowRuns({
-              repoFullName,
-              issueNumber: issue.number,
-            })
-        )
-        // Only consider a workflow "active" if it is still running (ignore timedOut)
-        hasActiveWorkflow = runs.some((r) => r.state === "running")
-      } catch (err) {
-        console.error(`Issue listing workflow runs: ${String(err)}`)
-      }
-
-      return {
-        ...issue,
-        hasPlan: issuePlanStatus[issue.number] || false,
-        // Lazily load PR info on the client to avoid heavy initial GraphQL scans
-        hasPR: false,
-        hasActiveWorkflow,
-        planId: issuePlanIds[issue.number] || null,
-        prNumber: undefined,
-      }
-    })
-  )
+  // 3. Build response combining data
+  const withStatus: IssueWithStatus[] = issues.map((issue) => {
+    return {
+      ...issue,
+      hasPlan: issuePlanStatus[issue.number] || false,
+      // Lazily load PR info on the client to avoid heavy initial GraphQL scans
+      hasPR: false,
+      hasActiveWorkflow: !!activeWorkflowMap[issue.number],
+      planId: issuePlanIds[issue.number] || null,
+      prNumber: undefined,
+    }
+  })
 
   return withStatus
 }
@@ -496,3 +481,4 @@ export async function getLinkedPRNumbersForIssues({
 
   return result
 }
+
