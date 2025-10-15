@@ -33,6 +33,18 @@ interface Props {
   repositories?: AuthenticatedUserRepository[]
 }
 
+function setLastUsedRepoCookie(fullName: string) {
+  try {
+    // Persist for ~180 days
+    const maxAgeSeconds = 60 * 60 * 24 * 180
+    document.cookie = `lastUsedRepo=${encodeURIComponent(
+      fullName
+    )}; Path=/; Max-Age=${maxAgeSeconds}; SameSite=Lax`
+  } catch {
+    // no-op
+  }
+}
+
 // TODO: Not quite sure this data fetching is all necessary. Need to revisit and consider how to best fetch data here.
 // In conjunction with the pages that use this component.
 export default function RepoSelector({
@@ -51,6 +63,13 @@ export default function RepoSelector({
   // Local selected value so the UI updates immediately on user choice
   const [value, setValue] = useState<string>(selectedRepo)
   useEffect(() => setValue(selectedRepo), [selectedRepo])
+
+  // Also persist the current selection so the server can pick it up on next visit
+  useEffect(() => {
+    if (selectedRepo) {
+      setLastUsedRepoCookie(selectedRepo)
+    }
+  }, [selectedRepo])
 
   // Search query state
   const [query, setQuery] = useState("")
@@ -145,6 +164,8 @@ export default function RepoSelector({
         // Update UI instantly so the user sees their selection immediately
         setValue(val)
         setOpen(false)
+        // Persist selection for future visits
+        setLastUsedRepoCookie(val)
         // Then perform navigation
         router.push(`/issues?repo=${encodeURIComponent(val)}`)
         // Consider: router.replace(...) if you don't want back button to step through every selection.
