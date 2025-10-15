@@ -25,12 +25,16 @@ interface Props {
   repoFullName: RepoFullName | null
   issuesEnabled?: boolean
   hasOpenAIKey: boolean
+  // Optional callback so parent components (client-side lists) can refresh
+  // after a new issue is created without requiring a full router.refresh.
+  onIssueCreated?: (params: { number: number; url: string }) => void
 }
 
 export default function NewTaskInput({
   repoFullName,
   issuesEnabled = true,
   hasOpenAIKey,
+  onIssueCreated,
 }: Props) {
   const [description, setDescription] = useState("")
   const [loading, setLoading] = useState(false)
@@ -148,6 +152,13 @@ export default function NewTaskInput({
           variant: "default",
         })
         setDescription("")
+
+        // Notify parent to reload client-side list if provided
+        if (onIssueCreated && typeof result.number === "number" && result.issueUrl) {
+          onIssueCreated({ number: result.number, url: result.issueUrl })
+        }
+
+        // Also refresh server-rendered components (breadcrumbs, etc.)
         startTransition(() => {
           router.refresh()
         })
@@ -292,3 +303,4 @@ export default function NewTaskInput({
     </TooltipProvider>
   )
 }
+
