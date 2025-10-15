@@ -22,19 +22,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { checkLocalRepoExists, getRepositoryIssues } from "@/lib/actions/github"
+import { checkLocalRepoExists, getRepositoryIssues, listUserAppRepositoryNames } from "@/lib/actions/github"
 import { listBranchesSortedByCommitDate } from "@/lib/github/refs"
-import { listUserAppRepositories } from "@/lib/github/repos"
 import { toast } from "@/lib/hooks/use-toast"
 import { getChatCompletion } from "@/lib/openai"
 import {
   DEFAULT_SYSTEM_PROMPTS,
   SystemPromptTemplate,
 } from "@/lib/systemPrompts"
-import {
-  AuthenticatedUserRepository,
-  repoFullNameSchema,
-} from "@/lib/types/github"
+import { repoFullNameSchema } from "@/lib/types/github"
 import { GitHubIssue } from "@/lib/types/github"
 
 interface Message {
@@ -49,7 +45,7 @@ export default function AgentWorkflowClient({
 }) {
   const availableTools = defaultTools
 
-  const [repos, setRepos] = useState<AuthenticatedUserRepository[]>([])
+  const [repos, setRepos] = useState<string[]>([])
   const [selectedRepo, setSelectedRepo] = useState<string>("")
   const [branches, setBranches] = useState<string[]>([])
   const [selectedBranch, setSelectedBranch] = useState<string>("")
@@ -83,7 +79,7 @@ export default function AgentWorkflowClient({
   // Load repositories on mount
   useEffect(() => {
     const loadRepos = async () => {
-      const r = await listUserAppRepositories()
+      const r = await listUserAppRepositoryNames()
       setRepos(r)
     }
     loadRepos()
@@ -240,9 +236,9 @@ export default function AgentWorkflowClient({
                       <SelectValue placeholder="Select repo" />
                     </SelectTrigger>
                     <SelectContent>
-                      {repos.map((repo) => (
-                        <SelectItem key={repo.full_name} value={repo.full_name}>
-                          {repo.full_name}
+                      {repos.map((fullName) => (
+                        <SelectItem key={fullName} value={fullName}>
+                          {fullName}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -489,3 +485,4 @@ export default function AgentWorkflowClient({
     </>
   )
 }
+
