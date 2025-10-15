@@ -1,3 +1,4 @@
+import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 
 import NoRepoCTA from "@/components/common/NoRepoCTA"
@@ -19,9 +20,21 @@ export default async function IssuesPage({
   )
 
   let repos: AuthenticatedUserRepository[] | undefined
-  // When the ?repo param is missing/invalid, try to fall back to the first repo
+  // When the ?repo param is missing/invalid, try to fall back to the last used repo from cookies,
+  // otherwise fall back to the first repo
   if (!repoFullNameParseResult.success) {
     repos = await listUserAppRepositories()
+    const cookieStore = cookies()
+    const lastUsedRepo = cookieStore.get("lastUsedRepo")?.value
+
+    // Prefer the last used repo if it exists and is accessible
+    if (lastUsedRepo) {
+      const match = repos.find((r) => r.full_name === lastUsedRepo)
+      if (match) {
+        return redirect(`/issues?repo=${encodeURIComponent(match.full_name)}`)
+      }
+    }
+
     const firstRepo = repos.length > 0 ? repos[0] : null
 
     // Still no repo → show installation CTA
@@ -42,3 +55,4 @@ export default async function IssuesPage({
   const repoFullName = repoFullNameParseResult.data
   return <NewTaskContainer repoFullName={repoFullName} repositories={repos} />
 }
+
