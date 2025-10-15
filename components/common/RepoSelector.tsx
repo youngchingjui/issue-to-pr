@@ -46,7 +46,18 @@ function setLastUsedRepoCookie(fullName: string) {
 }
 
 // TODO: Not quite sure this data fetching is all necessary. Need to revisit and consider how to best fetch data here.
-// In conjunction with the pages that use this component.
+/**
+ * Render a searchable repository selector with install/manage controls when no repositories are available.
+ *
+ * Displays a dropdown that lets the user search and pick a repository, persists the selection to a cookie,
+ * and navigates to the issues page for the chosen repository. When no repositories are present it shows
+ * buttons linking to the GitHub App install/manage page. While repositories are being fetched a loading
+ * placeholder is shown.
+ *
+ * @param selectedRepo - The currently selected repository full name (e.g., "owner/name"); kept in sync with the UI.
+ * @param repositories - Optional initial list of authenticated user repositories to populate the selector without fetching.
+ * @returns The repository selector React element (dropdown, loading placeholder, or install/manage CTAs as appropriate).
+ */
 export default function RepoSelector({
   selectedRepo,
   repositories: initialRepositories,
@@ -210,4 +221,3 @@ export default function RepoSelector({
     </Select>
   )
 }
-
