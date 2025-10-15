@@ -55,4 +55,3 @@ export default async function IssuesPage({
   const repoFullName = repoFullNameParseResult.data
   return <NewTaskContainer repoFullName={repoFullName} repositories={repos} />
 }
-
