@@ -4,11 +4,11 @@ import { redirect } from "next/navigation"
 import NoRepoCTA from "@/components/common/NoRepoCTA"
 import NewTaskContainer from "@/components/issues/NewTaskContainer"
 import { listUserAppRepositories } from "@/lib/github/repos"
-import {
-  AuthenticatedUserRepository,
-  repoFullNameSchema,
-} from "@/lib/types/github"
+import { repoFullNameSchema } from "@/lib/types/github"
 
+/**
+ * In this page, we just need to redirect to an appropriate repo page
+ */
 export default async function IssuesPage({
   searchParams,
 }: {
@@ -19,21 +19,25 @@ export default async function IssuesPage({
     searchParams?.repo
   )
 
-  let repos: AuthenticatedUserRepository[] | undefined
-  // When the ?repo param is missing/invalid, try to fall back to the last used repo from cookies,
+  // When the ?repo param is missing/invalid, find a valid repo and redirect to it.
+  // Try to find the last used repo from cookies,
   // otherwise fall back to the first repo
   if (!repoFullNameParseResult.success) {
-    repos = await listUserAppRepositories()
+    // Try to load last used repo from cookies first
     const cookieStore = cookies()
     const lastUsedRepo = cookieStore.get("lastUsedRepo")?.value
 
     // Prefer the last used repo if it exists and is accessible
     if (lastUsedRepo) {
-      const match = repos.find((r) => r.full_name === lastUsedRepo)
-      if (match) {
-        return redirect(`/issues?repo=${encodeURIComponent(match.full_name)}`)
-      }
+      return redirect(`/issues?repo=${encodeURIComponent(lastUsedRepo)}`)
     }
+
+    // Otherwise, load all repos and redirect to the first one
+
+    // TODO: Might be worthwhile to explore getting only the 1st repo in this network call.
+    // However, might be difficult, because we have to get all the installations first, then
+    // Get the repos per installation in parallel. Maybe first installation - first repo?
+    const repos = await listUserAppRepositories()
 
     const firstRepo = repos.length > 0 ? repos[0] : null
 
@@ -48,10 +52,6 @@ export default async function IssuesPage({
 
   // Valid repo param → render the main container
 
-  if (!repos) {
-    repos = await listUserAppRepositories()
-  }
-
   const repoFullName = repoFullNameParseResult.data
-  return <NewTaskContainer repoFullName={repoFullName} repositories={repos} />
+  return <NewTaskContainer repoFullName={repoFullName} />
 }

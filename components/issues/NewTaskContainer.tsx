@@ -3,11 +3,10 @@ import IssueTable from "@/components/issues/IssueTable"
 import NewTaskInput from "@/components/issues/NewTaskInput"
 import { getRepoFromString } from "@/lib/github/content"
 import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
-import { AuthenticatedUserRepository, RepoFullName } from "@/lib/types/github"
+import { RepoFullName } from "@/lib/types/github"
 
 interface Props {
   repoFullName: RepoFullName
-  repositories: AuthenticatedUserRepository[]
 }
 
 /**
@@ -15,10 +14,7 @@ interface Props {
  * creation, and the issues/tasks table. This component is intentionally UI-only
  * so it can be reused by multiple pages without duplicating JSX.
  */
-export default async function NewTaskContainer({
-  repoFullName,
-  repositories,
-}: Props) {
+export default async function NewTaskContainer({ repoFullName }: Props) {
   const repo = await getRepoFromString(repoFullName.fullName)
   const issuesEnabled = !!repo.has_issues
   const existingKey = await getUserOpenAIApiKey()
@@ -29,10 +25,7 @@ export default async function NewTaskContainer({
       <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h1 className="text-2xl font-bold">Your Issues &amp; Workflows</h1>
         <div className="flex items-center gap-3">
-          <RepoSelector
-            selectedRepo={repoFullName.fullName}
-            repositories={repositories}
-          />
+          <RepoSelector selectedRepo={repoFullName.fullName} />
         </div>
       </div>
 
