@@ -67,10 +67,17 @@ const SelectScrollDownButton = React.forwardRef<
 SelectScrollDownButton.displayName =
   SelectPrimitive.ScrollDownButton.displayName
 
+// Extra prop to control whether the options viewport should match the trigger height.
+// Defaults to true (preserving previous behavior) so existing usages remain visually unchanged.
+interface SelectContentProps
+  extends React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content> {
+  matchTriggerHeight?: boolean
+}
+
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
->(({ className, children, position = "popper", ...props }, ref) => (
+  SelectContentProps
+>(({ className, children, position = "popper", matchTriggerHeight = true, ...props }, ref) => (
   <SelectPrimitive.Portal>
     <SelectPrimitive.Content
       ref={ref}
@@ -88,7 +95,12 @@ const SelectContent = React.forwardRef<
         className={cn(
           "p-1",
           position === "popper" &&
-            "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]"
+            (matchTriggerHeight
+              ? "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]"
+              : // Allow the viewport to grow with available space instead of forcing
+                // it to match the trigger height (which makes long lists unusably short
+                // especially when extra UI like a search bar is rendered above).
+                "w-full min-w-[var(--radix-select-trigger-width)]")
         )}
       >
         {children}
@@ -157,3 +169,4 @@ export {
   SelectTrigger,
   SelectValue,
 }
+
