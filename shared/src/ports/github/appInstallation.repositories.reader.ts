@@ -20,4 +20,3 @@ export interface AppInstallationRepositoriesReaderPort {
     Result<string[], ListUserAppInstallationReposErrors>
   >
 }
-

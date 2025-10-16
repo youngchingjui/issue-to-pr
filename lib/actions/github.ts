@@ -39,9 +39,8 @@ export async function listUserAppRepositoryNames(): Promise<string[]> {
   const token = await accessTokenProvider()
   const adapter = makeAppInstallationReposReaderAdapter({ token })
 
-  const result = await withTiming(
-    "GitHub: listUserAppRepositoryNames",
-    () => adapter.listUserAccessibleRepoFullNames()
+  const result = await withTiming("GitHub: listUserAppRepositoryNames", () =>
+    adapter.listUserAccessibleRepoFullNames()
   )
 
   if (!result.ok) {
@@ -52,4 +51,3 @@ export async function listUserAppRepositoryNames(): Promise<string[]> {
 
   return result.value
 }
-

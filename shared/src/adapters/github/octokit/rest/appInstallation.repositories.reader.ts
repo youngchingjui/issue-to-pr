@@ -16,9 +16,7 @@ export function makeAppInstallationReposReaderAdapter(params: {
   const octokit = new Octokit({ auth: params.token })
 
   const listUserAccessibleRepoFullNames: AppInstallationRepositoriesReaderPort["listUserAccessibleRepoFullNames"] =
-    async (): Promise<
-      Result<string[], ListUserAppInstallationReposErrors>
-    > => {
+    async (): Promise<Result<string[], ListUserAppInstallationReposErrors>> => {
       try {
         // 1) Fetch installations for the authenticated user
         const { data: installationsResp } = await octokit.request(
@@ -69,7 +67,8 @@ export function makeAppInstallationReposReaderAdapter(params: {
             typeof (errObj.response as Record<string, unknown>).status ===
               "number"
           ) {
-            status = (errObj.response as Record<string, unknown>).status as number
+            status = (errObj.response as Record<string, unknown>)
+              .status as number
           }
         }
 
@@ -86,4 +85,3 @@ export function makeAppInstallationReposReaderAdapter(params: {
 }
 
 export default makeAppInstallationReposReaderAdapter
-
