@@ -581,7 +581,7 @@ importers:
         version: 5.12.2(ws@8.18.3)(zod@3.25.67)
       shared:
         specifier: workspace:*
-        version: link:../../../shared
+        version: file:shared(@octokit/auth-app@7.2.0)(@octokit/auth-oauth-user@6.0.0)(@octokit/graphql@8.2.1)(@octokit/rest@21.1.1)(langfuse-core@3.37.0)(langfuse@3.36.0)(ws@8.18.3)(zod@3.25.67)
       zod:
         specifier: ^3.24.2
         version: 3.25.67
@@ -676,6 +676,9 @@ importers:
       '@types/react-dom':
         specifier: ^18
         version: 18.3.5(@types/react@18.3.18)
+      '@types/tar-fs':
+        specifier: ^2.0.4
+        version: 2.0.4
       tsc-alias:
         specifier: ^1.8.16
         version: 1.8.16
@@ -4151,6 +4154,12 @@ packages:
 
   '@types/statuses@2.0.5':
     resolution: {integrity: sha512-jmIUGWrAiwu3dZpxntxieC+1n/5c3mjrImkmOSQ2NC5uP6cYO4aAZDdSmRcI5C1oiTmqlZGHC+/NmJrKogbP5A==}
+
+  '@types/tar-fs@2.0.4':
+    resolution: {integrity: sha512-ipPec0CjTmVDWE+QKr9cTmIIoTl7dFG/yARCM5MqK8i6CNLIG1P8x4kwDsOQY1ChZOZjH0wO9nvfgBvWl4R3kA==}
+
+  '@types/tar-stream@3.1.4':
+    resolution: {integrity: sha512-921gW0+g29mCJX0fRvqeHzBlE/XclDaAG0Ousy1LCghsOhvaKacDeRGEVzQP9IPfKn8Vysy7FEXAIxycpc/CMg==}
 
   '@types/tough-cookie@4.0.5':
     resolution: {integrity: sha512-/Ad8+nIOV7Rl++6f1BdKxFSMgmoqEoYbHRpPcx3JEfv8VRsQe9Z4mCXeJBzxs7mbHY/XOZZuXlRNfhpVPbs6ZA==}
@@ -13535,7 +13544,7 @@ snapshots:
 
   '@types/graceful-fs@4.1.9':
     dependencies:
-      '@types/node': 20.19.13
+      '@types/node': 22.18.6
 
   '@types/hast@3.0.4':
     dependencies:
@@ -13640,6 +13649,15 @@ snapshots:
 
   '@types/statuses@2.0.5': {}
 
+  '@types/tar-fs@2.0.4':
+    dependencies:
+      '@types/node': 22.18.6
+      '@types/tar-stream': 3.1.4
+
+  '@types/tar-stream@3.1.4':
+    dependencies:
+      '@types/node': 22.18.6
+
   '@types/tough-cookie@4.0.5': {}
 
   '@types/unist@2.0.11': {}
@@ -13648,7 +13666,7 @@ snapshots:
 
   '@types/ws@8.18.1':
     dependencies:
-      '@types/node': 20.19.13
+      '@types/node': 22.18.6
 
   '@types/yargs-parser@21.0.3': {}
 
@@ -16881,7 +16899,7 @@ snapshots:
       '@jest/expect': 29.7.0
       '@jest/test-result': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 20.19.13
+      '@types/node': 22.18.6
       chalk: 4.1.2
       co: 4.6.0
       dedent: 1.5.3
@@ -17021,7 +17039,7 @@ snapshots:
       '@jest/environment': 29.7.0
       '@jest/fake-timers': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 20.19.13
+      '@types/node': 22.18.6
       jest-mock: 29.7.0
       jest-util: 29.7.0
 
@@ -17207,13 +17225,13 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 20.19.13
+      '@types/node': 22.18.6
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
   jest-worker@29.7.0:
     dependencies:
-      '@types/node': 20.19.13
+      '@types/node': 22.18.6
       jest-util: 29.7.0
       merge-stream: 2.0.0
       supports-color: 8.1.1
@@ -19222,6 +19240,34 @@ snapshots:
       uuid: 11.1.0
       zod: 3.24.2
       zod-to-json-schema: 3.24.5(zod@3.24.2)
+    transitivePeerDependencies:
+      - bare-buffer
+      - react-native-b4a
+      - supports-color
+      - ws
+
+  shared@file:shared(@octokit/auth-app@7.2.0)(@octokit/auth-oauth-user@6.0.0)(@octokit/graphql@8.2.1)(@octokit/rest@21.1.1)(langfuse-core@3.37.0)(langfuse@3.36.0)(ws@8.18.3)(zod@3.25.67):
+    dependencies:
+      '@anthropic-ai/sdk': 0.59.0
+      '@octokit/auth-app': 7.2.0
+      '@octokit/auth-oauth-user': 6.0.0
+      '@octokit/graphql': 8.2.1
+      '@octokit/rest': 21.1.1
+      bullmq: 5.56.10
+      clsx: 2.1.1
+      dockerode: 4.0.7
+      exponential-backoff: 3.1.2
+      ioredis: 5.7.0
+      langfuse: 3.36.0
+      langfuse-core: 3.37.0
+      neo4j-driver: 5.28.1
+      octokit: 4.1.2
+      openai: 5.12.2(ws@8.18.3)(zod@3.25.67)
+      tailwind-merge: 2.6.0
+      tar-fs: 3.1.1
+      uuid: 11.1.0
+      zod: 3.25.67
+      zod-to-json-schema: 3.24.5(zod@3.25.67)
     transitivePeerDependencies:
       - bare-buffer
       - react-native-b4a
