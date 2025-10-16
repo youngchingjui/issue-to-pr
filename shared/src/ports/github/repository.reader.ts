@@ -39,4 +39,11 @@ export interface RepositoryReaderPort {
   getRepository(
     ref: RepositoryRef
   ): Promise<Result<RepositoryDetails, GetRepositoryErrors>>
+
+  /**
+   * Returns a de-duplicated list of repository full names ("owner/repo").
+   */
+  listUserAccessibleRepoFullNames(): Promise<
+    Result<string[], GetRepositoryErrors>
+  >
 }
