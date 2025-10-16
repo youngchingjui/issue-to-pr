@@ -1,7 +1,6 @@
 "use server"
 
-import { makeAppInstallationReposReaderAdapter } from "shared/adapters/github/octokit/rest/appInstallation.repositories.reader"
-import { makeAccessTokenProviderFrom } from "shared/providers/auth"
+import { makeRepositoryReaderAdapter } from "shared/adapters/github/octokit/rest/repository.reader"
 import { withTiming } from "shared/utils/telemetry"
 
 import { auth } from "@/auth"
@@ -29,15 +28,18 @@ export async function checkLocalRepoExists(repoFullName: string): Promise<{
  * Returns the list of repository full names (owner/repo) that the current
  * user can access AND that have our GitHub App installed for that user.
  * This server action is implemented via the shared ports/adapters layer.
+ *
+ * TODO: This doesn't exactly follow clean code architecture principles. We should probably be calling a port or adapter.
+ * This server action would also act as an orchestrator and be responsible for injecting the adapters.
  */
 export async function listUserAppRepositoryNames(): Promise<string[]> {
-  const accessTokenProvider = makeAccessTokenProviderFrom(
-    auth,
-    (s) => s?.token?.access_token as unknown as string | null | undefined
-  )
-
-  const token = await accessTokenProvider()
-  const adapter = makeAppInstallationReposReaderAdapter({ token })
+  const session = await auth()
+  if (!session?.token?.access_token) {
+    return []
+  }
+  const adapter = makeRepositoryReaderAdapter({
+    token: session.token.access_token,
+  })
 
   const result = await withTiming("GitHub: listUserAppRepositoryNames", () =>
     adapter.listUserAccessibleRepoFullNames()
