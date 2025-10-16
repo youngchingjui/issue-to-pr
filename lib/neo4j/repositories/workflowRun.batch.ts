@@ -53,9 +53,7 @@ export async function listLatestStatesForIssues(
       const wNode = record.get("w")
       const w = wNode ? workflowRunSchema.parse(wNode.properties) : null
       const stateVal = record.get("state")
-      const stateParsed = stateVal
-        ? workflowRunStateSchema.safeParse(stateVal)
-        : { success: false }
+      const stateParsed = workflowRunStateSchema.safeParse(stateVal)
       return w
         ? {
             issue: i,

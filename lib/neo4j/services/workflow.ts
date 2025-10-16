@@ -182,9 +182,9 @@ export async function getIssuesActiveWorkflowMap({
 
     // Group rows by issue and check if any run is effectively running
     for (const row of rows) {
-      const issueNumber = row.issue.number
+      const issueNumber = row.issue.number.toNumber()
       const run = row.run
-      const effective = deriveState(row.state, new Date(run.createdAt))
+      const effective = deriveState(row.state, run.createdAt.toStandardDate())
       if (effective === "running") {
         map[issueNumber] = true
       }
