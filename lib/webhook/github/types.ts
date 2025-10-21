@@ -37,28 +37,3 @@ export const PushPayloadSchema = z.object({
   installation: InstallationSchema,
 })
 export type PushPayload = z.infer<typeof PushPayloadSchema>
-
-export interface WebhookHandler<P = unknown> {
-  canHandle(event: string, payload: P): boolean
-  handle(event: string, payload: P): Promise<void>
-}
-
-export class WebhookRouter {
-  private handlers: WebhookHandler[] = []
-
-  register(handler: WebhookHandler) {
-    this.handlers.push(handler)
-  }
-
-  async route(event: string, payload: object) {
-    let executedHandlers = 0
-    for (const h of this.handlers) {
-      if (h.canHandle(event, payload as never)) {
-        await h.handle(event, payload as never)
-        executedHandlers += 1
-      }
-    }
-    return executedHandlers
-  }
-}
-

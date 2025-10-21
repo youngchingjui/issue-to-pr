@@ -1,6 +1,11 @@
 "use client"
 
-import { autoResolveIssueAction } from "@/lib/actions/workflows/autoResolveIssue"
+import { WORKFLOW_JOBS_QUEUE } from "shared/entities/Queue"
+
+import {
+  type EnqueueJobsRequest,
+  enqueueJobsResponseSchema,
+} from "@/app/api/queues/[queueId]/jobs/schemas"
 import { toast } from "@/lib/hooks/use-toast"
 
 interface Props {
@@ -23,21 +28,39 @@ export default function AutoResolveIssueController({
   const execute = async () => {
     try {
       onStart()
-      const result = await autoResolveIssueAction({
-        issueNumber,
-        repoFullName,
-        branch,
+      const queueName = WORKFLOW_JOBS_QUEUE
+      const job: EnqueueJobsRequest = {
+        name: "autoResolveIssue",
+        data: {
+          repoFullName,
+          issueNumber,
+          branch,
+        },
+      }
+      // TODO: Switch to server action, since this is a POST request
+      // TODO: `queueId` is not appropriately named. It should just be called `queueName` or something similar
+      const res = await fetch(`/api/queues/${queueName}/jobs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(job),
       })
-
-      if (result.status !== "success") {
-        throw new Error(result.message || "Failed to run workflow")
+      const { success, data, error } = enqueueJobsResponseSchema.safeParse(
+        await res.json()
+      )
+      if (!success) {
+        toast({
+          title: "Failed to enqueue job",
+          description: error.message || "Failed to enqueue job",
+          variant: "destructive",
+        })
+        onError()
+        return
       }
 
       toast({
         title: "Workflow Started",
-        description: "Auto resolve issue workflow launched.",
+        description: `Auto resolve issue workflow launched, workflow ID: ${data.jobId}`,
       })
-
       onComplete()
     } catch (error) {
       toast({

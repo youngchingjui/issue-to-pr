@@ -1,6 +1,6 @@
 import { baseBranchSlugSchema, branchPrefixSchema } from "@/entities/refs"
+import type { GitHubRefsPort } from "@/ports/github/branch.reader"
 import type { LLMPort } from "@/ports/llm"
-import type { GitHubRefsPort } from "@/ports/refs"
 
 const MAX_CONTEXT_LENGTH = 100000
 const MAX_ATTEMPTS = 10

@@ -62,9 +62,9 @@ export async function handler(job: Job): Promise<string> {
         const result = await autoResolveIssue(job.id, jobData)
         await publishJobStatus(
           job.id,
-          `Completed: ${result.substring(0, 1000)}`
+          `Completed: ${result.map((m) => m.content).join("\n")}`
         )
-        return result
+        return result.map((m) => m.content).join("\n")
       }
       default: {
         await publishJobStatus(job.id, "Failed: Unknown job name")

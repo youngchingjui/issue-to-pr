@@ -26,6 +26,15 @@ function connectionNameFor(role: RedisRole) {
 
 // Defaults tuned per role. You can override via options param on each getter.
 function defaultsFor(role: RedisRole): RedisOptions {
+  const base: RedisOptions = {
+    connectionName: connectionNameFor(role),
+    family: 4,
+    connectTimeout: 10000,
+    retryStrategy: (times) => {
+      const delay = Math.min(1000 * Math.pow(2, times), 30000)
+      return delay
+    },
+  }
   // BullMQ recommends maxRetriesPerRequest: null to avoid timeouts at the ioredis layer.
   // Worker and QueueEvents perform blocking commands, so they should always be isolated.
   switch (role) {
@@ -33,18 +42,18 @@ function defaultsFor(role: RedisRole): RedisOptions {
     case "bullmq:events":
     case "bullmq:queue":
       return {
+        ...base,
         maxRetriesPerRequest: null,
-        connectionName: connectionNameFor(role),
       }
     case "subscriber":
       return {
+        ...base,
         maxRetriesPerRequest: null,
-        connectionName: connectionNameFor(role),
       }
     case "publisher":
     case "general":
     default:
-      return { connectionName: connectionNameFor(role) }
+      return base
   }
 }
 
@@ -82,8 +91,16 @@ export function getRedisConnection(
   const k = keyFor(redisUrl, role)
   const existing = connectionByKey.get(k)
   if (existing) return existing
+
   const opts = { ...defaultsFor(role), ...options }
   const conn = new IORedis(redisUrl, opts)
+
+  conn.on("error", (err) =>
+    console.error(
+      `[redis:${k}]`,
+      err instanceof Error ? err.message : String(err)
+    )
+  )
   connectionByKey.set(k, conn)
   return conn
 }
