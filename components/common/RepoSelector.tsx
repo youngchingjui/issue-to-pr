@@ -33,8 +33,31 @@ interface Props {
   repositories?: AuthenticatedUserRepository[]
 }
 
+function setLastUsedRepoCookie(fullName: string) {
+  try {
+    // Persist for ~180 days
+    const maxAgeSeconds = 60 * 60 * 24 * 180
+    document.cookie = `lastUsedRepo=${encodeURIComponent(
+      fullName
+    )}; Path=/; Max-Age=${maxAgeSeconds}; SameSite=Lax`
+  } catch {
+    // no-op
+  }
+}
+
 // TODO: Not quite sure this data fetching is all necessary. Need to revisit and consider how to best fetch data here.
-// In conjunction with the pages that use this component.
+/**
+ * Render a searchable repository selector with install/manage controls when no repositories are available.
+ *
+ * Displays a dropdown that lets the user search and pick a repository, persists the selection to a cookie,
+ * and navigates to the issues page for the chosen repository. When no repositories are present it shows
+ * buttons linking to the GitHub App install/manage page. While repositories are being fetched a loading
+ * placeholder is shown.
+ *
+ * @param selectedRepo - The currently selected repository full name (e.g., "owner/name"); kept in sync with the UI.
+ * @param repositories - Optional initial list of authenticated user repositories to populate the selector without fetching.
+ * @returns The repository selector React element (dropdown, loading placeholder, or install/manage CTAs as appropriate).
+ */
 export default function RepoSelector({
   selectedRepo,
   repositories: initialRepositories,
@@ -51,6 +74,13 @@ export default function RepoSelector({
   // Local selected value so the UI updates immediately on user choice
   const [value, setValue] = useState<string>(selectedRepo)
   useEffect(() => setValue(selectedRepo), [selectedRepo])
+
+  // Also persist the current selection so the server can pick it up on next visit
+  useEffect(() => {
+    if (selectedRepo) {
+      setLastUsedRepoCookie(selectedRepo)
+    }
+  }, [selectedRepo])
 
   // Search query state
   const [query, setQuery] = useState("")
@@ -145,16 +175,18 @@ export default function RepoSelector({
         // Update UI instantly so the user sees their selection immediately
         setValue(val)
         setOpen(false)
+        // Persist selection for future visits
+        setLastUsedRepoCookie(val)
         // Then perform navigation
         router.push(`/issues?repo=${encodeURIComponent(val)}`)
         // Consider: router.replace(...) if you don't want back button to step through every selection.
       }}
       onOpenChange={setOpen}
     >
-      <SelectTrigger className="w-64">
+      <SelectTrigger className="w-auto max-w-[90vw] md:w-64">
         <SelectValue placeholder="Select repository" />
       </SelectTrigger>
-      <SelectContent align={isDesktop ? "end" : "start"}>
+      <SelectContent align={isDesktop ? "end" : "start"} matchTriggerHeight={false}>
         {/* Search input */}
         <div className="p-1 sticky top-0 bg-popover z-10">
           <Input
@@ -189,3 +221,4 @@ export default function RepoSelector({
     </Select>
   )
 }
+

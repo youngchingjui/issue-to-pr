@@ -1,6 +1,5 @@
 "use server"
 
-import { createAuthReaderAdapter } from "shared/adapters/auth/reader"
 import { makeIssueReaderAdapter } from "shared/adapters/github/IssueReaderAdapter"
 import { EventBusAdapter } from "shared/adapters/ioredis/EventBusAdapter"
 import { OpenAIAdapter } from "shared/adapters/llm/OpenAIAdapter"
