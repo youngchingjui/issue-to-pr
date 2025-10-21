@@ -1,14 +1,27 @@
 "use client"
 
+import {
+  Bot,
+  Filter,
+  GitMerge,
+  GitPullRequest,
+  Menu,
+  Search,
+} from "lucide-react"
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Search, Filter, GitPullRequest, Bot, GitMerge, Menu } from "lucide-react"
-import { PRCard } from "@/components/pr-card"
+
 import { MobilePRSheet } from "@/components/mobile-pr-sheet"
+import { PRCard } from "@/components/pr-card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 
 // Mock data for PRs
@@ -16,7 +29,8 @@ const mockPRs = [
   {
     id: 1,
     title: "Add user authentication system",
-    description: "Implement JWT-based authentication with login/logout functionality",
+    description:
+      "Implement JWT-based authentication with login/logout functionality",
     author: "john-doe",
     avatar: "/developer-working.png",
     status: "open",
@@ -27,7 +41,11 @@ const mockPRs = [
     comments: 5,
     reviews: 2,
     checks: { passed: 8, failed: 1, pending: 0 },
-    aiSuggestions: ["Fix merge conflicts", "Update branch", "Fix review comments"],
+    aiSuggestions: [
+      "Fix merge conflicts",
+      "Update branch",
+      "Fix review comments",
+    ],
     labels: ["feature", "backend"],
   },
   {
@@ -74,25 +92,21 @@ const statusColors = {
   closed: "bg-red-100 text-red-800 border-red-200",
 }
 
-const priorityColors = {
-  low: "bg-gray-100 text-gray-600",
-  medium: "bg-yellow-100 text-yellow-700",
-  high: "bg-orange-100 text-orange-700",
-  critical: "bg-red-100 text-red-700",
-}
-
 export default function PRDashboard() {
   const [selectedPRs, setSelectedPRs] = useState<number[]>([])
   const [searchQuery, setSearchQuery] = useState("")
-  const [filterStatus, setFilterStatus] = useState("all")
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const handleSelectPR = (prId: number) => {
-    setSelectedPRs((prev) => (prev.includes(prId) ? prev.filter((id) => id !== prId) : [...prev, prId]))
+    setSelectedPRs((prev) =>
+      prev.includes(prId) ? prev.filter((id) => id !== prId) : [...prev, prId]
+    )
   }
 
   const handleSelectAll = () => {
-    setSelectedPRs(selectedPRs.length === mockPRs.length ? [] : mockPRs.map((pr) => pr.id))
+    setSelectedPRs(
+      selectedPRs.length === mockPRs.length ? [] : mockPRs.map((pr) => pr.id)
+    )
   }
 
   return (
@@ -127,14 +141,14 @@ export default function PRDashboard() {
             <Button
               variant="outline"
               size="sm"
-              className="animate-in fade-in-0 slide-in-from-right-2 duration-300 delay-100 transition-all duration-200 hover:scale-105 bg-transparent"
+              className="animate-in fade-in-0 slide-in-from-right-2 delay-100 transition-all duration-200 hover:scale-105 bg-transparent"
             >
               <Filter className="h-4 w-4 mr-2" />
               Filter
             </Button>
             <Button
               size="sm"
-              className="animate-in fade-in-0 slide-in-from-right-2 duration-300 delay-200 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+              className="animate-in fade-in-0 slide-in-from-right-2 delay-200 transition-all duration-200 hover:scale-105 hover:shadow-lg"
             >
               New PR
             </Button>
@@ -142,16 +156,27 @@ export default function PRDashboard() {
 
           {/* Mobile Navigation */}
           <div className="flex md:hidden items-center gap-2">
-            <Button variant="outline" size="sm" className="transition-all duration-200 hover:scale-105 bg-transparent">
+            <Button
+              variant="outline"
+              size="sm"
+              className="transition-all duration-200 hover:scale-105 bg-transparent"
+            >
               New PR
             </Button>
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="sm" className="transition-all duration-200 hover:scale-105">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="transition-all duration-200 hover:scale-105"
+                >
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-80 animate-in slide-in-from-right duration-300">
+              <SheetContent
+                side="right"
+                className="w-80 animate-in slide-in-from-right duration-300"
+              >
                 {/* ... existing mobile menu content ... */}
                 <div className="space-y-4 mt-6">
                   <div className="relative animate-in fade-in-0 slide-in-from-top-2 duration-300">
@@ -165,7 +190,7 @@ export default function PRDashboard() {
                   </div>
                   <Button
                     variant="outline"
-                    className="w-full justify-start animate-in fade-in-0 slide-in-from-top-2 duration-300 delay-100 transition-all duration-200 hover:scale-[1.02] bg-transparent"
+                    className="w-full justify-start animate-in fade-in-0 slide-in-from-top-2 delay-100 transition-all duration-200 hover:scale-[1.02] bg-transparent"
                   >
                     <Filter className="h-4 w-4 mr-2" />
                     Filter Options
@@ -175,15 +200,21 @@ export default function PRDashboard() {
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between transition-all duration-200 hover:text-primary">
                         <span>Open PRs</span>
-                        <span className="font-medium">{mockPRs.filter((pr) => pr.status === "open").length}</span>
+                        <span className="font-medium">
+                          {mockPRs.filter((pr) => pr.status === "open").length}
+                        </span>
                       </div>
                       <div className="flex justify-between transition-all duration-200 hover:text-primary">
                         <span>Ready to merge</span>
-                        <span className="font-medium">{mockPRs.filter((pr) => pr.status === "ready").length}</span>
+                        <span className="font-medium">
+                          {mockPRs.filter((pr) => pr.status === "ready").length}
+                        </span>
                       </div>
                       <div className="flex justify-between transition-all duration-200 hover:text-primary">
                         <span>Draft PRs</span>
-                        <span className="font-medium">{mockPRs.filter((pr) => pr.status === "draft").length}</span>
+                        <span className="font-medium">
+                          {mockPRs.filter((pr) => pr.status === "draft").length}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -217,7 +248,9 @@ export default function PRDashboard() {
                 onCheckedChange={handleSelectAll}
                 className="transition-all duration-200 hover:scale-110"
               />
-              <span className="text-sm font-medium">{selectedPRs.length} selected</span>
+              <span className="text-sm font-medium">
+                {selectedPRs.length} selected
+              </span>
             </div>
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <DropdownMenu>
@@ -264,7 +297,11 @@ export default function PRDashboard() {
               className={`animate-in fade-in-0 slide-in-from-bottom-2 duration-300`}
               style={{ animationDelay: `${index * 150}ms` }}
             >
-              <PRCard pr={pr} isSelected={selectedPRs.includes(pr.id)} onSelect={handleSelectPR} />
+              <PRCard
+                pr={pr}
+                isSelected={selectedPRs.includes(pr.id)}
+                onSelect={handleSelectPR}
+              />
             </div>
           ))}
         </div>
@@ -304,12 +341,18 @@ export default function PRDashboard() {
                           </div>
                         </div>
 
-                        <p className="text-xs text-muted-foreground mb-3 line-clamp-2 text-pretty">{pr.description}</p>
+                        <p className="text-xs text-muted-foreground mb-3 line-clamp-2 text-pretty">
+                          {pr.description}
+                        </p>
 
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                            <span className="transition-all duration-200 hover:text-foreground">{pr.author}</span>
-                            <span className="transition-all duration-200 hover:text-foreground">{pr.createdAt}</span>
+                            <span className="transition-all duration-200 hover:text-foreground">
+                              {pr.author}
+                            </span>
+                            <span className="transition-all duration-200 hover:text-foreground">
+                              {pr.createdAt}
+                            </span>
                           </div>
                           <div className="flex items-center gap-2">
                             {pr.labels.slice(0, 2).map((label, labelIndex) => (
@@ -317,13 +360,18 @@ export default function PRDashboard() {
                                 key={label}
                                 variant="outline"
                                 className={`text-xs transition-all duration-200 hover:scale-105 animate-in fade-in-0 slide-in-from-right-2`}
-                                style={{ animationDelay: `${(labelIndex + 1) * 100}ms` }}
+                                style={{
+                                  animationDelay: `${(labelIndex + 1) * 100}ms`,
+                                }}
                               >
                                 {label}
                               </Badge>
                             ))}
                             {pr.labels.length > 2 && (
-                              <Badge variant="outline" className="text-xs transition-all duration-200 hover:scale-105">
+                              <Badge
+                                variant="outline"
+                                className="text-xs transition-all duration-200 hover:scale-105"
+                              >
                                 +{pr.labels.length - 2}
                               </Badge>
                             )}
@@ -349,7 +397,10 @@ export default function PRDashboard() {
                 <Bot className="h-6 w-6 animate-pulse" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 animate-in slide-in-from-bottom-2 duration-200">
+            <DropdownMenuContent
+              align="end"
+              className="w-48 animate-in slide-in-from-bottom-2 duration-200"
+            >
               <DropdownMenuItem className="transition-colors duration-150 hover:bg-primary/10">
                 <Bot className="h-4 w-4 mr-2" />
                 AI Batch Actions
