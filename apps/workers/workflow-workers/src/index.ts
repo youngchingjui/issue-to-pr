@@ -17,20 +17,23 @@ import { WORKFLOW_JOBS_QUEUE } from "shared/entities/Queue"
 import { handler } from "./handler"
 import { getEnvVar, registerGracefulShutdown } from "./helper"
 
-const { REDIS_URL } = getEnvVar()
+const { REDIS_URL, WORKER_CONCURRENCY } = getEnvVar()
 
 const workerConn = getRedisConnection(REDIS_URL, "bullmq:worker")
 const eventsConn = getRedisConnection(REDIS_URL, "bullmq:events")
 
+const concurrency = Math.max(1, Number(WORKER_CONCURRENCY ?? "1"))
+
 const worker = new Worker(WORKFLOW_JOBS_QUEUE, handler, {
   connection: workerConn,
+  concurrency,
 })
 
 worker.on("active", (job) => {})
 
 worker.on("ready", () => {
   console.log(
-    `Worker is ready and listening for jobs on the '${WORKFLOW_JOBS_QUEUE}' queue…`
+    `Worker is ready and listening for jobs on the '${WORKFLOW_JOBS_QUEUE}' queue… (concurrency=${concurrency})`
   )
 })
 
@@ -92,3 +95,4 @@ queueEvents.on("error", (err) => {
 
 // Register graceful shutdown with a default 1 hour timeout (overridable via SHUTDOWN_TIMEOUT_MS)
 registerGracefulShutdown({ worker, queueEvents, connection: workerConn })
+
