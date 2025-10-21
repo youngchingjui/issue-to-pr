@@ -29,6 +29,8 @@ import {
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
+import { makeDockerContainerAdapter } from "@/lib/adapters/ContainerDockerodeAdapter"
+import { ensureBranchCheckedOutInContainer } from "@shared/usecases/git/ensureBranchCheckedOutInContainer"
 
 interface CreateDependentPRParams {
   repoFullName: string
@@ -124,43 +126,43 @@ export async function createDependentPRWorkflow({
       })
     }
 
-    // Ensure origin remote embeds credentials
-    if (sessionToken) {
-      await execInContainerWithDockerode({
-        name: containerName,
-        command: `git remote set-url origin "https://x-access-token:${sessionToken}@github.com/${repoFullName}.git"`,
-      })
-    }
+    // Use a container port adapter and idempotently ensure the PR head branch is checked out
+    const containerPort = makeDockerContainerAdapter()
 
-    // Fetch and checkout the PR head branch
     await createStatusEvent({
       workflowId,
       content: `Checking out head branch ${headRef}`,
     })
-    await execInContainerWithDockerode({
-      name: containerName,
-      command: `git fetch origin ${headRef}`,
-    })
-    // Try checkout tracking remote if local doesn't exist
-    const { exitCode: chk1 } = await execInContainerWithDockerode({
-      name: containerName,
-      command: `git rev-parse --verify ${headRef}`,
-    })
-    if (chk1 !== 0) {
-      await execInContainerWithDockerode({
-        name: containerName,
-        command: `git checkout -b ${headRef} origin/${headRef}`,
+
+    const remoteUrl = sessionToken
+      ? `https://x-access-token:${sessionToken}@github.com/${repoFullName}.git`
+      : undefined
+
+    const ensureRes = await ensureBranchCheckedOutInContainer(
+      { container: containerPort },
+      {
+        containerName,
+        headRef,
+        cwd: "/workspace",
+        remote: "origin",
+        setRemoteUrl: remoteUrl,
+      }
+    )
+
+    if (!ensureRes.ok) {
+      await createErrorEvent({
+        workflowId,
+        content: `Failed to checkout head branch ${headRef}: ${ensureRes.error} (step=${ensureRes.details?.step})\nstdout:\n${(ensureRes.details?.stdout || "").slice(0, 2000)}\nstderr:\n${(ensureRes.details?.stderr || "").slice(0, 2000)}`,
       })
-    } else {
-      await execInContainerWithDockerode({
-        name: containerName,
-        command: `git checkout -q ${headRef}`,
-      })
-      await execInContainerWithDockerode({
-        name: containerName,
-        command: `git pull --ff-only origin ${headRef}`,
-      })
+      throw new Error(
+        `Git checkout failed for ${headRef}: ${ensureRes.error} (step=${ensureRes.details?.step})`
+      )
     }
+
+    await createStatusEvent({
+      workflowId,
+      content: `Checked out ${ensureRes.value.branch}`,
+    })
 
     // Create a dependent branch off the PR head
     const dependentBranch = `${headRef}-followup-${workflowId.slice(0, 8)}`
