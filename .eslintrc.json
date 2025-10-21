@@ -36,6 +36,12 @@
         "shared/src/**/*.{ts,tsx,js,jsx}",
         "shared/**/*.{ts,tsx,js,jsx}"
       ],
+      "plugins": ["import"],
+      "settings": {
+        "import/resolver": {
+          "typescript": { "project": ["./shared/tsconfig.json"] }
+        }
+      },
       "rules": {
         "no-restricted-properties": [
           "warn", // Change to error after full migration

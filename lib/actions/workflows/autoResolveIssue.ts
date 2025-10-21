@@ -1,10 +1,11 @@
 "use server"
 
+// TODO: Not used anywhere anymore. Delete.
 import { EventBusAdapter } from "shared/adapters/ioredis/EventBusAdapter"
 import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
 import { v4 as uuidv4 } from "uuid"
 
-import { nextAuthReader } from "@/lib/adapters/auth/AuthReader"
+import { auth } from "@/auth"
 import { getRepoFromString } from "@/lib/github/content"
 import { getIssue } from "@/lib/github/issues"
 import { neo4jDs } from "@/lib/neo4j"
@@ -46,6 +47,16 @@ export async function autoResolveIssueAction(
 
     const redisUrl = process.env.REDIS_URL
 
+    const session = await auth()
+    if (!session || !session.profile?.login) {
+      return {
+        status: "error",
+        code: "AUTH_REQUIRED",
+        message: "Failed to authenticate",
+      }
+    }
+
+    const login = session.profile?.login
     // =================================================
     // Step 2: Prepare adapters
     // =================================================
@@ -53,8 +64,6 @@ export async function autoResolveIssueAction(
       getSession: () => neo4jDs.getSession(),
       userRepo: userRepo,
     })
-
-    const authAdapter = nextAuthReader
 
     const eventBus = redisUrl ? new EventBusAdapter(redisUrl) : undefined
 
@@ -78,11 +87,11 @@ export async function autoResolveIssueAction(
           {
             issue: issueResult.issue,
             repository: repo,
+            login,
             jobId: effectiveJobId,
             branch,
           },
           {
-            auth: authAdapter,
             settings: settingsAdapter,
             eventBus: eventBus,
           }

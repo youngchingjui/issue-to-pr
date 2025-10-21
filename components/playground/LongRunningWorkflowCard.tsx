@@ -3,7 +3,10 @@
 import { useEffect, useRef, useState } from "react"
 import { WORKFLOW_JOBS_QUEUE } from "shared/entities/Queue"
 
-import { type EnqueueJobsRequest } from "@/app/api/queues/[queueId]/jobs/schemas"
+import {
+  type EnqueueJobsRequest,
+  enqueueJobsResponseSchema,
+} from "@/app/api/queues/[queueId]/jobs/schemas"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -71,25 +74,21 @@ export default function LongRunningWorkflowCard() {
 
     try {
       const queueId = WORKFLOW_JOBS_QUEUE
-      const data: EnqueueJobsRequest = {
-        jobs: [
-          {
-            name: "simulateLongRunningWorkflow",
-            data: { seconds },
-          },
-        ],
+      const job: EnqueueJobsRequest = {
+        name: "simulateLongRunningWorkflow",
+        data: { seconds },
       }
       const res = await fetch(`/api/queues/${queueId}/jobs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(job),
       })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || "Failed to enqueue job")
-      const id = (json.jobIds?.[0] as string) || null
-      if (!id) throw new Error("No job id returned from API")
-      setJobId(id)
-      startSSE(id)
+      const { success, data, error } = enqueueJobsResponseSchema.safeParse(
+        await res.json()
+      )
+      if (!success) throw new Error(error.message || "Failed to enqueue job")
+      setJobId(data.jobId)
+      startSSE(data.jobId)
     } catch (err) {
       const message = String(err)
       setError(message)

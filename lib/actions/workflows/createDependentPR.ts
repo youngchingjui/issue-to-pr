@@ -3,7 +3,7 @@
 import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
 import { v4 as uuidv4 } from "uuid"
 
-import { nextAuthReader } from "@/lib/adapters/auth/AuthReader"
+import { auth } from "@/auth"
 import { neo4jDs } from "@/lib/neo4j"
 import * as userRepo from "@/lib/neo4j/repositories/user"
 import { createDependentPRWorkflow } from "@/lib/workflows/createDependentPR"
@@ -37,13 +37,20 @@ export async function createDependentPRAction(
   const { repoFullName, pullNumber, jobId } = parsed.data
 
   // Auth
-  const user = await nextAuthReader.getAuthenticatedUser()
-  const login = user?.githubLogin
+  const session = await auth()
+  if (!session) {
+    return {
+      status: "error",
+      code: "AUTH_REQUIRED",
+      message: "Authentication required",
+    }
+  }
+  const login = session.profile?.login
   if (!login) {
     return {
       status: "error",
       code: "AUTH_REQUIRED",
-      message: "Authentication required. Please sign in.",
+      message: "Login not found",
     }
   }
 

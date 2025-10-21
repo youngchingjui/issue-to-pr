@@ -1,21 +1,21 @@
 import crypto from "crypto"
 import { NextRequest } from "next/server"
 
-import { runWithInstallationId } from "@/lib/utils/utils-server"
-import { routeWebhookHandler } from "@/lib/webhook/router"
+// Responsibilities of this API route
+// - Validate GitHub webhook signature and event headers
+// - Parse and validate payloads by event type
+// - Route events to modular handlers in a clear, tree-like series of switch statements
+// - Pass along the installation ID and any needed data directly to handlers
+// - Handlers are responsible for doing any authenticated GitHub actions or enqueuing jobs
+import { handleIssueLabelAutoResolve } from "@/lib/webhook/github/handlers/issue/label.autoResolveIssue.handler"
+import { handleIssueLabelResolve } from "@/lib/webhook/github/handlers/issue/label.resolve.handler"
+import { handlePullRequestClosedRemoveContainer } from "@/lib/webhook/github/handlers/pullRequest/closed.removeContainer.handler"
 import {
   GithubEventSchema,
   IssuesPayloadSchema,
   PullRequestPayloadSchema,
   PushPayloadSchema,
-} from "@/lib/webhook/types"
-
-// Hoisted schema map for per-event payload validation
-const schemas = {
-  issues: IssuesPayloadSchema,
-  pull_request: PullRequestPayloadSchema,
-  push: PushPayloadSchema,
-} as const
+} from "@/lib/webhook/github/types"
 
 function verifySignature({
   signature,
@@ -79,32 +79,99 @@ export async function POST(req: NextRequest) {
     }
     const event = eventParse.data
 
-    // Validate and narrow payload by event
-    const r = schemas[event].safeParse(payload)
-    if (!r.success) {
-      console.error(`[ERROR] Invalid ${event} payload`, r.error.flatten())
-      return new Response("Invalid payload", { status: 400 })
-    }
+    // First level: route by event type in a nested switch tree
+    switch (event) {
+      case "issues": {
+        const r = IssuesPayloadSchema.safeParse(payload)
+        if (!r.success) {
+          console.error("[ERROR] Invalid issues payload", r.error.flatten())
+          return new Response("Invalid payload", { status: 400 })
+        }
+        const parsedPayload = r.data
+        const installationId = String(parsedPayload.installation?.id ?? "")
+        if (!installationId) {
+          console.error("[ERROR] No installation ID found in webhook payload")
+          return new Response("No installation ID found", { status: 400 })
+        }
 
-    const parsedPayload = r.data
-    const installationId = parsedPayload.installation.id
-
-    if (!installationId) {
-      console.error("[ERROR] No installation ID found in webhook payload")
-      return new Response("No installation ID found", { status: 400 })
-    }
-
-    // Route the payload to the appropriate handler (fire-and-forget by design)
-    runWithInstallationId(String(installationId), async () => {
-      try {
-        await routeWebhookHandler({
-          event,
-          payload: parsedPayload,
-        })
-      } catch (e) {
-        console.error("[ERROR] routeWebhookHandler threw:", e)
+        const action = parsedPayload.action
+        switch (action) {
+          case "labeled": {
+            const labelName: string | undefined =
+              parsedPayload.label?.name?.trim()
+            switch (labelName?.toLowerCase()) {
+              case "resolve": {
+                await handleIssueLabelResolve({
+                  payload: parsedPayload,
+                  installationId,
+                })
+                break
+              }
+              case "i2pr: resolve issue": {
+                await handleIssueLabelAutoResolve({
+                  payload: parsedPayload,
+                  installationId,
+                })
+                break
+              }
+              default:
+                // Unhandled label; ignore
+                break
+            }
+            break
+          }
+          case "opened":
+            // No-op for now
+            break
+          default:
+            // Other issue actions ignored
+            break
+        }
+        break
       }
-    })
+
+      case "pull_request": {
+        const r = PullRequestPayloadSchema.safeParse(payload)
+        if (!r.success) {
+          console.error(
+            "[ERROR] Invalid pull_request payload",
+            r.error.flatten()
+          )
+          return new Response("Invalid payload", { status: 400 })
+        }
+        const parsedPayload = r.data
+
+        const action = parsedPayload.action
+        switch (action) {
+          case "closed": {
+            if (parsedPayload.pull_request?.merged) {
+              await handlePullRequestClosedRemoveContainer({
+                payload: parsedPayload,
+              })
+            }
+            break
+          }
+          default:
+            // Ignore other PR actions
+            break
+        }
+        break
+      }
+
+      case "push": {
+        const r = PushPayloadSchema.safeParse(payload)
+        if (!r.success) {
+          console.error("[ERROR] Invalid push payload", r.error.flatten())
+          return new Response("Invalid payload", { status: 400 })
+        }
+        // Currently no-op for push
+        break
+      }
+
+      default:
+        // Unsupported event already filtered, but keep for completeness
+        break
+    }
 
     return new Response("Webhook received", { status: 200 })
   } catch (error) {

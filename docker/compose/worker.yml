@@ -1,10 +1,13 @@
 services:
   workflow-workers:
-    build:
-      context: ../../
-      dockerfile: apps/workers/workflow-workers/Dockerfile
+    image: ghcr.io/youngchingjui/workflow-workers:latest
     env_file:
       - ../env/.env.worker
+    environment:
+      GITHUB_APP_PRIVATE_KEY_PATH: ${GITHUB_APP_PRIVATE_KEY_CONTAINER_PATH}
+    volumes:
+      - ${GITHUB_APP_PRIVATE_KEY_HOST_PATH}:${GITHUB_APP_PRIVATE_KEY_CONTAINER_PATH}:ro
+      - /var/run/docker.sock:/var/run/docker.sock
     # Give the worker time to finish in-flight jobs before stopping
     stop_signal: SIGTERM
     stop_grace_period: 1h

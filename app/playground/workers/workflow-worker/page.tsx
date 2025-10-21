@@ -2,10 +2,10 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 
 import { auth } from "@/auth"
+import AutoResolveIssueCard from "@/components/playground/AutoResolveIssueCard"
 import IssueSummaryCard from "@/components/playground/IssueSummaryCard"
 import LongRunningWorkflowCard from "@/components/playground/LongRunningWorkflowCard"
 import { Button } from "@/components/ui/button"
-import { getGithubUser } from "@/lib/github/users"
 import { getUserRoles } from "@/lib/neo4j/services/user"
 
 export default async function WorkflowWorkersPlaygroundPage() {
@@ -14,10 +14,13 @@ export default async function WorkflowWorkersPlaygroundPage() {
     redirect("/")
   }
 
-  const githubUser = await getGithubUser()
-  const roles = githubUser
-    ? await getUserRoles(githubUser.login).catch(() => [])
-    : []
+  // Prefer GitHub login from session; this avoids extra API calls
+  const githubLogin = session.profile?.login
+  if (!githubLogin) {
+    redirect("/")
+  }
+
+  const roles = await getUserRoles(githubLogin)
   const isAdmin = roles.includes("admin")
   if (!isAdmin) {
     redirect("/")
@@ -40,6 +43,7 @@ export default async function WorkflowWorkersPlaygroundPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <IssueSummaryCard />
         <LongRunningWorkflowCard />
+        <AutoResolveIssueCard />
       </div>
     </div>
   )

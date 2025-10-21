@@ -14,6 +14,7 @@ import {
   listForIssue,
   mergeIssueLink,
 } from "@/lib/neo4j/repositories/workflowRun"
+import { listLatestStatesForIssues } from "@/lib/neo4j/repositories/workflowRun.batch"
 import {
   AnyEvent,
   Issue as AppIssue,
@@ -149,6 +150,47 @@ export async function listWorkflowRuns(issue?: {
         }
       })
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+  } finally {
+    await session.close()
+  }
+}
+
+/**
+ * Batch fetch: for a set of issues, determine whether any workflow run is currently active (running).
+ * Applies the same deriveState timeout logic to avoid stale running states.
+ */
+export async function getIssuesActiveWorkflowMap({
+  repoFullName,
+  issueNumbers,
+}: {
+  repoFullName: string
+  issueNumbers: number[]
+}): Promise<Record<number, boolean>> {
+  const session = await n4j.getSession()
+  try {
+    const rows = await withTiming(
+      `Neo4j READ: getIssuesActiveWorkflowMap ${repoFullName} [${issueNumbers.join(", ")}]`,
+      async () =>
+        session.executeRead(async (tx) =>
+          listLatestStatesForIssues(tx, { repoFullName, issueNumbers })
+        )
+    )
+
+    // Initialize all as false
+    const map: Record<number, boolean> = {}
+    for (const n of issueNumbers) map[n] = false
+
+    // Group rows by issue and check if any run is effectively running
+    for (const row of rows) {
+      const issueNumber = row.issue.number.toNumber()
+      const run = row.run
+      const effective = deriveState(row.state, run.createdAt.toStandardDate())
+      if (effective === "running") {
+        map[issueNumber] = true
+      }
+    }
+
+    return map
   } finally {
     await session.close()
   }
