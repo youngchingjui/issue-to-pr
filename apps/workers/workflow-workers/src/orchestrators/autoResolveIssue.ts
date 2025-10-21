@@ -5,6 +5,7 @@ import { EventBusAdapter } from "shared/adapters/ioredis/EventBusAdapter"
 import { createNeo4jDataSource } from "shared/adapters/neo4j/dataSource"
 import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
 import { setAccessToken } from "shared/auth"
+import { createIssueComment, getIssueComments, updateIssueComment } from "shared/lib/github/issues"
 import { getPrivateKeyFromFile } from "shared/services/fs"
 import { autoResolveIssue as autoResolveIssueWorkflow } from "shared/usecases/workflows/autoResolveIssue"
 
@@ -38,6 +39,62 @@ export type AutoResolveJobData = {
   // Github API request to `GET /users/{username}/installation`, `GET /repos/{owner}/{repo}/installation`
   // or `GET /app/installations`
   githubInstallationId: string
+}
+
+function getAppBaseUrl(): string {
+  return process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
+}
+
+function buildWorkflowRunLink(id: string): string {
+  return `${getAppBaseUrl()}/workflow-runs/${id}`
+}
+
+async function findStatusCommentId(
+  repoFullName: string,
+  issueNumber: number,
+  workflowId: string
+): Promise<number | null> {
+  try {
+    const comments = await getIssueComments({ repoFullName, issueNumber })
+    const marker = `<!-- workflow-run:${workflowId} -->`
+    const match = comments.find((c) => typeof c.body === "string" && c.body.includes(marker))
+    return match?.id ?? null
+  } catch (e) {
+    console.warn("Failed to list issue comments to find status marker:", e)
+    return null
+  }
+}
+
+function renderStatusComment(workflowId: string, status: "queued" | "running" | "completed" | "failed", extra?: string): string {
+  const link = buildWorkflowRunLink(workflowId)
+  const lines = [
+    `[Issue to PR] Workflow status for this issue`,
+    ``,
+    `Status: ${status}`,
+    `Details: ${link}`,
+    ``,
+    `<!-- workflow-run:${workflowId} -->`,
+  ]
+  if (extra && extra.trim().length > 0) {
+    lines.splice(3, 0, `Note: ${extra}`)
+  }
+  return lines.join("\n")
+}
+
+async function upsertStatusComment(
+  repoFullName: string,
+  issueNumber: number,
+  workflowId: string,
+  status: "queued" | "running" | "completed" | "failed",
+  extra?: string
+) {
+  const body = renderStatusComment(workflowId, status, extra)
+  const commentId = await findStatusCommentId(repoFullName, issueNumber, workflowId)
+  if (commentId) {
+    await updateIssueComment({ commentId, repoFullName, comment: body })
+  } else {
+    await createIssueComment({ repoFullName, issueNumber, comment: body })
+  }
 }
 
 export async function autoResolveIssue(
@@ -107,19 +164,46 @@ export async function autoResolveIssue(
 
   await publishJobStatus(jobId, "Fetching issue and running LLM")
 
-  const result = await autoResolveIssueWorkflow(
-    {
-      issueNumber,
-      repoFullName,
-      login: githubLogin,
-      branch,
-    },
-    {
-      settings: settingsAdapter,
-      eventBus: eventBusAdapter,
-    }
-  )
+  // Update GitHub status comment to running (create if missing)
+  try {
+    await upsertStatusComment(repoFullName, issueNumber, jobId, "running")
+  } catch (e) {
+    console.warn("Failed to upsert running status comment:", e)
+  }
 
-  // Handler will publish the completion status
-  return result.messages
+  try {
+    const result = await autoResolveIssueWorkflow(
+      {
+        issueNumber,
+        repoFullName,
+        login: githubLogin,
+        branch,
+        jobId, // ensure workflow run id matches job id so URLs align
+      },
+      {
+        settings: settingsAdapter,
+        eventBus: eventBusAdapter,
+      }
+    )
+
+    // Update GitHub status comment to completed
+    try {
+      await upsertStatusComment(repoFullName, issueNumber, jobId, "completed")
+    } catch (e) {
+      console.warn("Failed to upsert completed status comment:", e)
+    }
+
+    // Handler will publish the completion status
+    return result.messages
+  } catch (error) {
+    // Update GitHub status comment to failed
+    try {
+      const extra = error instanceof Error ? error.message : String(error)
+      await upsertStatusComment(repoFullName, issueNumber, jobId, "failed", extra)
+    } catch (e) {
+      console.warn("Failed to upsert failed status comment:", e)
+    }
+    throw error
+  }
 }
+
