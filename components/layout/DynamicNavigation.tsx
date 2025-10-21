@@ -70,7 +70,7 @@ export default function DynamicNavigation({
 }: {
   isAuthenticated: boolean
   isAdmin: boolean
-  avatarUrl?: string
+  avatarUrl?: string | null
 }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
