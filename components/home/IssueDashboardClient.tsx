@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useEffect, useState } from "react"
+import { Suspense, useCallback, useEffect, useState } from "react"
 
 import RepoSelector from "@/components/common/RepoSelector"
 import IssuesList from "@/components/issues/IssuesList"
@@ -34,6 +34,26 @@ export default function IssueDashboardClient({
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const loadFirstPage = useCallback(async () => {
+    setInitialLoading(true)
+    setError(null)
+    try {
+      const data = await listIssues({
+        repoFullName: repoFullName.fullName,
+        page: 1,
+        per_page: 25,
+      })
+      setIssues(data.issues)
+      setPrMap(data.prMap)
+      setHasMore(data.hasMore)
+      setPage(1)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load issues")
+    } finally {
+      setInitialLoading(false)
+    }
+  }, [repoFullName.fullName])
 
   useEffect(() => {
     let cancelled = false
@@ -124,6 +144,10 @@ export default function IssueDashboardClient({
           repoFullName={repoFullName}
           issuesEnabled={issuesEnabled}
           hasOpenAIKey={hasOpenAIKey}
+          onIssueCreated={() => {
+            // Refresh the first page so the just-created issue appears immediately
+            loadFirstPage()
+          }}
         />
       </div>
 
@@ -153,3 +177,4 @@ export default function IssueDashboardClient({
     </main>
   )
 }
+
