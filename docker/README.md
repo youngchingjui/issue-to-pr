@@ -90,6 +90,35 @@ Image name: `ghcr.io/youngchingjui/agent-base:latest`
 
 This is a private image, so you need to login with Docker to pull this image.
 
+## Workflow Workers Image (multi-arch)
+
+To run the workflow workers container natively on both Apple Silicon (ARM64) and x86_64 Linux, build and push a multi-architecture image.
+
+Use the helper script:
+
+```bash
+# Build and push linux/amd64 and linux/arm64 images for workflow-workers
+./scripts/build-workflow-workers-image.sh
+```
+
+Options:
+
+- Pass one or more tags to apply:
+
+```bash
+./scripts/build-workflow-workers-image.sh latest 20250101 sha-abc123
+```
+
+- Override the target image name (defaults to ghcr.io/<owner>/workflow-workers):
+
+```bash
+WORKFLOW_WORKERS_IMAGE=ghcr.io/your-org/workflow-workers \
+  ./scripts/build-workflow-workers-image.sh latest
+```
+
+> Note: In CI, you can achieve the same by adding `platforms: linux/amd64,linux/arm64` to the `docker/build-push-action` step in `.github/workflows/build-worker-image.yml`.
+
 ## Neo4j Services
 
 The `compose/` directory contains Docker Compose configurations for Neo4j database services used by the application.
+
