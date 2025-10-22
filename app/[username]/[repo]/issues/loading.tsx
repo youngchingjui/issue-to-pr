@@ -1,8 +1,10 @@
+import SafariStreamingPaint from "@/components/system/SafariStreamingPaint"
 import Skeleton from "@/components/ui/skeleton"
 
 export default function Loading() {
   return (
     <main className="container mx-auto p-4">
+      <SafariStreamingPaint />
       <div className="flex justify-between items-center mb-4 gap-4">
         <div className="space-y-2">
           <Skeleton className="h-6 w-64" />
@@ -38,4 +40,3 @@ export default function Loading() {
     </main>
   )
 }
-
