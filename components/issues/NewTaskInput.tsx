@@ -15,26 +15,24 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { createIssueAction } from "@/lib/actions/createIssue"
+import { getRepoFromString } from "@/lib/github/content"
 import { useHasKeyboard } from "@/lib/hooks/use-has-keyboard"
 import { toast } from "@/lib/hooks/use-toast"
+import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
 import { IssueTitleResponseSchema } from "@/lib/types/api/schemas"
 import type { RepoFullName } from "@/lib/types/github"
 import { mapGithubErrorToCopy } from "@/lib/ui/errorMessages"
 
 interface Props {
-  repoFullName: RepoFullName | null
-  issuesEnabled?: boolean
-  hasOpenAIKey: boolean
+  repoFullName: RepoFullName
 }
 
-export default function NewTaskInput({
-  repoFullName,
-  issuesEnabled = true,
-  hasOpenAIKey,
-}: Props) {
+export default function NewTaskInput({ repoFullName }: Props) {
   const [description, setDescription] = useState("")
   const [loading, setLoading] = useState(false)
   const [generatingTitle, setGeneratingTitle] = useState(false)
+  const [issuesEnabled, setIssuesEnabled] = useState(false)
+  const [hasOpenAIKey, setHasOpenAIKey] = useState(false)
   // useTransition is useful for UI updates (e.g. router.refresh).
   // We should NOT perform remote/network work inside the transition callback
   // because any thrown error will escape the surrounding try/catch resulting
@@ -55,6 +53,25 @@ export default function NewTaskInput({
       (window.navigator as unknown as { platform?: string }).platform || ""
     setIsMac(/mac/i.test(ua) || /mac/i.test(platform))
   }, [])
+
+  useEffect(() => {
+    const fetchGithubData = async () => {
+      try {
+        // Check if issues are enabled
+        const repo = await getRepoFromString(repoFullName.fullName)
+        const issuesEnabled = !!repo.has_issues
+        setIssuesEnabled(issuesEnabled)
+        // Check if user has OpenAI API key, so we can turn on microphone
+        const existingKey = await getUserOpenAIApiKey()
+        setHasOpenAIKey(!!(existingKey && existingKey.trim()))
+      } catch (error) {
+        console.error("Error retrieving repository and OpenAI key data", error)
+        setIssuesEnabled(false)
+        setHasOpenAIKey(false)
+      }
+    }
+    fetchGithubData()
+  }, [repoFullName.fullName])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

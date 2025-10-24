@@ -186,7 +186,10 @@ export default function RepoSelector({
       <SelectTrigger className="w-auto max-w-[90vw] md:w-64">
         <SelectValue placeholder="Select repository" />
       </SelectTrigger>
-      <SelectContent align={isDesktop ? "end" : "start"} matchTriggerHeight={false}>
+      <SelectContent
+        align={isDesktop ? "end" : "start"}
+        matchTriggerHeight={false}
+      >
         {/* Search input */}
         <div className="p-1 sticky top-0 bg-popover z-10">
           <Input
@@ -221,4 +224,3 @@ export default function RepoSelector({
     </Select>
   )
 }
-

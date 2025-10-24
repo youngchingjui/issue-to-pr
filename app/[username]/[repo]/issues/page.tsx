@@ -60,15 +60,10 @@ export default async function RepoPage({ params }: Props) {
           </div>
         ) : null}
 
-        <NewTaskInput
-          repoFullName={repoFullName}
-          issuesEnabled={issuesEnabled}
-          hasOpenAIKey={hasOpenAIKey}
-        />
+        <NewTaskInput repoFullName={repoFullName} />
 
         {issuesEnabled ? <IssueTable repoFullName={repoFullName} /> : null}
       </main>
     </RepoBranchProvider>
   )
 }
-
