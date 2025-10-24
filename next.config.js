@@ -8,6 +8,13 @@ const withBundleAnalyzer = (await import("@next/bundle-analyzer")).default({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  logging: {
+    fetches: {
+      fullUrl: true,
+      hmrRefreshes: true,
+    },
+    incomingRequests: true,
+  },
   images: {
     remotePatterns: [
       {
