@@ -1,5 +1,7 @@
 "use server"
 
+import { QueueEnum, WORKFLOW_JOBS_QUEUE } from "shared/entities/Queue"
+import { getQueue } from "shared/services/queue"
 import { withTiming } from "shared/utils/telemetry"
 
 import getOctokit, { getGraphQLClient, getUserOctokit } from "@/lib/github"
@@ -180,8 +182,57 @@ export type IssueWithStatus = GitHubIssue & {
   hasPlan: boolean
   hasPR: boolean
   hasActiveWorkflow: boolean
+  hasQueuedJob?: boolean
   planId?: string | null
   prNumber?: number
+}
+
+async function getIssuesQueuedJobMap({
+  repoFullName,
+  issueNumbers,
+}: {
+  repoFullName: string
+  issueNumbers: number[]
+}): Promise<Record<number, boolean>> {
+  // Default: mark all as false
+  const map: Record<number, boolean> = {}
+  for (const n of issueNumbers) map[n] = false
+
+  try {
+    const redisUrl = process.env.REDIS_URL
+    if (!redisUrl) return map
+
+    const queue = getQueue(QueueEnum.parse(WORKFLOW_JOBS_QUEUE), redisUrl)
+    // Consider jobs that have not started yet
+    const jobTypes = [
+      "waiting",
+      "waiting-children",
+      "delayed",
+      "prioritized",
+      "paused",
+    ] as const
+
+    const jobs = await queue.getJobs(jobTypes as unknown as string[], 0, 1000)
+
+    for (const job of jobs) {
+      if (job?.name !== "autoResolveIssue") continue
+      const data = job?.data as unknown as {
+        repoFullName?: string
+        issueNumber?: number
+      }
+      if (!data) continue
+      if (data.repoFullName !== repoFullName) continue
+      if (typeof data.issueNumber !== "number") continue
+      if (map[data.issueNumber] !== undefined) {
+        map[data.issueNumber] = true
+      }
+    }
+
+    return map
+  } catch {
+    // If queue lookup fails (e.g., Redis not configured), silently ignore
+    return map
+  }
 }
 
 /**
@@ -200,7 +251,12 @@ export async function getIssueListWithStatus({
 
   // 2. Query Neo4j for plans using the service layer
   const issueNumbers = issues.map((issue) => issue.number)
-  const [issuePlanStatus, issuePlanIds, activeWorkflowMap] = await Promise.all([
+  const [
+    issuePlanStatus,
+    issuePlanIds,
+    activeWorkflowMap,
+    queuedJobMap,
+  ] = await Promise.all([
     withTiming(`Neo4j: getPlanStatusForIssues ${repoFullName}`, () =>
       getPlanStatusForIssues({ repoFullName, issueNumbers })
     ),
@@ -209,6 +265,9 @@ export async function getIssueListWithStatus({
     ),
     withTiming(`Neo4j: getIssuesActiveWorkflowMap ${repoFullName}`, () =>
       getIssuesActiveWorkflowMap({ repoFullName, issueNumbers })
+    ),
+    withTiming(`Queue: getIssuesQueuedJobMap ${repoFullName}`, () =>
+      getIssuesQueuedJobMap({ repoFullName, issueNumbers })
     ),
   ])
 
@@ -220,6 +279,7 @@ export async function getIssueListWithStatus({
       // Lazily load PR info on the client to avoid heavy initial GraphQL scans
       hasPR: false,
       hasActiveWorkflow: !!activeWorkflowMap[issue.number],
+      hasQueuedJob: !!queuedJobMap[issue.number],
       planId: issuePlanIds[issue.number] || null,
       prNumber: undefined,
     }
@@ -481,3 +541,4 @@ export async function getLinkedPRNumbersForIssues({
 
   return result
 }
+
