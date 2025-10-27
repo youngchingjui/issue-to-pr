@@ -1,10 +1,63 @@
+import type { Endpoints } from "@octokit/types"
 import { err, ok, type Result } from "shared/entities/result"
 import type {
-  GetRepositoryErrors,
-  Repo,
+  Repo as RepositoryInput,
   RepoDetails,
   RepositoryReaderPort,
 } from "shared/ports/github/repository.reader"
+import { z } from "zod"
+
+type GetRepoResponse =
+  Endpoints["GET /repos/{owner}/{repo}"]["response"]["data"]
+type GetUserInstallationsResponse =
+  Endpoints["GET /user/installations"]["response"]["data"]
+type GetInstallationReposResponse =
+  Endpoints["GET /user/installations/{installation_id}/repositories"]["response"]["data"]
+
+type Repo = {
+  owner: { login: GetRepoResponse["owner"]["login"] }
+  name: GetRepoResponse["name"]
+  full_name: GetRepoResponse["full_name"]
+  description: GetRepoResponse["description"]
+  default_branch: GetRepoResponse["default_branch"]
+  private: GetRepoResponse["private"]
+  visibility: GetRepoResponse["visibility"]
+  html_url: GetRepoResponse["html_url"]
+  clone_url: GetRepoResponse["clone_url"]
+}
+
+type UserInstallations = {
+  installations: Array<
+    Pick<GetUserInstallationsResponse["installations"][number], "id">
+  >
+}
+
+type InstallationRepos = {
+  repositories: Array<
+    Pick<GetInstallationReposResponse["repositories"][number], "full_name">
+  >
+}
+
+// We create zod schemas for runtime validation of the API responses
+const RepoSchema: z.ZodType<Repo> = z.object({
+  owner: z.object({ login: z.string() }),
+  name: z.string(),
+  full_name: z.string(),
+  description: z.string().nullable(),
+  default_branch: z.string(),
+  private: z.boolean(),
+  visibility: z.string(),
+  html_url: z.string(),
+  clone_url: z.string(),
+})
+
+const UserInstallationsSchema: z.ZodType<UserInstallations> = z.object({
+  installations: z.array(z.object({ id: z.number() })),
+})
+
+const InstallationReposSchema: z.ZodType<InstallationRepos> = z.object({
+  repositories: z.array(z.object({ full_name: z.string() })),
+})
 
 /**
  * Fetch-based adapter for RepositoryReaderPort that talks directly to GitHub REST API.
@@ -23,25 +76,8 @@ export function makeFetchRepositoryReaderAdapter(params: {
     "User-Agent": userAgent,
   }
 
-  function mapStatusToError(
-    status: number,
-    body?: unknown
-  ): GetRepositoryErrors {
-    if (status === 401) return "AuthRequired"
-    if (status === 404) return "RepoNotFound"
-    if (status === 429) return "RateLimited"
-    if (status === 403) {
-      const msg =
-        typeof body === "object" && body && "message" in body
-          ? String(body.message ?? "")
-          : ""
-      return /rate\s*limit/i.test(msg) ? "RateLimited" : "Forbidden"
-    }
-    return "Unknown"
-  }
-
   async function getRepo(
-    repository: Repo
+    repository: RepositoryInput
   ): Promise<
     Result<
       RepoDetails,
@@ -53,35 +89,28 @@ export function makeFetchRepositoryReaderAdapter(params: {
 
     try {
       const url = `https://api.github.com/repos/${owner}/${repo}`
-      const res = await fetch(url, { headers: baseHeaders })
+      const res = await fetch(url, {
+        headers: baseHeaders,
+        next: { revalidate: 60, tags: ["repo", repository.fullName] },
+      })
 
-      if (!res.ok) {
-        let body: unknown
-        try {
-          body = await res.json()
-        } catch {
-          // ignore parse error
-        }
-        return err(mapStatusToError(res.status, body), body)
-      }
+      const repoData = RepoSchema.parse(await res.json())
 
-      const data = await res.json()
-
-      const visibility = (
-        data.visibility || (data.private ? "private" : "public")
-      )
-        .toString()
-        .toUpperCase() as "PUBLIC" | "PRIVATE" | "INTERNAL"
+      const visibility =
+        (repoData.visibility?.toUpperCase() as
+          | "PUBLIC"
+          | "PRIVATE"
+          | "INTERNAL") || "PUBLIC"
 
       const details: RepoDetails = {
-        fullName: repository.fullName,
-        owner: data?.owner?.login ?? owner,
-        name: data?.name ?? repo,
-        description: data?.description ?? null,
-        defaultBranch: data?.default_branch ?? "main",
+        fullName: repoData.full_name,
+        owner: repoData.owner.login,
+        name: repoData.name,
+        description: repoData.description ?? null,
+        defaultBranch: repoData.default_branch,
         visibility,
-        url: data?.html_url ?? `https://github.com/${owner}/${repo}`,
-        cloneUrl: data?.clone_url ?? `https://github.com/${owner}/${repo}.git`,
+        url: repoData.html_url,
+        cloneUrl: repoData.clone_url,
       }
 
       return ok(details)
@@ -99,25 +128,18 @@ export function makeFetchRepositoryReaderAdapter(params: {
   > {
     try {
       // 1) List installations for the authenticated user
-      const instRes = await fetch("https://api.github.com/user/installations", {
-        headers: baseHeaders,
-      })
-
-      if (!instRes.ok) {
-        let body: unknown
-        try {
-          body = await instRes.json()
-        } catch {
-          // ignore parse error
+      const installationResponse = await fetch(
+        "https://api.github.com/user/installations",
+        {
+          headers: baseHeaders,
+          next: { revalidate: 60, tags: ["user-installations"] },
         }
-        return err(mapStatusToError(instRes.status, body), body)
-      }
+      )
 
-      const instBody = (await instRes.json()) as {
-        installations?: Array<{ id: number }>
-      }
-
-      const installations = instBody.installations ?? []
+      const installationData = UserInstallationsSchema.parse(
+        await installationResponse.json()
+      )
+      const installations = installationData.installations
       if (installations.length === 0) return ok([])
 
       // 2) For each installation, list repositories (first page, 100 per page)
@@ -125,36 +147,31 @@ export function makeFetchRepositoryReaderAdapter(params: {
         installations.map(async (inst) => {
           try {
             const url = `https://api.github.com/user/installations/${inst.id}/repositories?per_page=100`
-            const repoRes = await fetch(url, { headers: baseHeaders })
-            if (!repoRes.ok) {
-              // Best-effort: skip this installation if it errors
-              return [] as string[]
-            }
-            const repoBody = (await repoRes.json()) as {
-              repositories?: Array<{ full_name?: string }>
-            }
-            return (repoBody.repositories
-              ?.map((r) => r.full_name)
-              .filter(Boolean) ?? []) as string[]
-          } catch {
-            return [] as string[]
+            const repositoryResponse = await fetch(url, {
+              headers: baseHeaders,
+              next: {
+                revalidate: 60,
+                tags: [
+                  "user-installations",
+                  inst.id.toString(),
+                  "repositories",
+                ],
+              },
+            })
+            const repositoryData = InstallationReposSchema.parse(
+              await repositoryResponse.json()
+            )
+            return repositoryData.repositories.map((r) => r.full_name)
+          } catch (e) {
+            console.error("[fetch/repository] Unexpected error", e)
+            return []
           }
         })
       )
 
-      // 3) Deduplicate while preserving order
-      const seen = new Set<string>()
-      const unique: string[] = []
-      for (const name of repoLists.flat()) {
-        if (name && !seen.has(name)) {
-          seen.add(name)
-          unique.push(name)
-        }
-      }
-
-      return ok(unique)
+      return ok(repoLists.flat())
     } catch (e) {
-      console.error("[fetch/repositories] Unexpected error", e)
+      console.error("[fetch/repository] Unexpected error", e)
       return err("Unknown", e)
     }
   }
