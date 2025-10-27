@@ -1,4 +1,5 @@
-import { getRepoFromString } from "@/lib/github/content"
+import { auth } from "@/auth"
+import { makeFetchRepositoryReaderAdapter } from "@/lib/adapters/github/fetch/repository.reader"
 import { RepoFullName } from "@/lib/types/github"
 
 export default async function IssuesNotEnabled({
@@ -6,9 +7,27 @@ export default async function IssuesNotEnabled({
 }: {
   repoFullName: RepoFullName
 }) {
-  const repo = await getRepoFromString(repoFullName.fullName)
-  const issuesEnabled = !!repo.has_issues
-  if (issuesEnabled) {
+  const session = await auth()
+
+  if (!session?.token?.access_token) {
+    console.error("No session token found")
+    return null
+  }
+
+  const fetchRepositoryReaderAdapter = makeFetchRepositoryReaderAdapter({
+    token: session.token?.access_token,
+  })
+
+  const result = await fetchRepositoryReaderAdapter.getRepo({
+    fullName: repoFullName.fullName,
+  })
+
+  if (!result.ok) {
+    console.error("Failed to fetch repository details", result.error)
+    return null
+  }
+
+  if (!result.value.has_issues) {
     return null
   }
   return (
