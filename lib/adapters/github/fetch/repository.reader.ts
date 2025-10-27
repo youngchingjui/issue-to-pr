@@ -14,7 +14,12 @@ export function makeFetchRepositoryReaderAdapter(
 ): RepositoryReaderPort {
   async function getRepository(
     ref: RepositoryRef
-  ): Promise<Result<RepositoryDetails, "AuthRequired" | "RepoNotFound" | "Forbidden" | "RateLimited" | "Unknown">> {
+  ): Promise<
+    Result<
+      RepositoryDetails,
+      "AuthRequired" | "RepoNotFound" | "Forbidden" | "RateLimited" | "Unknown"
+    >
+  > {
     try {
       const res = await fetch(`${baseUrl}/api/github/repository`, {
         method: "POST",
@@ -39,7 +44,10 @@ export function makeFetchRepositoryReaderAdapter(
   }
 
   async function listUserAccessibleRepoFullNames(): Promise<
-    Result<string[], "AuthRequired" | "RepoNotFound" | "Forbidden" | "RateLimited" | "Unknown">
+    Result<
+      string[],
+      "AuthRequired" | "RepoNotFound" | "Forbidden" | "RateLimited" | "Unknown"
+    >
   > {
     try {
       const res = await fetch(`${baseUrl}/api/github/repositories`, {
@@ -63,4 +71,3 @@ export function makeFetchRepositoryReaderAdapter(
 
   return { getRepository, listUserAccessibleRepoFullNames }
 }
-

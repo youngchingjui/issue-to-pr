@@ -1,13 +1,13 @@
-import { NextResponse } from "next/server"
 import type { Session } from "neo4j-driver"
-
-import { auth } from "@/auth"
-import { n4j } from "@/lib/neo4j/client"
-import * as userRepo from "@/lib/neo4j/repositories/user"
+import { NextResponse } from "next/server"
 import {
   makeSettingsReaderAdapter,
   type Neo4jSessionLike,
 } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
+
+import { auth } from "@/auth"
+import { n4j } from "@/lib/neo4j/client"
+import * as userRepo from "@/lib/neo4j/repositories/user"
 
 export async function GET() {
   const session = await auth()
@@ -49,4 +49,3 @@ export async function GET() {
     hasOpenAIKey: Boolean(result.value && result.value.trim().length > 0),
   })
 }
-

@@ -15,7 +15,9 @@ export async function GET() {
     return NextResponse.json({ fullNames })
   } catch (e) {
     console.error("[api/github/repositories]", e)
-    return NextResponse.json({ error: "Failed to list repositories" }, { status: 500 })
+    return NextResponse.json(
+      { error: "Failed to list repositories" },
+      { status: 500 }
+    )
   }
 }
-
