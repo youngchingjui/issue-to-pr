@@ -25,6 +25,7 @@ type Repo = {
   visibility: GetRepoResponse["visibility"]
   html_url: GetRepoResponse["html_url"]
   clone_url: GetRepoResponse["clone_url"]
+  has_issues: GetRepoResponse["has_issues"]
 }
 
 type UserInstallations = {
@@ -50,6 +51,7 @@ const RepoSchema: z.ZodType<Repo> = z.object({
   visibility: z.string(),
   html_url: z.string(),
   clone_url: z.string(),
+  has_issues: z.boolean(),
 })
 
 const UserInstallationsSchema: z.ZodType<UserInstallations> = z.object({
@@ -144,6 +146,7 @@ export function makeFetchRepositoryReaderAdapter(params: {
         visibility,
         url: repoData.html_url,
         cloneUrl: repoData.clone_url,
+        has_issues: repoData.has_issues,
       }
 
       return ok(details)
