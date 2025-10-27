@@ -20,6 +20,8 @@ export interface RepoDetails extends Repo {
   url: string
   /** Clone URL (HTTPS) */
   cloneUrl: string
+  /** Whether the repository has issues enabled */
+  has_issues: boolean
 }
 
 export type GetRepositoryErrors =

@@ -38,6 +38,7 @@ export function makeRepositoryReaderAdapter(params: {
         visibility,
         url: data.html_url ?? `https://github.com/${owner}/${repo}`,
         cloneUrl: data.clone_url ?? `https://github.com/${owner}/${repo}.git`,
+        has_issues: data.has_issues,
       }
 
       return ok(details)
