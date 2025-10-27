@@ -1,17 +1,44 @@
 import { err, ok, type Result } from "shared/entities/result"
 import type {
+  GetRepositoryErrors,
   RepositoryDetails,
   RepositoryReaderPort,
   RepositoryRef,
 } from "shared/ports/github/repository.reader"
 
 /**
- * Fetch-based adapter for RepositoryReaderPort.
- * It calls our Next.js API routes to retrieve repository information.
+ * Fetch-based adapter for RepositoryReaderPort that talks directly to GitHub REST API.
+ * Requires a GitHub access token (OAuth user or installation token).
  */
-export function makeFetchRepositoryReaderAdapter(
-  baseUrl: string = ""
-): RepositoryReaderPort {
+export function makeFetchRepositoryReaderAdapter(params: {
+  token: string
+  userAgent?: string
+}): RepositoryReaderPort {
+  const { token, userAgent = "issue-to-pr/RepositoryReader (fetch)" } = params
+
+  const baseHeaders = {
+    Accept: "application/vnd.github+json",
+    Authorization: `Bearer ${token}`,
+    "User-Agent": userAgent,
+  }
+
+  function mapStatusToError(
+    status: number,
+    body?: unknown
+  ): GetRepositoryErrors {
+    if (status === 401) return "AuthRequired"
+    if (status === 404) return "RepoNotFound"
+    if (status === 429) return "RateLimited"
+    if (status === 403) {
+      const msg =
+        typeof body === "object" && body && "message" in body
+          ? String(body.message ?? "")
+          : ""
+      return /rate\s*limit/i.test(msg) ? "RateLimited" : "Forbidden"
+    }
+    return "Unknown"
+  }
+
   async function getRepository(
     ref: RepositoryRef
   ): Promise<
@@ -20,23 +47,43 @@ export function makeFetchRepositoryReaderAdapter(
       "AuthRequired" | "RepoNotFound" | "Forbidden" | "RateLimited" | "Unknown"
     >
   > {
+    const [owner, repo] = ref.repoFullName.split("/")
+    if (!owner || !repo) return err("RepoNotFound")
+
     try {
-      const res = await fetch(`${baseUrl}/api/github/repository`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ fullName: ref.repoFullName }),
-      })
+      const url = `https://api.github.com/repos/${owner}/${repo}`
+      const res = await fetch(url, { headers: baseHeaders })
 
-      if (res.status === 401) return err("AuthRequired")
-      if (res.status === 403) return err("Forbidden")
-      if (res.status === 404) return err("RepoNotFound")
-      if (res.status === 429) return err("RateLimited")
+      if (!res.ok) {
+        let body: unknown
+        try {
+          body = await res.json()
+        } catch {
+          // ignore parse error
+        }
+        return err(mapStatusToError(res.status, body), body)
+      }
 
-      if (!res.ok) return err("Unknown", await res.text())
+      const data = await res.json()
 
-      const data = (await res.json()) as RepositoryDetails
-      return ok(data)
+      const visibility = (
+        data.visibility || (data.private ? "private" : "public")
+      )
+        .toString()
+        .toUpperCase() as "PUBLIC" | "PRIVATE" | "INTERNAL"
+
+      const details: RepositoryDetails = {
+        repoFullName: ref.repoFullName,
+        owner: data?.owner?.login ?? owner,
+        name: data?.name ?? repo,
+        description: data?.description ?? null,
+        defaultBranch: data?.default_branch ?? "main",
+        visibility,
+        url: data?.html_url ?? `https://github.com/${owner}/${repo}`,
+        cloneUrl: data?.clone_url ?? `https://github.com/${owner}/${repo}.git`,
+      }
+
+      return ok(details)
     } catch (e) {
       console.error("[fetch/repository] Unexpected error", e)
       return err("Unknown", e)
@@ -50,21 +97,63 @@ export function makeFetchRepositoryReaderAdapter(
     >
   > {
     try {
-      const res = await fetch(`${baseUrl}/api/github/repositories`, {
-        method: "GET",
-        credentials: "include",
+      // 1) List installations for the authenticated user
+      const instRes = await fetch("https://api.github.com/user/installations", {
+        headers: baseHeaders,
       })
 
-      if (res.status === 401) return err("AuthRequired")
-      if (res.status === 403) return err("Forbidden")
-      if (res.status === 429) return err("RateLimited")
+      if (!instRes.ok) {
+        let body: unknown
+        try {
+          body = await instRes.json()
+        } catch {
+          // ignore parse error
+        }
+        return err(mapStatusToError(instRes.status, body), body)
+      }
 
-      if (!res.ok) return err("Unknown", await res.text())
+      const instBody = (await instRes.json()) as {
+        installations?: Array<{ id: number }>
+      }
 
-      const data = (await res.json()) as { fullNames: string[] }
-      return ok(data.fullNames)
+      const installations = instBody.installations ?? []
+      if (installations.length === 0) return ok([])
+
+      // 2) For each installation, list repositories (first page, 100 per page)
+      const repoLists = await Promise.all(
+        installations.map(async (inst) => {
+          try {
+            const url = `https://api.github.com/user/installations/${inst.id}/repositories?per_page=100`
+            const repoRes = await fetch(url, { headers: baseHeaders })
+            if (!repoRes.ok) {
+              // Best-effort: skip this installation if it errors
+              return [] as string[]
+            }
+            const repoBody = (await repoRes.json()) as {
+              repositories?: Array<{ full_name?: string }>
+            }
+            return (repoBody.repositories
+              ?.map((r) => r.full_name)
+              .filter(Boolean) ?? []) as string[]
+          } catch {
+            return [] as string[]
+          }
+        })
+      )
+
+      // 3) Deduplicate while preserving order
+      const seen = new Set<string>()
+      const unique: string[] = []
+      for (const name of repoLists.flat()) {
+        if (name && !seen.has(name)) {
+          seen.add(name)
+          unique.push(name)
+        }
+      }
+
+      return ok(unique)
     } catch (e) {
-      console.error("[fetch/repository] Unexpected error", e)
+      console.error("[fetch/repositories] Unexpected error", e)
       return err("Unknown", e)
     }
   }
