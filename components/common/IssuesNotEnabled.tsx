@@ -27,7 +27,7 @@ export default async function IssuesNotEnabled({
     return null
   }
 
-  if (!result.value.has_issues) {
+  if (result.value.has_issues) {
     return null
   }
   return (
