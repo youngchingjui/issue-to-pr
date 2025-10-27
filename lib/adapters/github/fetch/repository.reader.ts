@@ -1,6 +1,7 @@
 import type { Endpoints } from "@octokit/types"
 import { err, ok, type Result } from "shared/entities/result"
 import type {
+  GetRepositoryErrors,
   Repo as RepositoryInput,
   RepoDetails,
   RepositoryReaderPort,
@@ -59,6 +60,16 @@ const InstallationReposSchema: z.ZodType<InstallationRepos> = z.object({
   repositories: z.array(z.object({ full_name: z.string() })),
 })
 
+function isRateLimited(res: Response, message?: string | null): boolean {
+  if (res.status === 429) return true
+  if (res.status === 403) {
+    const remaining = res.headers.get("x-ratelimit-remaining")
+    if (remaining === "0") return true
+  }
+  if (typeof message === "string" && /rate\s*limit/i.test(message)) return true
+  return false
+}
+
 /**
  * Fetch-based adapter for RepositoryReaderPort that talks directly to GitHub REST API.
  * Requires a GitHub access token (OAuth user or installation token).
@@ -78,12 +89,7 @@ export function makeFetchRepositoryReaderAdapter(params: {
 
   async function getRepo(
     repository: RepositoryInput
-  ): Promise<
-    Result<
-      RepoDetails,
-      "AuthRequired" | "RepoNotFound" | "Forbidden" | "RateLimited" | "Unknown"
-    >
-  > {
+  ): Promise<Result<RepoDetails, GetRepositoryErrors>> {
     const [owner, repo] = repository.fullName.split("/")
     if (!owner || !repo) return err("RepoNotFound")
 
@@ -93,6 +99,33 @@ export function makeFetchRepositoryReaderAdapter(params: {
         headers: baseHeaders,
         next: { revalidate: 60, tags: ["repo", repository.fullName] },
       })
+
+      if (!res.ok) {
+        const retryAfter = res.headers.get("retry-after")
+
+        if (res.status === 401)
+          return err("AuthRequired", {
+            status: res.status,
+            message: res.statusText,
+          })
+        if (res.status === 404)
+          return err("RepoNotFound", {
+            status: res.status,
+            message: res.statusText,
+          })
+        if (isRateLimited(res))
+          return err("RateLimited", {
+            status: res.status,
+            message: res.statusText,
+            retryAfter,
+          })
+        if (res.status === 403)
+          return err("Forbidden", {
+            status: res.status,
+            message: res.statusText,
+          })
+        return err("Unknown", { status: res.status, message: res.statusText })
+      }
 
       const repoData = RepoSchema.parse(await res.json())
 
@@ -121,10 +154,7 @@ export function makeFetchRepositoryReaderAdapter(params: {
   }
 
   async function listUserAccessibleRepoFullNames(): Promise<
-    Result<
-      string[],
-      "AuthRequired" | "RepoNotFound" | "Forbidden" | "RateLimited" | "Unknown"
-    >
+    Result<string[], GetRepositoryErrors>
   > {
     try {
       // 1) List installations for the authenticated user
@@ -135,6 +165,36 @@ export function makeFetchRepositoryReaderAdapter(params: {
           next: { revalidate: 60, tags: ["user-installations"] },
         }
       )
+
+      if (!installationResponse.ok) {
+        const retryAfter = installationResponse.headers.get("retry-after")
+
+        if (installationResponse.status === 401)
+          return err("AuthRequired", {
+            status: installationResponse.status,
+            message: installationResponse.statusText,
+          })
+        if (installationResponse.status === 404)
+          return err("RepoNotFound", {
+            status: installationResponse.status,
+            message: installationResponse.statusText,
+          })
+        if (isRateLimited(installationResponse))
+          return err("RateLimited", {
+            status: installationResponse.status,
+            message: installationResponse.statusText,
+            retryAfter,
+          })
+        if (installationResponse.status === 403)
+          return err("Forbidden", {
+            status: installationResponse.status,
+            message: installationResponse.statusText,
+          })
+        return err("Unknown", {
+          status: installationResponse.status,
+          message: installationResponse.statusText,
+        })
+      }
 
       const installationData = UserInstallationsSchema.parse(
         await installationResponse.json()
@@ -158,6 +218,17 @@ export function makeFetchRepositoryReaderAdapter(params: {
                 ],
               },
             })
+            if (!repositoryResponse.ok) {
+              console.error(
+                "[fetch/repository] Error listing repositories for installation",
+                {
+                  status: repositoryResponse.status,
+                  message: repositoryResponse.statusText,
+                }
+              )
+              return [] as string[]
+            }
+
             const repositoryData = InstallationReposSchema.parse(
               await repositoryResponse.json()
             )
