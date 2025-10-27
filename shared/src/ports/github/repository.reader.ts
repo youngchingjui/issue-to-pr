@@ -1,11 +1,11 @@
 import { type Result } from "@/entities/result"
 
-export interface RepositoryRef {
+export interface Repo {
   /** Full repository name (owner/repo) */
-  repoFullName: string
+  fullName: string
 }
 
-export interface RepositoryDetails extends RepositoryRef {
+export interface RepoDetails extends Repo {
   /** Repository owner */
   owner: string
   /** Repository name */
@@ -36,9 +36,7 @@ export interface RepositoryReaderPort {
   /**
    * Fetch basic repository metadata used across workflows.
    */
-  getRepository(
-    ref: RepositoryRef
-  ): Promise<Result<RepositoryDetails, GetRepositoryErrors>>
+  getRepo(ref: Repo): Promise<Result<RepoDetails, GetRepositoryErrors>>
 
   /**
    * Returns a de-duplicated list of repository full names ("owner/repo").
