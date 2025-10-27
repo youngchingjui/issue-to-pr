@@ -89,10 +89,7 @@ export default function IssueDashboardClient({
       <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h1 className="text-2xl font-bold">Your Issues &amp; Workflows</h1>
         <div className="flex items-center gap-3">
-          <RepoSelector
-            selectedRepo={repoFullName.fullName}
-            repositories={repositories}
-          />
+          <RepoSelector selectedRepo={repoFullName.fullName} />
         </div>
       </div>
 

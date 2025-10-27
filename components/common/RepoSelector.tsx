@@ -13,9 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { listUserAppRepositories } from "@/lib/github/repos"
 import { useMediaQuery } from "@/lib/hooks/use-media-query"
-import { AuthenticatedUserRepository } from "@/lib/types/github"
 
 // Determine which GitHub App slug to use based on environment.
 // 1. Prefer an explicit build-time env var (exposed to the browser) so deployments can override.
@@ -30,7 +28,6 @@ const INSTALL_URL = `https://github.com/apps/${GITHUB_APP_SLUG}/installations/ne
 
 interface Props {
   selectedRepo: string
-  repositories?: AuthenticatedUserRepository[]
 }
 
 function setLastUsedRepoCookie(fullName: string) {
@@ -58,22 +55,15 @@ function setLastUsedRepoCookie(fullName: string) {
  * @param repositories - Optional initial list of authenticated user repositories to populate the selector without fetching.
  * @returns The repository selector React element (dropdown, loading placeholder, or install/manage CTAs as appropriate).
  */
-export default function RepoSelector({
-  selectedRepo,
-  repositories: initialRepositories,
-}: Props) {
+export default function RepoSelector({ selectedRepo }: Props) {
   const router = useRouter()
-  const [repos, setRepos] = useState<AuthenticatedUserRepository[]>(
-    initialRepositories || []
-  )
-  // Only start in loading state if repositories weren't provided
-  const [loading, setLoading] = useState(!initialRepositories)
+  const [repos, setRepos] = useState<string[]>([])
+  const [loading, setLoading] = useState(true)
   const [open, setOpen] = useState(false)
-  const isDesktop = useMediaQuery("md")
-
-  // Local selected value so the UI updates immediately on user choice
+  const [query, setQuery] = useState("")
   const [value, setValue] = useState<string>(selectedRepo)
-  useEffect(() => setValue(selectedRepo), [selectedRepo])
+
+  const isDesktop = useMediaQuery("md")
 
   // Also persist the current selection so the server can pick it up on next visit
   useEffect(() => {
@@ -82,30 +72,27 @@ export default function RepoSelector({
     }
   }, [selectedRepo])
 
-  // Search query state
-  const [query, setQuery] = useState("")
-
   // Only fetch repositories if they weren't provided as props
   useEffect(() => {
-    if (!initialRepositories) {
-      listUserAppRepositories()
-        .then((data) => setRepos(data))
-        .finally(() => setLoading(false))
-    }
-  }, [initialRepositories])
+    fetch("/api/github/user/installations/repositories")
+      .then((res) => res.json())
+      .then((data) => setRepos(data))
+      .finally(() => setLoading(false))
+  }, [])
 
   // Still allow refetching when the dropdown is opened for the first time
   // in case something went wrong in the initial fetch (only when no initial repositories provided).
   useEffect(() => {
-    if (open && repos.length === 0 && !loading && !initialRepositories) {
+    if (open && repos.length === 0 && !loading) {
       setLoading(true)
-      listUserAppRepositories()
+      fetch("/api/github/user/installations/repositories")
+        .then((res) => res.json())
         .then((data) => setRepos(data))
         .finally(() => setLoading(false))
     }
     // We intentionally omit `repos.length` here to avoid refetching on every update.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initialRepositories])
+  }, [open])
 
   // Reset query when dropdown is closed
   useEffect(() => {
@@ -116,9 +103,7 @@ export default function RepoSelector({
 
   const filteredRepos = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return q
-      ? repos.filter((r) => r.full_name.toLowerCase().includes(q))
-      : repos
+    return q ? repos.filter((r) => r.toLowerCase().includes(q)) : repos
   }, [query, repos])
 
   // Ensure that the currently selected repository is always present in the list.
@@ -126,11 +111,11 @@ export default function RepoSelector({
   // the <Input> to lose focus (mobile keyboards collapse). By force-including the
   // selected repo we keep the internal focus management stable.
   const visibleRepos = useMemo(() => {
-    if (filteredRepos.some((r) => r.full_name === value)) {
+    if (filteredRepos.some((r) => r === value)) {
       return filteredRepos
     }
 
-    const selectedEntry = repos.find((r) => r.full_name === value)
+    const selectedEntry = repos.find((r) => r === value)
     if (!selectedEntry) {
       return filteredRepos
     }
@@ -138,11 +123,6 @@ export default function RepoSelector({
     // Prepend to avoid changing the relative ordering of the filtered list.
     return [selectedEntry, ...filteredRepos]
   }, [filteredRepos, repos, value])
-
-  // 1. Loading state
-  if (loading) {
-    return <div className="px-4 py-2">Loading...</div>
-  }
 
   // 2. No repositories detected – show GitHub App installation CTA
   if (!loading && repos.length === 0) {
@@ -208,8 +188,8 @@ export default function RepoSelector({
         {loading && <div className="px-4 py-2">Loading...</div>}
         {!loading &&
           visibleRepos.map((repo) => (
-            <SelectItem key={repo.full_name} value={repo.full_name}>
-              {repo.full_name}
+            <SelectItem key={repo} value={repo}>
+              {repo}
             </SelectItem>
           ))}
         {!loading && visibleRepos.length > 0 && (
