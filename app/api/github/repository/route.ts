@@ -23,7 +23,7 @@ export async function POST(request: Request) {
       name: repo.name,
       description: repo.description,
       defaultBranch: repo.default_branch,
-      visibility: (repo.private ? "PRIVATE" : "PUBLIC") as const,
+      visibility: repo.private ? "PRIVATE" : "PUBLIC",
       url: repo.html_url,
       cloneUrl: repo.clone_url,
     }

@@ -1,9 +1,9 @@
 import { err, ok, type Result } from "shared/entities/result"
 import type {
   GetRepositoryErrors,
-  RepositoryDetails,
+  Repo,
+  RepoDetails,
   RepositoryReaderPort,
-  RepositoryRef,
 } from "shared/ports/github/repository.reader"
 
 /**
@@ -14,7 +14,8 @@ export function makeFetchRepositoryReaderAdapter(params: {
   token: string
   userAgent?: string
 }): RepositoryReaderPort {
-  const { token, userAgent = "issue-to-pr/RepositoryReader (fetch)" } = params
+  const { token, userAgent = "Issue To PR/1.0.0 (https://issuetopr.dev)" } =
+    params
 
   const baseHeaders = {
     Accept: "application/vnd.github+json",
@@ -39,15 +40,15 @@ export function makeFetchRepositoryReaderAdapter(params: {
     return "Unknown"
   }
 
-  async function getRepository(
-    ref: RepositoryRef
+  async function getRepo(
+    repository: Repo
   ): Promise<
     Result<
-      RepositoryDetails,
+      RepoDetails,
       "AuthRequired" | "RepoNotFound" | "Forbidden" | "RateLimited" | "Unknown"
     >
   > {
-    const [owner, repo] = ref.repoFullName.split("/")
+    const [owner, repo] = repository.fullName.split("/")
     if (!owner || !repo) return err("RepoNotFound")
 
     try {
@@ -72,8 +73,8 @@ export function makeFetchRepositoryReaderAdapter(params: {
         .toString()
         .toUpperCase() as "PUBLIC" | "PRIVATE" | "INTERNAL"
 
-      const details: RepositoryDetails = {
-        repoFullName: ref.repoFullName,
+      const details: RepoDetails = {
+        fullName: repository.fullName,
         owner: data?.owner?.login ?? owner,
         name: data?.name ?? repo,
         description: data?.description ?? null,
@@ -158,5 +159,5 @@ export function makeFetchRepositoryReaderAdapter(params: {
     }
   }
 
-  return { getRepository, listUserAccessibleRepoFullNames }
+  return { getRepo, listUserAccessibleRepoFullNames }
 }
