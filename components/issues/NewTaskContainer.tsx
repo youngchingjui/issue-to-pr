@@ -1,13 +1,11 @@
 import { Suspense } from "react"
 
+import IssuesNotEnabled from "@/components/common/IssuesNotEnabled"
 import RepoSelector from "@/components/common/RepoSelector"
 import IssueTable from "@/components/issues/IssueTable"
 import NewTaskInput from "@/components/issues/NewTaskInput"
-import SafariStreamingPaint from "@/components/system/SafariStreamingPaint"
 import Skeleton from "@/components/ui/skeleton"
 import { RepoFullName } from "@/lib/types/github"
-
-import IssuesNotEnabled from "../common/IssuesNotEnabled"
 
 interface Props {
   repoFullName: RepoFullName
@@ -24,27 +22,13 @@ export default async function NewTaskContainer({ repoFullName }: Props) {
       <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h1 className="text-2xl font-bold">Your Issues &amp; Workflows</h1>
         <div className="flex items-center gap-3">
-          <Suspense
-            fallback={
-              <>
-                <SafariStreamingPaint />
-                <Skeleton className="h-4 w-24" />
-              </>
-            }
-          >
+          <Suspense fallback={<Skeleton className="h-4 w-24" />}>
             <RepoSelector selectedRepo={repoFullName.fullName} />
           </Suspense>
         </div>
       </div>
 
-      <Suspense
-        fallback={
-          <>
-            <SafariStreamingPaint />
-            <Skeleton className="h-9 w-60" />
-          </>
-        }
-      >
+      <Suspense>
         <IssuesNotEnabled repoFullName={repoFullName} />
       </Suspense>
 
@@ -52,14 +36,7 @@ export default async function NewTaskContainer({ repoFullName }: Props) {
         <NewTaskInput repoFullName={repoFullName} />
       </div>
 
-      <Suspense
-        fallback={
-          <>
-            <SafariStreamingPaint />
-            <Skeleton className="h-9 w-60" />
-          </>
-        }
-      >
+      <Suspense fallback={<Skeleton className="h-9 w-60" />}>
         <IssueTable repoFullName={repoFullName} />
       </Suspense>
     </main>
