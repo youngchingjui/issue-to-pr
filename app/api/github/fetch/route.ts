@@ -6,6 +6,10 @@ import { getPullRequest } from "@/lib/github/pullRequests"
 import { FetchGitHubItemRequestSchema } from "@/lib/schemas/api"
 import { GetIssueResult, GitHubIssue, PullRequest } from "@/lib/types/github"
 
+// TODO: Not sure if this is the right implementation.
+// i.e. why is this a POST request?
+// Also, to fetch either an issue or pull request, we should ideally convert it to a data fetch within an RSC.
+// We only need a GET API route if we're fetching from a client component.
 export async function POST(request: Request) {
   try {
     const body = await request.json()
