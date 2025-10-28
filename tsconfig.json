@@ -37,7 +37,8 @@
     "components/**/*",
     "styles/**/*",
     "lib/**/*",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    "shared/dist/**/*.d.ts"
   ],
-  "exclude": ["node_modules", "apps/**", "shared/**"]
+  "exclude": ["node_modules", "apps/**"]
 }
