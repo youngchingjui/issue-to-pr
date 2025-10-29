@@ -178,8 +178,12 @@ export async function cloneRepo(
   dir: string | undefined = undefined
 ): Promise<string> {
   const command = `git clone ${cloneUrl}${dir ? ` ${dir}` : ""}`
+  // Use the parent directory as cwd when a target dir is provided. The
+  // target directory may not exist (e.g., after cleanup), and using it as
+  // cwd would cause spawn /bin/sh ENOENT.
+  const cwd = dir ? path.dirname(dir) : undefined
   return new Promise((resolve, reject) => {
-    exec(command, { cwd: dir }, (error, stdout) => {
+    exec(command, { cwd }, (error, stdout) => {
       if (error) {
         return reject(new Error(error.message))
       }

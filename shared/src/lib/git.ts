@@ -178,8 +178,13 @@ export async function cloneRepo(
   dir: string | undefined = undefined
 ): Promise<string> {
   const command = `git clone ${cloneUrl}${dir ? ` ${dir}` : ""}`
+  // Important: when callers request cloning into a specific directory (dir),
+  // that directory may not exist yet (e.g. after a cleanup). Using it as the
+  // current working directory would cause spawn /bin/sh ENOENT. We therefore
+  // resolve the cwd to the parent directory when a target dir is provided.
+  const cwd = dir ? path.dirname(dir) : undefined
   return new Promise((resolve, reject) => {
-    exec(command, { cwd: dir }, (error, stdout) => {
+    exec(command, { cwd }, (error, stdout) => {
       if (error) {
         return reject(new Error(error.message))
       }
