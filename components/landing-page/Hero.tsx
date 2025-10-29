@@ -36,7 +36,6 @@ export default async function Hero() {
         </p>
       </motion.div>
 
-      {/* CTA (reordered before image on mobile) */}
       <motion.div
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
