@@ -26,14 +26,26 @@ export default async function Hero() {
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className="max-w-6xl mx-auto relative z-10 w-full"
+        className="max-w-6xl mx-auto relative z-10 w-full order-1"
       >
         <h1 className="text-left sm:text-center text-5xl sm:text-6xl md:text-7xl font-extrabold mb-4 sm:mb-6 md:mb-8 leading-tight tracking-tight">
           <span>Preview your ideas</span>
         </h1>
         <p className="text-left sm:text-center text-stone-600 text-base sm:text-lg md:text-xl mb-4 sm:mb-6 max-w-3xl mx-auto px-0 sm:px-4 md:px-5 w-full leading-relaxed">
-          Automatically generate previews and PRs from every GitHub issue.
+          Generate previews of your ideas + production-ready PRs on existing codebases, no coding required.
         </p>
+      </motion.div>
+
+      {/* CTA (reordered before image on mobile) */}
+      <motion.div
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.35 }}
+        className="mt-8 sm:mt-4 mb-8 sm:mb-0 flex flex-col items-center relative z-10 order-2 sm:order-3"
+      >
+        <div className="relative isolate">
+          <AuthButton />
+        </div>
       </motion.div>
 
       {/* Visual placeholder under the CTA */}
@@ -41,7 +53,7 @@ export default async function Hero() {
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.5 }}
-        className="relative z-0 mt-10 sm:mt-14 md:mt-16 w-full max-w-5xl px-0 sm:px-4"
+        className="relative z-0 mt-6 sm:mt-14 md:mt-16 w-full max-w-5xl px-0 sm:px-4 order-3 sm:order-2"
         aria-hidden
       >
         {/* Speech bubble */}
@@ -54,16 +66,6 @@ export default async function Hero() {
         </div>
         {/* Website preview diagram */}
         <WebsitePreview />
-      </motion.div>
-      <motion.div
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.35 }}
-        className="mt-20 mb-20 sm:mt-4 flex flex-col items-center relative z-10"
-      >
-        <div className="relative isolate">
-          <AuthButton />
-        </div>
       </motion.div>
     </motion.section>
   )
