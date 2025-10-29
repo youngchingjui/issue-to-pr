@@ -36,6 +36,8 @@ export const issueSchema = z.object({
   labels: z.array(z.string()).optional(),
   assignees: z.array(z.string()).optional(),
   updatedAt: z.date().optional(),
+  // LLM-parsed requirements in Markdown (bullet points preferred)
+  requirements: z.string().optional(),
 })
 
 // WorkflowRuns
@@ -316,3 +318,4 @@ export type UserMessage = z.infer<typeof userMessageSchema>
 export type WorkflowRun = z.infer<typeof workflowRunSchema>
 export type WorkflowRunState = z.infer<typeof workflowRunStateSchema>
 export type WorkflowType = z.infer<typeof workflowTypeEnum>
+
