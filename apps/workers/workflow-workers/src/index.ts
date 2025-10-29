@@ -22,7 +22,7 @@ const { REDIS_URL, WORKER_CONCURRENCY } = getEnvVar()
 const workerConn = getRedisConnection(REDIS_URL, "bullmq:worker")
 const eventsConn = getRedisConnection(REDIS_URL, "bullmq:events")
 
-const concurrency = Math.max(1, Number(WORKER_CONCURRENCY ?? "1"))
+const concurrency = Math.max(1, WORKER_CONCURRENCY)
 
 const worker = new Worker(WORKFLOW_JOBS_QUEUE, handler, {
   connection: workerConn,
@@ -95,4 +95,3 @@ queueEvents.on("error", (err) => {
 
 // Register graceful shutdown with a default 1 hour timeout (overridable via SHUTDOWN_TIMEOUT_MS)
 registerGracefulShutdown({ worker, queueEvents, connection: workerConn })
-
