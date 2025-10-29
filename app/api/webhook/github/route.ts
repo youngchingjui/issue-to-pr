@@ -11,10 +11,18 @@ import { handleIssueLabelAutoResolve } from "@/lib/webhook/github/handlers/issue
 import { handleIssueLabelResolve } from "@/lib/webhook/github/handlers/issue/label.resolve.handler"
 import { handlePullRequestClosedRemoveContainer } from "@/lib/webhook/github/handlers/pullRequest/closed.removeContainer.handler"
 import {
+  CreatePayloadSchema,
+  DeletePayloadSchema,
+  DeploymentPayloadSchema,
+  DeploymentStatusPayloadSchema,
   GithubEventSchema,
+  IssueCommentPayloadSchema,
   IssuesPayloadSchema,
   PullRequestPayloadSchema,
   PushPayloadSchema,
+  StatusPayloadSchema,
+  WorkflowJobPayloadSchema,
+  WorkflowRunPayloadSchema,
 } from "@/lib/webhook/github/types"
 
 function verifySignature({
@@ -123,6 +131,9 @@ export async function POST(req: NextRequest) {
           case "opened":
             // No-op for now
             break
+          case "closed":
+            // No-op for now
+            break
           default:
             // Other issue actions ignored
             break
@@ -151,6 +162,12 @@ export async function POST(req: NextRequest) {
             }
             break
           }
+          case "opened":
+          case "labeled":
+          case "synchronize":
+          case "reopened":
+            // Explicitly supported as no-ops for now
+            break
           default:
             // Ignore other PR actions
             break
@@ -168,6 +185,101 @@ export async function POST(req: NextRequest) {
         break
       }
 
+      case "create": {
+        const r = CreatePayloadSchema.safeParse(payload)
+        if (!r.success) {
+          console.error("[ERROR] Invalid create payload", r.error.flatten())
+          return new Response("Invalid payload", { status: 400 })
+        }
+        // No-op for now
+        break
+      }
+
+      case "delete": {
+        const r = DeletePayloadSchema.safeParse(payload)
+        if (!r.success) {
+          console.error("[ERROR] Invalid delete payload", r.error.flatten())
+          return new Response("Invalid payload", { status: 400 })
+        }
+        // No-op for now
+        break
+      }
+
+      case "status": {
+        const r = StatusPayloadSchema.safeParse(payload)
+        if (!r.success) {
+          console.error("[ERROR] Invalid status payload", r.error.flatten())
+          return new Response("Invalid payload", { status: 400 })
+        }
+        // No-op for now
+        break
+      }
+
+      case "issue_comment": {
+        const r = IssueCommentPayloadSchema.safeParse(payload)
+        if (!r.success) {
+          console.error(
+            "[ERROR] Invalid issue_comment payload",
+            r.error.flatten()
+          )
+          return new Response("Invalid payload", { status: 400 })
+        }
+        // Explicitly accept created/edited as no-ops for now
+        break
+      }
+
+      case "deployment": {
+        const r = DeploymentPayloadSchema.safeParse(payload)
+        if (!r.success) {
+          console.error(
+            "[ERROR] Invalid deployment payload",
+            r.error.flatten()
+          )
+          return new Response("Invalid payload", { status: 400 })
+        }
+        // No-op
+        break
+      }
+
+      case "deployment_status": {
+        const r = DeploymentStatusPayloadSchema.safeParse(payload)
+        if (!r.success) {
+          console.error(
+            "[ERROR] Invalid deployment_status payload",
+            r.error.flatten()
+          )
+          return new Response("Invalid payload", { status: 400 })
+        }
+        // No-op
+        break
+      }
+
+      case "workflow_run": {
+        const r = WorkflowRunPayloadSchema.safeParse(payload)
+        if (!r.success) {
+          console.error(
+            "[ERROR] Invalid workflow_run payload",
+            r.error.flatten()
+          )
+          return new Response("Invalid payload", { status: 400 })
+        }
+        // No-op (requested)
+        break
+      }
+
+      case "workflow_job": {
+        const r = WorkflowJobPayloadSchema.safeParse(payload)
+        if (!r.success) {
+          console.error(
+            "[ERROR] Invalid workflow_job payload",
+            r.error.flatten()
+          )
+          return new Response("Invalid payload", { status: 400 })
+        }
+        // No-op (queued)
+        break
+      }
+
       default:
         // Unsupported event already filtered, but keep for completeness
         break
@@ -179,3 +291,4 @@ export async function POST(req: NextRequest) {
     return new Response("Error", { status: 500 })
   }
 }
+
