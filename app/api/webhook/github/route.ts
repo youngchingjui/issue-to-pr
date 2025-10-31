@@ -10,6 +10,7 @@ import { NextRequest } from "next/server"
 import { handleIssueLabelAutoResolve } from "@/lib/webhook/github/handlers/issue/label.autoResolveIssue.handler"
 import { handleIssueLabelResolve } from "@/lib/webhook/github/handlers/issue/label.resolve.handler"
 import { handlePullRequestClosedRemoveContainer } from "@/lib/webhook/github/handlers/pullRequest/closed.removeContainer.handler"
+import { handleRepositoryEditedRevalidate } from "@/lib/webhook/github/handlers/repository/edited.revalidateRepoCache.handler"
 import {
   CreatePayloadSchema,
   DeletePayloadSchema,
@@ -20,6 +21,7 @@ import {
   IssuesPayloadSchema,
   PullRequestPayloadSchema,
   PushPayloadSchema,
+  RepositoryPayloadSchema,
   StatusPayloadSchema,
   WorkflowJobPayloadSchema,
   WorkflowRunPayloadSchema,
@@ -277,6 +279,22 @@ export async function POST(req: NextRequest) {
           return new Response("Invalid payload", { status: 400 })
         }
         // No-op (queued)
+        break
+      }
+
+      case "repository": {
+        const r = RepositoryPayloadSchema.safeParse(payload)
+        if (!r.success) {
+          console.error(
+            "[ERROR] Invalid repository payload",
+            r.error.flatten()
+          )
+          return new Response("Invalid payload", { status: 400 })
+        }
+        const parsedPayload = r.data
+        if (parsedPayload.action === "edited") {
+          await handleRepositoryEditedRevalidate({ payload: parsedPayload })
+        }
         break
       }
 
