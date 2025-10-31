@@ -1,4 +1,4 @@
-import { Loader2, NotebookPen } from "lucide-react"
+import { Clock, Loader2, NotebookPen } from "lucide-react"
 import Link from "next/link"
 import React from "react"
 
@@ -13,7 +13,7 @@ import type { IssueWithStatus } from "@/lib/github/issues"
 interface Props {
   issue: Pick<
     IssueWithStatus,
-    "hasActiveWorkflow" | "hasPlan" | "planId" | "number"
+    "hasActiveWorkflow" | "hasQueuedJob" | "hasPlan" | "planId" | "number"
   >
   repoFullName: string
   prSlot?: React.ReactNode
@@ -24,6 +24,7 @@ export default function StatusIndicators({
   repoFullName,
   prSlot,
 }: Props) {
+  const showQueued = !!issue.hasQueuedJob && !issue.hasActiveWorkflow
   return (
     <TooltipProvider delayDuration={200}>
       <div className="flex flex-row gap-2">
@@ -37,6 +38,19 @@ export default function StatusIndicators({
                 />
               </TooltipTrigger>
               <TooltipContent side="bottom">Workflow running</TooltipContent>
+            </Tooltip>
+          ) : null}
+          {showQueued ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Clock
+                  className="inline align-text-bottom mr-0.5 text-amber-600"
+                  size={18}
+                />
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                Job queued (waiting for worker)
+              </TooltipContent>
             </Tooltip>
           ) : null}
         </div>
@@ -63,3 +77,4 @@ export default function StatusIndicators({
     </TooltipProvider>
   )
 }
+
