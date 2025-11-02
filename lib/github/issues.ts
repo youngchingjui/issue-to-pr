@@ -1,5 +1,11 @@
 "use server"
 
+import {
+  makeAccessTokenProviderFrom,
+  makeSessionProvider,
+} from "shared/providers/auth"
+import { withTiming } from "shared/utils/telemetry"
+
 import { auth } from "@/auth"
 import { makeFetchIssueReaderAdapter } from "@/lib/adapters/github/fetch/issue.reader"
 import getOctokit, { getGraphQLClient, getUserOctokit } from "@/lib/github"
@@ -14,11 +20,6 @@ import {
   GitHubIssueComment,
   ListForRepoParams,
 } from "@/lib/types/github"
-import {
-  makeAccessTokenProviderFrom,
-  makeSessionProvider,
-} from "shared/providers/auth"
-import { withTiming } from "shared/utils/telemetry"
 
 type CreateIssueParams = {
   repo: string
@@ -171,7 +172,7 @@ export async function getIssueList({
   const page = (rest.page as number | undefined) ?? 1
   const per_page = (rest.per_page as number | undefined) ?? 25
 
-  const res = await adapter.listForRepo({
+  const res = await adapter.listIssues({
     repoFullName,
     page,
     per_page,
@@ -185,18 +186,19 @@ export async function getIssueList({
 
   // Map provider-agnostic list items to GitHubIssue-like objects used by UI
   const items = res.value
-  const mapped: GitHubIssue[] = items.map((i) =>
-    ({
-      id: i.id,
-      number: i.number,
-      title: i.title ?? "",
-      state: i.state === "OPEN" ? "open" : "closed",
-      html_url: i.url,
-      created_at: i.createdAt,
-      updated_at: i.updatedAt,
-      closed_at: i.closedAt ?? undefined,
-      user: i.authorLogin ? { login: i.authorLogin } : undefined,
-    } as GitHubIssue)
+  const mapped: GitHubIssue[] = items.map(
+    (i) =>
+      ({
+        id: i.id,
+        number: i.number,
+        title: i.title ?? "",
+        state: i.state === "OPEN" ? "open" : "closed",
+        html_url: i.url,
+        created_at: i.createdAt,
+        updated_at: i.updatedAt,
+        closed_at: i.closedAt ?? undefined,
+        user: i.authorLogin ? { login: i.authorLogin } : undefined,
+      }) as GitHubIssue
   )
 
   return mapped
@@ -538,4 +540,3 @@ export async function getLinkedPRNumbersForIssues({
 
   return result
 }
-
