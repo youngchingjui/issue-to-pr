@@ -1,5 +1,3 @@
-import { z } from "zod"
-
 import { err, ok, type Result } from "shared/entities/result"
 import type {
   GetIssueErrors,
@@ -7,6 +5,7 @@ import type {
   IssueReaderPort,
   ListIssuesParams,
 } from "shared/ports/github/issue.reader"
+import { z } from "zod"
 
 // Minimal shape we need from GitHub issue list endpoint
 const GitHubIssueLiteSchema = z.object({
@@ -69,9 +68,15 @@ export function makeFetchIssueReaderAdapter(params: {
         const retryAfter = res.headers.get("retry-after")
 
         if (res.status === 401)
-          return err("AuthRequired", { status: res.status, message: res.statusText })
+          return err("AuthRequired", {
+            status: res.status,
+            message: res.statusText,
+          })
         if (res.status === 404)
-          return err("RepoNotFound", { status: res.status, message: res.statusText })
+          return err("RepoNotFound", {
+            status: res.status,
+            message: res.statusText,
+          })
         if (isRateLimited(res))
           return err("RateLimited", {
             status: res.status,
@@ -79,7 +84,10 @@ export function makeFetchIssueReaderAdapter(params: {
             retryAfter,
           })
         if (res.status === 403)
-          return err("Forbidden", { status: res.status, message: res.statusText })
+          return err("Forbidden", {
+            status: res.status,
+            message: res.statusText,
+          })
         return err("Unknown", { status: res.status, message: res.statusText })
       }
 
@@ -123,4 +131,3 @@ export function makeFetchIssueReaderAdapter(params: {
     getIssueTitles,
   }
 }
-

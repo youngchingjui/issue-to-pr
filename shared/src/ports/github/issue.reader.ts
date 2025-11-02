@@ -97,4 +97,3 @@ export interface IssueReaderFactoryPort {
     input: GitHubAuthMethod
   ): Promise<Result<IssueReaderPort, AuthErrors>>
 }
-
