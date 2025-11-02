@@ -101,7 +101,7 @@ export function makeIssueReaderAdapter(
         console.error(error)
         return err("Unknown")
       }
-      if ("status" in error && typeof (error as any).status === "number") {
+      if ("status" in error && typeof error.status === "number") {
         const http = error as { status: number }
         switch (http.status) {
           case 401:
@@ -190,4 +190,3 @@ export function makeIssueReaderAdapter(
     listForRepo,
   }
 }
-
