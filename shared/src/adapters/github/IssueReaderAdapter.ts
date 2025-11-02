@@ -175,18 +175,17 @@ export function makeIssueReaderAdapter(
     return results
   }
 
-  // New method introduced in the port to support listing issues via fetch-based adapter.
-  // This Octokit-based adapter returns an empty list to avoid widening scope.
-  async function listForRepo(
+  async function listIssues(
     params: ListIssuesParams
   ): Promise<Result<IssueListItem[], GetIssueErrors>> {
     void params
+    // no-op, to be implemented
     return ok([])
   }
 
   return {
     getIssue,
     getIssueTitles,
-    listForRepo,
+    listIssues,
   }
 }
