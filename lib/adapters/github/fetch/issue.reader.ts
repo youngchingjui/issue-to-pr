@@ -36,7 +36,7 @@ function isRateLimited(res: Response, message?: string | null): boolean {
 export function makeFetchIssueReaderAdapter(params: {
   token: string
   userAgent?: string
-}): IssueReaderPort {
+}): IssueReaderPort["listIssues"] {
   const { token, userAgent = "Issue To PR/1.0.0 (https://issuetopr.dev)" } =
     params
 
@@ -46,7 +46,7 @@ export function makeFetchIssueReaderAdapter(params: {
     "User-Agent": userAgent,
   }
 
-  async function listForRepo(
+  async function listIssues(
     params: ListIssuesParams
   ): Promise<Result<IssueListItem[], GetIssueErrors>> {
     const { repoFullName, page = 1, per_page = 25, state = "open" } = params
@@ -117,17 +117,5 @@ export function makeFetchIssueReaderAdapter(params: {
     }
   }
 
-  // Unused in this adapter for now; satisfy port with minimal stubs
-  async function getIssue() {
-    return err("Unknown") as unknown as Result<IssueListItem, GetIssueErrors>
-  }
-  async function getIssueTitles() {
-    return []
-  }
-
-  return {
-    listForRepo,
-    getIssue,
-    getIssueTitles,
-  }
+  return listIssues
 }
