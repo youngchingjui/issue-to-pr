@@ -75,7 +75,7 @@ export interface IssueReaderPort {
   /**
    * List issues for a repository. Should exclude pull requests.
    */
-  listForRepo(
+  listIssues(
     params: ListIssuesParams
   ): Promise<Result<IssueListItem[], GetIssueErrors>>
 }
