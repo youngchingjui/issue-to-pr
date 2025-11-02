@@ -1,5 +1,6 @@
 "use server"
 
+import { revalidateTag } from "next/cache"
 import { makeIssueWriterAdapter } from "shared/adapters/github/octokit/rest/issue.writer"
 import { createIssueForRepo } from "shared/services/github/issues"
 
@@ -44,6 +45,16 @@ export async function createIssueAction(
   const res = await createIssueForRepo(githubAdapter, parsed.data)
 
   if (res.ok) {
+    // Revalidate the issues list cache for this repo so the new issue appears immediately
+    const repoFullName = `${parsed.data.owner}/${parsed.data.repo}`
+    try {
+      revalidateTag("issues-list")
+      revalidateTag(repoFullName)
+      revalidateTag(`issues-list:${repoFullName}`)
+    } catch (e) {
+      console.warn("Failed to revalidate tags after creating issue", e)
+    }
+
     return {
       status: "success",
       issueUrl: res.value.url,
@@ -54,3 +65,4 @@ export async function createIssueAction(
   // Return only machine-readable code and optional details; UI will map to copy
   return { status: "error", code: res.error, message: res.error }
 }
+

@@ -6,9 +6,11 @@ import type {
   GetIssueErrors,
   GitHubAuthMethod,
   IssueDetails,
+  IssueListItem,
   IssueReaderPort,
   IssueRef,
   IssueTitleResult,
+  ListIssuesParams,
 } from "@/ports/github/issue.reader"
 
 /**
@@ -99,8 +101,9 @@ export function makeIssueReaderAdapter(
         console.error(error)
         return err("Unknown")
       }
-      if ("status" in error && typeof error.status === "number") {
-        switch (error.status) {
+      if ("status" in error && typeof (error as any).status === "number") {
+        const http = error as { status: number }
+        switch (http.status) {
           case 401:
             return err("AuthRequired")
           case 403:
@@ -172,8 +175,19 @@ export function makeIssueReaderAdapter(
     return results
   }
 
+  // New method introduced in the port to support listing issues via fetch-based adapter.
+  // This Octokit-based adapter returns an empty list to avoid widening scope.
+  async function listForRepo(
+    params: ListIssuesParams
+  ): Promise<Result<IssueListItem[], GetIssueErrors>> {
+    void params
+    return ok([])
+  }
+
   return {
     getIssue,
     getIssueTitles,
+    listForRepo,
   }
 }
+
