@@ -46,6 +46,7 @@ export type GetIssueErrors =
   | "Forbidden"
   | "IssuesDisabled"
   | "RateLimited"
+  | "NotImplemented"
   | "Unknown"
 
 export type AuthErrors = "AuthRequired" | "Unknown"

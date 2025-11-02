@@ -1,8 +1,11 @@
 import { err, ok, type Result } from "shared/entities/result"
 import type {
   GetIssueErrors,
+  IssueDetails,
   IssueListItem,
   IssueReaderPort,
+  IssueRef,
+  IssueTitleResult,
   ListIssuesParams,
 } from "shared/ports/github/issue.reader"
 import { z } from "zod"
@@ -36,7 +39,7 @@ function isRateLimited(res: Response, message?: string | null): boolean {
 export function makeFetchIssueReaderAdapter(params: {
   token: string
   userAgent?: string
-}): IssueReaderPort["listIssues"] {
+}): IssueReaderPort {
   const { token, userAgent = "Issue To PR/1.0.0 (https://issuetopr.dev)" } =
     params
 
@@ -117,5 +120,19 @@ export function makeFetchIssueReaderAdapter(params: {
     }
   }
 
-  return listIssues
+  const getIssue = async (
+    ref: IssueRef
+  ): Promise<Result<IssueDetails, GetIssueErrors>> => {
+    // TODO: Implement when needed
+    return err("NotImplemented")
+  }
+
+  const getIssueTitles = async (
+    refs: IssueRef[]
+  ): Promise<IssueTitleResult[]> => {
+    // TODO: Implement when needed
+    return []
+  }
+
+  return { listIssues, getIssue, getIssueTitles }
 }
