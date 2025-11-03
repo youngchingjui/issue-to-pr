@@ -1,6 +1,3 @@
-import { revalidateTag } from "next/cache"
-import { redirect } from "next/navigation"
-
 import { auth } from "@/auth"
 import { Button } from "@/components/ui/button"
 import { closeIssueAction } from "@/lib/actions/closeIssue"
@@ -11,57 +8,9 @@ import { makeFetchIssueReaderAdapter } from "@/lib/adapters/github/fetch/issue.r
 // Format: "owner/repo"
 const DEFAULT_REPO = "youngchingjui/openai-realtime-agents-test-playground"
 
-const ISSUE_TAGS = (repoFullName: string) => [
-  "issues-list",
-  repoFullName,
-  `issues-list:${repoFullName}`,
-]
-
-async function CreateIssueButton({ repoFullName }: { repoFullName: string }) {
-  async function create() {
-    "use server"
-    const [owner, repo] = repoFullName.split("/")
-    const now = new Date().toISOString()
-    await createIssueAction({
-      owner,
-      repo,
-      title: `Test issue @ ${now}`,
-      body: `Automatically created at ${now}`,
-    })
-    // Extra: revalidate via tag in case action changes later
-    try {
-      ISSUE_TAGS(repoFullName).forEach((t) => revalidateTag(t))
-    } catch {}
-    redirect("/playground/issues-caching")
-  }
-
-  return (
-    <form action={create}>
-      <Button type="submit">Create test issue</Button>
-    </form>
-  )
-}
-
-function CloseIssueForm({
-  repoFullName,
-  number,
-}: {
-  repoFullName: string
-  number: number
-}) {
-  const [owner, repo] = repoFullName.split("/")
-
-  return (
-    <form action={closeIssueAction.bind(null, { owner, repo, number: number })}>
-      <Button type="submit" variant="secondary">
-        Close
-      </Button>
-    </form>
-  )
-}
-
 export default async function Page() {
   const repoFullName = DEFAULT_REPO
+  const [owner, repo] = repoFullName.split("/")
   const session = await auth()
 
   if (!session?.token?.access_token) {
@@ -100,7 +49,16 @@ export default async function Page() {
       ) : null}
 
       <div className="flex items-center gap-4">
-        <CreateIssueButton repoFullName={repoFullName} />
+        <form
+          action={createIssueAction.bind(null, {
+            owner,
+            repo,
+            title: `Test issue @ ${new Date().toISOString()}`,
+            body: `Automatically created at ${new Date().toISOString()}`,
+          })}
+        >
+          <Button type="submit">Create test issue</Button>
+        </form>
         <span className="text-sm text-muted-foreground">
           Repo: <code>{repoFullName}</code>
         </span>
@@ -120,7 +78,17 @@ export default async function Page() {
                 {issue.state} • {new Date(issue.createdAt).toLocaleString()}
               </div>
             </div>
-            <CloseIssueForm repoFullName={repoFullName} number={issue.number} />
+            <form
+              action={closeIssueAction.bind(null, {
+                owner,
+                repo,
+                number: issue.number,
+              })}
+            >
+              <Button type="submit" variant="secondary">
+                Close
+              </Button>
+            </form>
           </li>
         ))}
       </ul>

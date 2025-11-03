@@ -6,39 +6,20 @@ import { createIssueForRepo } from "shared/services/github/issues"
 
 import { auth } from "@/auth"
 
-import {
-  CreateIssueActionParams,
-  type CreateIssueActionResult,
-  createIssueActionSchema,
-} from "./schemas"
+import { CreateIssueActionParams, createIssueActionSchema } from "./schemas"
 
-export function createIssueAction(
-  input: CreateIssueActionParams
-): Promise<CreateIssueActionResult>
-export async function createIssueAction(
-  input: unknown
-): Promise<CreateIssueActionResult> {
+export function createIssueAction(input: CreateIssueActionParams): Promise<void>
+export async function createIssueAction(input: unknown): Promise<void> {
   const parsed = createIssueActionSchema.safeParse(input)
   if (!parsed.success) {
-    const flattened = parsed.error.flatten()
-    return {
-      status: "error",
-      code: "ValidationFailed",
-      message: "Invalid input. Please check the highlighted fields.",
-      issues: parsed.error.issues?.map((i) => i.message) ?? [],
-      fieldErrors: flattened.fieldErrors as Record<string, string[]>,
-    }
+    throw new Error("Invalid input. Please check the highlighted fields.")
   }
 
   // Composition: wire concrete adapter using the current user's token
   const session = await auth()
   const token = session?.token?.access_token
   if (!token || typeof token !== "string") {
-    return {
-      status: "error",
-      code: "AuthRequired",
-      message: "Please reconnect your GitHub account.",
-    }
+    throw new Error("Please reconnect your GitHub account.")
   }
 
   const githubAdapter = makeIssueWriterAdapter({ token })
@@ -55,14 +36,8 @@ export async function createIssueAction(
       console.warn("Failed to revalidate tags after creating issue", e)
     }
 
-    return {
-      status: "success",
-      issueUrl: res.value.url,
-      number: res.value.number,
-    }
+    console.log("Issue created successfully")
+  } else {
+    throw new Error(String(res.error))
   }
-
-  // Return only machine-readable code and optional details; UI will map to copy
-  return { status: "error", code: res.error, message: res.error }
 }
-

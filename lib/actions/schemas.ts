@@ -35,9 +35,6 @@ export const createIssueActionResultSchema = z.discriminatedUnion("status", [
   success,
   error,
 ])
-export type CreateIssueActionResult = z.infer<
-  typeof createIssueActionResultSchema
->
 
 // =================================================
 // List Issues Action
