@@ -1,5 +1,6 @@
 import type { Result } from "@/entities/result"
 import {
+  type CloseIssueInput,
   type CreateIssueInput,
   type GithubIssueErrors,
   IssueWriterPort,
@@ -23,6 +24,18 @@ export class TimedIssueWriterPort implements IssueWriterPort {
 
     return withTiming(`${this.labelPrefix}: createIssue`, () =>
       this.inner.createIssue(input)
+    )
+  }
+
+  async closeIssue(
+    input: CloseIssueInput
+  ): Promise<Result<Issue, GithubIssueErrors>> {
+    if (!this.enabled) {
+      return this.inner.closeIssue(input)
+    }
+
+    return withTiming(`${this.labelPrefix}: closeIssue`, () =>
+      this.inner.closeIssue(input)
     )
   }
 }

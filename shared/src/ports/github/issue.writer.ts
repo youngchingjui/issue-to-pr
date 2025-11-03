@@ -17,6 +17,12 @@ export type GithubIssueErrors =
   | "ValidationFailed"
   | "Unknown"
 
+export type CloseIssueInput = {
+  owner: string
+  repo: string
+  number: number
+}
+
 /**
  * Abstraction over GitHub for writing issue metadata.
  * Implementations can use REST or GraphQL.
@@ -28,5 +34,12 @@ export interface IssueWriterPort {
    */
   createIssue(
     input: CreateIssueInput
+  ): Promise<Result<Issue, GithubIssueErrors>>
+
+  /**
+   * Close an existing issue in a repository.
+   */
+  closeIssue(
+    input: CloseIssueInput
   ): Promise<Result<Issue, GithubIssueErrors>>
 }

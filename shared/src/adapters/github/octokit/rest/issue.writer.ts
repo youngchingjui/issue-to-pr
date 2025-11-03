@@ -2,6 +2,7 @@ import { Octokit } from "@octokit/rest"
 
 import { err, ok, type Result } from "@/entities/result"
 import {
+  type CloseIssueInput,
   type CreateIssueInput,
   type GithubIssueErrors,
   type Issue,
@@ -65,8 +66,57 @@ export function makeIssueWriterAdapter(params: {
     }
   }
 
+  async function closeIssue(
+    input: CloseIssueInput
+  ): Promise<Result<Issue, GithubIssueErrors>> {
+    try {
+      const { data } = await octokit.issues.update({
+        owner: input.owner,
+        repo: input.repo,
+        issue_number: input.number,
+        state: "closed",
+      })
+      return ok({
+        id: data.id ?? 0,
+        number: data.number ?? 0,
+        url: data.html_url ?? "",
+      })
+    } catch (e: unknown) {
+      if (typeof e !== "object" || e === null) {
+        return err("Unknown", { message: "Unknown error" })
+      }
+
+      let status: number | undefined
+      let message: string | undefined
+      if ("status" in e && typeof e.status === "number") {
+        status = e.status
+      }
+      if ("message" in e && typeof e.message === "string") {
+        message = e.message
+      }
+
+      if (status === 401 || status === 403) {
+        return err("AuthRequired", { status, message })
+      }
+      if (status === 404) {
+        return err("RepoNotFound", { status, message })
+      }
+      if (status === 410) {
+        return err("IssuesDisabled", { status, message })
+      }
+      if (status === 422) {
+        return err("ValidationFailed", { status, message })
+      }
+      if (status === 429) {
+        return err("RateLimited", { status, message })
+      }
+      return err("Unknown", { status, message })
+    }
+  }
+
   return {
     createIssue,
+    closeIssue,
   }
 }
 

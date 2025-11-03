@@ -49,18 +49,10 @@ function CloseIssueForm({
   repoFullName: string
   number: number
 }) {
-  async function close() {
-    "use server"
-    const [owner, repo] = repoFullName.split("/")
-    await closeIssueAction({ owner, repo, number })
-    try {
-      ISSUE_TAGS(repoFullName).forEach((t) => revalidateTag(t))
-    } catch {}
-    redirect("/playground/issues-caching")
-  }
+  const [owner, repo] = repoFullName.split("/")
 
   return (
-    <form action={close}>
+    <form action={closeIssueAction.bind(null, { owner, repo, number: number })}>
       <Button type="submit" variant="secondary">
         Close
       </Button>
