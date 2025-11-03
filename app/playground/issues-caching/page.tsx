@@ -17,15 +17,6 @@ const ISSUE_TAGS = (repoFullName: string) => [
   `issues-list:${repoFullName}`,
 ]
 
-type GitHubIssueLite = {
-  id: number
-  number: number
-  title: string
-  state: "open" | "closed"
-  created_at: string
-  pull_request?: unknown
-}
-
 async function CreateIssueButton({ repoFullName }: { repoFullName: string }) {
   async function create() {
     "use server"

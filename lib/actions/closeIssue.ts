@@ -2,6 +2,8 @@
 
 import { Octokit } from "@octokit/rest"
 import { revalidateTag } from "next/cache"
+import { err, ok, type Result } from "shared/entities/result"
+import type { GithubIssueErrors as CloseIssueErrors } from "shared/ports/github/issue.writer"
 import { z } from "zod"
 
 import { auth } from "@/auth"
@@ -14,43 +16,27 @@ const closeIssueInputSchema = z.object({
 
 export type CloseIssueInput = z.infer<typeof closeIssueInputSchema>
 
-export type CloseIssueResult =
-  | { status: "success"; number: number; url: string }
-  | {
-      status: "error"
-      code:
-        | "AuthRequired"
-        | "RepoNotFound"
-        | "IssuesDisabled"
-        | "RateLimited"
-        | "ValidationFailed"
-        | "Unknown"
-      message: string
-      fieldErrors?: Record<string, string[]>
-    }
+export type CloseIssueOk = { number: number; url: string }
+export type { CloseIssueErrors }
 
 export async function closeIssueAction(
   input: unknown
-): Promise<CloseIssueResult> {
+): Promise<Result<CloseIssueOk, CloseIssueErrors>> {
   const parsed = closeIssueInputSchema.safeParse(input)
   if (!parsed.success) {
     const flattened = parsed.error.flatten()
-    return {
-      status: "error",
-      code: "ValidationFailed",
+    return err("ValidationFailed", {
       message: "Invalid input. Please check the highlighted fields.",
-      fieldErrors: flattened.fieldErrors as Record<string, string[]>,
-    }
+      fieldErrors: flattened.fieldErrors,
+    })
   }
 
   const session = await auth()
   const token = session?.token?.access_token
   if (!token || typeof token !== "string") {
-    return {
-      status: "error",
-      code: "AuthRequired",
+    return err("AuthRequired", {
       message: "Please reconnect your GitHub account.",
-    }
+    })
   }
 
   const { owner, repo, number } = parsed.data
@@ -70,49 +56,34 @@ export async function closeIssueAction(
       revalidateTag("issues-list")
       revalidateTag(repoFullName)
       revalidateTag(`issues-list:${repoFullName}`)
-    } catch (e) {
-      console.warn("Failed to revalidate tags after closing issue", e)
-    }
+    } catch {}
 
-    return {
-      status: "success",
+    return ok({
       number: res.data.number ?? number,
       url: res.data.html_url ?? "",
-    }
+    })
   } catch (e: unknown) {
-    const err = e as { status?: number; message?: string }
-    if (err?.status === 404) {
-      return {
-        status: "error",
-        code: "RepoNotFound",
-        message: err.message || "Not found",
+    if (typeof e === "object" && e !== null) {
+      let status: number | undefined
+      let message: string | undefined
+      const errRecord = e as Record<string, unknown>
+      const statusVal = errRecord.status
+      if (typeof statusVal === "number") {
+        status = statusVal
       }
-    }
-    if (err?.status === 401 || err?.status === 403) {
-      return {
-        status: "error",
-        code: "AuthRequired",
-        message: err.message || "Unauthorized",
+      const messageVal = errRecord.message
+      if (typeof messageVal === "string") {
+        message = messageVal
       }
+
+      if (status === 404) return err("RepoNotFound", { status, message })
+      if (status === 401 || status === 403)
+        return err("AuthRequired", { status, message })
+      if (status === 410) return err("IssuesDisabled", { status, message })
+      if (status === 422) return err("ValidationFailed", { status, message })
+      if (status === 429) return err("RateLimited", { status, message })
+      return err("Unknown", { status, message })
     }
-    if (err?.status === 410) {
-      return {
-        status: "error",
-        code: "IssuesDisabled",
-        message: err.message || "Issues disabled",
-      }
-    }
-    if (err?.status === 429) {
-      return {
-        status: "error",
-        code: "RateLimited",
-        message: err.message || "Rate limited",
-      }
-    }
-    return {
-      status: "error",
-      code: "Unknown",
-      message: err?.message || "Unknown error",
-    }
+    return err("Unknown", { message: "Unknown error" })
   }
 }
