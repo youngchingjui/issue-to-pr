@@ -1,7 +1,7 @@
 "use server"
 
-import { revalidateTag } from "next/cache"
 import { Octokit } from "@octokit/rest"
+import { revalidateTag } from "next/cache"
 import { z } from "zod"
 
 import { auth } from "@/auth"
@@ -29,7 +29,9 @@ export type CloseIssueResult =
       fieldErrors?: Record<string, string[]>
     }
 
-export async function closeIssueAction(input: unknown): Promise<CloseIssueResult> {
+export async function closeIssueAction(
+  input: unknown
+): Promise<CloseIssueResult> {
   const parsed = closeIssueInputSchema.safeParse(input)
   if (!parsed.success) {
     const flattened = parsed.error.flatten()
@@ -80,18 +82,37 @@ export async function closeIssueAction(input: unknown): Promise<CloseIssueResult
   } catch (e: unknown) {
     const err = e as { status?: number; message?: string }
     if (err?.status === 404) {
-      return { status: "error", code: "RepoNotFound", message: err.message || "Not found" }
+      return {
+        status: "error",
+        code: "RepoNotFound",
+        message: err.message || "Not found",
+      }
     }
     if (err?.status === 401 || err?.status === 403) {
-      return { status: "error", code: "AuthRequired", message: err.message || "Unauthorized" }
+      return {
+        status: "error",
+        code: "AuthRequired",
+        message: err.message || "Unauthorized",
+      }
     }
     if (err?.status === 410) {
-      return { status: "error", code: "IssuesDisabled", message: err.message || "Issues disabled" }
+      return {
+        status: "error",
+        code: "IssuesDisabled",
+        message: err.message || "Issues disabled",
+      }
     }
     if (err?.status === 429) {
-      return { status: "error", code: "RateLimited", message: err.message || "Rate limited" }
+      return {
+        status: "error",
+        code: "RateLimited",
+        message: err.message || "Rate limited",
+      }
     }
-    return { status: "error", code: "Unknown", message: err?.message || "Unknown error" }
+    return {
+      status: "error",
+      code: "Unknown",
+      message: err?.message || "Unknown error",
+    }
   }
 }
-
