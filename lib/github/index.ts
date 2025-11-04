@@ -195,3 +195,30 @@ export async function getAppOctokit() {
   })
   return app
 }
+
+/**
+ * List all installations for our GitHub App using App authentication.
+ * This returns installations across all accounts/orgs, regardless of the current user.
+ */
+export async function listAppInstallations() {
+  const app = await getAppOctokit()
+
+  const all: unknown[] = []
+  let page = 1
+  const per_page = 100
+
+  // Manually paginate
+  // https://docs.github.com/en/rest/apps/apps#list-installations-for-the-authenticated-app
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const { data } = await app.octokit.request("GET /app/installations", {
+      per_page,
+      page,
+    })
+    all.push(...data)
+    if (!Array.isArray(data) || data.length < per_page) break
+    page += 1
+  }
+
+  return all
+}
