@@ -22,6 +22,7 @@ import OAuthTokenCard from "@/components/auth/OAuthTokenCard"
 import RepoSelector from "@/components/common/RepoSelector"
 import AgentWorkflowClient from "@/components/playground/AgentWorkflowClient"
 import AnthropicIssueTitleCard from "@/components/playground/AnthropicIssueTitleCard"
+import AppInstallationsCard from "@/components/playground/AppInstallationsCard"
 import ApplyPatchCard from "@/components/playground/ApplyPatchCard"
 import DockerodeExecCard from "@/components/playground/DockerodeExecCard"
 import IssueTitleCard from "@/components/playground/IssueTitleCard"
@@ -65,6 +66,7 @@ export default async function PlaygroundToolsPage() {
             fullName: "issue-to-pr/test-repo",
           }}
         />
+        <AppInstallationsCard />
         <TestGithubUserFunctionsCard />
       </div>
       <AgentWorkflowClient defaultTools={DEFAULT_TOOLS} />
