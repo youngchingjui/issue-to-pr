@@ -19,7 +19,9 @@ export async function upsertPullRequest(
     title?: string | null
   }
 ): Promise<PullRequestNode> {
-  const result = await tx.run<{ pr: Node<Integer, PullRequestNode, "PullRequest"> }>(
+  const result = await tx.run<{
+    pr: Node<Integer, PullRequestNode, "PullRequest">
+  }>(
     `
     MERGE (pr:PullRequest { repoFullName: $repoFullName, number: $number })
     ON CREATE SET pr.createdAt = datetime(), pr.url = $url, pr.title = $title
@@ -55,4 +57,3 @@ export async function linkEventCreatedPR(
     { eventId, repoFullName, number: int(number) }
   )
 }
-

@@ -173,4 +173,3 @@ async function persistToNeo4j(
 }
 
 export default PersistingEventBusAdapter
-
