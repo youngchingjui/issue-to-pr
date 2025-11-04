@@ -222,4 +222,3 @@ export async function listAppInstallations() {
 
   return all
 }
-

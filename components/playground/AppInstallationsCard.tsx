@@ -27,7 +27,9 @@ export default function AppInstallationsCard() {
   return (
     <Card className="max-w-2xl w-full mx-auto mb-4 bg-white/70 border border-dashed border-slate-300 shadow-sm">
       <CardHeader>
-        <CardTitle className="text-base">GitHub App Installations (App Auth)</CardTitle>
+        <CardTitle className="text-base">
+          GitHub App Installations (App Auth)
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -51,4 +53,3 @@ export default function AppInstallationsCard() {
     </Card>
   )
 }
-
