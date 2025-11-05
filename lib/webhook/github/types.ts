@@ -13,6 +13,9 @@ export const GithubEventSchema = z.enum([
   "deployment_status",
   "workflow_run",
   "workflow_job",
+  // Added to support cache revalidation when permissions or installations change
+  "installation",
+  "installation_repositories",
   "repository",
 ])
 export type GithubEvent = z.infer<typeof GithubEventSchema>
@@ -128,19 +131,3 @@ export const WorkflowJobPayloadSchema = z.object({
   installation: InstallationSchema,
 })
 export type WorkflowJobPayload = z.infer<typeof WorkflowJobPayloadSchema>
-
-// Repository event (e.g., settings edited)
-export const RepositoryPayloadSchema = z.object({
-  action: z.string(),
-  repository: z.object({
-    full_name: z.string(),
-    has_issues: z.boolean().optional(),
-  }),
-  // The `changes` field is included for certain actions like `edited`
-  changes: z
-    .object({ has_issues: z.object({ from: z.boolean() }).optional() })
-    .optional(),
-  installation: InstallationSchema.optional(),
-})
-export type RepositoryPayload = z.infer<typeof RepositoryPayloadSchema>
-

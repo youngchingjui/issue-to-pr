@@ -7,6 +7,7 @@ import { NextRequest } from "next/server"
 // - Route events to modular handlers in a clear, tree-like series of switch statements
 // - Pass along the installation ID and any needed data directly to handlers
 // - Handlers are responsible for doing any authenticated GitHub actions or enqueuing jobs
+import { revalidateUserInstallationReposCache } from "@/lib/webhook/github/handlers/installation/revalidateRepositoriesCache.handler"
 import { handleIssueLabelAutoResolve } from "@/lib/webhook/github/handlers/issue/label.autoResolveIssue.handler"
 import { handleIssueLabelResolve } from "@/lib/webhook/github/handlers/issue/label.resolve.handler"
 import { handlePullRequestClosedRemoveContainer } from "@/lib/webhook/github/handlers/pullRequest/closed.removeContainer.handler"
@@ -17,6 +18,8 @@ import {
   DeploymentPayloadSchema,
   DeploymentStatusPayloadSchema,
   GithubEventSchema,
+  InstallationPayloadSchema,
+  InstallationRepositoriesPayloadSchema,
   IssueCommentPayloadSchema,
   IssuesPayloadSchema,
   PullRequestPayloadSchema,
@@ -247,7 +250,6 @@ export async function POST(req: NextRequest) {
             "[ERROR] Invalid deployment_status payload",
             r.error.flatten()
           )
-          return new Response("Invalid payload", { status: 400 })
         }
         // No-op
         break
@@ -276,6 +278,36 @@ export async function POST(req: NextRequest) {
           return new Response("Invalid payload", { status: 400 })
         }
         // No-op (queued)
+        break
+      }
+
+      case "installation": {
+        const r = InstallationPayloadSchema.safeParse(payload)
+        if (!r.success) {
+          console.error(
+            "[ERROR] Invalid installation payload",
+            r.error.flatten()
+          )
+          return new Response("Invalid payload", { status: 400 })
+        }
+        const parsedPayload = r.data
+        const installationId = String(parsedPayload.installation.id)
+        await revalidateUserInstallationReposCache({ installationId })
+        break
+      }
+
+      case "installation_repositories": {
+        const r = InstallationRepositoriesPayloadSchema.safeParse(payload)
+        if (!r.success) {
+          console.error(
+            "[ERROR] Invalid installation_repositories payload",
+            r.error.flatten()
+          )
+          return new Response("Invalid payload", { status: 400 })
+        }
+        const parsedPayload = r.data
+        const installationId = String(parsedPayload.installation.id)
+        await revalidateUserInstallationReposCache({ installationId })
         break
       }
 

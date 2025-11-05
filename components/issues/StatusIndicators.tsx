@@ -8,13 +8,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import type { IssueWithStatus } from "@/lib/github/issues"
 
+interface Issue {
+  hasActiveWorkflow: boolean
+  hasPlan: boolean
+  planId?: string | null | undefined
+  number: number
+}
 interface Props {
-  issue: Pick<
-    IssueWithStatus,
-    "hasActiveWorkflow" | "hasPlan" | "planId" | "number"
-  >
+  issue: Issue
   repoFullName: string
   prSlot?: React.ReactNode
 }
