@@ -540,3 +540,32 @@ export async function getLinkedPRNumbersForIssues({
 
   return result
 }
+
+// --- Mutations ---
+export async function closeIssue({
+  repoFullName,
+  issueNumber,
+}: {
+  repoFullName: string
+  issueNumber: number
+}): Promise<void> {
+  const octokit = await getOctokit()
+  if (!octokit) {
+    throw new Error("No octokit found")
+  }
+  const [owner, repo] = repoFullName.split("/")
+  if (!owner || !repo) {
+    throw new Error("Invalid repository format. Expected 'owner/repo'")
+  }
+  await withTiming(
+    `GitHub REST: issues.update(state=closed) ${repoFullName}#${issueNumber}`,
+    () =>
+      octokit.rest.issues.update({
+        owner,
+        repo,
+        issue_number: issueNumber,
+        state: "closed",
+      })
+  )
+}
+

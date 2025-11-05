@@ -1,6 +1,6 @@
 import DataTable from "@/components/common/DataTable"
 import PullRequestRow from "@/components/pull-requests/PullRequestRow"
-import { getPullRequestList } from "@/lib/github/pullRequests"
+import { getPullRequestListWithExtras } from "@/lib/github/pullRequests"
 
 export default async function PullRequestTable({
   username,
@@ -9,16 +9,25 @@ export default async function PullRequestTable({
   username: string
   repoName: string
 }) {
-  const pullRequests = await getPullRequestList({
-    repoFullName: `${username}/${repoName}`,
+  const repoFullName = `${username}/${repoName}`
+  const pullRequests = await getPullRequestListWithExtras({
+    repoFullName,
   })
 
   return (
     <DataTable
       title="Pull Requests"
       items={pullRequests}
-      renderRow={(pr) => <PullRequestRow key={pr.id} pr={pr} />}
+      renderRow={(item) => (
+        <PullRequestRow
+          key={item.pr.id}
+          pr={item.pr}
+          previewUrl={item.extras.previewUrl || undefined}
+          linkedIssues={item.extras.linkedIssues}
+        />
+      )}
       emptyMessage="No pull requests found."
     />
   )
 }
+
