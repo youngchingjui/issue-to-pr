@@ -233,10 +233,7 @@ export async function POST(req: NextRequest) {
       case "deployment": {
         const r = DeploymentPayloadSchema.safeParse(payload)
         if (!r.success) {
-          console.error(
-            "[ERROR] Invalid deployment payload",
-            r.error.flatten()
-          )
+          console.error("[ERROR] Invalid deployment payload", r.error.flatten())
           return new Response("Invalid payload", { status: 400 })
         }
         // No-op
@@ -285,15 +282,17 @@ export async function POST(req: NextRequest) {
       case "repository": {
         const r = RepositoryPayloadSchema.safeParse(payload)
         if (!r.success) {
-          console.error(
-            "[ERROR] Invalid repository payload",
-            r.error.flatten()
-          )
+          console.error("[ERROR] Invalid repository payload", r.error.flatten())
           return new Response("Invalid payload", { status: 400 })
         }
         const parsedPayload = r.data
-        if (parsedPayload.action === "edited") {
-          await handleRepositoryEditedRevalidate({ payload: parsedPayload })
+        switch (parsedPayload.action) {
+          case "edited":
+            await handleRepositoryEditedRevalidate({ payload: parsedPayload })
+            break
+          default:
+            // Ignore other repository actions
+            break
         }
         break
       }
@@ -309,4 +308,3 @@ export async function POST(req: NextRequest) {
     return new Response("Error", { status: 500 })
   }
 }
-
