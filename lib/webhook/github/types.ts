@@ -13,9 +13,9 @@ export const GithubEventSchema = z.enum([
   "deployment_status",
   "workflow_run",
   "workflow_job",
-  // Added to support cache revalidation when permissions or installations change
   "installation",
   "installation_repositories",
+  "repository",
 ])
 export type GithubEvent = z.infer<typeof GithubEventSchema>
 
@@ -131,7 +131,6 @@ export const WorkflowJobPayloadSchema = z.object({
 })
 export type WorkflowJobPayload = z.infer<typeof WorkflowJobPayloadSchema>
 
-// New: payloads for installation and repository-permission changes
 export const InstallationPayloadSchema = z.object({
   action: z.string(),
   installation: InstallationSchema,
@@ -146,3 +145,18 @@ export type InstallationRepositoriesPayload = z.infer<
   typeof InstallationRepositoriesPayloadSchema
 >
 
+// Repository → discriminated union by action
+// We only model the shapes we actually use today. Others are accepted via a
+// minimal variant so the route can ignore them without 400s.
+export const RepositoryPayloadEditedSchema = z.object({
+  action: z.literal("edited"),
+  repository: z.object({ full_name: z.string() }),
+  installation: InstallationSchema.optional(),
+})
+
+// Accept but do not model other repository actions in detail
+export const RepositoryPayloadSchema = z.discriminatedUnion("action", [
+  RepositoryPayloadEditedSchema,
+])
+
+export type RepositoryPayload = z.infer<typeof RepositoryPayloadSchema>

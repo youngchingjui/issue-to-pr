@@ -11,6 +11,7 @@ import { revalidateUserInstallationReposCache } from "@/lib/webhook/github/handl
 import { handleIssueLabelAutoResolve } from "@/lib/webhook/github/handlers/issue/label.autoResolveIssue.handler"
 import { handleIssueLabelResolve } from "@/lib/webhook/github/handlers/issue/label.resolve.handler"
 import { handlePullRequestClosedRemoveContainer } from "@/lib/webhook/github/handlers/pullRequest/closed.removeContainer.handler"
+import { handleRepositoryEditedRevalidate } from "@/lib/webhook/github/handlers/repository/edited.revalidateRepoCache.handler"
 import {
   CreatePayloadSchema,
   DeletePayloadSchema,
@@ -23,6 +24,7 @@ import {
   IssuesPayloadSchema,
   PullRequestPayloadSchema,
   PushPayloadSchema,
+  RepositoryPayloadSchema,
   StatusPayloadSchema,
   WorkflowJobPayloadSchema,
   WorkflowRunPayloadSchema,
@@ -234,10 +236,7 @@ export async function POST(req: NextRequest) {
       case "deployment": {
         const r = DeploymentPayloadSchema.safeParse(payload)
         if (!r.success) {
-          console.error(
-            "[ERROR] Invalid deployment payload",
-            r.error.flatten()
-          )
+          console.error("[ERROR] Invalid deployment payload", r.error.flatten())
           return new Response("Invalid payload", { status: 400 })
         }
         // No-op
@@ -312,6 +311,24 @@ export async function POST(req: NextRequest) {
         break
       }
 
+      case "repository": {
+        const r = RepositoryPayloadSchema.safeParse(payload)
+        if (!r.success) {
+          console.error("[ERROR] Invalid repository payload", r.error.flatten())
+          return new Response("Invalid payload", { status: 400 })
+        }
+        const parsedPayload = r.data
+        switch (parsedPayload.action) {
+          case "edited":
+            await handleRepositoryEditedRevalidate({ payload: parsedPayload })
+            break
+          default:
+            // Ignore other repository actions
+            break
+        }
+        break
+      }
+
       default:
         // Unsupported event already filtered, but keep for completeness
         break
@@ -323,4 +340,3 @@ export async function POST(req: NextRequest) {
     return new Response("Error", { status: 500 })
   }
 }
-
