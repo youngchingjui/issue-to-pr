@@ -22,15 +22,19 @@ import {
 import { TableCell, TableRow } from "@/components/ui/table"
 import { PullRequest } from "@/lib/types/github"
 
+import { ButtonGroup } from "../ui/button-group"
+
+interface PullRequestRowProps {
+  pr: PullRequest
+  previewUrl?: string
+  linkedIssues?: number[]
+}
+
 export default function PullRequestRow({
   pr,
   previewUrl,
   linkedIssues = [],
-}: {
-  pr: PullRequest
-  previewUrl?: string
-  linkedIssues?: number[]
-}) {
+}: PullRequestRowProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [activeWorkflow, setActiveWorkflow] = useState<string | null>(null)
   const [closingIssue, setClosingIssue] = useState(false)
@@ -125,13 +129,11 @@ export default function PullRequestRow({
     if (!issueNumber) return
     try {
       setClosingIssue(true)
-      await fetch(`/api/issues/${issueNumber}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ repoFullName: pr.head.repo.full_name }),
-        }
-      )
+      await fetch(`/api/issues/${issueNumber}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repoFullName: pr.head.repo.full_name }),
+      })
     } catch {
       // no-op
     } finally {
@@ -182,6 +184,9 @@ export default function PullRequestRow({
       {/* Actions */}
       <TableCell className="text-right">
         <div className="flex items-center justify-end gap-2">
+          <ButtonGroup>
+            <Button>Update PR based on comments</Button>
+          </ButtonGroup>
           <Button asChild size="sm" disabled={isLoading}>
             <a
               href={previewUrl ?? prUrl}
@@ -260,8 +265,13 @@ export default function PullRequestRow({
               {linkedIssues.length > 0 && (
                 <>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleCloseLinkedIssue} disabled={closingIssue}>
-                    {closingIssue ? "Closing linked issue..." : "Close linked issue"}
+                  <DropdownMenuItem
+                    onClick={handleCloseLinkedIssue}
+                    disabled={closingIssue}
+                  >
+                    {closingIssue
+                      ? "Closing linked issue..."
+                      : "Close linked issue"}
                   </DropdownMenuItem>
                 </>
               )}
@@ -272,4 +282,3 @@ export default function PullRequestRow({
     </TableRow>
   )
 }
-
