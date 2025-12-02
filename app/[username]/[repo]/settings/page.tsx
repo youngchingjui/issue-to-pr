@@ -26,7 +26,7 @@ export default async function RepoSettingsPage({ params }: { params: Params }) {
     buildDeploymentSettingsSchema.parse({})
 
   return (
-    <div className="max-w-xl mx-auto p-6">
+    <div className="max-w-4xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6">Repository Settings</h1>
       <RepoSettingsForm
         initialSettings={settings}
@@ -36,4 +36,3 @@ export default async function RepoSettingsPage({ params }: { params: Params }) {
     </div>
   )
 }
-
