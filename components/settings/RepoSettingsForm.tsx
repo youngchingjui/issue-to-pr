@@ -164,6 +164,7 @@ export default function RepoSettingsForm({
                 }))
               }
               disabled={buildLoading}
+              autoCorrect="off"
             />
           </div>
           <div>
@@ -179,6 +180,7 @@ export default function RepoSettingsForm({
                 }))
               }
               disabled={buildLoading}
+              autoCorrect="off"
             />
           </div>
           <div>
@@ -191,6 +193,7 @@ export default function RepoSettingsForm({
                 setBuildSettings((s) => ({ ...s, devCommand: e.target.value }))
               }
               disabled={buildLoading}
+              autoCorrect="off"
             />
           </div>
         </div>
