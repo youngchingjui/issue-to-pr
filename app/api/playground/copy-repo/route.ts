@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 
-import { copyRepoToExistingContainer } from "@/lib/utils/container"
+import { copyRepoToExistingContainer, startDevServerInContainer } from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 
 export async function POST(req: NextRequest) {
@@ -39,6 +39,17 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Start a dev server in the background inside the container
+    try {
+      await startDevServerInContainer({ containerName, mountPath })
+    } catch (err) {
+      // Do not fail the whole request if dev server fails to start; surface as warning
+      return NextResponse.json(
+        { error: `Copied repo but failed to start dev server: ${err}` },
+        { status: 202 }
+      )
+    }
+
     return NextResponse.json({ success: true })
   } catch (err) {
     return NextResponse.json(
@@ -54,3 +65,4 @@ export async function POST(req: NextRequest) {
     )
   }
 }
+
