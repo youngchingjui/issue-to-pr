@@ -389,7 +389,7 @@ export async function startDevServerInContainer({
     "set -e",
     `cd ${mountPath}`,
     // Pick package manager
-    'if [ -f pnpm-lock.yaml ]; then PM=pnpm; elif [ -f yarn.lock ]; then PM=yarn; else PM=npm; fi',
+    "if [ -f pnpm-lock.yaml ]; then PM=pnpm; elif [ -f yarn.lock ]; then PM=yarn; else PM=npm; fi",
     // Construct install command
     'if [ "$PM" = "pnpm" ]; then INSTALL="pnpm install --frozen-lockfile || pnpm install"; ' +
       'elif [ "$PM" = "yarn" ]; then INSTALL="yarn install --frozen-lockfile || yarn install"; ' +
@@ -405,4 +405,3 @@ export async function startDevServerInContainer({
     cwd: mountPath,
   })
 }
-
