@@ -165,6 +165,8 @@ export default function RepoSettingsForm({
               }
               disabled={buildLoading}
               autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
             />
           </div>
           <div>
@@ -181,6 +183,8 @@ export default function RepoSettingsForm({
               }
               disabled={buildLoading}
               autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
             />
           </div>
           <div>
@@ -194,6 +198,8 @@ export default function RepoSettingsForm({
               }
               disabled={buildLoading}
               autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
             />
           </div>
         </div>
