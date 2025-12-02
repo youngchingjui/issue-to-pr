@@ -2,10 +2,10 @@ import { Integer, ManagedTransaction, Node } from "neo4j-driver"
 
 import { Labels } from "@/lib/neo4j/labels"
 import {
-  buildDeploymentSettingsSchema,
-  repoSettingsSchema,
   type BuildDeploymentSettings,
+  buildDeploymentSettingsSchema,
   type RepoSettings,
+  repoSettingsSchema,
 } from "@/lib/types/db/neo4j"
 
 // Get repository settings, with fallback for missing node or missing settings
@@ -82,4 +82,3 @@ export async function setBuildDeploymentSettings(
     { repoFullName, settings }
   )
 }
-
