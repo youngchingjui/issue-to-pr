@@ -20,6 +20,7 @@ import {
   workflowRunStateSchema,
   WorkflowType,
   workflowTypeEnum,
+  buildDeploymentSettingsSchema as appBuildDeploymentSettingsSchema,
 } from "@/lib/types"
 
 // Re-export for Neo4j DB layer
@@ -182,6 +183,19 @@ export const repoSettingsSchema = appRepoSettingsSchema.merge(
 
 export type RepoSettings = z.infer<typeof repoSettingsSchema>
 
+// ---- Build & Deployment Settings ----
+export const buildDeploymentSettingsSchema = appBuildDeploymentSettingsSchema.merge(
+  z.object({
+    lastUpdated: z.custom<DateTime>(isDateTime, {
+      message: "Input not instance of DateTime",
+    }),
+  })
+)
+
+export type BuildDeploymentSettings = z.infer<
+  typeof buildDeploymentSettingsSchema
+>
+
 // ---- User Settings ----
 export const userSettingsSchema = appSettingsSchema.merge(
   z.object({
@@ -192,3 +206,4 @@ export const userSettingsSchema = appSettingsSchema.merge(
 )
 
 export type UserSettings = z.infer<typeof userSettingsSchema>
+

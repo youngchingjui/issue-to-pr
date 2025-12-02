@@ -1,6 +1,7 @@
 export const Labels = {
   Repository: "Repository",
   Settings: "Settings",
+  BuildDeployment: "BuildDeployment",
   User: "User",
   Issue: "Issue",
   Event: "Event",
@@ -11,3 +12,4 @@ export const Labels = {
 } as const
 
 export type Label = (typeof Labels)[keyof typeof Labels]
+
