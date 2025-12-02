@@ -12,4 +12,3 @@ export const Labels = {
 } as const
 
 export type Label = (typeof Labels)[keyof typeof Labels]
-

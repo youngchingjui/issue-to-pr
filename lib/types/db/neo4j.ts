@@ -2,6 +2,7 @@ import { DateTime, Integer, isDateTime } from "neo4j-driver"
 import { z } from "zod"
 
 import {
+  buildDeploymentSettingsSchema as appBuildDeploymentSettingsSchema,
   errorEventSchema as appErrorEventSchema,
   issueSchema as appIssueSchema,
   llmResponseSchema as appLLMResponseSchema,
@@ -20,7 +21,6 @@ import {
   workflowRunStateSchema,
   WorkflowType,
   workflowTypeEnum,
-  buildDeploymentSettingsSchema as appBuildDeploymentSettingsSchema,
 } from "@/lib/types"
 
 // Re-export for Neo4j DB layer
@@ -184,13 +184,14 @@ export const repoSettingsSchema = appRepoSettingsSchema.merge(
 export type RepoSettings = z.infer<typeof repoSettingsSchema>
 
 // ---- Build & Deployment Settings ----
-export const buildDeploymentSettingsSchema = appBuildDeploymentSettingsSchema.merge(
-  z.object({
-    lastUpdated: z.custom<DateTime>(isDateTime, {
-      message: "Input not instance of DateTime",
-    }),
-  })
-)
+export const buildDeploymentSettingsSchema =
+  appBuildDeploymentSettingsSchema.merge(
+    z.object({
+      lastUpdated: z.custom<DateTime>(isDateTime, {
+        message: "Input not instance of DateTime",
+      }),
+    })
+  )
 
 export type BuildDeploymentSettings = z.infer<
   typeof buildDeploymentSettingsSchema
@@ -206,4 +207,3 @@ export const userSettingsSchema = appSettingsSchema.merge(
 )
 
 export type UserSettings = z.infer<typeof userSettingsSchema>
-

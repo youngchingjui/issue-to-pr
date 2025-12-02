@@ -327,4 +327,3 @@ export type UserMessage = z.infer<typeof userMessageSchema>
 export type WorkflowRun = z.infer<typeof workflowRunSchema>
 export type WorkflowRunState = z.infer<typeof workflowRunStateSchema>
 export type WorkflowType = z.infer<typeof workflowTypeEnum>
-
