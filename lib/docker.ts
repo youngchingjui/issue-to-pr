@@ -271,24 +271,36 @@ export async function listRunningContainers(): Promise<RunningContainer[]> {
       },
     })
 
-    return containers.map((c) => ({
-      id: c.Id,
-      name: (c.Names?.[0] ?? "").replace(/^\//, ""),
-      image: c.Image,
-      status: c.State,
-      ports: c.Ports?.filter((p) => typeof p.PrivatePort === "number")
-        .map((p) => {
-          const pub =
-            typeof p.PublicPort === "number" ? p.PublicPort : undefined
-          const proto = p.Type || "tcp"
-          const host = p.IP && p.IP !== "0.0.0.0" ? `${p.IP}:` : ""
-          return pub
-            ? `${host}${pub}->${p.PrivatePort}/${proto}`
-            : `${p.PrivatePort}/${proto}`
-        })
-        .join(", "),
-      uptime: c.Status, // e.g., "Up 2 hours"
-    }))
+    return containers.map((c) => {
+      const labels = c.Labels ?? {}
+      const owner = labels.owner
+      const repo = labels.repo
+      const branch = labels.branch
+      const repoFullName = owner && repo ? `${owner}/${repo}` : undefined
+
+      return {
+        id: c.Id,
+        name: (c.Names?.[0] ?? "").replace(/^\//, ""),
+        image: c.Image,
+        status: c.State,
+        ports: c.Ports?.filter((p) => typeof p.PrivatePort === "number")
+          .map((p) => {
+            const pub =
+              typeof p.PublicPort === "number" ? p.PublicPort : undefined
+            const proto = p.Type || "tcp"
+            const host = p.IP && p.IP !== "0.0.0.0" ? `${p.IP}:` : ""
+            return pub
+              ? `${host}${pub}->${p.PrivatePort}/${proto}`
+              : `${p.PrivatePort}/${proto}`
+          })
+          .join(", "),
+        uptime: c.Status, // e.g., "Up 2 hours"
+        owner,
+        repo,
+        repoFullName,
+        branch,
+      }
+    })
   } catch (error) {
     console.error("[ERROR] Failed to list running containers:", error)
     return []

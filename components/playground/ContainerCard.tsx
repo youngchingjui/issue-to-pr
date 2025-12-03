@@ -5,12 +5,14 @@ import {
   Eye,
   GitBranch,
   ImageIcon,
+  Info,
   MoreVertical,
   Network,
   Play,
   Square,
   Terminal,
 } from "lucide-react"
+import Link from "next/link"
 import { useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
@@ -21,6 +23,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 interface ContainerCardProps {
   id: string
@@ -31,6 +39,8 @@ interface ContainerCardProps {
   uptime?: string
   image: string
   ports?: string
+  installAvailable?: boolean
+  settingsLink?: string
   onRunCommand?: (id: string, name: string, command: string) => void
   onStop?: (id: string, name: string) => Promise<void> | void
   onStart?: (id: string, name: string) => Promise<void> | void
@@ -45,6 +55,8 @@ export function ContainerCard({
   uptime,
   image,
   ports,
+  installAvailable,
+  settingsLink,
   onRunCommand,
   onStop,
   onStart,
@@ -168,6 +180,43 @@ export function ContainerCard({
             </Button>
           )}
 
+          {/* Install command button */}
+          <TooltipProvider>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 bg-transparent"
+                disabled={!installAvailable}
+                onClick={() => onRunCommand?.(id, name, "install")}
+              >
+                <Terminal className="h-3.5 w-3.5" />
+                Install
+              </Button>
+              {!installAvailable && settingsLink && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Info className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <div>
+                      No install command configured. Update in
+                      <Link
+                        href={settingsLink}
+                        className="underline ml-1 text-primary-foreground"
+                      >
+                        Settings
+                      </Link>
+                      .
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
+          </TooltipProvider>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -220,3 +269,4 @@ export function ContainerCard({
     </div>
   )
 }
+
