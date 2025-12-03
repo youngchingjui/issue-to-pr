@@ -6,13 +6,13 @@ import { useEffect, useState, useTransition } from "react"
 import { ContainerCard } from "@/components/playground/ContainerCard"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { useToast } from "@/lib/hooks/use-toast"
 import {
   getRunningContainers,
   launchAgentBaseContainer,
   runInstallCommand,
   stopContainer,
 } from "@/lib/actions/docker"
+import { useToast } from "@/lib/hooks/use-toast"
 import { RunningContainer } from "@/lib/types/docker"
 
 export default function ContainerClientPage() {
@@ -99,7 +99,9 @@ export default function ContainerClientPage() {
                 branch={c.branch}
                 installAvailable={Boolean(c.hasInstallCommand)}
                 settingsLink={
-                  c.owner && c.repo ? `/${c.owner}/${c.repo}/settings` : undefined
+                  c.owner && c.repo
+                    ? `/${c.owner}/${c.repo}/settings`
+                    : undefined
                 }
                 onRunCommand={handleRunCommand}
                 onStop={() => handleStop(c.id)}
@@ -116,4 +118,3 @@ export default function ContainerClientPage() {
     </div>
   )
 }
-
