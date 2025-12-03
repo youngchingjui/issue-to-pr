@@ -10,9 +10,8 @@ import {
   Play,
   Square,
   Terminal,
-  Trash2,
 } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -20,7 +19,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
@@ -57,18 +55,16 @@ export function ContainerCard({
   onStop,
   onStart,
 }: ContainerCardProps) {
-  const initialStatus = (status === "running" || status === "stopped" || status === "exited")
-    ? (status as "running" | "stopped" | "exited")
-    : (status?.toLowerCase().includes("run") ? "running" : "stopped")
+  const initialStatus =
+    status === "running" || status === "stopped" || status === "exited"
+      ? (status as "running" | "stopped" | "exited")
+      : status?.toLowerCase().includes("run")
+        ? "running"
+        : "stopped"
 
   const [currentStatus, setCurrentStatus] = useState<
     "running" | "stopped" | "exited"
   >(initialStatus)
-
-  const showRunCommandMenu = useMemo(
-    () => Boolean(onRunCommand && (hasInstall || hasBuild || hasDev)),
-    [onRunCommand, hasInstall, hasBuild, hasDev]
-  )
 
   const getStatusColor = () => {
     switch (currentStatus) {
@@ -95,13 +91,6 @@ export function ContainerCard({
     if (onStop) await onStop(id, name)
   }
 
-  const handleDelete = () => {
-    // Placeholder delete action
-    // Intentionally left as console for now, actual delete not requested
-    // eslint-disable-next-line no-console
-    console.log("Deleting container:", id)
-  }
-
   return (
     <div className="bg-card border border-border rounded-lg p-5 hover:border-primary/50 transition-colors">
       <div className="flex items-start justify-between gap-4">
@@ -121,7 +110,9 @@ export function ContainerCard({
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             {project && (
               <div>
-                <div className="text-muted-foreground mb-1 text-xs">Project</div>
+                <div className="text-muted-foreground mb-1 text-xs">
+                  Project
+                </div>
                 <div className="text-foreground font-medium">{project}</div>
               </div>
             )}
@@ -152,10 +143,12 @@ export function ContainerCard({
             </div>
           </div>
 
-          <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-            <Network className="h-3 w-3" />
-            <span>Ports: {ports ?? "-"}</span>
-          </div>
+          {ports && (
+            <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+              <Network className="h-3 w-3" />
+              <span>Ports: {ports}</span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -170,57 +163,55 @@ export function ContainerCard({
               Stop
             </Button>
           ) : (
-            onStart && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleStart}
+              className="gap-2 bg-transparent"
+            >
+              <Play className="h-3.5 w-3.5" />
+              Start
+            </Button>
+          )}
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleStart}
                 className="gap-2 bg-transparent"
               >
-                <Play className="h-3.5 w-3.5" />
-                Start
+                <Terminal className="h-3.5 w-3.5" />
+                Run Command
               </Button>
-            )
-          )}
-
-          {showRunCommandMenu && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2 bg-transparent"
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              {hasInstall && (
+                <DropdownMenuItem
+                  onClick={() => onRunCommand?.(id, name, "install")}
                 >
-                  <Terminal className="h-3.5 w-3.5" />
-                  Run Command
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                {hasInstall && (
-                  <DropdownMenuItem
-                    onClick={() => onRunCommand?.(id, name, "install")}
-                  >
-                    <Terminal className="mr-2 h-4 w-4" />
-                    Install Dependencies
-                  </DropdownMenuItem>
-                )}
-                {hasBuild && (
-                  <DropdownMenuItem
-                    onClick={() => onRunCommand?.(id, name, "build")}
-                  >
-                    <Terminal className="mr-2 h-4 w-4" />
-                    Build Project
-                  </DropdownMenuItem>
-                )}
-                {hasDev && (
-                  <DropdownMenuItem onClick={() => onRunCommand?.(id, name, "dev")}>
-                    <Terminal className="mr-2 h-4 w-4" />
-                    Start Development
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+                  <Terminal className="mr-2 h-4 w-4" />
+                  Install Dependencies
+                </DropdownMenuItem>
+              )}
+              {hasBuild && (
+                <DropdownMenuItem
+                  onClick={() => onRunCommand?.(id, name, "build")}
+                >
+                  <Terminal className="mr-2 h-4 w-4" />
+                  Build Project
+                </DropdownMenuItem>
+              )}
+              {hasDev && (
+                <DropdownMenuItem
+                  onClick={() => onRunCommand?.(id, name, "dev")}
+                >
+                  <Terminal className="mr-2 h-4 w-4" />
+                  Start Development
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -229,17 +220,11 @@ export function ContainerCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={() => onRunCommand?.(id, name, "inspect")}>
+              <DropdownMenuItem
+                onClick={() => onRunCommand?.(id, name, "inspect")}
+              >
                 <Eye className="mr-2 h-4 w-4" />
                 Inspect
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={handleDelete}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -248,4 +233,3 @@ export function ContainerCard({
     </div>
   )
 }
-
