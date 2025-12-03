@@ -77,4 +77,3 @@ export interface RunningContainer {
   ports?: string
   uptime?: string
 }
-
