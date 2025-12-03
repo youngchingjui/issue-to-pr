@@ -31,7 +31,8 @@ export async function getRunningContainers(): Promise<RunningContainer[]> {
         return {
           ...c,
           hasInstallCommand:
-            Boolean(build?.installCommand) && build!.installCommand!.trim() !== "",
+            Boolean(build?.installCommand) &&
+            build!.installCommand!.trim() !== "",
         }
       } catch {
         return c
@@ -71,7 +72,16 @@ export async function runInstallCommand(
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const docker = new Docker({ socketPath: "/var/run/docker.sock" })
   const container = docker.getContainer(containerIdOrName)
-  const info = await container.inspect()
+  let info: Docker.ContainerInspectInfo
+  try {
+    info = await container.inspect()
+  } catch (e) {
+    return {
+      stdout: "",
+      stderr: `Failed to inspect container: ${e}`,
+      exitCode: 1,
+    }
+  }
   const labels = info?.Config?.Labels ?? {}
   const owner: string | undefined = labels.owner
   const repo: string | undefined = labels.repo

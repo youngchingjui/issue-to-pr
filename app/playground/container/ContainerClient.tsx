@@ -48,7 +48,7 @@ export default function ContainerClientPage() {
       const res = await runInstallCommand(id)
       if (res.exitCode === 0) {
         toast({
-          title: "Install started",
+          title: "Install completed",
           description: res.stdout || "Install command executed successfully.",
         })
       } else {
