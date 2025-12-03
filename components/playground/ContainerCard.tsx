@@ -58,7 +58,6 @@ export function ContainerCard({
   const getStatusColor = () => {
     switch (currentStatus) {
       case "running":
-        // Use theme accent color to indicate active/running state
         return "bg-accent/10 text-accent border-accent/20"
       case "stopped":
         return "bg-muted/50 text-muted-foreground border-border"
@@ -110,7 +109,7 @@ export function ContainerCard({
                 <GitBranch className="h-3 w-3" />
                 Branch
               </div>
-              <div className="text-foreground font-mono text-xs bg-secondary px-2 py-1 rounded inline-block">
+              <div className="text-foreground font-mono text-xs px-2 py-1 rounded inline-block">
                 {branch}
               </div>
             </div>
@@ -224,4 +223,3 @@ export function ContainerCard({
     </div>
   )
 }
-
