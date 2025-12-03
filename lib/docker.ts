@@ -234,15 +234,19 @@ export async function stopAndRemoveContainer(id: string): Promise<void> {
       const info = await container.inspect()
       if (info.State?.Running) {
         await container.stop()
+        // eslint-disable-next-line no-console
         console.log(`Stopped container: ${id}`)
       }
     } catch (error: unknown) {
+      // eslint-disable-next-line no-console
       console.warn(`Warning inspecting/stopping container ${id}:`, error)
     }
 
     await container.remove({ force: true })
+    // eslint-disable-next-line no-console
     console.log(`Removed container: ${id}`)
   } catch (e) {
+    // eslint-disable-next-line no-console
     console.warn(`[WARNING] Failed to stop/remove container ${id}:`, e)
   }
 }
@@ -273,11 +277,25 @@ export async function listRunningContainers(): Promise<RunningContainer[]> {
 
     return containers.map((c) => ({
       id: c.Id,
-      name: c.Names[0],
+      name: (c.Names?.[0] ?? "").replace(/^\//, ""),
       image: c.Image,
       status: c.State,
+      ports: Array.isArray(c.Ports)
+        ? c.Ports.filter((p) => typeof p.PrivatePort === "number")
+            .map((p) => {
+              const pub = typeof p.PublicPort === "number" ? p.PublicPort : undefined
+              const proto = p.Type || "tcp"
+              const host = p.IP && p.IP !== "0.0.0.0" ? `${p.IP}:` : ""
+              return pub
+                ? `${host}${pub}->${p.PrivatePort}/${proto}`
+                : `${p.PrivatePort}/${proto}`
+            })
+            .join(", ")
+        : undefined,
+      uptime: c.Status, // e.g., "Up 2 hours"
     }))
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error("[ERROR] Failed to list running containers:", error)
     return []
   }
@@ -309,6 +327,7 @@ export async function listContainersByLabels(
 
     return [...new Set(names)]
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error("[ERROR] Failed to list containers by labels:", error)
     return []
   }
@@ -470,3 +489,4 @@ export async function getContainerGitInfo(
     diff,
   }
 }
+
