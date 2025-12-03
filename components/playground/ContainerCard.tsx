@@ -31,9 +31,6 @@ interface ContainerCardProps {
   uptime?: string
   image: string
   ports?: string
-  hasInstall?: boolean
-  hasBuild?: boolean
-  hasDev?: boolean
   onRunCommand?: (id: string, name: string, command: string) => void
   onStop?: (id: string, name: string) => Promise<void> | void
   onStart?: (id: string, name: string) => Promise<void> | void
@@ -48,9 +45,6 @@ export function ContainerCard({
   uptime,
   image,
   ports,
-  hasInstall = false,
-  hasBuild = false,
-  hasDev = false,
   onRunCommand,
   onStop,
   onStart,
@@ -186,30 +180,23 @@ export function ContainerCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              {hasInstall && (
-                <DropdownMenuItem
-                  onClick={() => onRunCommand?.(id, name, "install")}
-                >
-                  <Terminal className="mr-2 h-4 w-4" />
-                  Install Dependencies
-                </DropdownMenuItem>
-              )}
-              {hasBuild && (
-                <DropdownMenuItem
-                  onClick={() => onRunCommand?.(id, name, "build")}
-                >
-                  <Terminal className="mr-2 h-4 w-4" />
-                  Build Project
-                </DropdownMenuItem>
-              )}
-              {hasDev && (
-                <DropdownMenuItem
-                  onClick={() => onRunCommand?.(id, name, "dev")}
-                >
-                  <Terminal className="mr-2 h-4 w-4" />
-                  Start Development
-                </DropdownMenuItem>
-              )}
+              <DropdownMenuItem
+                onClick={() => onRunCommand?.(id, name, "install")}
+              >
+                <Terminal className="mr-2 h-4 w-4" />
+                Install Dependencies
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onRunCommand?.(id, name, "build")}
+              >
+                <Terminal className="mr-2 h-4 w-4" />
+                Build Project
+              </DropdownMenuItem>
+
+              <DropdownMenuItem onClick={() => onRunCommand?.(id, name, "dev")}>
+                <Terminal className="mr-2 h-4 w-4" />
+                Start Development
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 

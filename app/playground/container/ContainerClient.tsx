@@ -28,19 +28,18 @@ export default function ContainerClientPage() {
   const launchContainer = () =>
     startLaunching(async () => {
       await launchAgentBaseContainer()
-      await refreshContainers()
+      refreshContainers()
       router.refresh()
     })
 
   const handleStop = async (id: string) => {
     await stopContainer(id)
-    await refreshContainers()
+    refreshContainers()
     router.refresh()
   }
 
   useEffect(() => {
     refreshContainers()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
@@ -73,9 +72,6 @@ export default function ContainerClientPage() {
                 image={c.image}
                 uptime={c.uptime}
                 ports={c.ports}
-                hasBuild={false}
-                hasDev={false}
-                hasInstall={false}
                 onStop={() => handleStop(c.id)}
               />
             ))}
