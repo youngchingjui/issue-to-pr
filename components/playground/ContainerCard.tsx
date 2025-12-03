@@ -58,7 +58,8 @@ export function ContainerCard({
   const getStatusColor = () => {
     switch (currentStatus) {
       case "running":
-        return "bg-success/10 text-success border-success/20"
+        // Use theme accent color to indicate active/running state
+        return "bg-accent/10 text-accent border-accent/20"
       case "stopped":
         return "bg-muted/50 text-muted-foreground border-border"
       case "exited":
@@ -93,7 +94,7 @@ export function ContainerCard({
             </h3>
             <Badge className={getStatusColor()}>
               {currentStatus === "running" && (
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-success mr-1.5 animate-pulse" />
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent mr-1.5 animate-pulse" />
               )}
               {currentStatus}
             </Badge>
@@ -223,3 +224,4 @@ export function ContainerCard({
     </div>
   )
 }
+

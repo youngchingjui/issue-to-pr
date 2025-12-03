@@ -47,7 +47,7 @@ export function LogPanel({ isOpen, onClose, command, logs }: LogPanelProps) {
         <div className="container mx-auto px-6">
           <div className="flex items-center justify-between py-4 border-b border-border">
             <div className="flex items-center gap-3">
-              <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+              <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
               <h3 className="text-sm font-semibold text-foreground">
                 Command Output
               </h3>
@@ -92,3 +92,4 @@ export function LogPanel({ isOpen, onClose, command, logs }: LogPanelProps) {
     </>
   )
 }
+
