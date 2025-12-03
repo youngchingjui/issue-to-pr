@@ -29,7 +29,6 @@ export async function launchAgentBaseContainer() {
   return name
 }
 
-export async function stopContainer(name: string) {
-  await stopAndRemoveContainer(name)
+export async function stopContainer(id: string) {
+  await stopAndRemoveContainer(id)
 }
-

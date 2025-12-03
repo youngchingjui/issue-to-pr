@@ -224,26 +224,26 @@ export async function execInContainerWithDockerode({
   }
 }
 
-export async function stopAndRemoveContainer(name: string): Promise<void> {
+export async function stopAndRemoveContainer(id: string): Promise<void> {
   try {
     const docker = new Docker({ socketPath: "/var/run/docker.sock" })
-    const container = docker.getContainer(name)
+    const container = docker.getContainer(id)
 
     // Attempt to stop if running; then force remove
     try {
       const info = await container.inspect()
       if (info.State?.Running) {
         await container.stop()
-        console.log(`Stopped container: ${name}`)
+        console.log(`Stopped container: ${id}`)
       }
     } catch (error: unknown) {
-      console.warn(`Warning inspecting/stopping container ${name}:`, error)
+      console.warn(`Warning inspecting/stopping container ${id}:`, error)
     }
 
     await container.remove({ force: true })
-    console.log(`Removed container: ${name}`)
+    console.log(`Removed container: ${id}`)
   } catch (e) {
-    console.warn(`[WARNING] Failed to stop/remove container ${name}:`, e)
+    console.warn(`[WARNING] Failed to stop/remove container ${id}:`, e)
   }
 }
 
@@ -263,17 +263,20 @@ export async function isContainerRunning(name: string): Promise<boolean> {
  */
 export async function listRunningContainers(): Promise<RunningContainer[]> {
   try {
-    const { stdout } = await execPromise("docker ps --format '{{json .}}'")
-    const lines = stdout.trim().split("\n").filter(Boolean)
-    return lines.map((line) => {
-      const data = JSON.parse(line) as Record<string, string>
-      return {
-        id: data.ID,
-        name: data.Names,
-        image: data.Image,
-        status: data.Status,
-      }
+    const docker = new Docker({ socketPath: "/var/run/docker.sock" })
+    const containers = await docker.listContainers({
+      all: true,
+      filters: {
+        status: ["running"],
+      },
     })
+
+    return containers.map((c) => ({
+      id: c.Id,
+      name: c.Names[0],
+      image: c.Image,
+      status: c.State,
+    }))
   } catch (error) {
     console.error("[ERROR] Failed to list running containers:", error)
     return []
@@ -467,4 +470,3 @@ export async function getContainerGitInfo(
     diff,
   }
 }
-
