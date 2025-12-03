@@ -19,6 +19,7 @@ interface Issue {
   updated_at: string
   user: { login: string } | null
   hasActiveWorkflow: boolean
+  activeWorkflowId?: string | null
   hasPlan: boolean
   planId?: string | null | undefined
 }
@@ -121,3 +122,4 @@ export default function IssueRow({
     </TableRow>
   )
 }
+
