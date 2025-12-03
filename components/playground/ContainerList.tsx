@@ -213,7 +213,7 @@ export function ContainerList() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search containers..."
-              className="pl-9 w-64 bg-secondary border-border"
+              className="pl-9 w-64 border-border"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
