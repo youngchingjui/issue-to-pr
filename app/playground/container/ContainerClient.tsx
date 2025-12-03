@@ -9,15 +9,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   getRunningContainers,
   launchAgentBaseContainer,
+  runInstallCommand,
   stopContainer,
 } from "@/lib/actions/docker"
+import { useToast } from "@/lib/hooks/use-toast"
 import { RunningContainer } from "@/lib/types/docker"
 
 export default function ContainerClientPage() {
   const router = useRouter()
+  const { toast } = useToast()
   const [containers, setContainers] = useState<RunningContainer[]>([])
   const [isRefreshing, startRefresh] = useTransition()
   const [isLaunching, startLaunching] = useTransition()
+  const [_isExecuting, startExecuting] = useTransition()
 
   const refreshContainers = () =>
     startRefresh(async () => {
@@ -36,6 +40,25 @@ export default function ContainerClientPage() {
     await stopContainer(id)
     refreshContainers()
     router.refresh()
+  }
+
+  const handleRunCommand = (id: string, name: string, command: string) => {
+    if (command !== "install") return
+    startExecuting(async () => {
+      const res = await runInstallCommand(id)
+      if (res.exitCode === 0) {
+        toast({
+          title: "Install completed",
+          description: res.stdout || "Install command executed successfully.",
+        })
+      } else {
+        toast({
+          title: "Install failed",
+          description: res.stderr || "Unknown error running install.",
+          variant: "destructive",
+        })
+      }
+    })
   }
 
   useEffect(() => {
@@ -72,6 +95,15 @@ export default function ContainerClientPage() {
                 image={c.image}
                 uptime={c.uptime}
                 ports={c.ports}
+                project={c.repoFullName}
+                branch={c.branch}
+                installAvailable={Boolean(c.hasInstallCommand)}
+                settingsLink={
+                  c.owner && c.repo
+                    ? `/${c.owner}/${c.repo}/settings`
+                    : undefined
+                }
+                onRunCommand={handleRunCommand}
                 onStop={() => handleStop(c.id)}
               />
             ))}

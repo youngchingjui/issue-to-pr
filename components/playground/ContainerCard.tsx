@@ -31,6 +31,8 @@ interface ContainerCardProps {
   uptime?: string
   image: string
   ports?: string
+  installAvailable?: boolean
+  settingsLink?: string
   onRunCommand?: (id: string, name: string, command: string) => void
   onStop?: (id: string, name: string) => Promise<void> | void
   onStart?: (id: string, name: string) => Promise<void> | void
@@ -45,6 +47,8 @@ export function ContainerCard({
   uptime,
   image,
   ports,
+  installAvailable,
+  settingsLink, // kept for future use
   onRunCommand,
   onStop,
   onStart,
@@ -181,6 +185,7 @@ export function ContainerCard({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem
+                disabled={!installAvailable}
                 onClick={() => onRunCommand?.(id, name, "install")}
               >
                 <Terminal className="mr-2 h-4 w-4" />
@@ -220,3 +225,4 @@ export function ContainerCard({
     </div>
   )
 }
+
