@@ -703,3 +703,86 @@ export async function getLinkedIssuesForPR({
     response.repository?.pullRequest?.closingIssuesReferences?.nodes || []
   return nodes.map((n) => n.number)
 }
+
+// ------------------------------
+// Preview link discovery (heuristic)
+// ------------------------------
+function extractUrls(text?: string | null): string[] {
+  if (!text) return []
+  const regex = /https?:\/\/[^\s)]+/g
+  const matches = text.match(regex)
+  return matches ? matches : []
+}
+
+const PREVIEW_HINTS = [
+  "preview",
+  "vercel.app",
+  "netlify.app",
+  "cloudflarepages.com",
+  "onrender.com",
+  "fly.dev",
+]
+
+export async function findPreviewUrlForPR({
+  repoFullName,
+  pr,
+}: {
+  repoFullName: string
+  pr: PullRequest
+}): Promise<string | null> {
+  // 1. Check PR body for likely preview URLs
+  const bodyProp = (pr as Partial<{ body: string | null }>).body
+  const bodyUrls = extractUrls(bodyProp)
+  const bodyHit = bodyUrls.find((u) =>
+    PREVIEW_HINTS.some((hint) => u.toLowerCase().includes(hint))
+  )
+  if (bodyHit) return bodyHit
+
+  // 2. Fallback: scan comments for preview-like URLs
+  try {
+    const comments = await getPullRequestComments({
+      repoFullName,
+      pullNumber: pr.number,
+    })
+    for (const c of comments) {
+      const urls = extractUrls(c.body)
+      const hit = urls.find((u) =>
+        PREVIEW_HINTS.some((hint) => u.toLowerCase().includes(hint))
+      )
+      if (hit) return hit
+    }
+  } catch {
+    // ignore and fallback
+    console.warn("findPreviewUrlForPR: failed to scan comments")
+  }
+
+  // 3. Last resort: return the first non-GitHub URL found in body
+  const nonGitHub = bodyUrls.find((u) => !u.includes("github.com"))
+  return nonGitHub ?? null
+}
+
+export type PullRequestExtras = {
+  previewUrl: string | null
+  linkedIssues: number[]
+}
+
+export async function getPullRequestListWithExtras({
+  repoFullName,
+}: {
+  repoFullName: string
+}): Promise<Array<{ pr: PullRequest; extras: PullRequestExtras }>> {
+  const list = await getPullRequestList({ repoFullName })
+
+  const enriched = await Promise.all(
+    list.map(async (pr) => {
+      const [previewUrl, linkedIssues] = await Promise.all([
+        findPreviewUrlForPR({ repoFullName, pr }),
+        getLinkedIssuesForPR({ repoFullName, pullNumber: pr.number }),
+      ])
+      return { pr, extras: { previewUrl, linkedIssues } }
+    })
+  )
+
+  return enriched
+}
+
