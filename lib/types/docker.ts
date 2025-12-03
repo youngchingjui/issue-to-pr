@@ -74,4 +74,6 @@ export interface RunningContainer {
   name: string
   image: string
   status: string
+  ports?: string
+  uptime?: string
 }
