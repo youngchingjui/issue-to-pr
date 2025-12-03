@@ -76,4 +76,11 @@ export interface RunningContainer {
   status: string
   ports?: string
   uptime?: string
+  // Optional metadata from container labels
+  owner?: string
+  repo?: string
+  repoFullName?: string
+  branch?: string
+  // Whether we have an install command configured for this container's repo
+  hasInstallCommand?: boolean
 }
