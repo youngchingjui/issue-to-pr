@@ -53,8 +53,8 @@ export default function ContainerEnvironmentManager({ selectedRepo }: Props) {
     router.refresh()
   }
 
-  const handleStop = async (name: string) => {
-    await stopContainer(name)
+  const handleStop = async (id: string) => {
+    await stopContainer(id)
     await refreshContainers()
     router.refresh()
   }
@@ -122,7 +122,7 @@ export default function ContainerEnvironmentManager({ selectedRepo }: Props) {
                   <Button
                     size="sm"
                     variant="destructive"
-                    onClick={() => handleStop(c.name)}
+                    onClick={() => handleStop(c.id)}
                   >
                     Stop
                   </Button>
