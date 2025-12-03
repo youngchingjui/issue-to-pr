@@ -49,7 +49,12 @@ export default function ContainerClientPage() {
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Agent Containers</CardTitle>
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={refreshContainers} disabled={isRefreshing}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={refreshContainers}
+              disabled={isRefreshing}
+            >
               {isRefreshing ? "Refreshing..." : "Refresh"}
             </Button>
             <Button size="sm" onClick={launchContainer} disabled={isLaunching}>
@@ -85,4 +90,3 @@ export default function ContainerClientPage() {
     </div>
   )
 }
-
