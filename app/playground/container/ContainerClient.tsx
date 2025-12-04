@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   getRunningContainers,
   launchAgentBaseContainer,
+  runDevCommand,
   runInstallCommand,
   stopContainer,
 } from "@/lib/actions/docker"
@@ -43,22 +44,45 @@ export default function ContainerClientPage() {
   }
 
   const handleRunCommand = (id: string, name: string, command: string) => {
-    if (command !== "install") return
-    startExecuting(async () => {
-      const res = await runInstallCommand(id)
-      if (res.exitCode === 0) {
-        toast({
-          title: "Install completed",
-          description: res.stdout || "Install command executed successfully.",
-        })
-      } else {
-        toast({
-          title: "Install failed",
-          description: res.stderr || "Unknown error running install.",
-          variant: "destructive",
-        })
-      }
-    })
+    if (command === "install") {
+      startExecuting(async () => {
+        const res = await runInstallCommand(id)
+        if (res.exitCode === 0) {
+          toast({
+            title: "Install completed",
+            description: res.stdout || "Install command executed successfully.",
+          })
+        } else {
+          toast({
+            title: "Install failed",
+            description: res.stderr || "Unknown error running install.",
+            variant: "destructive",
+          })
+        }
+      })
+      return
+    }
+
+    if (command === "dev") {
+      startExecuting(async () => {
+        const res = await runDevCommand(id)
+        if (res.exitCode === 0) {
+          toast({
+            title: "Dev started",
+            description:
+              res.stdout?.trim() ||
+              "Started development command in background (logs at /workspace/logs/dev.log)",
+          })
+        } else {
+          toast({
+            title: "Dev failed",
+            description: res.stderr || "Unknown error running dev.",
+            variant: "destructive",
+          })
+        }
+      })
+      return
+    }
   }
 
   useEffect(() => {
@@ -98,6 +122,7 @@ export default function ContainerClientPage() {
                 project={c.repoFullName}
                 branch={c.branch}
                 installAvailable={Boolean(c.hasInstallCommand)}
+                devAvailable={Boolean(c.hasDevCommand)}
                 settingsLink={
                   c.owner && c.repo
                     ? `/${c.owner}/${c.repo}/settings`
@@ -118,3 +143,4 @@ export default function ContainerClientPage() {
     </div>
   )
 }
+

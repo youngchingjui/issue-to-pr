@@ -83,4 +83,7 @@ export interface RunningContainer {
   branch?: string
   // Whether we have an install command configured for this container's repo
   hasInstallCommand?: boolean
+  // Whether we have a dev command configured for this container's repo
+  hasDevCommand?: boolean
 }
+

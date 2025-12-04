@@ -21,7 +21,7 @@ export async function getRunningContainers(): Promise<RunningContainer[]> {
     c.image.startsWith(AGENT_BASE_IMAGE_PREFIX)
   )
 
-  // Enrich with install command availability from repo settings
+  // Enrich with install/dev command availability from repo settings
   const enriched = await Promise.all(
     agentContainers.map(async (c) => {
       if (!c.repoFullName) return c
@@ -33,6 +33,8 @@ export async function getRunningContainers(): Promise<RunningContainer[]> {
           hasInstallCommand:
             Boolean(build?.installCommand) &&
             build!.installCommand!.trim() !== "",
+          hasDevCommand:
+            Boolean(build?.devCommand) && build!.devCommand!.trim() !== "",
         }
       } catch {
         return c
@@ -124,3 +126,72 @@ export async function runInstallCommand(
     cwd: "/workspace",
   })
 }
+
+/**
+ * Run the configured development command for the repo associated with the container.
+ * Similar to runInstallCommand, but starts the dev process in the background so the
+ * request doesn't block if the dev server runs continuously.
+ */
+export async function runDevCommand(
+  containerIdOrName: string
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  const docker = new Docker({ socketPath: "/var/run/docker.sock" })
+  const container = docker.getContainer(containerIdOrName)
+  let info: Docker.ContainerInspectInfo
+  try {
+    info = await container.inspect()
+  } catch (e) {
+    return {
+      stdout: "",
+      stderr: `Failed to inspect container: ${e}`,
+      exitCode: 1,
+    }
+  }
+  const labels = info?.Config?.Labels ?? {}
+  const owner: string | undefined = labels.owner
+  const repo: string | undefined = labels.repo
+  const repoFullNameStr = owner && repo ? `${owner}/${repo}` : undefined
+
+  if (!repoFullNameStr) {
+    return {
+      stdout: "",
+      stderr:
+        "Repository information not found on container labels. Expected 'owner' and 'repo' labels.",
+      exitCode: 1,
+    }
+  }
+
+  let devCommand: string | undefined
+  try {
+    const repoFullName = repoFullNameSchema.parse(repoFullNameStr)
+    const build = await getBuildDeploymentSettings(repoFullName)
+    devCommand = build?.devCommand?.trim()
+  } catch (e) {
+    return {
+      stdout: "",
+      stderr: `Failed to load repository settings: ${e}`,
+      exitCode: 1,
+    }
+  }
+
+  if (!devCommand) {
+    return {
+      stdout: "",
+      stderr: "No development command configured for this repository.",
+      exitCode: 1,
+    }
+  }
+
+  // Start the dev server in the background and write logs to /workspace/logs/dev.log
+  const backgroundCmd =
+    'mkdir -p /workspace/logs && (nohup sh -lc ' +
+    JSON.stringify(devCommand) +
+    ' > /workspace/logs/dev.log 2>&1 & echo $!)'
+
+  return execInContainerWithDockerode({
+    name: containerIdOrName,
+    command: backgroundCmd,
+    cwd: "/workspace",
+  })
+}
+
