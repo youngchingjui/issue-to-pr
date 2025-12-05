@@ -128,6 +128,7 @@ export default function ContainerClientPage() {
                     ? `/${c.owner}/${c.repo}/settings`
                     : undefined
                 }
+                previewSubdomain={c.subdomain}
                 onRunCommand={handleRunCommand}
                 onStop={() => handleStop(c.id)}
               />

@@ -81,7 +81,7 @@ export async function startContainer({
 
   // 2. Build environment variable flags: -e "KEY=value"
   const envFlags = Object.entries(env).map(
-    ([key, value]) => `-e \"${key}=${value.replace(/"/g, '\\\\"')}\"`
+    ([key, value]) => `-e \"${key}=${value.replace(/"/g, '\\\"')}\"`
   )
 
   // 3. Build label flags: --label key=value
@@ -276,6 +276,7 @@ export async function listRunningContainers(): Promise<RunningContainer[]> {
       const owner = labels.owner
       const repo = labels.repo
       const branch = labels.branch
+      const subdomain = labels.subdomain
       const repoFullName = owner && repo ? `${owner}/${repo}` : undefined
 
       return {
@@ -299,6 +300,7 @@ export async function listRunningContainers(): Promise<RunningContainer[]> {
         repo,
         repoFullName,
         branch,
+        subdomain,
       }
     })
   } catch (error) {
@@ -494,3 +496,4 @@ export async function getContainerGitInfo(
     diff,
   }
 }
+

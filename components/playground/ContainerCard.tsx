@@ -4,6 +4,7 @@ import {
   Clock,
   Eye,
   GitBranch,
+  Globe,
   ImageIcon,
   MoreVertical,
   Network,
@@ -11,6 +12,7 @@ import {
   Square,
   Terminal,
 } from "lucide-react"
+import Link from "next/link"
 import { useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
@@ -34,6 +36,7 @@ interface ContainerCardProps {
   installAvailable?: boolean
   devAvailable?: boolean
   settingsLink?: string
+  previewSubdomain?: string
   onRunCommand?: (id: string, name: string, command: string) => void
   onStop?: (id: string, name: string) => Promise<void> | void
   onStart?: (id: string, name: string) => Promise<void> | void
@@ -51,6 +54,7 @@ export function ContainerCard({
   installAvailable,
   devAvailable,
   settingsLink, // kept for future use
+  previewSubdomain,
   onRunCommand,
   onStop,
   onStart,
@@ -90,6 +94,12 @@ export function ContainerCard({
     if (onRunCommand) onRunCommand(id, name, "stop")
     if (onStop) await onStop(id, name)
   }
+
+  const previewDomain =
+    process.env.NEXT_PUBLIC_PREVIEW_BASE_DOMAIN || "issuetopr.dev"
+  const previewUrl = previewSubdomain
+    ? `https://${previewSubdomain}.${previewDomain}`
+    : undefined
 
   return (
     <div className="bg-card border border-border rounded-lg p-5 hover:border-primary/50 transition-colors">
@@ -217,6 +227,19 @@ export function ContainerCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
+              {previewUrl && (
+                <DropdownMenuItem asChild>
+                  <Link
+                    href={previewUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center"
+                  >
+                    <Globe className="mr-2 h-4 w-4" />
+                    Visit Website
+                  </Link>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem
                 onClick={() => onRunCommand?.(id, name, "inspect")}
               >

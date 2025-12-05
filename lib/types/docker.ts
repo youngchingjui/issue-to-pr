@@ -85,5 +85,7 @@ export interface RunningContainer {
   hasInstallCommand?: boolean
   // Whether we have a dev command configured for this container's repo
   hasDevCommand?: boolean
+  // Preview subdomain (label set when container is created); used to build visitable URL
+  subdomain?: string
 }
 
