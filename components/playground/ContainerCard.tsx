@@ -32,6 +32,7 @@ interface ContainerCardProps {
   image: string
   ports?: string
   installAvailable?: boolean
+  devAvailable?: boolean
   settingsLink?: string
   onRunCommand?: (id: string, name: string, command: string) => void
   onStop?: (id: string, name: string) => Promise<void> | void
@@ -48,6 +49,7 @@ export function ContainerCard({
   image,
   ports,
   installAvailable,
+  devAvailable,
   settingsLink, // kept for future use
   onRunCommand,
   onStop,
@@ -198,7 +200,10 @@ export function ContainerCard({
                 Build Project
               </DropdownMenuItem>
 
-              <DropdownMenuItem onClick={() => onRunCommand?.(id, name, "dev")}>
+              <DropdownMenuItem
+                disabled={!devAvailable}
+                onClick={() => onRunCommand?.(id, name, "dev")}
+              >
                 <Terminal className="mr-2 h-4 w-4" />
                 Start Development
               </DropdownMenuItem>
