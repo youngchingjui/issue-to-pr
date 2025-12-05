@@ -16,6 +16,10 @@ import {
 import { useToast } from "@/lib/hooks/use-toast"
 import { RunningContainer } from "@/lib/types/docker"
 
+// TODO: If needed, convert this to env variable
+// This is for crafting the preview URL
+const BASE_URL = "issuetopr.dev"
+
 export default function ContainerClientPage() {
   const router = useRouter()
   const { toast } = useToast()
@@ -128,7 +132,9 @@ export default function ContainerClientPage() {
                     ? `/${c.owner}/${c.repo}/settings`
                     : undefined
                 }
-                previewSubdomain={c.subdomain}
+                previewUrl={
+                  c.subdomain ? `https://${c.subdomain}.${BASE_URL}` : undefined
+                }
                 onRunCommand={handleRunCommand}
                 onStop={() => handleStop(c.id)}
               />
@@ -144,4 +150,3 @@ export default function ContainerClientPage() {
     </div>
   )
 }
-

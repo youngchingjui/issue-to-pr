@@ -36,7 +36,7 @@ interface ContainerCardProps {
   installAvailable?: boolean
   devAvailable?: boolean
   settingsLink?: string
-  previewSubdomain?: string
+  previewUrl?: string
   onRunCommand?: (id: string, name: string, command: string) => void
   onStop?: (id: string, name: string) => Promise<void> | void
   onStart?: (id: string, name: string) => Promise<void> | void
@@ -54,7 +54,7 @@ export function ContainerCard({
   installAvailable,
   devAvailable,
   settingsLink, // kept for future use
-  previewSubdomain,
+  previewUrl,
   onRunCommand,
   onStop,
   onStart,
@@ -94,12 +94,6 @@ export function ContainerCard({
     if (onRunCommand) onRunCommand(id, name, "stop")
     if (onStop) await onStop(id, name)
   }
-
-  const previewDomain =
-    process.env.NEXT_PUBLIC_PREVIEW_BASE_DOMAIN || "issuetopr.dev"
-  const previewUrl = previewSubdomain
-    ? `https://${previewSubdomain}.${previewDomain}`
-    : undefined
 
   return (
     <div className="bg-card border border-border rounded-lg p-5 hover:border-primary/50 transition-colors">
@@ -253,4 +247,3 @@ export function ContainerCard({
     </div>
   )
 }
-
