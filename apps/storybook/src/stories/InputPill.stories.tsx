@@ -47,7 +47,15 @@ type ControlsArgs = {
 }
 type ControlsStory = StoryObj<ControlsArgs>
 
-export const Playground: Story = {}
+export const Playground: Story = {
+  decorators: [
+    (Story) => (
+      <div className="mt-20">
+        <Story />
+      </div>
+    ),
+  ],
+}
 export const Playground2: Story = {
   render: () => {
     const [jobs, setJobs] = useState<PillJob[]>([])
