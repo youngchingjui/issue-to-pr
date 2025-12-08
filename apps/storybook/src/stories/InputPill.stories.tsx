@@ -49,13 +49,24 @@ type ControlsStory = StoryObj<ControlsArgs>
 
 export const Playground: Story = {
   decorators: [
-    (Story) => (
-      <div className="mt-20">
-        <Story />
-      </div>
-    ),
+    (Story, { args }) => {
+      const { mode } = args
+
+      return (
+        <>
+          {mode === "collapsed" ? (
+            <div className="mt-20">
+              <Story />
+            </div>
+          ) : (
+            <Story />
+          )}
+        </>
+      )
+    },
   ],
 }
+
 export const Playground2: Story = {
   render: () => {
     const [jobs, setJobs] = useState<PillJob[]>([])

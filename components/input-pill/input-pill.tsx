@@ -5,6 +5,9 @@ import { useEffect, useRef, useState } from "react"
 import { StatusTicker } from "@/components/input-pill/status-ticker"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import MockVoiceService from "@/lib/adapters/voice/MockVoiceService"
+import { useVoice } from "@/lib/hooks/useVoice"
+import { VoiceService } from "@/lib/types/voice"
 
 type Mode = "collapsed" | "text" | "voice"
 
@@ -34,6 +37,7 @@ interface InputPillProps {
   simulateVoice?: boolean
   simulatedVoiceState?: SimulatedVoiceState
   onSimulatedVoiceStateChange?: (state: SimulatedVoiceState) => void
+  voiceService?: VoiceService
 }
 
 export default function InputPill({
@@ -41,18 +45,15 @@ export default function InputPill({
   jobs = [],
   onRevealJob,
   onSeeAllPreviews,
-  mode,
+  mode = "collapsed",
   onModeChange,
   simulateVoice = false,
   simulatedVoiceState,
   onSimulatedVoiceStateChange,
+  voiceService = new MockVoiceService(),
 }: InputPillProps) {
-  const [uncontrolledMode, setUncontrolledMode] = useState<Mode>("collapsed")
-  const currentMode = mode ?? uncontrolledMode
-  const setModeSafe = (next: Mode) => {
-    if (mode === undefined) setUncontrolledMode(next)
-    onModeChange?.(next)
-  }
+  const voice = useVoice(voiceService)
+
   const [textInput, setTextInput] = useState("")
   const [isRecording, setIsRecording] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
@@ -67,6 +68,11 @@ export default function InputPill({
   // Dropdown state
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const splitRef = useRef<HTMLDivElement | null>(null)
+
+  // Update the controlled mode when the mode prop changes
+  useEffect(() => {
+    onModeChange?.(mode)
+  }, [mode, onModeChange])
 
   // Close dropdown on outside click or on escape
   useEffect(() => {
@@ -91,8 +97,8 @@ export default function InputPill({
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
-        if (currentMode !== "collapsed") {
-          if (currentMode === "voice") {
+        if (mode !== "collapsed") {
+          if (mode === "voice") {
             if (simulateVoice) {
               onSimulatedVoiceStateChange?.({
                 isStarting: false,
@@ -102,26 +108,25 @@ export default function InputPill({
                 recordingTime: 0,
               })
             } else {
-              discardRecording()
+              voice.discard()
             }
           }
-          setModeSafe("collapsed")
+          onModeChange?.("collapsed")
         }
         setIsMenuOpen(false)
       }
     }
     document.addEventListener("keydown", onKey)
     return () => document.removeEventListener("keydown", onKey)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentMode, simulateVoice, onSimulatedVoiceStateChange])
+  }, [mode, simulateVoice, onSimulatedVoiceStateChange, onModeChange, voice])
 
-  const prevModeRef = useRef<Mode>(currentMode)
+  const prevModeRef = useRef<Mode>(mode)
   useEffect(() => {
-    if (prevModeRef.current !== "collapsed" && currentMode === "collapsed") {
+    if (prevModeRef.current !== "collapsed" && mode === "collapsed") {
       micButtonRef.current?.focus?.()
     }
-    prevModeRef.current = currentMode
-  }, [currentMode])
+    prevModeRef.current = mode
+  }, [mode])
 
   const startTimer = () => {
     if (recordingIntervalRef.current) return
@@ -300,7 +305,7 @@ export default function InputPill({
 
     // Reset voice UI state
     discardRecording()
-    setModeSafe("collapsed")
+    onModeChange?.("collapsed")
   }
 
   const handleTextSubmit = () => {
@@ -310,7 +315,7 @@ export default function InputPill({
         console.error("[v0] Text submit error:", e)
       )
       setTextInput("")
-      setModeSafe("collapsed")
+      onModeChange?.("collapsed")
     }
   }
 
@@ -321,7 +326,7 @@ export default function InputPill({
   }
 
   const handleMicTap = () => {
-    setModeSafe("voice")
+    onModeChange?.("voice")
     // Immediately request mic access and begin recording on first tap
     startRecording()
   }
@@ -424,7 +429,7 @@ export default function InputPill({
       )}
 
       {/* Collapsed State - split button bottom-right */}
-      {currentMode === "collapsed" && (
+      {mode === "collapsed" && (
         <div ref={splitRef} className="relative flex justify-end">
           <div className="inline-flex items-center gap-px rounded-full border bg-card/95 p-1 shadow-lg backdrop-blur-sm">
             <Button
@@ -480,7 +485,7 @@ export default function InputPill({
                 className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
                 onClick={() => {
                   setIsMenuOpen(false)
-                  setModeSafe("text")
+                  onModeChange?.("text")
                 }}
               >
                 <svg
@@ -527,7 +532,7 @@ export default function InputPill({
       )}
 
       {/* Text Input Mode */}
-      {currentMode === "text" && (
+      {mode === "text" && (
         <div className="ml-auto max-w-md rounded-2xl border bg-card/95 p-4 shadow-xl backdrop-blur-sm">
           <div className="space-y-3">
             <Textarea
@@ -548,7 +553,7 @@ export default function InputPill({
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  setModeSafe("collapsed")
+                  onModeChange?.("collapsed")
                   setTextInput("")
                 }}
               >
@@ -568,7 +573,7 @@ export default function InputPill({
       )}
 
       {/* Voice Recording Mode */}
-      {currentMode === "voice" && (
+      {mode === "voice" && (
         <div className="ml-auto max-w-md rounded-2xl border bg-card/95 p-6 shadow-xl backdrop-blur-sm">
           <div className="flex flex-col items-center gap-4">
             <div
@@ -657,7 +662,7 @@ export default function InputPill({
                   size="sm"
                   onClick={() => {
                     discardRecording()
-                    setModeSafe("collapsed")
+                    onModeChange?.("collapsed")
                   }}
                 >
                   Cancel
