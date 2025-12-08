@@ -12,8 +12,9 @@ interface PillJob {
 const meta: Meta<typeof InputPill> = {
   title: "App/InputPill",
   component: InputPill,
+  tags: ["autodocs"],
   parameters: {
-    layout: "fullscreen",
+    layout: "centered",
   },
   argTypes: {
     mode: {
@@ -82,27 +83,16 @@ export const Playground: Story = {
     }, [])
 
     const onSeeAllPreviews = useCallback(() => {
-      // No-op for Storybook demo
-      // eslint-disable-next-line no-console
       console.log("See all previews clicked")
     }, [])
 
     return (
-      <div className="h-[70vh] w-full bg-background">
-        <div className="p-6">
-          <p className="text-sm text-muted-foreground">
-            Use the mic to start voice mode or open the menu to choose text
-            input. Submitting will create a mock background job shown as a
-            floating pill.
-          </p>
-        </div>
-        <InputPill
-          jobs={jobs}
-          onSubmit={onSubmit}
-          onRevealJob={onRevealJob}
-          onSeeAllPreviews={onSeeAllPreviews}
-        />
-      </div>
+      <InputPill
+        jobs={jobs}
+        onSubmit={onSubmit}
+        onRevealJob={onRevealJob}
+        onSeeAllPreviews={onSeeAllPreviews}
+      />
     )
   },
 }
@@ -120,9 +110,7 @@ export const WithExistingJobs: Story = {
       setJobs((prev) => prev.filter((j) => j.id !== id))
 
     return (
-      <div className="h-[70vh] w-full bg-background">
-        <InputPill jobs={jobs} onSubmit={onSubmit} onRevealJob={onRevealJob} />
-      </div>
+      <InputPill jobs={jobs} onSubmit={onSubmit} onRevealJob={onRevealJob} />
     )
   },
 }
@@ -181,35 +169,33 @@ export const ControlsPlayground: ControlsStory = {
     }, [])
 
     return (
-      <div className="h-[70vh] w-full bg-background">
-        <InputPill
-          jobs={jobs}
-          onSubmit={onSubmit}
-          mode={curMode as "collapsed" | "text" | "voice"}
-          onModeChange={(m) => setCurMode(m)}
-          simulateVoice={!!args.simulateVoice}
-          simulatedVoiceState={{
-            isStarting: voiceState.isStarting,
-            isRecording: voiceState.isRecording,
-            isPaused: voiceState.isPaused,
-            hasRecording: voiceState.hasRecording,
-            recordingTime: voiceState.recordingTime,
-          }}
-          onSimulatedVoiceStateChange={(state) => {
-            setVoiceState((prev) => ({
-              ...prev,
-              isStarting: !!state.isStarting,
-              isRecording: !!state.isRecording,
-              isPaused: !!state.isPaused,
-              hasRecording: !!state.hasRecording,
-              recordingTime:
-                typeof state.recordingTime === "number"
-                  ? state.recordingTime
-                  : prev.recordingTime,
-            }))
-          }}
-        />
-      </div>
+      <InputPill
+        jobs={jobs}
+        onSubmit={onSubmit}
+        mode={curMode as "collapsed" | "text" | "voice"}
+        onModeChange={(m) => setCurMode(m)}
+        simulateVoice={!!args.simulateVoice}
+        simulatedVoiceState={{
+          isStarting: voiceState.isStarting,
+          isRecording: voiceState.isRecording,
+          isPaused: voiceState.isPaused,
+          hasRecording: voiceState.hasRecording,
+          recordingTime: voiceState.recordingTime,
+        }}
+        onSimulatedVoiceStateChange={(state) => {
+          setVoiceState((prev) => ({
+            ...prev,
+            isStarting: !!state.isStarting,
+            isRecording: !!state.isRecording,
+            isPaused: !!state.isPaused,
+            hasRecording: !!state.hasRecording,
+            recordingTime:
+              typeof state.recordingTime === "number"
+                ? state.recordingTime
+                : prev.recordingTime,
+          }))
+        }}
+      />
     )
   },
 }
@@ -277,11 +263,7 @@ export const WithProcessingJobs: Story = {
       { id: "p2", status: "processing", label: "Running checks…" },
     ]
     const onSubmit = async () => {}
-    return (
-      <div className="h-[70vh] w-full bg-background">
-        <InputPill jobs={jobs} onSubmit={onSubmit} />
-      </div>
-    )
+    return <InputPill jobs={jobs} onSubmit={onSubmit} />
   },
 }
 
@@ -292,11 +274,7 @@ export const WithReadyJobs: Story = {
       { id: "r2", status: "ready", label: "Preview available" },
     ]
     const onSubmit = async () => {}
-    return (
-      <div className="h-[70vh] w-full bg-background">
-        <InputPill jobs={jobs} onSubmit={onSubmit} />
-      </div>
-    )
+    return <InputPill jobs={jobs} onSubmit={onSubmit} />
   },
 }
 
@@ -307,10 +285,6 @@ export const MixedJobs: Story = {
       { id: "m2", status: "ready", label: "Result for: refactor inputs" },
     ]
     const onSubmit = async () => {}
-    return (
-      <div className="h-[70vh] w-full bg-background">
-        <InputPill jobs={jobs} onSubmit={onSubmit} />
-      </div>
-    )
+    return <InputPill jobs={jobs} onSubmit={onSubmit} />
   },
 }
