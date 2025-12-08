@@ -350,337 +350,327 @@ export default function InputPill({
       }
 
   return (
-    <div className="fixed bottom-0 right-0 z-50 flex justify-end p-4 pointer-events-none">
-      <div className="w-full max-w-2xl pointer-events-auto slide-up">
-        {/* Screen reader live region summarizing background jobs */}
-        <div className="sr-only" aria-live="polite" aria-atomic="true">
-          {jobs?.length
-            ? `${jobs.filter((j) => j.status === "processing").length} job(s) in progress, ${jobs.filter((j) => j.status === "ready").length} ready`
-            : ""}
-        </div>
-        {/* Floating status pills */}
-        {hasJobs && (
-          <div className="mb-2 flex w-full justify-end">
-            <div className="flex flex-col items-end gap-2">
-              {jobsInRenderOrder.map((job) => (
-                <div
-                  key={job.id}
-                  className={`status-bubble rounded-full border bg-card/95 px-3 py-2 text-sm shadow-lg backdrop-blur-sm flex items-center gap-2`}
-                >
-                  {job.status === "processing" ? (
-                    <>
-                      <svg
-                        className="h-4 w-4 animate-spin text-muted-foreground"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-20"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        />
-                        <path
-                          className="opacity-70"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                        />
-                      </svg>
-                      <span className="text-muted-foreground">
-                        <StatusTicker
-                          message={job.label ?? "Working in background…"}
-                        />
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <svg
-                        className="h-4 w-4 text-muted-foreground"
-                        fill="none"
+    <div className="pointer-events-auto slide-up">
+      {/* Screen reader live region summarizing background jobs */}
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {jobs?.length
+          ? `${jobs.filter((j) => j.status === "processing").length} job(s) in progress, ${jobs.filter((j) => j.status === "ready").length} ready`
+          : ""}
+      </div>
+      {/* Floating status pills */}
+      {hasJobs && (
+        <div className="mb-2">
+          <div className="flex flex-col items-end gap-2">
+            {jobsInRenderOrder.map((job) => (
+              <div
+                key={job.id}
+                className={`status-bubble rounded-full border bg-card/95 px-3 py-2 text-sm shadow-lg backdrop-blur-sm flex items-center gap-2`}
+              >
+                {job.status === "processing" ? (
+                  <>
+                    <svg
+                      className="h-4 w-4 animate-spin text-muted-foreground"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-20"
+                        cx="12"
+                        cy="12"
+                        r="10"
                         stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                      <span className="text-muted-foreground">
-                        {job.label ?? "Change ready"}
-                      </span>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 px-2 text-xs"
-                        onClick={() => onRevealJob?.(job.id)}
-                      >
-                        Show
-                      </Button>
-                    </>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Collapsed State - split button bottom-right */}
-        {currentMode === "collapsed" && (
-          <div ref={splitRef} className="relative w-full flex justify-end">
-            <div className="inline-flex items-center gap-px rounded-full border bg-card/95 p-1 shadow-lg backdrop-blur-sm">
-              <Button
-                size="icon-lg"
-                variant="ghost"
-                className="rounded-l-full hover:bg-accent"
-                ref={micButtonRef}
-                onClick={handleMicTap}
-                aria-label="Start voice input"
-              >
-                <svg
-                  className="h-5 w-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
-                  />
-                </svg>
-              </Button>
-              <div className="h-6 w-px bg-border" />
-              <Button
-                size="icon-lg"
-                variant="ghost"
-                className={`rounded-r-full hover:bg-accent transition-transform ${isMenuOpen ? "rotate-180" : ""}`}
-                onClick={() => setIsMenuOpen((v) => !v)}
-                aria-label="More input options"
-                aria-expanded={isMenuOpen}
-              >
-                <svg
-                  className="h-5 w-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </Button>
-            </div>
-
-            {isMenuOpen && (
-              <div className="absolute bottom-full right-0 mb-2 w-56 rounded-xl border bg-card/95 p-1.5 shadow-xl backdrop-blur-sm">
-                <button
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
-                  onClick={() => {
-                    setIsMenuOpen(false)
-                    setModeSafe("text")
-                  }}
-                >
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                    />
-                  </svg>
-                  Text input
-                </button>
-                <button
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
-                  onClick={() => {
-                    setIsMenuOpen(false)
-                    if (onSeeAllPreviews) onSeeAllPreviews()
-                    else console.log("[v0] See all previews clicked")
-                  }}
-                >
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                    />
-                  </svg>
-                  See all previews
-                </button>
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-70"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                      />
+                    </svg>
+                    <span className="text-muted-foreground">
+                      <StatusTicker
+                        message={job.label ?? "Working in background…"}
+                      />
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="h-4 w-4 text-muted-foreground"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                    <span className="text-muted-foreground">
+                      {job.label ?? "Change ready"}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-xs"
+                      onClick={() => onRevealJob?.(job.id)}
+                    >
+                      Show
+                    </Button>
+                  </>
+                )}
               </div>
-            )}
+            ))}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Text Input Mode */}
-        {currentMode === "text" && (
-          <div className="ml-auto max-w-md rounded-2xl border bg-card/95 p-4 shadow-xl backdrop-blur-sm">
-            <div className="space-y-3">
-              <Textarea
-                placeholder="Type your message..."
-                value={textInput}
-                onChange={(e) => setTextInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-                    e.preventDefault()
-                    handleTextSubmit()
-                  }
+      {/* Collapsed State - split button bottom-right */}
+      {currentMode === "collapsed" && (
+        <div ref={splitRef} className="relative flex justify-end">
+          <div className="inline-flex items-center gap-px rounded-full border bg-card/95 p-1 shadow-lg backdrop-blur-sm">
+            <Button
+              size="icon-lg"
+              variant="ghost"
+              className="rounded-l-full hover:bg-accent"
+              ref={micButtonRef}
+              onClick={handleMicTap}
+              aria-label="Start voice input"
+            >
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
+                />
+              </svg>
+            </Button>
+            <div className="h-6 w-px bg-border" />
+            <Button
+              size="icon-lg"
+              variant="ghost"
+              className={`rounded-r-full hover:bg-accent transition-transform ${isMenuOpen ? "rotate-180" : ""}`}
+              onClick={() => setIsMenuOpen((v) => !v)}
+              aria-label="More input options"
+              aria-expanded={isMenuOpen}
+            >
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </Button>
+          </div>
+
+          {isMenuOpen && (
+            <div className="absolute bottom-full right-0 mb-2 w-56 rounded-xl border bg-card/95 p-1.5 shadow-xl backdrop-blur-sm">
+              <button
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                onClick={() => {
+                  setIsMenuOpen(false)
+                  setModeSafe("text")
                 }}
-                className="min-h-24 resize-none border-0 bg-transparent text-base focus-visible:ring-0"
-                autoFocus
+              >
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+                Text input
+              </button>
+              <button
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                onClick={() => {
+                  setIsMenuOpen(false)
+                  if (onSeeAllPreviews) onSeeAllPreviews()
+                  else console.log("[v0] See all previews clicked")
+                }}
+              >
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                  />
+                </svg>
+                See all previews
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Text Input Mode */}
+      {currentMode === "text" && (
+        <div className="ml-auto max-w-md rounded-2xl border bg-card/95 p-4 shadow-xl backdrop-blur-sm">
+          <div className="space-y-3">
+            <Textarea
+              placeholder="Type your message..."
+              value={textInput}
+              onChange={(e) => setTextInput(e.target.value)}
+              onKeyDown={(e) => {
+                if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                  e.preventDefault()
+                  handleTextSubmit()
+                }
+              }}
+              className="min-h-24 resize-none border-0 bg-transparent text-base focus-visible:ring-0"
+              autoFocus
+            />
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setModeSafe("collapsed")
+                  setTextInput("")
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleTextSubmit}
+                disabled={!textInput.trim()}
+                className="min-w-20"
+              >
+                Submit
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Voice Recording Mode */}
+      {currentMode === "voice" && (
+        <div className="ml-auto max-w-md rounded-2xl border bg-card/95 p-6 shadow-xl backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-4">
+            <div
+              className={`recording-pulse flex h-20 w-20 items-center justify-center rounded-full ${
+                effectiveVoice.isRecording && !effectiveVoice.isPaused
+                  ? "bg-destructive"
+                  : "bg-muted"
+              }`}
+            >
+              <div
+                className={`h-4 w-4 rounded-full ${
+                  effectiveVoice.isRecording && !effectiveVoice.isPaused
+                    ? "bg-destructive-foreground"
+                    : "bg-muted-foreground"
+                }`}
               />
-              <div className="flex items-center justify-end gap-2">
+            </div>
+            <div className="space-y-1 text-center">
+              <p className="text-2xl font-bold font-mono tabular-nums">
+                {formatTime(effectiveVoice.recordingTime)}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {effectiveVoice.isStarting
+                  ? "Starting…"
+                  : effectiveVoice.isPaused
+                    ? "Paused"
+                    : effectiveVoice.isRecording
+                      ? "Recording..."
+                      : effectiveVoice.hasRecording
+                        ? `Recording ready: ${formatTime(effectiveVoice.recordingTime)}`
+                        : ""}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 justify-center">
+              {effectiveVoice.hasRecording && !effectiveVoice.isRecording ? (
+                <>
+                  <Button variant="ghost" size="sm" onClick={discardRecording}>
+                    Discard
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleVoiceSubmit}
+                    className="min-w-20"
+                  >
+                    Submit
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={
+                      effectiveVoice.isPaused ? resumeRecording : pauseRecording
+                    }
+                    disabled={
+                      effectiveVoice.isStarting ||
+                      (!effectiveVoice.isRecording && !effectiveVoice.isPaused)
+                    }
+                  >
+                    {effectiveVoice.isPaused ? "Resume" : "Pause"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={stopRecording}
+                    disabled={
+                      effectiveVoice.isStarting || !effectiveVoice.isRecording
+                    }
+                  >
+                    Stop
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleVoiceSubmit}
+                    className="min-w-20"
+                    disabled={effectiveVoice.isStarting}
+                  >
+                    Submit
+                  </Button>
+                </>
+              )}
+              {!effectiveVoice.isRecording && !effectiveVoice.hasRecording && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => {
+                    discardRecording()
                     setModeSafe("collapsed")
-                    setTextInput("")
                   }}
                 >
                   Cancel
                 </Button>
-                <Button
-                  size="sm"
-                  onClick={handleTextSubmit}
-                  disabled={!textInput.trim()}
-                  className="min-w-20"
-                >
-                  Submit
-                </Button>
-              </div>
+              )}
             </div>
           </div>
-        )}
-
-        {/* Voice Recording Mode */}
-        {currentMode === "voice" && (
-          <div className="ml-auto max-w-md rounded-2xl border bg-card/95 p-6 shadow-xl backdrop-blur-sm">
-            <div className="flex flex-col items-center gap-4">
-              <div
-                className={`recording-pulse flex h-20 w-20 items-center justify-center rounded-full ${
-                  effectiveVoice.isRecording && !effectiveVoice.isPaused
-                    ? "bg-destructive"
-                    : "bg-muted"
-                }`}
-              >
-                <div
-                  className={`h-4 w-4 rounded-full ${
-                    effectiveVoice.isRecording && !effectiveVoice.isPaused
-                      ? "bg-destructive-foreground"
-                      : "bg-muted-foreground"
-                  }`}
-                />
-              </div>
-              <div className="space-y-1 text-center">
-                <p className="text-2xl font-bold font-mono tabular-nums">
-                  {formatTime(effectiveVoice.recordingTime)}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {effectiveVoice.isStarting
-                    ? "Starting…"
-                    : effectiveVoice.isPaused
-                      ? "Paused"
-                      : effectiveVoice.isRecording
-                        ? "Recording..."
-                        : effectiveVoice.hasRecording
-                          ? `Recording ready: ${formatTime(effectiveVoice.recordingTime)}`
-                          : ""}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2 justify-center">
-                {effectiveVoice.hasRecording && !effectiveVoice.isRecording ? (
-                  <>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={discardRecording}
-                    >
-                      Discard
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={handleVoiceSubmit}
-                      className="min-w-20"
-                    >
-                      Submit
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={
-                        effectiveVoice.isPaused
-                          ? resumeRecording
-                          : pauseRecording
-                      }
-                      disabled={
-                        effectiveVoice.isStarting ||
-                        (!effectiveVoice.isRecording &&
-                          !effectiveVoice.isPaused)
-                      }
-                    >
-                      {effectiveVoice.isPaused ? "Resume" : "Pause"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={stopRecording}
-                      disabled={
-                        effectiveVoice.isStarting || !effectiveVoice.isRecording
-                      }
-                    >
-                      Stop
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={handleVoiceSubmit}
-                      className="min-w-20"
-                      disabled={effectiveVoice.isStarting}
-                    >
-                      Submit
-                    </Button>
-                  </>
-                )}
-                {!effectiveVoice.isRecording &&
-                  !effectiveVoice.hasRecording && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        discardRecording()
-                        setModeSafe("collapsed")
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                  )}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
