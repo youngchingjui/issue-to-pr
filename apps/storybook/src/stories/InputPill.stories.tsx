@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react"
+import type { Meta, StoryObj } from "@storybook/nextjs"
 import React, { useCallback, useState } from "react"
 
 import InputPill from "@/components/input-pill/input-pill"
@@ -29,13 +29,25 @@ export const Playground: Story = {
       const id = Math.random().toString(36).slice(2)
       setJobs((prev) => [
         ...prev,
-        { id, status: "processing", label: isVoice ? "Transcribing…" : "Thinking…" },
+        {
+          id,
+          status: "processing",
+          label: isVoice ? "Transcribing…" : "Thinking…",
+        },
       ])
 
       // After a short delay, mark as ready with a new label
       setTimeout(() => {
         setJobs((prev) =>
-          prev.map((j) => (j.id === id ? { ...j, status: "ready", label: `Result for: ${input.slice(0, 20)}` } : j))
+          prev.map((j) =>
+            j.id === id
+              ? {
+                  ...j,
+                  status: "ready",
+                  label: `Result for: ${input.slice(0, 20)}`,
+                }
+              : j
+          )
         )
       }, 1500)
     }, [])
@@ -56,11 +68,17 @@ export const Playground: Story = {
       <div className="h-[70vh] w-full bg-background">
         <div className="p-6">
           <p className="text-sm text-muted-foreground">
-            Use the mic to start voice mode or open the menu to choose text input. Submitting will
-            create a mock background job shown as a floating pill.
+            Use the mic to start voice mode or open the menu to choose text
+            input. Submitting will create a mock background job shown as a
+            floating pill.
           </p>
         </div>
-        <InputPill jobs={jobs} onSubmit={onSubmit} onRevealJob={onRevealJob} onSeeAllPreviews={onSeeAllPreviews} />
+        <InputPill
+          jobs={jobs}
+          onSubmit={onSubmit}
+          onRevealJob={onRevealJob}
+          onSeeAllPreviews={onSeeAllPreviews}
+        />
       </div>
     )
   },
@@ -75,7 +93,8 @@ export const WithExistingJobs: Story = {
 
     const onSubmit = async () => {}
 
-    const onRevealJob = (id: string) => setJobs((prev) => prev.filter((j) => j.id !== id))
+    const onRevealJob = (id: string) =>
+      setJobs((prev) => prev.filter((j) => j.id !== id))
 
     return (
       <div className="h-[70vh] w-full bg-background">
