@@ -6,6 +6,16 @@ import { StatusTicker } from "@/components/input-pill/status-ticker"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 
+type Mode = "collapsed" | "text" | "voice"
+
+type SimulatedVoiceState = {
+  isStarting?: boolean
+  isRecording?: boolean
+  isPaused?: boolean
+  hasRecording?: boolean
+  recordingTime?: number
+}
+
 interface PillJob {
   id: string
   status: "processing" | "ready"
@@ -17,6 +27,14 @@ interface InputPillProps {
   jobs?: PillJob[]
   onRevealJob?: (id: string) => void
   onSeeAllPreviews?: () => void
+  // Controlled/uncontrolled mode
+  mode?: Mode
+  defaultMode?: Mode
+  onModeChange?: (mode: Mode) => void
+  // Voice simulation for Storybook/controlled demos
+  simulateVoice?: boolean
+  simulatedVoiceState?: SimulatedVoiceState
+  onSimulatedVoiceStateChange?: (state: SimulatedVoiceState) => void
 }
 
 export default function InputPill({
@@ -24,8 +42,21 @@ export default function InputPill({
   jobs = [],
   onRevealJob,
   onSeeAllPreviews,
+  mode,
+  defaultMode,
+  onModeChange,
+  simulateVoice = false,
+  simulatedVoiceState,
+  onSimulatedVoiceStateChange,
 }: InputPillProps) {
-  const [mode, setMode] = useState<"collapsed" | "text" | "voice">("collapsed")
+  const [uncontrolledMode, setUncontrolledMode] = useState<Mode>(
+    defaultMode ?? "collapsed"
+  )
+  const currentMode = mode ?? uncontrolledMode
+  const setModeSafe = (next: Mode) => {
+    if (mode === undefined) setUncontrolledMode(next)
+    onModeChange?.(next)
+  }
   const [textInput, setTextInput] = useState("")
   const [isRecording, setIsRecording] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
@@ -35,6 +66,7 @@ export default function InputPill({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const micButtonRef = useRef<HTMLButtonElement | null>(null)
 
   // Dropdown state
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -59,6 +91,42 @@ export default function InputPill({
     }
   }, [isMenuOpen])
 
+  // Collapse on Escape when in text/voice and return focus to mic button when collapsing
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        if (currentMode !== "collapsed") {
+          if (currentMode === "voice") {
+            if (simulateVoice) {
+              onSimulatedVoiceStateChange?.({
+                isStarting: false,
+                isRecording: false,
+                isPaused: false,
+                hasRecording: false,
+                recordingTime: 0,
+              })
+            } else {
+              discardRecording()
+            }
+          }
+          setModeSafe("collapsed")
+        }
+        setIsMenuOpen(false)
+      }
+    }
+    document.addEventListener("keydown", onKey)
+    return () => document.removeEventListener("keydown", onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentMode, simulateVoice, onSimulatedVoiceStateChange])
+
+  const prevModeRef = useRef<Mode>(currentMode)
+  useEffect(() => {
+    if (prevModeRef.current !== "collapsed" && currentMode === "collapsed") {
+      micButtonRef.current?.focus?.()
+    }
+    prevModeRef.current = currentMode
+  }, [currentMode])
+
   const startTimer = () => {
     if (recordingIntervalRef.current) return
     recordingIntervalRef.current = setInterval(() => {
@@ -74,6 +142,16 @@ export default function InputPill({
   }
 
   const startRecording = async () => {
+    if (simulateVoice) {
+      onSimulatedVoiceStateChange?.({
+        isStarting: false,
+        isRecording: true,
+        isPaused: false,
+        hasRecording: false,
+        recordingTime: simulatedVoiceState?.recordingTime ?? 0,
+      })
+      return
+    }
     try {
       setHasRecording(false)
       setIsStarting(true)
@@ -113,6 +191,15 @@ export default function InputPill({
   }
 
   const pauseRecording = () => {
+    if (simulateVoice) {
+      if (!simulatedVoiceState?.isRecording || simulatedVoiceState?.isPaused)
+        return
+      onSimulatedVoiceStateChange?.({
+        ...simulatedVoiceState,
+        isPaused: true,
+      })
+      return
+    }
     if (mediaRecorderRef.current && isRecording && !isPaused) {
       try {
         mediaRecorderRef.current.pause()
@@ -126,6 +213,15 @@ export default function InputPill({
   }
 
   const resumeRecording = () => {
+    if (simulateVoice) {
+      if (!simulatedVoiceState?.isRecording || !simulatedVoiceState?.isPaused)
+        return
+      onSimulatedVoiceStateChange?.({
+        ...simulatedVoiceState,
+        isPaused: false,
+      })
+      return
+    }
     if (mediaRecorderRef.current && isRecording && isPaused) {
       try {
         mediaRecorderRef.current.resume()
@@ -139,6 +235,16 @@ export default function InputPill({
   }
 
   const stopRecording = () => {
+    if (simulateVoice) {
+      onSimulatedVoiceStateChange?.({
+        isStarting: false,
+        isRecording: false,
+        isPaused: false,
+        hasRecording: true,
+        recordingTime: simulatedVoiceState?.recordingTime ?? 0,
+      })
+      return
+    }
     if (mediaRecorderRef.current && isRecording) {
       try {
         mediaRecorderRef.current.stop()
@@ -154,6 +260,16 @@ export default function InputPill({
 
   const discardRecording = () => {
     // Discard any recorded audio and reset state
+    if (simulateVoice) {
+      onSimulatedVoiceStateChange?.({
+        isStarting: false,
+        isRecording: false,
+        isPaused: false,
+        hasRecording: false,
+        recordingTime: 0,
+      })
+      return
+    }
     audioChunksRef.current = []
     setHasRecording(false)
     setIsRecording(false)
@@ -164,16 +280,31 @@ export default function InputPill({
 
   const handleVoiceSubmit = () => {
     // Ensure we don't keep recording in the background
-    if (isRecording) stopRecording()
+    const effective = simulateVoice
+      ? {
+          isStarting: simulatedVoiceState?.isStarting ?? false,
+          isRecording: simulatedVoiceState?.isRecording ?? false,
+          isPaused: simulatedVoiceState?.isPaused ?? false,
+          hasRecording: simulatedVoiceState?.hasRecording ?? false,
+          recordingTime: simulatedVoiceState?.recordingTime ?? 0,
+        }
+      : {
+          isStarting,
+          isRecording,
+          isPaused,
+          hasRecording,
+          recordingTime,
+        }
+    if (effective.isRecording) stopRecording()
 
     // Optimistic: fire-and-forget, collapse UI immediately
-    onSubmit(`Voice recording (${recordingTime}s)`, true).catch((e) =>
+    onSubmit(`Voice recording (${effective.recordingTime}s)`, true).catch((e) =>
       console.error("[v0] Voice submit error:", e)
     )
 
     // Reset voice UI state
     discardRecording()
-    setMode("collapsed")
+    setModeSafe("collapsed")
   }
 
   const handleTextSubmit = () => {
@@ -183,7 +314,7 @@ export default function InputPill({
         console.error("[v0] Text submit error:", e)
       )
       setTextInput("")
-      setMode("collapsed")
+      setModeSafe("collapsed")
     }
   }
 
@@ -194,7 +325,7 @@ export default function InputPill({
   }
 
   const handleMicTap = () => {
-    setMode("voice")
+    setModeSafe("voice")
     // Immediately request mic access and begin recording on first tap
     startRecording()
   }
@@ -202,10 +333,31 @@ export default function InputPill({
   // Render a stack of status pills (processing and ready)
   const hasJobs = jobs && jobs.length > 0
   const jobsInRenderOrder = [...jobs] // newest last so it appears closest to the split button
+  const effectiveVoice = simulateVoice
+    ? {
+        isStarting: simulatedVoiceState?.isStarting ?? false,
+        isRecording: simulatedVoiceState?.isRecording ?? false,
+        isPaused: simulatedVoiceState?.isPaused ?? false,
+        hasRecording: simulatedVoiceState?.hasRecording ?? false,
+        recordingTime: simulatedVoiceState?.recordingTime ?? 0,
+      }
+    : {
+        isStarting,
+        isRecording,
+        isPaused,
+        hasRecording,
+        recordingTime,
+      }
 
   return (
     <div className="fixed bottom-0 right-0 z-50 flex justify-end p-4 pointer-events-none">
       <div className="w-full max-w-2xl pointer-events-auto slide-up">
+        {/* Screen reader live region summarizing background jobs */}
+        <div className="sr-only" aria-live="polite" aria-atomic="true">
+          {jobs?.length
+            ? `${jobs.filter((j) => j.status === "processing").length} job(s) in progress, ${jobs.filter((j) => j.status === "ready").length} ready`
+            : ""}
+        </div>
         {/* Floating status pills */}
         {hasJobs && (
           <div className="mb-2 flex w-full justify-end">
@@ -277,13 +429,14 @@ export default function InputPill({
         )}
 
         {/* Collapsed State - split button bottom-right */}
-        {mode === "collapsed" && (
+        {currentMode === "collapsed" && (
           <div ref={splitRef} className="relative w-full flex justify-end">
             <div className="inline-flex items-center gap-px rounded-full border bg-card/95 p-1 shadow-lg backdrop-blur-sm">
               <Button
                 size="icon-lg"
                 variant="ghost"
                 className="rounded-l-full hover:bg-accent"
+                ref={micButtonRef}
                 onClick={handleMicTap}
                 aria-label="Start voice input"
               >
@@ -332,7 +485,7 @@ export default function InputPill({
                   className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
                   onClick={() => {
                     setIsMenuOpen(false)
-                    setMode("text")
+                    setModeSafe("text")
                   }}
                 >
                   <svg
@@ -379,13 +532,19 @@ export default function InputPill({
         )}
 
         {/* Text Input Mode */}
-        {mode === "text" && (
+        {currentMode === "text" && (
           <div className="ml-auto max-w-md rounded-2xl border bg-card/95 p-4 shadow-xl backdrop-blur-sm">
             <div className="space-y-3">
               <Textarea
                 placeholder="Type your message..."
                 value={textInput}
                 onChange={(e) => setTextInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                    e.preventDefault()
+                    handleTextSubmit()
+                  }
+                }}
                 className="min-h-24 resize-none border-0 bg-transparent text-base focus-visible:ring-0"
                 autoFocus
               />
@@ -394,7 +553,7 @@ export default function InputPill({
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    setMode("collapsed")
+                    setModeSafe("collapsed")
                     setTextInput("")
                   }}
                 >
@@ -414,36 +573,42 @@ export default function InputPill({
         )}
 
         {/* Voice Recording Mode */}
-        {mode === "voice" && (
+        {currentMode === "voice" && (
           <div className="ml-auto max-w-md rounded-2xl border bg-card/95 p-6 shadow-xl backdrop-blur-sm">
             <div className="flex flex-col items-center gap-4">
               <div
                 className={`recording-pulse flex h-20 w-20 items-center justify-center rounded-full ${
-                  isRecording && !isPaused ? "bg-destructive" : "bg-muted"
+                  effectiveVoice.isRecording && !effectiveVoice.isPaused
+                    ? "bg-destructive"
+                    : "bg-muted"
                 }`}
               >
                 <div
-                  className={`h-4 w-4 rounded-full ${isRecording && !isPaused ? "bg-destructive-foreground" : "bg-muted-foreground"}`}
+                  className={`h-4 w-4 rounded-full ${
+                    effectiveVoice.isRecording && !effectiveVoice.isPaused
+                      ? "bg-destructive-foreground"
+                      : "bg-muted-foreground"
+                  }`}
                 />
               </div>
               <div className="space-y-1 text-center">
                 <p className="text-2xl font-bold font-mono tabular-nums">
-                  {formatTime(recordingTime)}
+                  {formatTime(effectiveVoice.recordingTime)}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {isStarting
+                  {effectiveVoice.isStarting
                     ? "Starting…"
-                    : isPaused
+                    : effectiveVoice.isPaused
                       ? "Paused"
-                      : isRecording
+                      : effectiveVoice.isRecording
                         ? "Recording..."
-                        : hasRecording
-                          ? `Recording ready: ${formatTime(recordingTime)}`
+                        : effectiveVoice.hasRecording
+                          ? `Recording ready: ${formatTime(effectiveVoice.recordingTime)}`
                           : ""}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2 justify-center">
-                {hasRecording && !isRecording ? (
+                {effectiveVoice.hasRecording && !effectiveVoice.isRecording ? (
                   <>
                     <Button
                       variant="ghost"
@@ -465,16 +630,26 @@ export default function InputPill({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={isPaused ? resumeRecording : pauseRecording}
-                      disabled={isStarting || (!isRecording && !isPaused)}
+                      onClick={
+                        effectiveVoice.isPaused
+                          ? resumeRecording
+                          : pauseRecording
+                      }
+                      disabled={
+                        effectiveVoice.isStarting ||
+                        (!effectiveVoice.isRecording &&
+                          !effectiveVoice.isPaused)
+                      }
                     >
-                      {isPaused ? "Resume" : "Pause"}
+                      {effectiveVoice.isPaused ? "Resume" : "Pause"}
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={stopRecording}
-                      disabled={isStarting || !isRecording}
+                      disabled={
+                        effectiveVoice.isStarting || !effectiveVoice.isRecording
+                      }
                     >
                       Stop
                     </Button>
@@ -482,24 +657,25 @@ export default function InputPill({
                       size="sm"
                       onClick={handleVoiceSubmit}
                       className="min-w-20"
-                      disabled={isStarting}
+                      disabled={effectiveVoice.isStarting}
                     >
                       Submit
                     </Button>
                   </>
                 )}
-                {!isRecording && !hasRecording && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      discardRecording()
-                      setMode("collapsed")
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                )}
+                {!effectiveVoice.isRecording &&
+                  !effectiveVoice.hasRecording && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        discardRecording()
+                        setModeSafe("collapsed")
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  )}
               </div>
             </div>
           </div>
