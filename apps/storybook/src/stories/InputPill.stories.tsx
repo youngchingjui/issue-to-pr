@@ -28,10 +28,13 @@ const meta: Meta<typeof InputPill> = {
       control: "object",
     },
   },
+  args: {
+    mode: "collapsed",
+  },
 }
 export default meta
 
-type Story = StoryObj<typeof InputPill>
+type Story = StoryObj<typeof meta>
 type ControlsArgs = {
   mode?: "collapsed" | "text" | "voice"
   simulateVoice?: boolean
@@ -44,7 +47,8 @@ type ControlsArgs = {
 }
 type ControlsStory = StoryObj<ControlsArgs>
 
-export const Playground: Story = {
+export const Playground: Story = {}
+export const Playground2: Story = {
   render: () => {
     const [jobs, setJobs] = useState<PillJob[]>([])
 
