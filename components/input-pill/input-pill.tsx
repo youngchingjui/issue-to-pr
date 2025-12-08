@@ -29,7 +29,6 @@ interface InputPillProps {
   onSeeAllPreviews?: () => void
   // Controlled/uncontrolled mode
   mode?: Mode
-  defaultMode?: Mode
   onModeChange?: (mode: Mode) => void
   // Voice simulation for Storybook/controlled demos
   simulateVoice?: boolean
@@ -43,15 +42,12 @@ export default function InputPill({
   onRevealJob,
   onSeeAllPreviews,
   mode,
-  defaultMode,
   onModeChange,
   simulateVoice = false,
   simulatedVoiceState,
   onSimulatedVoiceStateChange,
 }: InputPillProps) {
-  const [uncontrolledMode, setUncontrolledMode] = useState<Mode>(
-    defaultMode ?? "collapsed"
-  )
+  const [uncontrolledMode, setUncontrolledMode] = useState<Mode>("collapsed")
   const currentMode = mode ?? uncontrolledMode
   const setModeSafe = (next: Mode) => {
     if (mode === undefined) setUncontrolledMode(next)
