@@ -1,5 +1,7 @@
 // This is another hook for using voice that's mainly for the input pill component.
 // Ideally, we'd combine this with useVoiceDictation into a single hook.
+// It injects the VoiceService implementation
+// And conducts those services, along with managing the state
 
 import { useMemo, useState } from "react"
 
@@ -12,11 +14,41 @@ export function useVoice(service: VoiceService) {
     () => ({
       state,
       setState,
-      start: () => service.start(),
-      pause: () => service.pause(),
-      resume: () => service.resume(),
-      stop: () => service.stop(),
-      discard: () => service.discard(),
+      start: () => {
+        service.start()
+        setState((prev) => ({
+          ...prev,
+          phase: "recording",
+        }))
+      },
+      pause: () => {
+        service.pause()
+        setState((prev) => ({
+          ...prev,
+          phase: "paused",
+        }))
+      },
+      resume: () => {
+        service.resume()
+        setState((prev) => ({
+          ...prev,
+          phase: "recording",
+        }))
+      },
+      stop: () => {
+        service.stop()
+        setState((prev) => ({
+          ...prev,
+          phase: "idle",
+        }))
+      },
+      discard: () => {
+        service.discard()
+        setState((prev) => ({
+          ...prev,
+          phase: "idle",
+        }))
+      },
     }),
     [service, state]
   )

@@ -12,6 +12,7 @@ export type VoiceState = {
   recordingTimeSec: number
   canPause: boolean
   canResume: boolean
+  hasRecording: boolean
   error?: string
   // optional: the final audio
   audioBlob?: Blob

@@ -99,17 +99,7 @@ export default function InputPill({
       if (e.key === "Escape") {
         if (mode !== "collapsed") {
           if (mode === "voice") {
-            if (simulateVoice) {
-              onSimulatedVoiceStateChange?.({
-                isStarting: false,
-                isRecording: false,
-                isPaused: false,
-                hasRecording: false,
-                recordingTime: 0,
-              })
-            } else {
-              voice.discard()
-            }
+            voice.discard()
           }
           onModeChange?.("collapsed")
         }
@@ -143,16 +133,7 @@ export default function InputPill({
   }
 
   const startRecording = async () => {
-    if (simulateVoice) {
-      onSimulatedVoiceStateChange?.({
-        isStarting: false,
-        isRecording: true,
-        isPaused: false,
-        hasRecording: false,
-        recordingTime: simulatedVoiceState?.recordingTime ?? 0,
-      })
-      return
-    }
+    voice.start()
     try {
       setHasRecording(false)
       setIsStarting(true)
