@@ -87,9 +87,8 @@ export default function InputPill({
     prevModeRef.current = mode
   }, [mode])
 
-  const handleVoiceSubmit = () => {
-    // Ensure we don't keep recording in the background
-    if (voice.isRecording) voice.stop()
+  const handleVoiceSubmit = async () => {
+    await voice.stop()
 
     // Optimistic: fire-and-forget, collapse UI immediately
     onSubmit(`Voice recording (${voice.recordingTime}s)`, true).catch((e) =>
@@ -97,7 +96,7 @@ export default function InputPill({
     )
 
     // Reset voice UI state
-    voice.discard()
+    await voice.discard()
     setMode("collapsed")
   }
 

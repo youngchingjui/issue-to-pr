@@ -8,13 +8,7 @@ import { useRef, useState } from "react"
 import { VoicePort, VoiceState } from "../types/voice"
 
 export function useVoice(voicePortFactory: () => VoicePort) {
-  const [state, setState] = useState<VoiceState>({
-    phase: "idle",
-    recordingTimeSec: 0,
-    canPause: false,
-    canResume: false,
-    hasRecording: false,
-  })
+  const [state, setState] = useState<VoiceState>("idle")
   const [port] = useState<VoicePort>(() => voicePortFactory())
   const [hasRecording, setHasRecording] = useState(false)
   const [isStarting, setIsStarting] = useState(false)
@@ -49,11 +43,8 @@ export function useVoice(voicePortFactory: () => VoicePort) {
   }
 
   async function pause() {
-    await port.pause()
-    setState((prev) => ({
-      ...prev,
-      phase: "paused",
-    }))
+    port.pause()
+    setState("paused")
   }
 
   async function resume() {
@@ -62,7 +53,7 @@ export function useVoice(voicePortFactory: () => VoicePort) {
     startTimer()
   }
 
-  function stop() {
+  async function stop() {
     port.stop()
     setIsRecording(false)
     setIsPaused(false)

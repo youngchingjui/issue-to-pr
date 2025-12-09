@@ -1,24 +1,11 @@
-// Proposed implementation (key parts)
-import {
-  VoiceEvent,
-  VoicePhase,
-  VoiceService,
-  VoiceState,
-} from "@/lib/types/voice"
+import { VoiceEvent, VoicePort, VoiceState } from "@/lib/types/voice"
 
-export default class MediaRecorderVoiceService implements VoiceService {
-  private state: VoiceState = {
-    phase: "idle",
-    recordingTimeSec: 0,
-    canPause: false,
-    canResume: false,
-    hasRecording: false,
-  }
+export default class MediaRecorderVoiceService implements VoicePort {
+  private state: VoiceState = "idle"
   private listeners = new Set<(e: VoiceEvent) => void>()
   private recorder: MediaRecorder | null = null
   private stream: MediaStream | null = null
   private chunks: Blob[] = []
-  private timerId: number | null = null
   private mimeType: string = "audio/webm"
 
   getState(): VoiceState {
@@ -33,28 +20,7 @@ export default class MediaRecorderVoiceService implements VoiceService {
   private emit(e: VoiceEvent) {
     this.listeners.forEach((l) => l(e))
   }
-  private setPhase(phase: VoicePhase) {
-    this.state = {
-      ...this.state,
-      phase,
-      canPause: phase === "recording",
-      canResume: phase === "paused",
-    }
-    this.emit({ type: "phase", phase })
-  }
-  private startTimer() {
-    if (this.timerId) return
-    this.timerId = window.setInterval(() => {
-      const next = this.state.recordingTimeSec + 1
-      this.state = { ...this.state, recordingTimeSec: next }
-      this.emit({ type: "time", recordingTimeSec: next })
-    }, 1000)
-  }
-  private stopTimer() {
-    if (!this.timerId) return
-    window.clearInterval(this.timerId)
-    this.timerId = null
-  }
+
   private cleanupStream() {
     try {
       this.stream?.getTracks().forEach((t) => t.stop())
@@ -63,9 +29,8 @@ export default class MediaRecorderVoiceService implements VoiceService {
     }
   }
   private fail(message: string) {
-    this.state = { ...this.state, error: message }
+    this.state = "error"
     this.emit({ type: "error", message })
-    this.setPhase("error")
   }
 
   async start(): Promise<void> {
@@ -73,7 +38,7 @@ export default class MediaRecorderVoiceService implements VoiceService {
       this.fail("Your browser does not support audio recording.")
       return
     }
-    this.setPhase("starting")
+    this.state = "starting"
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({ audio: true })
 
@@ -104,7 +69,6 @@ export default class MediaRecorderVoiceService implements VoiceService {
         if (e.data && e.data.size > 0) this.chunks.push(e.data)
       }
       this.recorder.onstop = () => {
-        this.stopTimer()
         let blob: Blob
         try {
           blob = new Blob(this.chunks, { type: this.mimeType })
@@ -113,15 +77,13 @@ export default class MediaRecorderVoiceService implements VoiceService {
         }
         this.chunks = []
         this.cleanupStream()
-        this.state = { ...this.state, hasRecording: true, audioBlob: blob }
+        this.state = "ready"
         this.emit({ type: "ready", audioBlob: blob })
-        this.setPhase("ready")
         this.recorder = null
       }
 
       this.recorder.start()
-      this.setPhase("recording")
-      this.startTimer()
+      this.state = "recording"
     } catch (err) {
       this.fail(`Unable to access microphone: ${String(err)}`)
       this.cleanupStream()
@@ -131,22 +93,20 @@ export default class MediaRecorderVoiceService implements VoiceService {
   }
 
   pause(): void {
-    if (!this.recorder || this.state.phase !== "recording") return
+    if (!this.recorder || this.state !== "recording") return
     try {
       this.recorder.pause()
-      this.stopTimer()
-      this.setPhase("paused")
+      this.state = "paused"
     } catch {
       // swallow
     }
   }
 
   resume(): void {
-    if (!this.recorder || this.state.phase !== "paused") return
+    if (!this.recorder || this.state !== "paused") return
     try {
       this.recorder.resume()
-      this.startTimer()
-      this.setPhase("recording")
+      this.state = "recording"
     } catch {
       // swallow
     }
@@ -163,7 +123,6 @@ export default class MediaRecorderVoiceService implements VoiceService {
   }
 
   discard(): void {
-    this.stopTimer()
     try {
       if (this.recorder && this.recorder.state !== "inactive")
         this.recorder.stop()
@@ -174,15 +133,7 @@ export default class MediaRecorderVoiceService implements VoiceService {
     }
     this.chunks = []
     this.cleanupStream()
-    this.state = {
-      phase: "idle",
-      recordingTimeSec: 0,
-      canPause: false,
-      canResume: false,
-      hasRecording: false,
-      audioBlob: undefined,
-      error: undefined,
-    }
-    this.emit({ type: "phase", phase: "idle" })
+    this.state = "idle"
+    this.emit({ type: "state", state: this.state })
   }
 }

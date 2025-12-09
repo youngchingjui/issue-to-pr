@@ -1,5 +1,4 @@
-// lib/voice/types.ts
-export type VoicePhase =
+export type VoiceState =
   | "idle"
   | "starting"
   | "recording"
@@ -7,19 +6,8 @@ export type VoicePhase =
   | "ready"
   | "error"
 
-export type VoiceState = {
-  phase: VoicePhase
-  recordingTimeSec: number
-  canPause: boolean
-  canResume: boolean
-  hasRecording: boolean
-  error?: VoiceError
-  // optional: the final audio
-  audioBlob?: Blob
-}
-
 export type VoiceEvent =
-  | { type: "phase"; phase: VoicePhase }
+  | { type: "state"; state: VoiceState }
   | { type: "time"; recordingTimeSec: number }
   | { type: "ready"; audioBlob: Blob }
   | { type: "error"; message: string }
