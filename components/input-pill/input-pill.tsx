@@ -370,7 +370,7 @@ export default function InputPill({
                 {formatTime(voice.recordingTime)}
               </p>
               <p className="text-sm text-muted-foreground">
-                {voice.isStarting
+                {voice.state === "starting"
                   ? "Starting…"
                   : voice.state === "paused"
                     ? "Paused"
@@ -404,7 +404,7 @@ export default function InputPill({
                       voice.state === "paused" ? voice.resume : voice.pause
                     }
                     disabled={
-                      voice.isStarting ||
+                      voice.state === "starting" ||
                       (!voice.isRecording && voice.state !== "paused")
                     }
                   >
@@ -414,7 +414,7 @@ export default function InputPill({
                     variant="outline"
                     size="sm"
                     onClick={voice.stop}
-                    disabled={voice.isStarting || !voice.isRecording}
+                    disabled={voice.state === "starting" || !voice.isRecording}
                   >
                     Stop
                   </Button>
@@ -422,7 +422,7 @@ export default function InputPill({
                     size="sm"
                     onClick={handleVoiceSubmit}
                     className="min-w-20"
-                    disabled={voice.isStarting}
+                    disabled={voice.state === "starting"}
                   >
                     Submit
                   </Button>
