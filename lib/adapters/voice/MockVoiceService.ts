@@ -2,11 +2,11 @@
 import {
   VoiceEvent,
   VoicePhase,
-  VoiceService,
+  VoicePort,
   VoiceState,
 } from "@/lib/types/voice"
 
-export default class MockVoiceService implements VoiceService {
+export default class MockVoiceService implements VoicePort {
   private state: VoiceState = {
     phase: "idle",
     recordingTimeSec: 0,

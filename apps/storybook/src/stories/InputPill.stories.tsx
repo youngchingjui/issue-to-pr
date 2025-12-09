@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs"
 import React, { useCallback, useEffect, useState } from "react"
 
 import InputPill from "@/components/input-pill/input-pill"
+import MockVoiceService from "@/lib/adapters/voice/MockVoiceService"
 
 interface PillJob {
   id: string
@@ -17,10 +18,6 @@ const meta: Meta<typeof InputPill> = {
     layout: "centered",
   },
   argTypes: {
-    mode: {
-      control: { type: "radio" },
-      options: ["collapsed", "text", "voice"],
-    },
     simulateVoice: {
       control: "boolean",
     },
@@ -29,7 +26,7 @@ const meta: Meta<typeof InputPill> = {
     },
   },
   args: {
-    mode: "collapsed",
+    voicePortFactory: () => new MockVoiceService(),
   },
 }
 export default meta
@@ -47,25 +44,7 @@ type ControlsArgs = {
 }
 type ControlsStory = StoryObj<ControlsArgs>
 
-export const Playground: Story = {
-  decorators: [
-    (Story, { args }) => {
-      const { mode } = args
-
-      return (
-        <>
-          {mode === "collapsed" ? (
-            <div className="mt-20">
-              <Story />
-            </div>
-          ) : (
-            <Story />
-          )}
-        </>
-      )
-    },
-  ],
-}
+export const Playground: Story = {}
 
 export const Playground2: Story = {
   render: () => {
@@ -151,9 +130,7 @@ export const ControlsPlayground: ControlsStory = {
   },
   render: (raw) => {
     const args = raw as ControlsArgs
-    const [curMode, setCurMode] = useState<string>(
-      (args.mode ?? "collapsed") as string
-    )
+
     const [voiceState, setVoiceState] = useState({
       isStarting: !!(args.voiceIsStarting ?? false),
       isRecording: !!(args.voiceIsRecording ?? false),
@@ -163,9 +140,6 @@ export const ControlsPlayground: ControlsStory = {
     })
     const [jobs, setJobs] = useState<PillJob[]>((args.jobs ?? []) as PillJob[])
 
-    useEffect(() => {
-      setCurMode((args.mode ?? "collapsed") as string)
-    }, [args.mode])
     useEffect(() => {
       setVoiceState({
         isStarting: !!(args.voiceIsStarting ?? false),
@@ -195,8 +169,6 @@ export const ControlsPlayground: ControlsStory = {
       <InputPill
         jobs={jobs}
         onSubmit={onSubmit}
-        mode={curMode as "collapsed" | "text" | "voice"}
-        onModeChange={(m) => setCurMode(m)}
         simulateVoice={!!args.simulateVoice}
         simulatedVoiceState={{
           isStarting: voiceState.isStarting,

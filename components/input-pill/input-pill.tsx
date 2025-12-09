@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import MockVoiceService from "@/lib/adapters/voice/MockVoiceService"
 import { useVoice } from "@/lib/hooks/useVoice"
-import { VoiceService } from "@/lib/types/voice"
+import { VoicePort } from "@/lib/types/voice"
 
 type Mode = "collapsed" | "text" | "voice"
 
@@ -30,14 +30,11 @@ interface InputPillProps {
   jobs?: PillJob[]
   onRevealJob?: (id: string) => void
   onSeeAllPreviews?: () => void
-  // Controlled/uncontrolled mode
-  mode?: Mode
-  onModeChange?: (mode: Mode) => void
   // Voice simulation for Storybook/controlled demos
   simulateVoice?: boolean
   simulatedVoiceState?: SimulatedVoiceState
   onSimulatedVoiceStateChange?: (state: SimulatedVoiceState) => void
-  voiceService?: VoiceService
+  voicePortFactory?: () => VoicePort
 }
 
 export default function InputPill({
@@ -45,34 +42,23 @@ export default function InputPill({
   jobs = [],
   onRevealJob,
   onSeeAllPreviews,
-  mode = "collapsed",
-  onModeChange,
   simulateVoice = false,
   simulatedVoiceState,
   onSimulatedVoiceStateChange,
-  voiceService = new MockVoiceService(),
+  voicePortFactory = () => new MockVoiceService(),
 }: InputPillProps) {
-  const voice = useVoice(voiceService)
+  const voice = useVoice(voicePortFactory)
 
   const [textInput, setTextInput] = useState("")
-  const [isRecording, setIsRecording] = useState(false)
-  const [isPaused, setIsPaused] = useState(false)
-  const [hasRecording, setHasRecording] = useState(false)
-  const [recordingTime, setRecordingTime] = useState(0)
-  const [isStarting, setIsStarting] = useState(false)
+  const [mode, setMode] = useState<Mode>("collapsed")
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
-  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const micButtonRef = useRef<HTMLButtonElement | null>(null)
 
   // Dropdown state
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const splitRef = useRef<HTMLDivElement | null>(null)
-
-  // Update the controlled mode when the mode prop changes
-  useEffect(() => {
-    onModeChange?.(mode)
-  }, [mode, onModeChange])
 
   // Close dropdown on outside click or on escape
   useEffect(() => {
@@ -101,14 +87,14 @@ export default function InputPill({
           if (mode === "voice") {
             voice.discard()
           }
-          onModeChange?.("collapsed")
+          setMode("collapsed")
         }
         setIsMenuOpen(false)
       }
     }
     document.addEventListener("keydown", onKey)
     return () => document.removeEventListener("keydown", onKey)
-  }, [mode, simulateVoice, onSimulatedVoiceStateChange, onModeChange, voice])
+  }, [mode, simulateVoice, onSimulatedVoiceStateChange, voice])
 
   const prevModeRef = useRef<Mode>(mode)
   useEffect(() => {
@@ -118,58 +104,9 @@ export default function InputPill({
     prevModeRef.current = mode
   }, [mode])
 
-  const startTimer = () => {
-    if (recordingIntervalRef.current) return
-    recordingIntervalRef.current = setInterval(() => {
-      setRecordingTime((prev) => prev + 1)
-    }, 1000)
-  }
-
-  const stopTimer = () => {
-    if (recordingIntervalRef.current) {
-      clearInterval(recordingIntervalRef.current)
-      recordingIntervalRef.current = null
-    }
-  }
-
   const startRecording = async () => {
-    voice.start()
-    try {
-      setHasRecording(false)
-      setIsStarting(true)
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mediaRecorder = new MediaRecorder(stream)
-      mediaRecorderRef.current = mediaRecorder
-      audioChunksRef.current = []
-
-      mediaRecorder.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data)
-      }
-
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, {
-          type: "audio/webm",
-        })
-        console.log("[v0] Recording completed:", audioBlob.size, "bytes")
-        setHasRecording(true)
-        stream.getTracks().forEach((track) => track.stop())
-      }
-
-      mediaRecorder.start()
-      setIsRecording(true)
-      setIsPaused(false)
-      // Start timer
-      startTimer()
-      setIsStarting(false)
-
-      console.log("[v0] Recording started")
-    } catch (error) {
-      console.error("[v0] Error accessing microphone:", error)
-      alert(
-        "Could not access microphone. Please grant permission and try again."
-      )
-      setIsStarting(false)
-    }
+    setMode("voice")
+    await voice.start()
   }
 
   const pauseRecording = () => {
@@ -182,11 +119,11 @@ export default function InputPill({
       })
       return
     }
-    if (mediaRecorderRef.current && isRecording && !isPaused) {
+    if (mediaRecorderRef.current && voice.isRecording && !voice.isPaused) {
       try {
         mediaRecorderRef.current.pause()
-        setIsPaused(true)
-        stopTimer()
+        voice.setIsPaused(true)
+        voice.stopTimer()
         console.log("[v0] Recording paused")
       } catch (e) {
         console.error("[v0] Unable to pause recording:", e)
@@ -204,11 +141,11 @@ export default function InputPill({
       })
       return
     }
-    if (mediaRecorderRef.current && isRecording && isPaused) {
+    if (mediaRecorderRef.current && voice.isRecording && voice.isPaused) {
       try {
         mediaRecorderRef.current.resume()
-        setIsPaused(false)
-        startTimer()
+        voice.setIsPaused(false)
+        voice.startTimer()
         console.log("[v0] Recording resumed")
       } catch (e) {
         console.error("[v0] Unable to resume recording:", e)
@@ -227,15 +164,15 @@ export default function InputPill({
       })
       return
     }
-    if (mediaRecorderRef.current && isRecording) {
+    if (mediaRecorderRef.current && voice.isRecording) {
       try {
         mediaRecorderRef.current.stop()
       } catch (e) {
         console.error("[v0] Unable to stop recording:", e)
       }
-      setIsRecording(false)
-      setIsPaused(false)
-      stopTimer()
+      voice.setIsRecording(false)
+      voice.setIsPaused(false)
+      voice.stopTimer()
       console.log("[v0] Recording stopped")
     }
   }
@@ -253,11 +190,11 @@ export default function InputPill({
       return
     }
     audioChunksRef.current = []
-    setHasRecording(false)
-    setIsRecording(false)
-    setIsPaused(false)
-    stopTimer()
-    setRecordingTime(0)
+    voice.setHasRecording(false)
+    voice.setIsRecording(false)
+    voice.setIsPaused(false)
+    voice.stopTimer()
+    voice.setRecordingTime(0)
   }
 
   const handleVoiceSubmit = () => {
@@ -271,11 +208,11 @@ export default function InputPill({
           recordingTime: simulatedVoiceState?.recordingTime ?? 0,
         }
       : {
-          isStarting,
-          isRecording,
-          isPaused,
-          hasRecording,
-          recordingTime,
+          isStarting: voice.isStarting,
+          isRecording: voice.isRecording,
+          isPaused: voice.isPaused,
+          hasRecording: voice.hasRecording,
+          recordingTime: voice.recordingTime,
         }
     if (effective.isRecording) stopRecording()
 
@@ -286,7 +223,7 @@ export default function InputPill({
 
     // Reset voice UI state
     discardRecording()
-    onModeChange?.("collapsed")
+    setMode("collapsed")
   }
 
   const handleTextSubmit = () => {
@@ -296,7 +233,7 @@ export default function InputPill({
         console.error("[v0] Text submit error:", e)
       )
       setTextInput("")
-      onModeChange?.("collapsed")
+      setMode("collapsed")
     }
   }
 
@@ -304,12 +241,6 @@ export default function InputPill({
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
     return `${mins}:${secs.toString().padStart(2, "0")}`
-  }
-
-  const handleMicTap = () => {
-    onModeChange?.("voice")
-    // Immediately request mic access and begin recording on first tap
-    startRecording()
   }
 
   // Render a stack of status pills (processing and ready)
@@ -324,11 +255,11 @@ export default function InputPill({
         recordingTime: simulatedVoiceState?.recordingTime ?? 0,
       }
     : {
-        isStarting,
-        isRecording,
-        isPaused,
-        hasRecording,
-        recordingTime,
+        isStarting: voice.isStarting,
+        isRecording: voice.isRecording,
+        isPaused: voice.isPaused,
+        hasRecording: voice.hasRecording,
+        recordingTime: voice.recordingTime,
       }
 
   return (
@@ -418,7 +349,7 @@ export default function InputPill({
               variant="ghost"
               className="rounded-l-full hover:bg-accent"
               ref={micButtonRef}
-              onClick={handleMicTap}
+              onClick={startRecording}
               aria-label="Start voice input"
             >
               <svg
@@ -466,7 +397,7 @@ export default function InputPill({
                 className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
                 onClick={() => {
                   setIsMenuOpen(false)
-                  onModeChange?.("text")
+                  setMode("text")
                 }}
               >
                 <svg
@@ -534,7 +465,7 @@ export default function InputPill({
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  onModeChange?.("collapsed")
+                  setMode("collapsed")
                   setTextInput("")
                 }}
               >
@@ -643,7 +574,7 @@ export default function InputPill({
                   size="sm"
                   onClick={() => {
                     discardRecording()
-                    onModeChange?.("collapsed")
+                    setMode("collapsed")
                   }}
                 >
                   Cancel
