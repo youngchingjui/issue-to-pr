@@ -57,27 +57,25 @@ export function useVoice(voicePortFactory: () => VoicePort) {
   }
 
   async function resume() {
-    await port.resume()
-    setState((prev) => ({
-      ...prev,
-      phase: "recording",
-    }))
+    port.resume()
+    setIsPaused(false)
+    startTimer()
   }
 
-  async function stop() {
-    await port.stop()
-    setState((prev) => ({
-      ...prev,
-      phase: "idle",
-    }))
+  function stop() {
+    port.stop()
+    setIsRecording(false)
+    setIsPaused(false)
+    stopTimer()
   }
 
   async function discard() {
-    await port.discard()
-    setState((prev) => ({
-      ...prev,
-      phase: "idle",
-    }))
+    port.discard()
+    setHasRecording(false)
+    setIsRecording(false)
+    setIsPaused(false)
+    stopTimer()
+    setRecordingTime(0)
   }
 
   return {

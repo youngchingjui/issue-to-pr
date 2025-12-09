@@ -18,9 +18,6 @@ const meta: Meta<typeof InputPill> = {
     layout: "centered",
   },
   argTypes: {
-    simulateVoice: {
-      control: "boolean",
-    },
     jobs: {
       control: "object",
     },
@@ -165,33 +162,7 @@ export const ControlsPlayground: ControlsStory = {
       console.log("Submit", { input, isVoice })
     }, [])
 
-    return (
-      <InputPill
-        jobs={jobs}
-        onSubmit={onSubmit}
-        simulateVoice={!!args.simulateVoice}
-        simulatedVoiceState={{
-          isStarting: voiceState.isStarting,
-          isRecording: voiceState.isRecording,
-          isPaused: voiceState.isPaused,
-          hasRecording: voiceState.hasRecording,
-          recordingTime: voiceState.recordingTime,
-        }}
-        onSimulatedVoiceStateChange={(state) => {
-          setVoiceState((prev) => ({
-            ...prev,
-            isStarting: !!state.isStarting,
-            isRecording: !!state.isRecording,
-            isPaused: !!state.isPaused,
-            hasRecording: !!state.hasRecording,
-            recordingTime:
-              typeof state.recordingTime === "number"
-                ? state.recordingTime
-                : prev.recordingTime,
-          }))
-        }}
-      />
-    )
+    return <InputPill jobs={jobs} onSubmit={onSubmit} />
   },
 }
 
