@@ -39,7 +39,7 @@ export default class MockVoiceService implements VoicePort {
   stop(): void {
     if (this.state !== "recording" && this.state !== "paused") return
     const blob = new Blob([new Uint8Array([1, 2, 3])], { type: "audio/webm" })
-    this.setState("ready")
+    this.setState("idle")
     this.emit({ type: "ready", audioBlob: blob })
   }
 

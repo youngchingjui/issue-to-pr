@@ -1,10 +1,4 @@
-export type VoiceState =
-  | "idle"
-  | "starting"
-  | "recording"
-  | "paused"
-  | "ready"
-  | "error"
+export type VoiceState = "idle" | "starting" | "recording" | "paused" | "error"
 
 export type VoiceEvent =
   | { type: "state"; state: VoiceState }

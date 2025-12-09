@@ -352,14 +352,14 @@ export default function InputPill({
           <div className="flex flex-col items-center gap-4">
             <div
               className={`recording-pulse flex h-20 w-20 items-center justify-center rounded-full ${
-                voice.isRecording && !voice.isPaused
+                voice.isRecording && voice.state !== "paused"
                   ? "bg-destructive"
                   : "bg-muted"
               }`}
             >
               <div
                 className={`h-4 w-4 rounded-full ${
-                  voice.isRecording && !voice.isPaused
+                  voice.isRecording && voice.state !== "paused"
                     ? "bg-destructive-foreground"
                     : "bg-muted-foreground"
                 }`}
@@ -372,7 +372,7 @@ export default function InputPill({
               <p className="text-sm text-muted-foreground">
                 {voice.isStarting
                   ? "Starting…"
-                  : voice.isPaused
+                  : voice.state === "paused"
                     ? "Paused"
                     : voice.isRecording
                       ? "Recording..."
@@ -400,13 +400,15 @@ export default function InputPill({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={voice.isPaused ? voice.resume : voice.pause}
+                    onClick={
+                      voice.state === "paused" ? voice.resume : voice.pause
+                    }
                     disabled={
                       voice.isStarting ||
-                      (!voice.isRecording && !voice.isPaused)
+                      (!voice.isRecording && voice.state !== "paused")
                     }
                   >
-                    {voice.isPaused ? "Resume" : "Pause"}
+                    {voice.state === "paused" ? "Resume" : "Pause"}
                   </Button>
                   <Button
                     variant="outline"
