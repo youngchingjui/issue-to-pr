@@ -11,7 +11,6 @@ export function useVoice(voicePortFactory: () => VoicePort) {
   const [state, setState] = useState<VoiceState>("idle")
   const [port] = useState<VoicePort>(() => voicePortFactory())
   const [hasRecording, setHasRecording] = useState(false)
-  const [isRecording, setIsRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
 
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -34,7 +33,6 @@ export function useVoice(voicePortFactory: () => VoicePort) {
     setHasRecording(false)
     setState("starting")
     await port.start()
-    setIsRecording(true)
     setState("recording")
     startTimer()
   }
@@ -53,7 +51,6 @@ export function useVoice(voicePortFactory: () => VoicePort) {
 
   async function stop() {
     port.stop()
-    setIsRecording(false)
     setState("idle")
     stopTimer()
   }
@@ -61,7 +58,6 @@ export function useVoice(voicePortFactory: () => VoicePort) {
   async function discard() {
     port.discard()
     setHasRecording(false)
-    setIsRecording(false)
     setState("idle")
     stopTimer()
     setRecordingTime(0)
@@ -70,11 +66,9 @@ export function useVoice(voicePortFactory: () => VoicePort) {
   return {
     state,
     setState,
-    isRecording,
     hasRecording,
     recordingTime,
     recordingIntervalRef,
-    setIsRecording,
     setRecordingTime,
     setHasRecording,
     stopTimer,
