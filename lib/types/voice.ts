@@ -13,7 +13,7 @@ export type VoiceState = {
   canPause: boolean
   canResume: boolean
   hasRecording: boolean
-  error?: string
+  error?: VoiceError
   // optional: the final audio
   audioBlob?: Blob
 }
@@ -24,7 +24,22 @@ export type VoiceEvent =
   | { type: "ready"; audioBlob: Blob }
   | { type: "error"; message: string }
 
-export interface VoiceService {
+export type VoiceErrorCode =
+  | "permission-denied"
+  | "not-supported"
+  | "device-busy"
+  | "timeout"
+  | "network-error"
+  | "no-input"
+  | "unknown"
+
+export interface VoiceError {
+  code: VoiceErrorCode
+  message: string
+  data?: Record<string, unknown>
+}
+
+export interface VoicePort {
   start(): Promise<void>
   pause(): void
   resume(): void
