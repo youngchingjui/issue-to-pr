@@ -370,61 +370,84 @@ export default function InputPill({
               <p className="text-sm text-muted-foreground">
                 {voice.state === "starting"
                   ? "Starting…"
-                  : voice.state === "paused"
-                    ? "Paused"
-                    : voice.state === "recording"
-                      ? "Recording..."
-                      : voice.hasRecording
-                        ? `Recording ready: ${formatTime(voice.recordingTime)}`
-                        : ""}
+                  : voice.state === "recording"
+                    ? "Recording..."
+                    : voice.hasRecording
+                      ? `Recording ready: ${formatTime(voice.recordingTime)}`
+                      : ""}
               </p>
             </div>
-            <div className="flex flex-wrap gap-2 justify-center">
+            <div className="flex flex-wrap gap-3 justify-center items-center">
               {voice.hasRecording && voice.state !== "recording" ? (
                 <>
                   <Button variant="ghost" size="sm" onClick={voice.discard}>
                     Discard
                   </Button>
+                  {/* Submit large circular icon */}
                   <Button
-                    size="sm"
+                    size="icon-lg"
+                    className="h-14 w-14 rounded-full"
                     onClick={handleVoiceSubmit}
-                    className="min-w-20"
+                    aria-label="Submit recording"
                   >
-                    Submit
+                    {/* Up arrow icon */}
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      className="h-6 w-6"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M12 4v16m0-16l-6 6m6-6l6 6"
+                      />
+                    </svg>
                   </Button>
                 </>
               ) : (
                 <>
+                  {/* Stop large circular icon */}
                   <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={
-                      voice.state === "paused" ? voice.resume : voice.pause
-                    }
-                    disabled={
-                      voice.state === "starting" ||
-                      (voice.state !== "recording" && voice.state !== "paused")
-                    }
-                  >
-                    {voice.state === "paused" ? "Resume" : "Pause"}
-                  </Button>
-                  <Button
+                    size="icon-lg"
                     variant="outline"
-                    size="sm"
+                    className="h-14 w-14 rounded-full"
                     onClick={voice.stop}
-                    disabled={
-                      voice.state === "starting" || voice.state !== "recording"
-                    }
+                    disabled={voice.state === "starting" || voice.state !== "recording"}
+                    aria-label="Stop recording"
                   >
-                    Stop
+                    {/* Stop square icon */}
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      className="h-6 w-6"
+                    >
+                      <rect x="6" y="6" width="12" height="12" rx="1" />
+                    </svg>
                   </Button>
+                  {/* Submit large circular icon */}
                   <Button
-                    size="sm"
+                    size="icon-lg"
+                    className="h-14 w-14 rounded-full"
                     onClick={handleVoiceSubmit}
-                    className="min-w-20"
                     disabled={voice.state === "starting"}
+                    aria-label="Submit recording"
                   >
-                    Submit
+                    {/* Up arrow icon */}
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      className="h-6 w-6"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M12 4v16m0-16l-6 6m6-6l6 6"
+                      />
+                    </svg>
                   </Button>
                 </>
               )}
@@ -447,3 +470,4 @@ export default function InputPill({
     </div>
   )
 }
+
