@@ -7,7 +7,6 @@ export default class MediaRecorderVoiceService implements VoicePort {
   private stream: MediaStream | null = null
   private chunks: Blob[] = []
   private mimeType: string = "audio/webm"
-  private lastBlob: Blob | null = null
 
   getState(): VoiceState {
     return this.state
@@ -79,7 +78,6 @@ export default class MediaRecorderVoiceService implements VoicePort {
         this.chunks = []
         this.cleanupStream()
         this.state = "idle"
-        this.lastBlob = blob
         this.emit({ type: "ready", audioBlob: blob })
         this.recorder = null
       }
@@ -135,14 +133,8 @@ export default class MediaRecorderVoiceService implements VoicePort {
     }
     this.chunks = []
     this.cleanupStream()
-    this.lastBlob = null
     this.state = "idle"
     this.emit({ type: "state", state: this.state })
   }
-
-  async submit(): Promise<unknown> {
-    // Default implementation just returns the recorded blob if available.
-    // Adapters built on top of this can override to POST to an API, etc.
-    return { audioBlob: this.lastBlob, mimeType: this.lastBlob?.type }
-  }
 }
+

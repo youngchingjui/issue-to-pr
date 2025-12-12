@@ -5,23 +5,28 @@
 
 import { useEffect, useRef, useState } from "react"
 
-import { VoicePort, VoiceState } from "../types/voice"
+import { VoicePort, VoiceState, VoiceSubmitPort } from "../types/voice"
 
 export function useVoice<TReturn = unknown>(
-  voicePortFactory: () => VoicePort<TReturn>
+  voicePortFactory: () => VoicePort,
+  submitPort?: VoiceSubmitPort<TReturn>
 ) {
   const [state, setState] = useState<VoiceState>("idle")
-  const [port] = useState<VoicePort<TReturn>>(() => voicePortFactory())
+  const [port] = useState<VoicePort>(() => voicePortFactory())
   const [hasRecording, setHasRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
 
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const lastBlobRef = useRef<Blob | null>(null)
+  const lastMimeTypeRef = useRef<string | undefined>(undefined)
 
   useEffect(() => {
     const unsubscribe = port.subscribe((e) => {
       if (e.type === "state") setState(e.state)
       if (e.type === "ready") {
         setHasRecording(true)
+        lastBlobRef.current = e.audioBlob
+        lastMimeTypeRef.current = e.audioBlob.type
         stopTimer()
       }
       if (e.type === "error") {
@@ -75,14 +80,16 @@ export function useVoice<TReturn = unknown>(
     port.stop()
     setState("idle")
     stopTimer()
-    setHasRecording(true)
   }
 
   async function submit() {
+    if (!submitPort) throw new Error("No submit port configured")
+    const blob = lastBlobRef.current
+    if (!blob) throw new Error("No recording available to submit")
+
     setState("submitting")
     try {
-      const result = await port.submit()
-      // After submit, return to idle, consumer can read result
+      const result = await submitPort.submit(blob, lastMimeTypeRef.current)
       setState("idle")
       return result
     } catch (e) {
@@ -97,6 +104,8 @@ export function useVoice<TReturn = unknown>(
     setState("idle")
     stopTimer()
     setRecordingTime(0)
+    lastBlobRef.current = null
+    lastMimeTypeRef.current = undefined
   }
 
   return {
@@ -117,3 +126,4 @@ export function useVoice<TReturn = unknown>(
     discard,
   }
 }
+
