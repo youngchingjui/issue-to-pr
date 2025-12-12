@@ -1,4 +1,10 @@
-export type VoiceState = "idle" | "starting" | "recording" | "paused" | "error"
+export type VoiceState =
+  | "idle"
+  | "starting"
+  | "recording"
+  | "paused"
+  | "submitting"
+  | "error"
 
 export type VoiceEvent =
   | { type: "state"; state: VoiceState }
@@ -21,6 +27,7 @@ export interface VoiceError {
   data?: Record<string, unknown>
 }
 
+// Port responsible solely for recording lifecycle (start/pause/resume/stop/discard)
 export interface VoicePort {
   start(): Promise<void>
   pause(): void
@@ -30,3 +37,9 @@ export interface VoicePort {
   getState(): VoiceState
   subscribe(listener: (e: VoiceEvent) => void): () => void // returns unsubscribe
 }
+
+// Separate port for submitting a recorded audio blob to any backend or 3rd party API
+export interface VoiceSubmitPort<TReturn = unknown> {
+  submit(audioBlob: Blob, mimeType?: string): Promise<TReturn>
+}
+

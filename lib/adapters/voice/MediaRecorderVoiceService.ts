@@ -137,3 +137,4 @@ export default class MediaRecorderVoiceService implements VoicePort {
     this.emit({ type: "state", state: this.state })
   }
 }
+

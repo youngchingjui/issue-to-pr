@@ -123,13 +123,11 @@ export default function InputPill({
 
   return (
     <div className="pointer-events-auto slide-up">
-      {/* Screen reader live region summarizing background jobs */}
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {jobs?.length
           ? `${jobs.filter((j) => j.status === "processing").length} job(s) in progress, ${jobs.filter((j) => j.status === "ready").length} ready`
           : ""}
       </div>
-      {/* Floating status pills */}
       {hasJobs && (
         <div className="mb-2">
           <div className="flex flex-col items-end gap-2">
@@ -199,7 +197,6 @@ export default function InputPill({
         </div>
       )}
 
-      {/* Collapsed State - split button bottom-right */}
       {mode === "collapsed" && (
         <div ref={splitRef} className="relative flex justify-end">
           <div className="inline-flex items-center gap-px rounded-full border bg-card/95 p-1 shadow-lg backdrop-blur-sm">
@@ -305,7 +302,6 @@ export default function InputPill({
         </div>
       )}
 
-      {/* Text Input Mode */}
       {mode === "text" && (
         <div className="ml-auto max-w-md rounded-2xl border bg-card/95 p-4 shadow-xl backdrop-blur-sm">
           <div className="space-y-3">
@@ -383,14 +379,12 @@ export default function InputPill({
                   <Button variant="ghost" size="sm" onClick={voice.discard}>
                     Discard
                   </Button>
-                  {/* Submit large circular icon */}
                   <Button
                     size="icon-lg"
                     className="h-14 w-14 rounded-full"
                     onClick={handleVoiceSubmit}
                     aria-label="Submit recording"
                   >
-                    {/* Up arrow icon */}
                     <svg
                       viewBox="0 0 24 24"
                       fill="none"
@@ -414,7 +408,9 @@ export default function InputPill({
                     variant="outline"
                     className="h-14 w-14 rounded-full"
                     onClick={voice.stop}
-                    disabled={voice.state === "starting" || voice.state !== "recording"}
+                    disabled={
+                      voice.state === "starting" || voice.state !== "recording"
+                    }
                     aria-label="Stop recording"
                   >
                     {/* Stop square icon */}
@@ -470,4 +466,3 @@ export default function InputPill({
     </div>
   )
 }
-
