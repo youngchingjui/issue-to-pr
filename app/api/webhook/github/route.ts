@@ -169,13 +169,8 @@ export async function POST(req: NextRequest) {
             break
           }
           case "labeled": {
-            const installationId = String(parsedPayload.installation?.id ?? "")
-            if (!installationId) {
-              console.error(
-                "[ERROR] No installation ID found in webhook payload"
-              )
-              return new Response("No installation ID found", { status: 400 })
-            }
+            // installation is required by schema; safe to access
+            const installationId = String(parsedPayload.installation.id)
             const labelName: string | undefined =
               parsedPayload.label?.name?.trim()
             switch (labelName?.toLowerCase()) {
