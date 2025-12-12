@@ -34,9 +34,13 @@ export type IssuesPayload = z.infer<typeof IssuesPayloadSchema>
 
 export const PullRequestPayloadSchema = z.object({
   action: z.string(),
+  number: z.number().optional(),
+  label: z.object({ name: z.string() }).optional(),
+  sender: z.object({ login: z.string() }).optional(),
   pull_request: z.object({
     merged: z.boolean().optional(),
     head: z.object({ ref: z.string() }).optional(),
+    number: z.number().optional(),
   }),
   repository: z.object({
     name: z.string(),
@@ -160,3 +164,4 @@ export const RepositoryPayloadSchema = z.discriminatedUnion("action", [
 ])
 
 export type RepositoryPayload = z.infer<typeof RepositoryPayloadSchema>
+
