@@ -37,4 +37,3 @@ export interface VoicePort<TReturn = unknown> {
   getState(): VoiceState
   subscribe(listener: (e: VoiceEvent) => void): () => void // returns unsubscribe
 }
-

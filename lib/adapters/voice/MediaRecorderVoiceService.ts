@@ -146,4 +146,3 @@ export default class MediaRecorderVoiceService implements VoicePort {
     return { audioBlob: this.lastBlob, mimeType: this.lastBlob?.type }
   }
 }
-
