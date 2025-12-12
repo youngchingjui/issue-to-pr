@@ -6,8 +6,10 @@ export type VoiceState =
   | "submitting"
   | "error"
 
+// Voice adapters emit lifecycle notifications while the UI hook owns state transitions.
+// Adapters are expected to emit only non-state events (ready/error/time) and should not
+// broadcast UI state updates.
 export type VoiceEvent =
-  | { type: "state"; state: VoiceState }
   | { type: "time"; recordingTimeSec: number }
   | { type: "ready"; audioBlob: Blob }
   | { type: "error"; message: string }
@@ -35,6 +37,8 @@ export interface VoicePort {
   stop(): void // finalize recording
   discard(): void // drop everything, reset to idle
   getState(): VoiceState
+  // Note: listeners receive only ready/error/time events. UI state transitions are owned by
+  // the consuming hook, not by the adapter implementation.
   subscribe(listener: (e: VoiceEvent) => void): () => void // returns unsubscribe
 }
 
