@@ -1,4 +1,10 @@
-export type VoiceState = "idle" | "starting" | "recording" | "paused" | "error"
+export type VoiceState =
+  | "idle"
+  | "starting"
+  | "recording"
+  | "paused"
+  | "submitting"
+  | "error"
 
 export type VoiceEvent =
   | { type: "state"; state: VoiceState }
@@ -21,12 +27,14 @@ export interface VoiceError {
   data?: Record<string, unknown>
 }
 
-export interface VoicePort {
+export interface VoicePort<TReturn = unknown> {
   start(): Promise<void>
   pause(): void
   resume(): void
   stop(): void // finalize recording
   discard(): void // drop everything, reset to idle
+  submit(): Promise<TReturn>
   getState(): VoiceState
   subscribe(listener: (e: VoiceEvent) => void): () => void // returns unsubscribe
 }
+

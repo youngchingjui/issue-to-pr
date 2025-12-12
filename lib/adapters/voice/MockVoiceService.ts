@@ -4,6 +4,7 @@ import { VoiceEvent, VoicePort, VoiceState } from "@/lib/types/voice"
 export default class MockVoiceService implements VoicePort {
   private state: VoiceState = "idle"
   private listeners = new Set<(e: VoiceEvent) => void>()
+  private lastBlob: Blob | null = null
 
   getState(): VoiceState {
     return this.state
@@ -39,11 +40,25 @@ export default class MockVoiceService implements VoicePort {
   stop(): void {
     if (this.state !== "recording" && this.state !== "paused") return
     const blob = new Blob([new Uint8Array([1, 2, 3])], { type: "audio/webm" })
+    this.lastBlob = blob
     this.setState("idle")
     this.emit({ type: "ready", audioBlob: blob })
   }
 
   discard(): void {
+    this.lastBlob = null
     this.setState("idle")
   }
+
+  async submit(): Promise<unknown> {
+    // Mock submission: simulate latency and return a mocked result
+    await new Promise((r) => setTimeout(r, 300))
+    return {
+      ok: true,
+      adapter: "mock",
+      size: this.lastBlob?.size ?? 0,
+      mimeType: this.lastBlob?.type ?? null,
+    }
+  }
 }
+

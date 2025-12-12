@@ -3,17 +3,38 @@
 // It injects the VoiceService implementation
 // And conducts those services, along with managing the state
 
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { VoicePort, VoiceState } from "../types/voice"
 
-export function useVoice(voicePortFactory: () => VoicePort) {
+export function useVoice<TReturn = unknown>(
+  voicePortFactory: () => VoicePort<TReturn>
+) {
   const [state, setState] = useState<VoiceState>("idle")
-  const [port] = useState<VoicePort>(() => voicePortFactory())
+  const [port] = useState<VoicePort<TReturn>>(() => voicePortFactory())
   const [hasRecording, setHasRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
 
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  useEffect(() => {
+    const unsubscribe = port.subscribe((e) => {
+      if (e.type === "state") setState(e.state)
+      if (e.type === "ready") {
+        setHasRecording(true)
+        stopTimer()
+      }
+      if (e.type === "error") {
+        setState("error")
+        stopTimer()
+      }
+      if (e.type === "time") {
+        setRecordingTime(e.recordingTimeSec)
+      }
+    })
+    return unsubscribe
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [port])
 
   const startTimer = () => {
     if (recordingIntervalRef.current) return
@@ -31,6 +52,7 @@ export function useVoice(voicePortFactory: () => VoicePort) {
 
   async function start() {
     setHasRecording(false)
+    setRecordingTime(0)
     setState("starting")
     await port.start()
     setState("recording")
@@ -53,6 +75,20 @@ export function useVoice(voicePortFactory: () => VoicePort) {
     port.stop()
     setState("idle")
     stopTimer()
+    setHasRecording(true)
+  }
+
+  async function submit() {
+    setState("submitting")
+    try {
+      const result = await port.submit()
+      // After submit, return to idle, consumer can read result
+      setState("idle")
+      return result
+    } catch (e) {
+      setState("error")
+      throw e
+    }
   }
 
   async function discard() {
@@ -77,6 +113,8 @@ export function useVoice(voicePortFactory: () => VoicePort) {
     pause,
     resume,
     stop,
+    submit,
     discard,
   }
 }
+
