@@ -56,6 +56,9 @@ describe("handleIssueLabelAutoResolve", () => {
   })
 
   it("throws when REDIS_URL is missing", async () => {
+    // Make sure we DON'T have REDIS_URL set in the environment
+    delete process.env.REDIS_URL
+
     const payload = buildPayload()
 
     await expect(
