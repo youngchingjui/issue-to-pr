@@ -1,14 +1,17 @@
-jest.mock("../../../apps/workers/workflow-workers/src/orchestrators/autoResolveIssue", () => ({
-  autoResolveIssue: jest.fn(),
-}))
+jest.mock(
+  "../../../apps/workers/workflow-workers/src/orchestrators/autoResolveIssue",
+  () => ({
+    autoResolveIssue: jest.fn(),
+  })
+)
 
 jest.mock("../../../apps/workers/workflow-workers/src/helper", () => ({
   publishJobStatus: jest.fn(),
 }))
 
 import { handler } from "../../../apps/workers/workflow-workers/src/handler"
-import { autoResolveIssue } from "../../../apps/workers/workflow-workers/src/orchestrators/autoResolveIssue"
 import { publishJobStatus } from "../../../apps/workers/workflow-workers/src/helper"
+import { autoResolveIssue } from "../../../apps/workers/workflow-workers/src/orchestrators/autoResolveIssue"
 
 const mockAutoResolveIssue = jest.mocked(autoResolveIssue)
 const mockPublishJobStatus = jest.mocked(publishJobStatus)
@@ -37,7 +40,7 @@ describe("handler - autoResolveIssue", () => {
       },
     }
 
-    const result = await handler(job as any)
+    const result = await handler(job as Job)
 
     expect(mockAutoResolveIssue).toHaveBeenCalledWith(job.id, job.data)
     expect(result).toBe("first message\nsecond message")
