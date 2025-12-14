@@ -17,6 +17,7 @@ import { JobEventSchema } from "shared/entities/events/Job"
 
 import { publishJobStatus } from "./helper"
 import { autoResolveIssue } from "./orchestrators/autoResolveIssue"
+import { createDependentPR } from "./orchestrators/createDependentPR"
 import { simulateLongRunningWorkflow } from "./orchestrators/simulateLongRunningWorkflow"
 import { summarizeIssue } from "./orchestrators/summarizeIssue"
 
@@ -26,7 +27,7 @@ export async function handler(job: Job): Promise<string> {
   if (!job.id) {
     await publishJobStatus("unknown", "Failed: Job ID is required")
     throw new Error("Job ID is required")
-    }
+  }
 
   await publishJobStatus(job.id, "Parsing job")
 
@@ -67,17 +68,10 @@ export async function handler(job: Job): Promise<string> {
         return result.map((m) => m.content).join("\n")
       }
       case "createDependentPR": {
-        // Stub implementation for now; the full workflow runs in the web app.
-        await publishJobStatus(
-          job.id,
-          "Job: Create dependent PR (dispatching to web workflow runner)"
-        )
-        // In a future iteration, this worker can invoke a shared usecase.
-        await publishJobStatus(
-          job.id,
-          "Completed: createDependentPR job dispatched"
-        )
-        return "createDependentPR dispatched"
+        await publishJobStatus(job.id, "Job: Create dependent PR")
+        const branch = await createDependentPR(job.id, jobData)
+        await publishJobStatus(job.id, `Completed: created branch ${branch}`)
+        return branch
       }
       default: {
         await publishJobStatus(job.id, "Failed: Unknown job name")
