@@ -1,7 +1,7 @@
-import { handleIssueLabelAutoResolve } from "@/lib/webhook/github/handlers/issue/label.autoResolveIssue.handler"
 import { WORKFLOW_JOBS_QUEUE } from "shared/entities/Queue"
 import * as jobService from "shared/services/job"
 
+import { handleIssueLabelAutoResolve } from "@/lib/webhook/github/handlers/issue/label.autoResolveIssue.handler"
 import type { IssuesPayload } from "@/lib/webhook/github/types"
 
 jest.mock("shared/services/job", () => ({
@@ -11,7 +11,9 @@ jest.mock("shared/services/job", () => ({
 describe("handleIssueLabelAutoResolve", () => {
   const originalEnv = process.env
 
-  const buildPayload = (overrides: Partial<IssuesPayload> = {}): IssuesPayload => ({
+  const buildPayload = (
+    overrides: Partial<IssuesPayload> = {}
+  ): IssuesPayload => ({
     action: "labeled",
     repository: { full_name: "octo/repo" },
     issue: { number: 42 },
