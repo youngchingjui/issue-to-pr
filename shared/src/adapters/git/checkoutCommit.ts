@@ -13,7 +13,7 @@ export function makeContainerCheckoutCommitAdapter(params: {
 }): CheckoutCommitPort {
   const { containerName, workdir = "/workspace" } = params
 
-  const exec = async (command: string) =>
+  const exec = async (command: string | string[]) =>
     await execInContainerWithDockerode({
       name: containerName,
       command,
@@ -27,7 +27,7 @@ export function makeContainerCheckoutCommitAdapter(params: {
 
     try {
       // 1) Make sure we have the commit locally
-      const fetchRes = await exec("git fetch origin --prune")
+      const fetchRes = await exec(["git", "fetch", "origin", "--prune"])
       if (fetchRes.exitCode !== 0) {
         return err("GitCommandFailed", {
           step: "fetch",
@@ -36,13 +36,13 @@ export function makeContainerCheckoutCommitAdapter(params: {
       }
 
       // 2) Verify the commit exists
-      const revRes = await exec(`git cat-file -e ${sha}^{commit}`)
+      const revRes = await exec(["git", "cat-file", "-e", `${sha}^{commit}`])
       if (revRes.exitCode !== 0) {
         return err("CommitNotFound")
       }
 
       // 3) Checkout the commit in detached mode
-      const detachRes = await exec(`git checkout --detach ${sha}`)
+      const detachRes = await exec(["git", "checkout", "--detach", sha])
       if (detachRes.exitCode !== 0) {
         return err("GitCommandFailed", {
           step: "checkout-detach",
@@ -51,7 +51,7 @@ export function makeContainerCheckoutCommitAdapter(params: {
       }
 
       // 4) Create or reset the working branch at that commit (idempotent)
-      const branchRes = await exec(`git checkout -B ${branch}`)
+      const branchRes = await exec(["git", "checkout", "-B", branch])
       if (branchRes.exitCode !== 0) {
         return err("GitCommandFailed", {
           step: "checkout-branch",
