@@ -23,11 +23,9 @@ export function runWithInstallationId(
   asyncLocalStorage.run({ installationId }, fn)
 }
 
-// TODO: We currently depend on webhooks to provide installation IDs.
-// BUT, we should also save installation IDs to neo4j database on the first time we retrieve them.
-// They are unique to:
-//   - Our Github App (dev-issue-to-pr (local testing) or issuetopr-dev (production)) (confusing, I know)
-//   - user / org
+// TODO: I think we should follow prescribed protocol for using the installation ID from Github.
+// Usually they are provided via webhooks, or you can retrieve via their API.
+// We should get rid of this function and follow the recommended approach from Github API.
 export function getInstallationId(): string | null {
   const store = asyncLocalStorage.getStore()
   if (!store) {
@@ -74,15 +72,13 @@ export async function setupLocalRepository({
   const baseDir = await getLocalRepoDir(repoFullName)
 
   try {
-    let cloneUrl: string
-
     // 1. Determine an authenticated clone URL using the installation token
     const [owner, repo] = repoFullName.split("/")
     const installationToken = await getInstallationTokenFromRepo({
       owner,
       repo,
     })
-    cloneUrl = getCloneUrlWithAccessToken(repoFullName, installationToken)
+    const cloneUrl = getCloneUrlWithAccessToken(repoFullName, installationToken)
 
     // 2. Ensure repository exists and is healthy
     await ensureValidRepo(baseDir, cloneUrl)
@@ -125,4 +121,3 @@ export async function setupLocalRepository({
     throw error
   }
 }
-
