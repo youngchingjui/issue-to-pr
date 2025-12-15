@@ -309,6 +309,11 @@ ${formattedReviewThreads ? `# Review Line Comments\n${formattedReviewThreads}\n`
       if (exitCode !== 0) {
         throw new Error(`Failed to push branch ${dependentBranch}`)
       }
+    } else {
+      await createStatusEvent({
+        workflowId,
+        content: `Warning: No session token available, branch ${dependentBranch} was not pushed to remote.`,
+      })
     }
 
     await createWorkflowStateEvent({ workflowId, state: "completed" })
