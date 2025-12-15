@@ -25,6 +25,8 @@ describe("handlePullRequestLabelCreateDependentPR", () => {
     const { addJob } = require("shared/services/job")
     const payload = makePayload({ number: 100 })
 
+    process.env.REDIS_URL = "redis://localhost:6379"
+
     await handlePullRequestLabelCreateDependentPR({ payload, installationId })
 
     expect(addJob).toHaveBeenCalledTimes(1)
@@ -39,12 +41,28 @@ describe("handlePullRequestLabelCreateDependentPR", () => {
   })
 
   it("throws if required fields are missing", async () => {
+    process.env.REDIS_URL = "redis://localhost:6379"
+
     await expect(
       handlePullRequestLabelCreateDependentPR({
         payload: makePayload({ repository: { name: "", owner: { login: "" } } }),
         installationId,
       })
     ).rejects.toThrow()
+  })
+
+  it("throws if REDIS_URL is not set", async () => {
+    const original = process.env.REDIS_URL
+    delete process.env.REDIS_URL
+
+    await expect(
+      handlePullRequestLabelCreateDependentPR({
+        payload: makePayload(),
+        installationId,
+      })
+    ).rejects.toThrow("REDIS_URL is not set")
+
+    if (original) process.env.REDIS_URL = original
   })
 })
 

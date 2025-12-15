@@ -9,6 +9,8 @@ jest.mock("../../../apps/workers/workflow-workers/src/helper", () => ({
   publishJobStatus: jest.fn(),
 }))
 
+import type { Job } from "bullmq"
+
 import { handler } from "../../../apps/workers/workflow-workers/src/handler"
 import { publishJobStatus } from "../../../apps/workers/workflow-workers/src/helper"
 import { autoResolveIssue } from "../../../apps/workers/workflow-workers/src/orchestrators/autoResolveIssue"
@@ -23,10 +25,10 @@ describe("handler - autoResolveIssue", () => {
 
   it("routes autoResolveIssue jobs and publishes status updates", async () => {
     const messages = [
-      { content: "first message" },
-      { content: "second message" },
+      { role: "assistant" as const, content: "first message" },
+      { role: "assistant" as const, content: "second message" },
     ]
-    mockAutoResolveIssue.mockResolvedValue(messages)
+    mockAutoResolveIssue.mockResolvedValue(messages as any)
 
     const job = {
       id: "job-123",
@@ -55,3 +57,4 @@ describe("handler - autoResolveIssue", () => {
     )
   })
 })
+

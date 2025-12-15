@@ -127,9 +127,11 @@ export async function startContainer({
 }
 
 /**
- * Executes a shell command in a running container using Dockerode.
+ * Executes a command in a running container using Dockerode.
+ * - If `command` is a string, it is executed via `sh -c` for backward compatibility.
+ * - If `command` is a string array, it's passed directly as argv to avoid shell interpolation.
  * @param name Container name or ID
- * @param command Shell command to run (sh -c)
+ * @param command Shell command to run (sh -c) or argv array
  * @param cwd Optional working directory inside container
  * @returns { stdout, stderr, exitCode }
  */
@@ -139,7 +141,7 @@ export async function execInContainerWithDockerode({
   cwd,
 }: {
   name: string
-  command: string
+  command: string | string[]
   cwd?: string
 }): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   if (!name || typeof name !== "string" || !name.trim()) {
@@ -175,9 +177,10 @@ export async function execInContainerWithDockerode({
     }
   }
   try {
-    // Use shell to match parity with the CLI version
+    // If a string is provided, use shell for backward compatibility; otherwise pass argv directly
+    const cmd = Array.isArray(command) ? command : ["sh", "-c", command]
     const exec = await container.exec({
-      Cmd: ["sh", "-c", command],
+      Cmd: cmd,
       AttachStdout: true,
       AttachStderr: true,
       WorkingDir: cwd,
@@ -465,3 +468,4 @@ export async function getContainerGitInfo(
     diff,
   }
 }
+

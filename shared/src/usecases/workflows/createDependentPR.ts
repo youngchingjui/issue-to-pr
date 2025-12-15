@@ -145,7 +145,13 @@ export async function createDependentPRWorkflow(
     if (sessionToken) {
       await execInContainerWithDockerode({
         name: containerName,
-        command: `git remote set-url origin "https://x-access-token:${sessionToken}@github.com/${repoFullName}.git"`,
+        command: [
+          "git",
+          "remote",
+          "set-url",
+          "origin",
+          `https://x-access-token:${sessionToken}@github.com/${repoFullName}.git`,
+        ],
       })
     }
 
@@ -156,26 +162,26 @@ export async function createDependentPRWorkflow(
     })
     await execInContainerWithDockerode({
       name: containerName,
-      command: `git fetch origin ${headRef}`,
+      command: ["git", "fetch", "origin", headRef],
     })
     // Try checkout tracking remote if local doesn't exist
     const { exitCode: chk1 } = await execInContainerWithDockerode({
       name: containerName,
-      command: `git rev-parse --verify ${headRef}`,
+      command: ["git", "rev-parse", "--verify", headRef],
     })
     if (chk1 !== 0) {
       await execInContainerWithDockerode({
         name: containerName,
-        command: `git checkout -b ${headRef} origin/${headRef}`,
+        command: ["git", "checkout", "-b", headRef, `origin/${headRef}`],
       })
     } else {
       await execInContainerWithDockerode({
         name: containerName,
-        command: `git checkout -q ${headRef}`,
+        command: ["git", "checkout", "-q", headRef],
       })
       await execInContainerWithDockerode({
         name: containerName,
-        command: `git pull --ff-only origin ${headRef}`,
+        command: ["git", "pull", "--ff-only", "origin", headRef],
       })
     }
 
@@ -283,16 +289,19 @@ ${formattedReviewThreads ? `# Review Line Comments\n${formattedReviewThreads}\n`
 
     const result = await agent.runWithFunctions()
 
-    // Best-effort: ensure branch is pushed (idempotent if already pushed)
+    // Ensure branch is pushed
     await createStatusEvent({
       workflowId,
       content: `Ensuring branch ${dependentBranch} is pushed`,
     })
     if (sessionToken) {
-      await execInContainerWithDockerode({
+      const { exitCode } = await execInContainerWithDockerode({
         name: containerName,
-        command: `git push -u origin ${dependentBranch} || true`,
+        command: ["git", "push", "-u", "origin", dependentBranch],
       })
+      if (exitCode !== 0) {
+        throw new Error(`Failed to push branch ${dependentBranch}`)
+      }
     }
 
     await createWorkflowStateEvent({ workflowId, state: "completed" })
@@ -309,7 +318,16 @@ ${formattedReviewThreads ? `# Review Line Comments\n${formattedReviewThreads}\n`
     })
     throw error
   } finally {
-    if (containerCleanup) await containerCleanup()
+    if (containerCleanup) {
+      try {
+        await containerCleanup()
+      } catch (e) {
+        await createStatusEvent({
+          workflowId,
+          content: `Warning: container cleanup failed: ${String(e)}`,
+        })
+      }
+    }
   }
 }
 

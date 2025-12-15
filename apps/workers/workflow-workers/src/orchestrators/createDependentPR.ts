@@ -70,7 +70,8 @@ export async function createDependentPR(
     auth: {
       appId: GITHUB_APP_ID,
       privateKey,
-      installationId: githubInstallationId,
+      // Octokit expects installationId as a number
+      installationId: Number(githubInstallationId),
     },
   })
 
