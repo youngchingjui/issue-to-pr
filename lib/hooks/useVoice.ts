@@ -37,7 +37,6 @@ export function useVoice<TReturn = unknown>(
       }
     })
     return unsubscribe
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [port])
 
   const startTimer = () => {
@@ -125,4 +124,3 @@ export function useVoice<TReturn = unknown>(
     discard,
   }
 }
-
