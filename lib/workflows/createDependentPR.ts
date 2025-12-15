@@ -12,6 +12,7 @@ import {
   getPullRequestDiff,
   getPullRequestReviewCommentsGraphQL,
   getPullRequestReviews,
+  updatePullRequestBody,
 } from "@/lib/github/pullRequests"
 import { checkRepoPermissions } from "@/lib/github/users"
 import { langfuse } from "@/lib/langfuse"
@@ -21,7 +22,6 @@ import {
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
-import { createBranchTool } from "@/lib/tools/Branch"
 import { RepoEnvironment } from "@/lib/types"
 import { GitHubIssue, RepoPermissions } from "@/lib/types/github"
 import {
@@ -162,18 +162,6 @@ export async function createDependentPRWorkflow({
       })
     }
 
-    // Create a dependent branch off the PR head
-    const dependentBranch = `${headRef}-followup-${workflowId.slice(0, 8)}`
-    await createStatusEvent({
-      workflowId,
-      content: `Creating dependent branch ${dependentBranch}`,
-    })
-    const branchTool = createBranchTool(env)
-    await branchTool.handler({
-      branch: dependentBranch,
-      createIfNotExists: true,
-    })
-
     // Create directory tree for context
     const tree = await createContainerizedDirectoryTree(containerName)
 
@@ -189,11 +177,11 @@ export async function createDependentPRWorkflow({
     })
 
     const trace = langfuse.trace({
-      name: `Create dependent PR for #${pullNumber}`,
+      name: `Update PR for #${pullNumber}`,
       input: { repoFullName, pullNumber },
     })
-    const span = trace.span({ name: "createDependentPR" })
-    agent.addSpan({ span, generationName: "createDependentPR" })
+    const span = trace.span({ name: "updatePullRequest" })
+    agent.addSpan({ span, generationName: "updatePullRequest" })
 
     // Seed agent with context and instructions
     const formattedComments = comments
@@ -228,7 +216,7 @@ export async function createDependentPRWorkflow({
 
     const message = `
 # Goal
-Implement a follow-up patch that addresses reviewer comments and discussion on PR #${pullNumber}. Work directly on branch '${dependentBranch}' which is branched off '${headRef}'. When done, push this branch to origin using the sync tool, then create a new PR targeting the repository's default branch ('${repo.default_branch}') using the create_pull_request tool.
+Implement follow-up commits that address reviewer comments and discussion on PR #${pullNumber}. Work directly on the existing PR branch '${headRef}'. When done, push this branch to origin using the sync tool. Do NOT create a new PR.
 
 # Repository
 ${repoFullName}
@@ -252,32 +240,49 @@ ${formattedReviewThreads ? `# Review Line Comments\n${formattedReviewThreads}\n`
 - Keep changes small and focused.
 - Use meaningful commit messages.
 - Run repo checks (type-check/lint) via the provided tools before finishing.
-- When finished, push branch '${dependentBranch}' to GitHub using the sync tool.
-- Finally, create a PR with base '${repo.default_branch}' using the create_pull_request tool. Choose a clear title and provide a detailed description of the changes you made in response to the reviews. Do not manually append issue references in the body; they will be added automatically if applicable.
+- When finished, push branch '${headRef}' to GitHub using the sync tool.
+- Do not create new branches or PRs; this workflow updates the existing PR.
 `
 
     await agent.addInput({ role: "user", type: "message", content: message })
 
-    await createStatusEvent({ workflowId, content: "Starting dependent PR agent" })
+    await createStatusEvent({ workflowId, content: "Starting PR update agent" })
 
     const result = await agent.runWithFunctions()
 
     // Best-effort: ensure branch is pushed (idempotent if already pushed)
     await createStatusEvent({
       workflowId,
-      content: `Ensuring branch ${dependentBranch} is pushed`,
+      content: `Ensuring branch ${headRef} is pushed`,
     })
     if (sessionToken) {
       await execInContainerWithDockerode({
         name: containerName,
-        command: `git push -u origin ${dependentBranch} || true`,
+        command: `git push -u origin ${headRef} || true`,
       })
     }
+
+    // Update PR description: append a workflow update note
+    const timestamp = new Date().toISOString()
+    const originalBody = pr.body ?? ""
+    const updateNote = `\n\n---\nUpdate via 'updatePR' workflow (run: ${workflowId}) on ${timestamp}:\n- Applied follow-up commits addressing reviewer comments and review threads.\n- Kept changes small and focused; ran repository checks before pushing.`
+    const newBody = `${originalBody}${updateNote}`
+
+    await createStatusEvent({
+      workflowId,
+      content: `Updating PR #${pullNumber} description with workflow note`,
+    })
+
+    await updatePullRequestBody({
+      repoFullName,
+      pullNumber,
+      body: newBody,
+    })
 
     await createWorkflowStateEvent({ workflowId, state: "completed" })
     return {
       agentResult: result,
-      branch: dependentBranch,
+      branch: headRef,
     }
   } catch (error) {
     await createErrorEvent({ workflowId, content: String(error) })

@@ -2,7 +2,6 @@ import { ResponsesAPIAgent } from "@/lib/agents/base"
 import { createBranchTool } from "@/lib/tools/Branch"
 import { createCommitTool } from "@/lib/tools/Commit"
 import { createContainerExecTool } from "@/lib/tools/ContainerExecTool"
-import { createCreatePRTool } from "@/lib/tools/CreatePRTool"
 import { createFileCheckTool } from "@/lib/tools/FileCheckTool"
 import { createGetFileContentTool } from "@/lib/tools/GetFileContent"
 import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
@@ -19,19 +18,19 @@ Objective
 - Read reviewer comments, reviews, and code-review threads for a given PR.
 - Make small, targeted changes that address the feedback without altering the original intent.
 - Use the provided tools to search, read, edit, and verify code. Keep commits minimal and meaningful.
-- When finished, push your dependent branch and create a new PR targeting the repository's default branch (for example, main) using the provided tool.
+- When finished, push updates to the SAME PR branch (do NOT create a new PR).
 
 Operating principles
 1) Understand the PR and feedback: skim the diff and read comments/reviews to determine concrete follow-ups.
 2) Inspect before editing: search and read files first. Never modify files you haven't inspected.
 3) Keep changes scoped: only address the feedback. Avoid refactors unless necessary.
 4) Verify: run repository checks (type-checks, lint). Fix issues until clean.
-5) Communicate: in the PR body, summarize what feedback you addressed and any notable decisions.
+5) Communicate: use clear commit messages summarizing what changed and why.
 
 Required end state
-- All changes committed on the dependent branch.
+- All changes committed on the existing PR branch.
 - Branch synchronized to remote.
-- A PR has been created using the tool with the correct base (the repository's default branch).
+- No new PRs created.
 `
 
 export interface DependentPRAgentParams extends AgentConstructorParams {
@@ -89,8 +88,7 @@ export class DependentPRAgent extends ResponsesAPIAgent {
         if (sessionToken) {
           this.addTool(createSyncBranchTool(repo, env, sessionToken))
         }
-        // Use the original Create PR tool so that the underlying issue is appended automatically.
-        this.addTool(createCreatePRTool(repository, issueNumber))
+        // No CreatePRTool: we always update the existing PR.
       }
     } catch (err) {
       console.warn(

@@ -703,3 +703,34 @@ export async function getLinkedIssuesForPR({
     response.repository?.pullRequest?.closingIssuesReferences?.nodes || []
   return nodes.map((n) => n.number)
 }
+
+export async function updatePullRequestBody({
+  repoFullName,
+  pullNumber,
+  body,
+}: {
+  repoFullName: string
+  pullNumber: number
+  body: string
+}): Promise<void> {
+  const octokit = await getOctokit()
+  if (!octokit) {
+    throw new Error("No octokit found")
+  }
+  const [owner, repo] = repoFullName.split("/")
+  if (!owner || !repo) {
+    throw new Error("Invalid repository format. Expected 'owner/repo'")
+  }
+
+  await withTiming(
+    `GitHub REST: pulls.update(body) ${repoFullName}#${pullNumber}`,
+    () =>
+      octokit.rest.pulls.update({
+        owner,
+        repo,
+        pull_number: pullNumber,
+        body,
+      })
+  )
+}
+
