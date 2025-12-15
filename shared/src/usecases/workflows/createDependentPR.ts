@@ -156,16 +156,24 @@ export async function createDependentPRWorkflow(
 
     // Ensure origin remote embeds credentials
     if (sessionToken) {
-      await execInContainerWithDockerode({
-        name: containerName,
-        command: [
-          "git",
-          "remote",
-          "set-url",
-          "origin",
-          `https://x-access-token:${sessionToken}@github.com/${repoFullName}.git`,
-        ],
-      })
+      const { exitCode: remoteSetExitCode } =
+        await execInContainerWithDockerode({
+          name: containerName,
+          command: [
+            "git",
+            "remote",
+            "set-url",
+            "origin",
+            `https://x-access-token:${sessionToken}@github.com/${repoFullName}.git`,
+          ],
+        })
+      if (remoteSetExitCode !== 0) {
+        await createStatusEvent({
+          workflowId,
+          content: `Failed to set origin remote: ${remoteSetExitCode}`,
+        })
+        throw new Error(`Failed to set origin remote: ${remoteSetExitCode}`)
+      }
     }
 
     // Fetch and checkout the PR head branch
