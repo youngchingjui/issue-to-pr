@@ -7,7 +7,6 @@ import { BranchCreationStatus, createBranch } from "@/lib/github/git"
 import { createTool } from "@/lib/tools/helper"
 import { asRepoEnvironment, RepoEnvironment, Tool } from "@/lib/types"
 import { RepoFullName } from "@/lib/types/github"
-import { getCloneUrlWithAccessToken } from "@/lib/utils/utils-common"
 
 const syncBranchParameters = z.object({
   branch: z
@@ -46,28 +45,11 @@ async function fnHandler(
     if (env.kind === "host") {
       await pushBranch(branch, env.root, token, repoFullName.fullName)
     } else {
-      // Ensure the 'origin' remote embeds authentication
-      const authenticatedUrl = getCloneUrlWithAccessToken(
-        repoFullName.fullName,
-        token
-      )
-
-      // Set remote URL with credentials before pushing
-      const { exitCode: setUrlExit, stderr: setUrlErr } =
-        await execInContainerWithDockerode({
-          name: env.name,
-          command: `git remote set-url origin "${authenticatedUrl}"`,
-        })
-      if (setUrlExit !== 0) {
-        return JSON.stringify({
-          status: "error",
-          message: `Failed to set authenticated remote: ${setUrlErr}`,
-        })
-      }
-
+      // Push using ephemeral Authorization header; do not persist credentials
+      const authConfig = `-c http.https://github.com/.extraHeader=\\\"Authorization: bearer ${token}\\\"`
       const { exitCode, stderr } = await execInContainerWithDockerode({
         name: env.name,
-        command: `git push origin ${branch}`,
+        command: `git ${authConfig} push origin ${branch}`,
       })
       if (exitCode !== 0) {
         return JSON.stringify({
@@ -117,3 +99,4 @@ export function createSyncBranchTool(
       fnHandler(repoFullName, env, params, token),
   })
 }
+
