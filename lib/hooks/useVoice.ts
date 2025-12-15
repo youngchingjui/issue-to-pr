@@ -22,7 +22,6 @@ export function useVoice<TReturn = unknown>(
 
   useEffect(() => {
     const unsubscribe = port.subscribe((e) => {
-      if (e.type === "state") setState(e.state)
       if (e.type === "ready") {
         setHasRecording(true)
         lastBlobRef.current = e.audioBlob
@@ -38,7 +37,6 @@ export function useVoice<TReturn = unknown>(
       }
     })
     return unsubscribe
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [port])
 
   const startTimer = () => {
@@ -126,4 +124,3 @@ export function useVoice<TReturn = unknown>(
     discard,
   }
 }
-
