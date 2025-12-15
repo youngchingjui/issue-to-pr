@@ -25,6 +25,7 @@ export interface CheckoutCommitPort {
    * - Create/reset `branch` to point at that commit
    */
   checkoutCommit(
+    container: string,
     input: CheckoutCommitInput
   ): Promise<Result<void, CheckoutCommitErrors>>
 }

@@ -1,6 +1,7 @@
 import { createAppAuth } from "@octokit/auth-app"
 import { Octokit } from "@octokit/rest"
 import type { Transaction } from "neo4j-driver"
+import { makeContainerCheckoutCommitAdapter } from "shared/adapters/git/checkoutCommit"
 import { EventBusAdapter } from "shared/adapters/ioredis/EventBusAdapter"
 import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
 import { setAccessToken } from "shared/auth"
@@ -82,6 +83,9 @@ export async function createDependentPR(
 
   await publishJobStatus(jobId, "Running dependent PR workflow")
 
+  // Setup adapters for git checkout
+  const gitCheckoutAdapter = makeContainerCheckoutCommitAdapter()
+
   const result = await createDependentPRWorkflow(
     {
       repoFullName,
@@ -92,6 +96,7 @@ export async function createDependentPR(
     {
       settings: settingsAdapter,
       eventBus: eventBusAdapter,
+      gitCheckout: gitCheckoutAdapter,
     }
   )
 

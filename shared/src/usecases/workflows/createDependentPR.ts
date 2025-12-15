@@ -1,6 +1,5 @@
 import { v4 as uuidv4 } from "uuid"
 
-import { makeContainerCheckoutCommitAdapter } from "@/adapters/git/checkoutCommit"
 import DependentPRAgent from "@/lib/agents/DependentPRAgent"
 import { execInContainerWithDockerode } from "@/lib/docker"
 import { getRepoFromString } from "@/lib/github/content"
@@ -45,14 +44,13 @@ interface CreateDependentPRParams {
 interface Ports {
   settings: SettingsReaderPort
   eventBus?: EventBusPort
-  gitCheckout?: CheckoutCommitPort
+  gitCheckout: CheckoutCommitPort
 }
 
 export async function createDependentPRWorkflow(
   { repoFullName, pullNumber, login, jobId }: CreateDependentPRParams,
-  ports: Ports
+  { settings, eventBus, gitCheckout }: Ports
 ) {
-  const { settings, eventBus } = ports
   const workflowId = jobId || uuidv4()
   let containerCleanup: (() => Promise<void>) | null = null
 
@@ -128,15 +126,6 @@ export async function createDependentPRWorkflow(
     const env: RepoEnvironment = { kind: "container", name: containerName }
     containerCleanup = cleanup
 
-    // Bind container-specific git adapter
-
-    const gitCheckout =
-      ports.gitCheckout ??
-      makeContainerCheckoutCommitAdapter({
-        containerName,
-        workdir: "/workspace",
-      })
-
     // Authenticate remote for fetch/push
     const [owner, repoName] = repoFullName.split("/")
     const sessionToken = await getInstallationTokenFromRepo({
@@ -183,7 +172,7 @@ export async function createDependentPRWorkflow(
       content: `Checking out PR head commit ${headSha} into branch ${dependentBranch}`,
     })
 
-    const checkoutResult = await gitCheckout.checkoutCommit({
+    const checkoutResult = await gitCheckout.checkoutCommit(containerName, {
       sha: headSha,
       branch: dependentBranch,
     })
