@@ -10,8 +10,7 @@ export default class MockVoiceSubmitService<TReturn = unknown>
       ok: true,
       adapter: "mock-submit",
       size: audioBlob.size,
-      mimeType: mimeType ?? audioBlob.type ?? null,
+      mimeType: mimeType ?? (audioBlob.type || null),
     } as unknown as TReturn
   }
 }
-
