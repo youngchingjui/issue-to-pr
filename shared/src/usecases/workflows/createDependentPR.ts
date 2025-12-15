@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from "uuid"
 
+import { makeContainerCheckoutCommitAdapter } from "@/adapters/git/checkoutCommit"
 import DependentPRAgent from "@/lib/agents/DependentPRAgent"
 import { execInContainerWithDockerode } from "@/lib/docker"
 import { getRepoFromString } from "@/lib/github/content"
@@ -31,6 +32,7 @@ import {
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 import { EventBusPort } from "@/ports/events/eventBus"
 import { createWorkflowEventPublisher } from "@/ports/events/publisher"
+import { CheckoutCommitPort } from "@/ports/git/checkoutCommit"
 import { SettingsReaderPort } from "@/ports/repositories/settings.reader"
 
 interface CreateDependentPRParams {
@@ -43,6 +45,7 @@ interface CreateDependentPRParams {
 interface Ports {
   settings: SettingsReaderPort
   eventBus?: EventBusPort
+  gitCheckout?: CheckoutCommitPort
 }
 
 export async function createDependentPRWorkflow(
@@ -82,6 +85,7 @@ export async function createDependentPRWorkflow(
     // Fetch PR details and context
     const pr = await getPullRequest({ repoFullName, pullNumber })
     const headRef = pr.head.ref
+    const headSha = pr.head.sha
     const baseRef = pr.base.ref
 
     await createStatusEvent({
@@ -124,6 +128,15 @@ export async function createDependentPRWorkflow(
     const env: RepoEnvironment = { kind: "container", name: containerName }
     containerCleanup = cleanup
 
+    // Bind container-specific git adapter
+
+    const gitCheckout =
+      ports.gitCheckout ??
+      makeContainerCheckoutCommitAdapter({
+        containerName,
+        workdir: "/workspace",
+      })
+
     // Authenticate remote for fetch/push
     const [owner, repoName] = repoFullName.split("/")
     const sessionToken = await getInstallationTokenFromRepo({
@@ -156,45 +169,26 @@ export async function createDependentPRWorkflow(
     }
 
     // Fetch and checkout the PR head branch
-    await createStatusEvent({
-      workflowId,
-      content: `Checking out head branch ${headRef}`,
-    })
-    await execInContainerWithDockerode({
-      name: containerName,
-      command: ["git", "fetch", "origin", headRef],
-    })
-    // Try checkout tracking remote if local doesn't exist
-    const { exitCode: chk1 } = await execInContainerWithDockerode({
-      name: containerName,
-      command: ["git", "rev-parse", "--verify", headRef],
-    })
-    if (chk1 !== 0) {
-      await execInContainerWithDockerode({
-        name: containerName,
-        command: ["git", "checkout", "-b", headRef, `origin/${headRef}`],
-      })
-    } else {
-      await execInContainerWithDockerode({
-        name: containerName,
-        command: ["git", "checkout", "-q", headRef],
-      })
-      const { exitCode: pullExit } = await execInContainerWithDockerode({
-        name: containerName,
-        command: ["git", "pull", "--ff-only", "origin", headRef],
-      })
-
-      if (pullExit !== 0) {
-        throw new Error(`Failed to pull latest changes for branch ${headRef}`)
-      }
-    }
-
-    // Create a dependent branch off the PR head
     const dependentBranch = `${headRef}-followup-${workflowId.slice(0, 8)}`
     await createStatusEvent({
       workflowId,
-      content: `Creating dependent branch ${dependentBranch}`,
+      content: `Checking out PR head commit ${headSha} into branch ${dependentBranch}`,
     })
+
+    const checkoutResult = await gitCheckout.checkoutCommit({
+      sha: headSha,
+      branch: dependentBranch,
+    })
+
+    if (!checkoutResult.ok) {
+      await createStatusEvent({
+        workflowId,
+        content: `Failed to checkout PR head: ${checkoutResult.error}`,
+      })
+      throw new Error(`Failed to checkout PR head: ${checkoutResult.error}`)
+    }
+
+    // Create the branch tool
     const branchTool = createBranchTool(env)
     await branchTool.handler({
       branch: dependentBranch,
