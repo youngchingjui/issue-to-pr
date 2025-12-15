@@ -1,12 +1,21 @@
 import { logEnd, logStart, withTiming } from "shared/utils/telemetry"
 
-import getOctokit, { getGraphQLClient } from "@/lib/github"
+import { getInstallationFromRepo, getInstallationOctokit } from "@/lib/github"
 import {
   IssueComment,
   PullRequest,
   PullRequestList,
   PullRequestReview,
 } from "@/lib/types/github"
+
+async function getInstallationOctokitForRepo(repoFullName: string) {
+  const [owner, repo] = repoFullName.split("/")
+  if (!owner || !repo) {
+    throw new Error("Invalid repository format. Expected 'owner/repo'")
+  }
+  const installation = await getInstallationFromRepo({ owner, repo })
+  return getInstallationOctokit(installation.data.id)
+}
 
 export async function getPullRequestOnBranch({
   repoFullName,
@@ -15,15 +24,8 @@ export async function getPullRequestOnBranch({
   repoFullName: string
   branch: string
 }) {
-  const octokit = await getOctokit()
+  const octokit = await getInstallationOctokitForRepo(repoFullName)
   const [owner, repo] = repoFullName.split("/")
-  if (!owner || !repo) {
-    throw new Error("Invalid repository format. Expected 'owner/repo'")
-  }
-
-  if (!octokit) {
-    throw new Error("No octokit found")
-  }
 
   const pr = await withTiming(
     `GitHub REST: pulls.list head=${owner}:${branch}`,
@@ -82,10 +84,8 @@ export async function createPullRequest({
     throw new Error("Invalid repository format. Expected 'owner/repo'")
   }
 
-  const graphqlWithAuth = await getGraphQLClient()
-  if (!graphqlWithAuth) {
-    throw new Error("Could not initialize GraphQL client")
-  }
+  const octokit = await getInstallationOctokitForRepo(repoFullName)
+  const graphqlWithAuth = octokit.graphql
 
   // 1. Retrieve repository ID (required for mutation input)
   const repoIdQuery = `
@@ -97,8 +97,7 @@ export async function createPullRequest({
   `
   const repoIdResult = await withTiming(
     `GitHub GraphQL: get repository id ${repoFullName}`,
-    () =>
-      graphqlWithAuth<RepositoryIdResponse>(repoIdQuery, { owner, name: repo })
+    () => graphqlWithAuth<RepositoryIdResponse>(repoIdQuery, { owner, name: repo })
   )
   const repositoryId = repoIdResult.repository.id
 
@@ -166,10 +165,8 @@ export async function createPullRequestToBase({
     throw new Error("Invalid repository format. Expected 'owner/repo'")
   }
 
-  const graphqlWithAuth = await getGraphQLClient()
-  if (!graphqlWithAuth) {
-    throw new Error("Could not initialize GraphQL client")
-  }
+  const octokit = await getInstallationOctokitForRepo(repoFullName)
+  const graphqlWithAuth = octokit.graphql
 
   const repoIdQuery = `
     query ($owner: String!, $name: String!) {
@@ -180,8 +177,7 @@ export async function createPullRequestToBase({
   `
   const repoIdResult = await withTiming(
     `GitHub GraphQL: get repository id ${repoFullName}`,
-    () =>
-      graphqlWithAuth<RepositoryIdResponse>(repoIdQuery, { owner, name: repo })
+    () => graphqlWithAuth<RepositoryIdResponse>(repoIdQuery, { owner, name: repo })
   )
   const repositoryId = repoIdResult.repository.id
   if (!repositoryId) throw new Error("Failed to retrieve repository ID")
@@ -227,11 +223,7 @@ export async function getPullRequestDiff({
   pullNumber: number
 }): Promise<string> {
   try {
-    const octokit = await getOctokit()
-    if (!octokit) {
-      throw new Error("No octokit found")
-    }
-
+    const octokit = await getInstallationOctokitForRepo(repoFullName)
     const [owner, repo] = repoFullName.split("/")
 
     const response = await withTiming(
@@ -266,11 +258,7 @@ export async function getPullRequestList({
 }: {
   repoFullName: string
 }): Promise<PullRequestList> {
-  const octokit = await getOctokit()
-  if (!octokit) {
-    throw new Error("No octokit found")
-  }
-
+  const octokit = await getInstallationOctokitForRepo(repoFullName)
   const [owner, repo] = repoFullName.split("/")
 
   const pullRequests = await withTiming(
@@ -292,12 +280,8 @@ export async function getPullRequestComments({
   repoFullName: string
   pullNumber: number
 }): Promise<IssueComment[]> {
-  const octokit = await getOctokit()
+  const octokit = await getInstallationOctokitForRepo(repoFullName)
   const [owner, repo] = repoFullName.split("/")
-
-  if (!octokit) {
-    throw new Error("No octokit found")
-  }
 
   const commentsResponse = await withTiming(
     `GitHub REST: issues.listComments PR ${repoFullName}#${pullNumber}`,
@@ -319,12 +303,8 @@ export async function getPullRequestReviews({
   repoFullName: string
   pullNumber: number
 }): Promise<PullRequestReview[]> {
-  const octokit = await getOctokit()
+  const octokit = await getInstallationOctokitForRepo(repoFullName)
   const [owner, repo] = repoFullName.split("/")
-
-  if (!octokit) {
-    throw new Error("No octokit found")
-  }
 
   const reviewsResponse = await withTiming(
     `GitHub REST: pulls.listReviews ${repoFullName}#${pullNumber}`,
@@ -382,8 +362,8 @@ export async function getPullRequestReviewCommentsGraphQL({
   commentsPerReview?: number
 }) {
   const [owner, repo] = repoFullName.split("/")
-  const graphqlWithAuth = await getGraphQLClient()
-  if (!graphqlWithAuth) throw new Error("Could not initialize GraphQL client")
+  const octokit = await getInstallationOctokitForRepo(repoFullName)
+  const graphqlWithAuth = octokit.graphql
   // GraphQL query for reviews and review comments
   const query = `
     query($owner: String!, $repo: String!, $pullNumber: Int!, $reviewsLimit: Int!, $commentsPerReview: Int!) {
@@ -462,12 +442,8 @@ export async function getPullRequest({
   repoFullName: string
   pullNumber: number
 }): Promise<PullRequest> {
-  const octokit = await getOctokit()
+  const octokit = await getInstallationOctokitForRepo(repoFullName)
   const [owner, repo] = repoFullName.split("/")
-
-  if (!octokit) {
-    throw new Error("No octokit found")
-  }
 
   const response = await withTiming(
     `GitHub REST: pulls.get ${repoFullName}#${pullNumber}`,
@@ -491,14 +467,8 @@ export async function addLabelsToPullRequest({
   pullNumber: number
   labels: string[]
 }): Promise<void> {
-  const octokit = await getOctokit()
-  if (!octokit) {
-    throw new Error("No octokit found")
-  }
+  const octokit = await getInstallationOctokitForRepo(repoFullName)
   const [owner, repo] = repoFullName.split("/")
-  if (!owner || !repo) {
-    throw new Error("Invalid repository format. Expected 'owner/repo'")
-  }
   await withTiming(
     `GitHub REST: issues.addLabels ${repoFullName}#${pullNumber}`,
     () =>
@@ -533,8 +503,8 @@ export async function getPRLinkedIssuesMap(
   repoFullName: string
 ): Promise<Record<number, boolean>> {
   const [owner, repo] = repoFullName.split("/")
-  const graphqlWithAuth = await getGraphQLClient()
-  if (!graphqlWithAuth) throw new Error("Could not initialize GraphQL client")
+  const octokit = await getInstallationOctokitForRepo(repoFullName)
+  const graphqlWithAuth = octokit.graphql
 
   let hasNextPage = true
   let endCursor: string | null = null
@@ -598,8 +568,8 @@ export async function getIssueToPullRequestMap(
   repoFullName: string
 ): Promise<Record<number, number>> {
   const [owner, repo] = repoFullName.split("/")
-  const graphqlWithAuth = await getGraphQLClient()
-  if (!graphqlWithAuth) throw new Error("Could not initialize GraphQL client")
+  const octokit = await getInstallationOctokitForRepo(repoFullName)
+  const graphqlWithAuth = octokit.graphql
 
   let hasNextPage = true
   let endCursor: string | null = null
@@ -669,8 +639,8 @@ export async function getLinkedIssuesForPR({
   pullNumber: number
 }): Promise<number[]> {
   const [owner, repo] = repoFullName.split("/")
-  const graphqlWithAuth = await getGraphQLClient()
-  if (!graphqlWithAuth) throw new Error("Could not initialize GraphQL client")
+  const octokit = await getInstallationOctokitForRepo(repoFullName)
+  const graphqlWithAuth = octokit.graphql
 
   const query = `
     query($owner: String!, $repo: String!, $pullNumber: Int!) {
@@ -703,3 +673,4 @@ export async function getLinkedIssuesForPR({
     response.repository?.pullRequest?.closingIssuesReferences?.nodes || []
   return nodes.map((n) => n.number)
 }
+

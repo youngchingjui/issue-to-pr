@@ -1,6 +1,6 @@
 import { withTiming } from "shared/utils/telemetry"
 
-import getOctokit, { getGraphQLClient, getUserOctokit } from "@/lib/github"
+import { getInstallationFromRepo, getInstallationOctokit } from "@/lib/github"
 import {
   getLatestPlanIdsForIssues,
   getPlanStatusForIssues,
@@ -13,27 +13,30 @@ import {
   ListForRepoParams,
 } from "@/lib/types/github"
 
-type CreateIssueParams = {
-  repo: string
-  owner: string
-  title: string
-  body: string
+// Helper: installation-scoped Octokit for a repoFullName
+async function getInstallationOctokitForRepo(repoFullName: string) {
+  const [owner, repo] = repoFullName.split("/")
+  if (!owner || !repo) {
+    throw new Error("Invalid repository format. Expected 'owner/repo'")
+  }
+  const installation = await getInstallationFromRepo({ owner, repo })
+  return getInstallationOctokit(installation.data.id)
 }
 
-// Derive the exact response type from the installed Octokit method
-type UserOctokit = Awaited<ReturnType<typeof getUserOctokit>>
-type CreateIssueResponse = Awaited<
-  ReturnType<UserOctokit["rest"]["issues"]["create"]>
->
-
+// Create Issue using installation auth (requires appropriate app permissions)
 export async function createIssue({
   repo,
   owner,
   title,
   body,
-}: CreateIssueParams): Promise<CreateIssueResponse> {
-  const octokit = await getUserOctokit()
-  if (!octokit) throw new Error("No octokit found")
+}: {
+  repo: string
+  owner: string
+  title: string
+  body: string
+}) {
+  const repoFullName = `${owner}/${repo}`
+  const octokit = await getInstallationOctokitForRepo(repoFullName)
   return await octokit.rest.issues.create({ owner, repo, title, body })
 }
 
@@ -45,15 +48,12 @@ export async function getIssue({
   fullName: string
   issueNumber: number
 }): Promise<GetIssueResult> {
-  const octokit = await getOctokit()
-  if (!octokit) {
-    return { type: "other_error", error: "No octokit found" }
-  }
-  const [owner, repo] = fullName.split("/")
-  if (!owner || !repo) {
-    return { type: "not_found" }
-  }
   try {
+    const octokit = await getInstallationOctokitForRepo(fullName)
+    const [owner, repo] = fullName.split("/")
+    if (!owner || !repo) {
+      return { type: "not_found" }
+    }
     const issue = await octokit.rest.issues.get({
       owner,
       repo,
@@ -86,11 +86,8 @@ export async function createIssueComment({
   repoFullName: string
   comment: string
 }): Promise<GitHubIssueComment> {
-  const octokit = await getOctokit()
+  const octokit = await getInstallationOctokitForRepo(repoFullName)
   const [owner, repo] = repoFullName.split("/")
-  if (!octokit) {
-    throw new Error("No octokit found")
-  }
   const issue = await octokit.rest.issues.createComment({
     owner,
     repo,
@@ -107,13 +104,10 @@ export async function getIssueComments({
   repoFullName: string
   issueNumber: number
 }): Promise<GitHubIssueComment[]> {
-  const octokit = await getOctokit()
+  const octokit = await getInstallationOctokitForRepo(repoFullName)
   const [owner, repo] = repoFullName.split("/")
   if (!owner || !repo) {
     throw new Error("Invalid repository format. Expected 'owner/repo'")
-  }
-  if (!octokit) {
-    throw new Error("No octokit found")
   }
   const comments = await octokit.rest.issues.listComments({
     owner,
@@ -129,12 +123,8 @@ export async function getIssueList({
 }: {
   repoFullName: string
 } & Omit<ListForRepoParams, "owner" | "repo">): Promise<GitHubIssue[]> {
-  const octokit = await getOctokit()
+  const octokit = await getInstallationOctokitForRepo(repoFullName)
   const [owner, repo] = repoFullName.split("/")
-
-  if (!octokit) {
-    throw new Error("No octokit found")
-  }
 
   const issuesResponse = await withTiming(
     `GitHub REST: issues.listForRepo ${repoFullName}`,
@@ -158,11 +148,8 @@ export async function updateIssueComment({
   repoFullName: string
   comment: string
 }): Promise<GitHubIssueComment> {
-  const octokit = await getOctokit()
+  const octokit = await getInstallationOctokitForRepo(repoFullName)
   const [owner, repo] = repoFullName.split("/")
-  if (!octokit) {
-    throw new Error("No octokit found")
-  }
   try {
     const updatedComment = await octokit.rest.issues.updateComment({
       owner,
@@ -259,8 +246,8 @@ export async function getLinkedPRNumberForIssue({
   issueNumber: number
 }): Promise<number | null> {
   const [owner, repo] = repoFullName.split("/")
-  const graphqlWithAuth = await getGraphQLClient()
-  if (!graphqlWithAuth) throw new Error("Could not initialize GraphQL client")
+  const octokit = await getInstallationOctokitForRepo(repoFullName)
+  const graphqlWithAuth = octokit.graphql
 
   const query = `
     query($owner: String!, $repo: String!, $issueNumber: Int!) {
@@ -369,8 +356,8 @@ export async function getLinkedPRNumbersForIssues({
   issueNumbers: number[]
 }): Promise<Record<number, number | null>> {
   const [owner, repo] = repoFullName.split("/")
-  const graphqlWithAuth = await getGraphQLClient()
-  if (!graphqlWithAuth) throw new Error("Could not initialize GraphQL client")
+  const octokit = await getInstallationOctokitForRepo(repoFullName)
+  const graphqlWithAuth = octokit.graphql
 
   // Build a single query with field aliases, one per issueNumber
   // Example alias: i_123: issue(number: 123) { ... }
@@ -500,3 +487,4 @@ export async function getLinkedPRNumbersForIssues({
 
   return result
 }
+

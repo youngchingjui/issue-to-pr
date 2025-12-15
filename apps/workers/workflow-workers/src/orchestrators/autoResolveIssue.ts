@@ -4,7 +4,6 @@ import type { Transaction } from "neo4j-driver"
 import { EventBusAdapter } from "shared/adapters/ioredis/EventBusAdapter"
 import { createNeo4jDataSource } from "shared/adapters/neo4j/dataSource"
 import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
-import { setAccessToken } from "shared/auth"
 import { getPrivateKeyFromFile } from "shared/services/fs"
 import { autoResolveIssue as autoResolveIssueWorkflow } from "shared/usecases/workflows/autoResolveIssue"
 
@@ -82,7 +81,7 @@ export async function autoResolveIssue(
   const privateKey = await getPrivateKeyFromFile(GITHUB_APP_PRIVATE_KEY_PATH)
   // GitHub API via App Installation
 
-  // Temporary: set the access token for the workflow
+  // Installation-scoped Octokit (if needed locally)
   const octokit = new Octokit({
     authStrategy: createAppAuth,
     auth: {
@@ -94,16 +93,6 @@ export async function autoResolveIssue(
 
   // Setup adapters for event bus
   const eventBusAdapter = new EventBusAdapter(REDIS_URL)
-  const auth = await octokit.auth({ type: "installation" })
-  if (
-    !auth ||
-    typeof auth !== "object" ||
-    !("token" in auth) ||
-    typeof auth.token !== "string"
-  ) {
-    throw new Error("Failed to get installation token")
-  }
-  setAccessToken(auth.token)
 
   await publishJobStatus(jobId, "Fetching issue and running LLM")
 
@@ -123,3 +112,4 @@ export async function autoResolveIssue(
   // Handler will publish the completion status
   return result.messages
 }
+

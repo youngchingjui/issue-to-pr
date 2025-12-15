@@ -2,7 +2,6 @@
 
 import { AsyncLocalStorage } from "node:async_hooks"
 
-import { getAccessToken } from "@/auth"
 import { getLocalRepoDir } from "@/lib/fs"
 import {
   cleanCheckout,
@@ -11,7 +10,7 @@ import {
   ensureValidRepo,
   setRemoteOrigin,
 } from "@/lib/git"
-import getOctokit from "@/lib/github"
+import { getInstallationTokenFromRepo } from "@/lib/github/installation"
 import { getCloneUrlWithAccessToken } from "@/lib/utils/utils-common"
 
 // For storing Github App installation ID in async context
@@ -44,9 +43,7 @@ export function getInstallationId(): string | null {
  * available in a local working directory that the server can freely mutate.
  * The steps performed are:
  * 1. Resolve (and lazily create) the base directory via `getLocalRepoDir`.
- * 2. Build an authenticated clone URL using either the user's
- *    GitHub App token (OAuth or installation token) exposed
- *    through `runWithInstallationId` / `getInstallationId`.
+ * 2. Build an authenticated clone URL using the repository's GitHub App installation token.
  * 3. Verify that the local repository is healthy via `ensureValidRepo`; if it
  *    is corrupt or missing, attempt a fresh clone.
  * 4. Ensure the local repo's "origin" remote uses the authenticated URL so
@@ -79,34 +76,13 @@ export async function setupLocalRepository({
   try {
     let cloneUrl: string
 
-    // 1. Determine an authenticated clone URL
-    const token = getAccessToken()
-    if (token) {
-      cloneUrl = getCloneUrlWithAccessToken(repoFullName, token)
-    } else {
-      // Fallback to GitHub App authentication
-      const octokit = await getOctokit()
-      if (!octokit) {
-        throw new Error("Failed to get authenticated Octokit instance")
-      }
-
-      const [owner, repo] = repoFullName.split("/")
-      const { data: repoData } = await octokit.rest.repos.get({
-        owner,
-        repo,
-      })
-
-      cloneUrl = repoData.clone_url as string
-
-      const installationId = getInstallationId()
-      if (installationId) {
-        const token = (await octokit.auth({
-          type: "installation",
-          installationId: Number(installationId),
-        })) as { token: string }
-        cloneUrl = getCloneUrlWithAccessToken(repoFullName, token.token)
-      }
-    }
+    // 1. Determine an authenticated clone URL using the installation token
+    const [owner, repo] = repoFullName.split("/")
+    const installationToken = await getInstallationTokenFromRepo({
+      owner,
+      repo,
+    })
+    cloneUrl = getCloneUrlWithAccessToken(repoFullName, installationToken)
 
     // 2. Ensure repository exists and is healthy
     await ensureValidRepo(baseDir, cloneUrl)
@@ -149,3 +125,4 @@ export async function setupLocalRepository({
     throw error
   }
 }
+
