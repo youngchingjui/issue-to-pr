@@ -196,7 +196,16 @@ export async function createDependentPRWorkflow(
     })
 
     // Create directory tree for context
-    const tree = await createContainerizedDirectoryTree(containerName)
+    let tree: string[] = []
+    try {
+      tree = await createContainerizedDirectoryTree(containerName)
+    } catch (e) {
+      await createStatusEvent({
+        workflowId,
+        content: `Warning: Failed to create directory tree: ${String(e)}`,
+      })
+      tree = ["(directory tree not available)"]
+    }
 
     // Initialize the dependent PR agent (reasoning-enabled)
     const agent = new DependentPRAgent({
