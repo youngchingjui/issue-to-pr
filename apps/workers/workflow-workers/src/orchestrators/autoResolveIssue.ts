@@ -44,9 +44,9 @@ export async function autoResolveIssue(
   {
     repoFullName,
     issueNumber,
+    branch,
     githubLogin,
     githubInstallationId,
-    branch,
   }: AutoResolveJobData
 ) {
   await publishJobStatus(
@@ -112,4 +112,3 @@ export async function autoResolveIssue(
   // Handler will publish the completion status
   return result.messages
 }
-
