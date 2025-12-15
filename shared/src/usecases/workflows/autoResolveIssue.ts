@@ -8,7 +8,7 @@ import { v4 as uuidv4 } from "uuid"
 
 import GitHubRefsAdapter from "@/adapters/github/GitHubRefsAdapter"
 import { OpenAIAdapter } from "@/adapters/llm/OpenAIAdapter"
-import { getAccessTokenOrThrow } from "@/auth"
+import { getAccessTokenOrThrow } from "@shared/auth"
 import PlanAndCodeAgent from "@/lib/agents/PlanAndCodeAgent"
 import { getInstallationTokenFromRepo } from "@/lib/github/installation"
 import { getIssue, getIssueComments } from "@/lib/github/issues"

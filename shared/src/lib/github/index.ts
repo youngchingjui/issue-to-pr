@@ -7,7 +7,7 @@ import { Octokit } from "@octokit/rest"
 import * as fs from "fs/promises"
 import { App } from "octokit"
 
-import { getAccessTokenOrThrow } from "@/auth"
+import { getAccessTokenOrThrow } from "@shared/auth"
 import { ExtendedOctokit } from "@/lib/types/github"
 
 export async function getPrivateKeyFromFile(): Promise<string> {

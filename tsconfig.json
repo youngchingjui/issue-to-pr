@@ -15,12 +15,17 @@
     /* Paths */
     "baseUrl": ".",
     "paths": {
+      "@/*": ["shared/src/*", "./*"],
       "@/app/*": ["app/*"],
       "@/tailwind.config": ["tailwind.config"],
       "@/auth": ["auth"],
       "@/lib/*": ["lib/*"],
       "@/components/*": ["components/*"],
-      "@/styles/*": ["styles/*"]
+      "@/styles/*": ["styles/*"],
+      "shared": ["shared/src/index.ts"],
+      "shared/*": ["shared/src/*"],
+      "@shared/*": ["shared/src/*"],
+      "@workers/*": ["apps/workers/src/*"]
     },
 
     /* TO SORT */
@@ -37,8 +42,8 @@
     "components/**/*",
     "styles/**/*",
     "lib/**/*",
-    ".next/types/**/*.ts",
-    "shared/dist/**/*.d.ts"
+    "shared/src/**/*",
+    ".next/types/**/*.ts"
   ],
   "exclude": ["node_modules", "apps/**"]
 }
