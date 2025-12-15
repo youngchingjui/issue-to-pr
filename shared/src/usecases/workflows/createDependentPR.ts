@@ -179,10 +179,14 @@ export async function createDependentPRWorkflow(
         name: containerName,
         command: ["git", "checkout", "-q", headRef],
       })
-      await execInContainerWithDockerode({
+      const { exitCode: pullExit } = await execInContainerWithDockerode({
         name: containerName,
         command: ["git", "pull", "--ff-only", "origin", headRef],
       })
+
+      if (pullExit !== 0) {
+        throw new Error(`Failed to pull latest changes for branch ${headRef}`)
+      }
     }
 
     // Create a dependent branch off the PR head
@@ -285,7 +289,10 @@ ${formattedReviewThreads ? `# Review Line Comments\n${formattedReviewThreads}\n`
 
     await agent.addInput({ role: "user", type: "message", content: message })
 
-    await createStatusEvent({ workflowId, content: "Starting dependent PR agent" })
+    await createStatusEvent({
+      workflowId,
+      content: "Starting dependent PR agent",
+    })
 
     const result = await agent.runWithFunctions()
 
@@ -330,4 +337,3 @@ ${formattedReviewThreads ? `# Review Line Comments\n${formattedReviewThreads}\n`
     }
   }
 }
-
