@@ -7,6 +7,11 @@ export type Neo4jConfig = {
   maxConnectionLifetimeMs?: number
 }
 
+export type Neo4jDataSource = {
+  getDriver: () => Driver
+  getSession: (mode: "READ" | "WRITE") => Session
+}
+
 // Factory returns a *singleton* driver accessor closed over the config
 export function createNeo4jDataSource(cfg: Neo4jConfig) {
   let driver: Driver | undefined

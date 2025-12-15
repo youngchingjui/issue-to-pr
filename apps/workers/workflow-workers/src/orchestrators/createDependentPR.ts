@@ -2,13 +2,13 @@ import { createAppAuth } from "@octokit/auth-app"
 import { Octokit } from "@octokit/rest"
 import type { Transaction } from "neo4j-driver"
 import { EventBusAdapter } from "shared/adapters/ioredis/EventBusAdapter"
-import { createNeo4jDataSource } from "shared/adapters/neo4j/dataSource"
 import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
 import { setAccessToken } from "shared/auth"
 import { getPrivateKeyFromFile } from "shared/services/fs"
 import { createDependentPRWorkflow } from "shared/usecases/workflows/createDependentPR"
 
 import { getEnvVar, publishJobStatus } from "../helper"
+import { neo4jDs } from "../neo4j"
 
 // Minimal user repository implementation for SettingsReaderAdapter
 const userRepo = {
@@ -37,27 +37,19 @@ export type CreateDependentPRJobData = {
 
 export async function createDependentPR(
   jobId: string,
-  { repoFullName, pullNumber, githubLogin, githubInstallationId }: CreateDependentPRJobData
+  {
+    repoFullName,
+    pullNumber,
+    githubLogin,
+    githubInstallationId,
+  }: CreateDependentPRJobData
 ) {
   await publishJobStatus(
     jobId,
     `Preparing to create dependent PR for ${repoFullName}#${pullNumber}`
   )
 
-  const {
-    NEO4J_URI,
-    NEO4J_USER,
-    NEO4J_PASSWORD,
-    GITHUB_APP_ID,
-    GITHUB_APP_PRIVATE_KEY_PATH,
-    REDIS_URL,
-  } = getEnvVar()
-
-  const neo4jDs = createNeo4jDataSource({
-    uri: NEO4J_URI,
-    user: NEO4J_USER,
-    password: NEO4J_PASSWORD,
-  })
+  const { GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_PATH, REDIS_URL } = getEnvVar()
 
   const settingsAdapter = makeSettingsReaderAdapter({
     getSession: () => neo4jDs.getSession(),
@@ -78,7 +70,12 @@ export async function createDependentPR(
   // Setup adapters for event bus
   const eventBusAdapter = new EventBusAdapter(REDIS_URL)
   const auth = await octokit.auth({ type: "installation" })
-  if (!auth || typeof auth !== "object" || !("token" in auth) || typeof auth.token !== "string") {
+  if (
+    !auth ||
+    typeof auth !== "object" ||
+    !("token" in auth) ||
+    typeof auth.token !== "string"
+  ) {
     throw new Error("Failed to get installation token")
   }
   setAccessToken(auth.token)
@@ -98,7 +95,9 @@ export async function createDependentPR(
     }
   )
 
-  await publishJobStatus(jobId, `Completed: created dependent branch ${result.branch}`)
+  await publishJobStatus(
+    jobId,
+    `Completed: created dependent branch ${result.branch}`
+  )
   return result.branch
 }
-

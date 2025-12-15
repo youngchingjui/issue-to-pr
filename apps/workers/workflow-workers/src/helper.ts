@@ -3,6 +3,7 @@ import dotenv from "dotenv"
 import type IORedis from "ioredis"
 import path from "path"
 import { getRedisConnection } from "shared/adapters/ioredis/client"
+import type { Neo4jDataSource } from "shared/dist/adapters/neo4j/dataSource"
 import { JOB_STATUS_CHANNEL } from "shared/entities/Channels"
 import { JobStatusUpdateSchema } from "shared/entities/events/JobStatus"
 import { fileURLToPath } from "url"
@@ -54,15 +55,17 @@ export async function publishJobStatus(jobId: string, status: string) {
 }
 
 // Register graceful shutdown handlers for the worker process.
-// Stops taking new jobs, waits for in-flight jobs to finish, then exits.
+// Stops taking new jobs, waits for in-flight jobs to finish,
+// shuts down Redis and Neo4j connections, then exits.
 // If the timeout elapses, forces exit(1) after disconnecting Redis.
 export function registerGracefulShutdown(opts: {
   worker: Worker
   queueEvents: QueueEvents
-  connection: IORedis
+  redis: IORedis[]
+  neo4jDs: Neo4jDataSource
   timeoutMs?: number
 }) {
-  const { worker, queueEvents, connection, timeoutMs: timeoutMsOpt } = opts
+  const { worker, queueEvents, redis, neo4jDs, timeoutMs: timeoutMsOpt } = opts
   const { SHUTDOWN_TIMEOUT_MS: timeoutMsEnv } = getEnvVar()
   const timeoutMs = timeoutMsOpt ?? Number(timeoutMsEnv)
 
@@ -79,7 +82,7 @@ export function registerGracefulShutdown(opts: {
       )
       // Ensure connections are dropped before forcing exit (fire-and-forget)
       try {
-        connection.disconnect()
+        redis.forEach((connection) => connection.disconnect())
       } catch {}
       process.exit(1)
     }, timeoutMs)
@@ -89,8 +92,11 @@ export function registerGracefulShutdown(opts: {
       await worker.close()
       // Close queue event listener
       await queueEvents.close()
-      // Close the redis connection
-      await connection.quit()
+      // Close the redis connections
+      await Promise.all(redis.map((connection) => connection.quit()))
+      // Close the Neo4j driver
+      await neo4jDs.getDriver().close()
+
       clearTimeout(timeout)
       console.log("[worker] Shutdown complete. Exiting…")
       process.exit(0)
