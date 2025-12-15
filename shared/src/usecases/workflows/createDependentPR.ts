@@ -220,9 +220,11 @@ export async function createDependentPRWorkflow(
     const formattedComments = comments
       .map(
         (c, i) =>
-          `Comment ${i + 1} by ${c.user?.login || "unknown"} at ${new Date(
-            c.created_at || new Date().toISOString()
-          ).toLocaleString()}\n${c.body}`
+          `Comment ${i + 1} by ${c.user?.login || "unknown"} at ${
+            c.created_at
+              ? new Date(c.created_at).toLocaleString()
+              : new Date().toLocaleString()
+          }\n${c.body}`
       )
       .join("\n\n")
 
