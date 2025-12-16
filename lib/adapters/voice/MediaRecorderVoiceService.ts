@@ -134,6 +134,6 @@ export default class MediaRecorderVoiceService implements VoicePort {
     this.chunks = []
     this.cleanupStream()
     this.state = "idle"
-    this.emit({ type: "state", state: this.state })
   }
 }
+
