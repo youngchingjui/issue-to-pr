@@ -3,17 +3,41 @@
 // It injects the VoiceService implementation
 // And conducts those services, along with managing the state
 
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
-import { VoicePort, VoiceState } from "../types/voice"
+import { VoicePort, VoiceState, VoiceSubmitPort } from "../types/voice"
 
-export function useVoice(voicePortFactory: () => VoicePort) {
+export function useVoice<TReturn = unknown>(
+  voicePortFactory: () => VoicePort,
+  submitPort?: VoiceSubmitPort<TReturn>
+) {
   const [state, setState] = useState<VoiceState>("idle")
   const [port] = useState<VoicePort>(() => voicePortFactory())
   const [hasRecording, setHasRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
 
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const lastBlobRef = useRef<Blob | null>(null)
+  const lastMimeTypeRef = useRef<string | undefined>(undefined)
+
+  useEffect(() => {
+    const unsubscribe = port.subscribe((e) => {
+      if (e.type === "ready") {
+        setHasRecording(true)
+        lastBlobRef.current = e.audioBlob
+        lastMimeTypeRef.current = e.audioBlob.type
+        stopTimer()
+      }
+      if (e.type === "error") {
+        setState("error")
+        stopTimer()
+      }
+      if (e.type === "time") {
+        setRecordingTime(e.recordingTimeSec)
+      }
+    })
+    return unsubscribe
+  }, [port])
 
   const startTimer = () => {
     if (recordingIntervalRef.current) return
@@ -31,6 +55,7 @@ export function useVoice(voicePortFactory: () => VoicePort) {
 
   async function start() {
     setHasRecording(false)
+    setRecordingTime(0)
     setState("starting")
     await port.start()
     setState("recording")
@@ -55,12 +80,30 @@ export function useVoice(voicePortFactory: () => VoicePort) {
     stopTimer()
   }
 
+  async function submit() {
+    if (!submitPort) throw new Error("No submit port configured")
+    const blob = lastBlobRef.current
+    if (!blob) throw new Error("No recording available to submit")
+
+    setState("submitting")
+    try {
+      const result = await submitPort.submit(blob, lastMimeTypeRef.current)
+      setState("idle")
+      return result
+    } catch (e) {
+      setState("error")
+      throw e
+    }
+  }
+
   async function discard() {
     port.discard()
     setHasRecording(false)
     setState("idle")
     stopTimer()
     setRecordingTime(0)
+    lastBlobRef.current = null
+    lastMimeTypeRef.current = undefined
   }
 
   return {
@@ -77,6 +120,7 @@ export function useVoice(voicePortFactory: () => VoicePort) {
     pause,
     resume,
     stop,
+    submit,
     discard,
   }
 }
