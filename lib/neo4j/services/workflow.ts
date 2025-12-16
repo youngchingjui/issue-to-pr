@@ -197,6 +197,57 @@ export async function getIssuesActiveWorkflowMap({
 }
 
 /**
+ * Batch fetch: for a set of issues, return the id of the latest running workflow (if any) per issue.
+ * Uses the same deriveState timeout logic to avoid stale running states.
+ */
+export async function getIssuesLatestRunningWorkflowIdMap({
+  repoFullName,
+  issueNumbers,
+}: {
+  repoFullName: string
+  issueNumbers: number[]
+}): Promise<Record<number, string | null>> {
+  const session = await n4j.getSession()
+  try {
+    const rows = await withTiming(
+      `Neo4j READ: getIssuesLatestRunningWorkflowIdMap ${repoFullName} [${issueNumbers.join(", ")}]`,
+      async () =>
+        session.executeRead(async (tx) =>
+          listLatestStatesForIssues(tx, { repoFullName, issueNumbers })
+        )
+    )
+
+    const map: Record<number, { id: string; createdAt: Date } | null> = {}
+
+    for (const n of issueNumbers) map[n] = null
+
+    for (const row of rows) {
+      const issueNumber = row.issue.number.toNumber()
+      const run = row.run
+      const effective = deriveState(row.state, run.createdAt.toStandardDate())
+      if (effective !== "running") continue
+
+      const current = map[issueNumber]
+      const createdAt = run.createdAt.toStandardDate()
+      if (!current || createdAt > current.createdAt) {
+        map[issueNumber] = { id: run.id, createdAt }
+      }
+    }
+
+    // Flatten to id | null
+    const idMap: Record<number, string | null> = {}
+    for (const key of Object.keys(map)) {
+      const num = Number(key)
+      idMap[num] = map[num]?.id ?? null
+    }
+
+    return idMap
+  } finally {
+    await session.close()
+  }
+}
+
+/**
  * Retrieves a WorkflowRun with its associated events and issue.
  */
 export async function getWorkflowRunWithDetails(
@@ -262,3 +313,4 @@ export async function getWorkflowRunEvents(
     await session.close()
   }
 }
+
