@@ -272,26 +272,38 @@ ${formattedReviewThreads ? `# Review Line Comments\n${formattedReviewThreads}\n`
     }
 
     // Resolve new head SHA and commits added during this run
-    const { stdout: newHeadShaOut } = await execInContainerWithDockerode({
-      name: containerName,
-      command: `git rev-parse HEAD`,
-    })
+    const { stdout: newHeadShaOut, exitCode: shaExitCode } =
+      await execInContainerWithDockerode({
+        name: containerName,
+        command: `git rev-parse HEAD`,
+      })
+    if (shaExitCode && shaExitCode !== 0) {
+      throw new Error(`Failed to resolve HEAD SHA: ${newHeadShaOut}`)
+    }
     const newHeadSha = newHeadShaOut.trim()
 
     let commitsBetween: { sha: string; subject: string }[] = []
     if (startingHeadSha && newHeadSha && startingHeadSha !== newHeadSha) {
-      const { stdout: logOut } = await execInContainerWithDockerode({
-        name: containerName,
-        command: `git log --pretty=format:%H\t%s ${startingHeadSha}..${newHeadSha}`,
-      })
-      commitsBetween = logOut
-        .split("\n")
-        .map((line) => line.trim())
-        .filter(Boolean)
-        .map((line) => {
-          const [sha, ...rest] = line.split("\t")
-          return { sha, subject: rest.join("\t") }
+      const { stdout: logOut, exitCode: logExitCode } =
+        await execInContainerWithDockerode({
+          name: containerName,
+          command: `git log --pretty=format:%H\t%s ${startingHeadSha}..${newHeadSha}`,
         })
+      if (!logExitCode || logExitCode === 0) {
+        commitsBetween = logOut
+          .split("\n")
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .map((line) => {
+            const [sha, ...rest] = line.split("\t")
+            return { sha, subject: rest.join("\t") }
+          })
+      } else {
+        await createStatusEvent({
+          workflowId,
+          content: `Warning: Could not list commits between ${startingHeadSha} and ${newHeadSha}`,
+        })
+      }
     }
 
     // Build PR description update context and hand off to the agent to update the body
@@ -369,7 +381,7 @@ Craft an updated PR description that:
 - Focuses on a clear "Update" section summarizing what changed in this run and which feedback was addressed.
 - Uses concise bullets with links where helpful, especially to specific comments and commits.
 - Avoids manually appending issue references; tooling will handle linkage where applicable.
-When ready, call the tool 'update_pull_request' with ONLY the new update section to append to the existing PR body. Do not repeat or rewrite the original PR description above; it will be preserved automatically.
+When ready, call the tool 'update_pull_request_body' with ONLY the new update section to append to the existing PR body. Do not repeat or rewrite the original PR description above; it will be preserved automatically.
 `
 
     await agent.addInput({
@@ -377,6 +389,13 @@ When ready, call the tool 'update_pull_request' with ONLY the new update section
       type: "message",
       content: prBodyContext,
     })
+
+    await createStatusEvent({
+      workflowId,
+      content: "Requesting agent to update PR body",
+    })
+
+    await agent.runWithFunctions()
 
     await createWorkflowStateEvent({ workflowId, state: "completed" })
     return {
@@ -394,3 +413,4 @@ When ready, call the tool 'update_pull_request' with ONLY the new update section
     if (containerCleanup) await containerCleanup()
   }
 }
+

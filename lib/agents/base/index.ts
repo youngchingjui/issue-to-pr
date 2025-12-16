@@ -466,25 +466,27 @@ export class ResponsesAPIAgent extends Agent {
         })
         return event.id
       case "function_call_output":
-        // Handle both standard OpenAI FunctionCallOutput and our extended version
-        const toolName = hasToolName(message) ? message.toolName : "unknown"
+        {
+          // Handle both standard OpenAI FunctionCallOutput and our extended version
+          const toolName = hasToolName(message) ? message.toolName : "unknown"
 
-        // `message.output` can be either a plain string or a
-        // `ResponseFunctionCallOutputItemList` (array of rich content objects).
-        // Normalize it to a string so it can be safely stored in the database.
-        const normalizedOutput =
-          typeof message.output === "string"
-            ? message.output
-            : JSON.stringify(message.output)
+          // `message.output` can be either a plain string or a
+          // `ResponseFunctionCallOutputItemList` (array of rich content objects).
+          // Normalize it to a string so it can be safely stored in the database.
+          const normalizedOutput =
+            typeof message.output === "string"
+              ? message.output
+              : JSON.stringify(message.output)
 
-        event = await createToolCallResultEvent({
-          workflowId: this.jobId,
-          toolName,
-          toolCallId: message.call_id,
-          content: normalizedOutput,
-          id: "id" in message && message.id ? message.id : undefined,
-        })
-        return event.id
+          event = await createToolCallResultEvent({
+            workflowId: this.jobId,
+            toolName,
+            toolCallId: message.call_id,
+            content: normalizedOutput,
+            id: "id" in message && message.id ? message.id : undefined,
+          })
+          return event.id
+        }
 
       case "reasoning":
         for (const summary of message.summary) {
@@ -660,3 +662,4 @@ export class ResponsesAPIAgent extends Agent {
     }
   }
 }
+

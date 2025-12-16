@@ -13,6 +13,8 @@ import { auth } from "@/auth"
 import { neo4jDs } from "@/lib/neo4j"
 import * as userRepo from "@/lib/neo4j/repositories/user"
 import { createDependentPRWorkflow } from "@/lib/workflows/createDependentPR"
+import { getInstallationOctokit } from "@/lib/github"
+import { getInstallationTokenFromRepo } from "@/lib/github/installation"
 
 import {
   type CreateDependentPRRequest,
@@ -63,12 +65,29 @@ export async function createDependentPRAction(
   const getClient = async (
     target: GitHubAuthTarget
   ): Promise<GitHubClientBundle> => {
-    const session = await auth()
-    if (!session?.token?.access_token) {
+    // Route based on target kind so callers can request user vs installation auth
+    if (target.kind === "installation") {
+      const octokit = await getInstallationOctokit(target.installationId)
+      return { rest: octokit, graphql: octokit.graphql, kind: "installation" }
+    }
+
+    if (target.kind === "repoInstallation") {
+      const [owner, repo] = target.repoFullName.split("/")
+      if (!owner || !repo) {
+        throw new Error("Invalid repoFullName. Expected 'owner/repo'")
+      }
+      const token = await getInstallationTokenFromRepo({ owner, repo })
+      const client = new Octokit({ auth: token })
+      return { rest: client, graphql: client.graphql, kind: "installation" }
+    }
+
+    // Default to user auth
+    const freshSession = await auth()
+    if (!freshSession?.token?.access_token) {
       throw new Error("Authentication required")
     }
 
-    const client = new Octokit({ auth: session.token.access_token })
+    const client = new Octokit({ auth: freshSession.token.access_token })
     return { rest: client, graphql: client.graphql, kind: "user" }
   }
 
@@ -109,3 +128,4 @@ export async function createDependentPRAction(
 
   return { status: "success", jobId: effectiveJobId }
 }
+
