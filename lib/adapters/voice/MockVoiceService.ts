@@ -19,7 +19,6 @@ export default class MockVoiceService implements VoicePort {
   }
   private setState(state: VoiceState) {
     this.state = state
-    this.emit({ type: "state", state })
   }
 
   async start(): Promise<void> {
@@ -47,3 +46,4 @@ export default class MockVoiceService implements VoicePort {
     this.setState("idle")
   }
 }
+
