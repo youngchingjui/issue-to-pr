@@ -6,8 +6,6 @@ import { promises as fs } from "fs"
 import path from "path"
 import util from "util"
 
-import { getCloneUrlWithAccessToken } from "@/lib/utils/utils-common"
-
 const execPromise = util.promisify(exec)
 
 export async function checkIfGitExists(dir: string): Promise<boolean> {
@@ -40,7 +38,7 @@ export async function checkIfLocalBranchExists(
     exec(command, { cwd }, (error, stdout, stderr) => {
       // grep returns exit code 1 when no matches are found
       // but other error codes indicate real errors
-      if (error && error.code !== 1) {
+      if (error && (error as unknown as { code?: number }).code !== 1) {
         return reject(new Error(error.message))
       }
       if (stderr) {
@@ -70,39 +68,15 @@ export async function pushBranch(
   branchName: string,
   cwd: string | undefined = undefined,
   token?: string,
-  repoFullName?: string
+  _repoFullName?: string
 ): Promise<string> {
-  let oldRemoteUrl: string | null = null
-  try {
-    if (token && repoFullName) {
-      // Get current origin URL
-      const { stdout: originalUrl } = await execPromise(
-        "git remote get-url origin",
-        { cwd }
-      )
-      oldRemoteUrl = originalUrl.trim()
-      // Set authenticated remote
-      const authenticatedUrl = getCloneUrlWithAccessToken(repoFullName, token)
-      await execPromise(`git remote set-url origin "${authenticatedUrl}"`, {
-        cwd,
-      })
-    }
-    const command = `git push origin ${branchName}`
-    const { stdout } = await execPromise(command, { cwd })
-    return stdout
-  } finally {
-    // Restore the original remote if we changed it
-    if (token && repoFullName && oldRemoteUrl) {
-      try {
-        await execPromise(`git remote set-url origin "${oldRemoteUrl}"`, {
-          cwd,
-        })
-      } catch (e) {
-        // Fail quietly, as this is cleanup
-        console.error(`[ERROR] Failed to restore original remote: ${e}`)
-      }
-    }
-  }
+  // Use ephemeral Authorization header so nothing is persisted in git config or remote URLs
+  const authConfig = token
+    ? `-c http.https://github.com/.extraHeader=\"Authorization: bearer ${token}\"`
+    : ""
+  const command = `git ${authConfig} push origin ${branchName}`.trim()
+  const { stdout } = await execPromise(command, { cwd })
+  return stdout
 }
 
 async function executeGitCommand(
@@ -386,3 +360,4 @@ export async function removeWorktree(
     })
   })
 }
+

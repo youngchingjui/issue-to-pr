@@ -124,22 +124,26 @@ export async function createDependentPRWorkflow({
       })
     }
 
-    // Ensure origin remote embeds credentials
-    if (sessionToken) {
-      await execInContainerWithDockerode({
-        name: containerName,
-        command: `git remote set-url origin "https://x-access-token:${sessionToken}@github.com/${repoFullName}.git"`,
-      })
-    }
+    // Ensure origin remote is a clean URL (no embedded credentials)
+    await execInContainerWithDockerode({
+      name: containerName,
+      command: `git remote set-url origin "https://github.com/${repoFullName}.git"`,
+    })
 
     // Fetch and checkout the PR head branch
     await createStatusEvent({
       workflowId,
       content: `Checking out head branch ${headRef}`,
     })
+
+    const authConfig = sessionToken
+      ? `-c http.https://github.com/.extraHeader=\"Authorization: bearer ${sessionToken}\"`
+      : ""
+
+    // Use per-command header injection for all networked git operations
     await execInContainerWithDockerode({
       name: containerName,
-      command: `git fetch origin ${headRef}`,
+      command: `git ${authConfig} fetch origin ${headRef}`.trim(),
     })
     // Try checkout tracking remote if local doesn't exist
     const { exitCode: chk1 } = await execInContainerWithDockerode({
@@ -158,7 +162,7 @@ export async function createDependentPRWorkflow({
       })
       await execInContainerWithDockerode({
         name: containerName,
-        command: `git pull --ff-only origin ${headRef}`,
+        command: `git ${authConfig} pull --ff-only origin ${headRef}`.trim(),
       })
     }
 
@@ -270,7 +274,7 @@ ${formattedReviewThreads ? `# Review Line Comments\n${formattedReviewThreads}\n`
     if (sessionToken) {
       await execInContainerWithDockerode({
         name: containerName,
-        command: `git push -u origin ${dependentBranch} || true`,
+        command: `git ${authConfig} push -u origin ${dependentBranch} || true`.trim(),
       })
     }
 
