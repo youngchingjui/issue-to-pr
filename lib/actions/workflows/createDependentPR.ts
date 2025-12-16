@@ -79,6 +79,7 @@ export async function createDependentPRAction(
         pullNumber,
         apiKey,
         jobId: effectiveJobId,
+        initiator: { type: "ui_button", actorLogin: login },
       })
     } catch (e) {
       console.error("[create-dependent-pr] Background run failed:", e)
@@ -87,3 +88,4 @@ export async function createDependentPRAction(
 
   return { status: "success", jobId: effectiveJobId }
 }
+

@@ -10,6 +10,7 @@ import {
   getPullRequest,
   getPullRequestComments,
   getPullRequestDiff,
+  getPullRequestReviewComments,
   getPullRequestReviewCommentsGraphQL,
   getPullRequestReviews,
   updatePullRequestBody,
@@ -35,6 +36,7 @@ interface CreateDependentPRParams {
   pullNumber: number
   apiKey: string
   jobId?: string
+  initiator?: { type: "ui_button" | "webhook_label" | "api"; actorLogin?: string; label?: string }
 }
 
 export async function createDependentPRWorkflow({
@@ -42,6 +44,7 @@ export async function createDependentPRWorkflow({
   pullNumber,
   apiKey,
   jobId,
+  initiator,
 }: CreateDependentPRParams) {
   const workflowId = jobId || uuidv4()
   let containerCleanup: (() => Promise<void>) | null = null
@@ -66,6 +69,7 @@ export async function createDependentPRWorkflow({
     const pr = await getPullRequest({ repoFullName, pullNumber })
     const headRef = pr.head.ref
     const baseRef = pr.base.ref
+    const startingHeadSha = pr.head.sha
 
     await createStatusEvent({
       workflowId,
@@ -74,13 +78,14 @@ export async function createDependentPRWorkflow({
 
     // Fetch linked issue (first closing reference if any) and PR artifacts in parallel
     let linkedIssue: GitHubIssue | undefined
-    const [linkedIssues, diff, comments, reviews, reviewThreads] =
+    const [linkedIssues, diff, comments, reviews, reviewThreads, reviewComments] =
       await Promise.all([
         getLinkedIssuesForPR({ repoFullName, pullNumber }),
         getPullRequestDiff({ repoFullName, pullNumber }),
         getPullRequestComments({ repoFullName, pullNumber }),
         getPullRequestReviews({ repoFullName, pullNumber }),
         getPullRequestReviewCommentsGraphQL({ repoFullName, pullNumber }),
+        getPullRequestReviewComments({ repoFullName, pullNumber }),
       ])
     if (linkedIssues.length > 0) {
       const res = await getIssue({
@@ -171,7 +176,6 @@ export async function createDependentPRWorkflow({
       env,
       defaultBranch: repo.default_branch,
       repository: repo,
-      issueNumber: linkedIssue?.number,
       sessionToken: sessionToken || undefined,
       jobId: workflowId,
     })
@@ -248,7 +252,7 @@ ${formattedReviewThreads ? `# Review Line Comments\n${formattedReviewThreads}\n`
 
     await createStatusEvent({ workflowId, content: "Starting PR update agent" })
 
-    const result = await agent.runWithFunctions()
+    await agent.runWithFunctions()
 
     // Best-effort: ensure branch is pushed (idempotent if already pushed)
     await createStatusEvent({
@@ -262,10 +266,96 @@ ${formattedReviewThreads ? `# Review Line Comments\n${formattedReviewThreads}\n`
       })
     }
 
-    // Update PR description: append a workflow update note
+    // Resolve new head SHA and commits added during this run
+    const { stdout: newHeadShaOut } = await execInContainerWithDockerode({
+      name: containerName,
+      command: `git rev-parse HEAD`,
+    })
+    const newHeadSha = newHeadShaOut.trim()
+
+    let commitsBetween: { sha: string; subject: string }[] = []
+    if (startingHeadSha && newHeadSha && startingHeadSha !== newHeadSha) {
+      const { stdout: logOut } = await execInContainerWithDockerode({
+        name: containerName,
+        command: `git log --pretty=format:%H\t%s ${startingHeadSha}..${newHeadSha}`,
+      })
+      commitsBetween = logOut
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line) => {
+          const [sha, subject] = line.split("\t")
+          return { sha, subject: subject || "" }
+        })
+    }
+
+    // Update PR description: append a workflow update note with rich details
     const timestamp = new Date().toISOString()
     const originalBody = pr.body ?? ""
-    const updateNote = `\n\n---\nUpdate via 'updatePR' workflow (run: ${workflowId}) on ${timestamp}:\n- Applied follow-up commits addressing reviewer comments and review threads.\n- Kept changes small and focused; ran repository checks before pushing.`
+
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || ""
+    const workflowUrl = baseUrl
+      ? `${baseUrl.replace(/\/$/, "")}/workflow-runs/${workflowId}`
+      : null
+
+    const headShaLink = `https://github.com/${repoFullName}/commit/${startingHeadSha}`
+    const newHeadShaLink = `https://github.com/${repoFullName}/commit/${newHeadSha}`
+    const branchLink = `https://github.com/${repoFullName}/tree/${headRef}`
+
+    // Build comment reference list with links
+    const issueCommentLines = comments.map((c) => {
+      const author = c.user?.login || "unknown"
+      const when = c.created_at
+        ? new Date(c.created_at).toLocaleString()
+        : "unknown time"
+      const url = c.html_url || `https://github.com/${repoFullName}/pull/${pullNumber}`
+      return `- General comment by @${author} on ${when}: ${url}`
+    })
+
+    const reviewCommentLines = reviewComments.map((rc) => {
+      const author = rc.user?.login || "unknown"
+      const when = rc.created_at
+        ? new Date(rc.created_at as unknown as string).toLocaleString()
+        : "unknown time"
+      const url = rc.html_url || `https://github.com/${repoFullName}/pull/${pullNumber}`
+      const path = rc.path || "file"
+      return `- Review comment by @${author} on ${path} at ${when}: ${url}`
+    })
+
+    const commitsList = commitsBetween
+      .map((c) => `- ${c.sha.substring(0, 8)} ${c.subject} (${`https://github.com/${repoFullName}/commit/${c.sha}`})`)
+      .join("\n")
+
+    const initiatorLine = (() => {
+      if (!initiator) return "Initiated by: (unknown)"
+      switch (initiator.type) {
+        case "ui_button":
+          return `Initiated by: @${initiator.actorLogin || "unknown"} via Create Dependent PR button`
+        case "webhook_label":
+          return `Initiated by: webhook label '${initiator.label || "unknown"}'${initiator.actorLogin ? ` (applied by @${initiator.actorLogin})` : ""}`
+        case "api":
+        default:
+          return `Initiated by: API call${initiator.actorLogin ? ` by @${initiator.actorLogin}` : ""}`
+      }
+    })()
+
+    const updateNote = `\n\n---\n` +
+      `Update via 'updatePR' workflow (run: ${workflowId}) on ${timestamp}.\n` +
+      `${initiatorLine}. ${workflowUrl ? `View workflow run details: ${workflowUrl}` : ""}\n` +
+      `\n` +
+      `Context:\n` +
+      `- Branch: ${headRef} (${branchLink})\n` +
+      `- Starting head: ${startingHeadSha.substring(0, 12)} (${headShaLink})\n` +
+      `- New head: ${newHeadSha.substring(0, 12)} (${newHeadShaLink})\n` +
+      (commitsBetween.length > 0
+        ? `\nCommits added in this run:\n${commitsList}\n`
+        : "\nNo new commits were added in this run.\n") +
+      `\nReferenced comments:\n` +
+      (issueCommentLines.length + reviewCommentLines.length > 0
+        ? [...issueCommentLines, ...reviewCommentLines].join("\n")
+        : "- (No comments found)") +
+      `\n\nDecision notes:\n- The agent addressed actionable feedback where feasible. Some suggestions may have been deferred; see commit messages and ${workflowUrl || "the workflow log in the app"} for rationale.`
+
     const newBody = `${originalBody}${updateNote}`
 
     await createStatusEvent({
@@ -281,7 +371,6 @@ ${formattedReviewThreads ? `# Review Line Comments\n${formattedReviewThreads}\n`
 
     await createWorkflowStateEvent({ workflowId, state: "completed" })
     return {
-      agentResult: result,
       branch: headRef,
     }
   } catch (error) {

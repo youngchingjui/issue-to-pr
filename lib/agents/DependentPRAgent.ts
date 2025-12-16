@@ -38,8 +38,6 @@ export interface DependentPRAgentParams extends AgentConstructorParams {
   defaultBranch: string
   /** GitHub repository metadata */
   repository?: GitHubRepository
-  /** Issue number that the dependent PR should close (if any) */
-  issueNumber?: number
   /** GitHub token with push permissions (for SyncBranchTool) */
   sessionToken?: string
   jobId?: string
@@ -47,15 +45,7 @@ export interface DependentPRAgentParams extends AgentConstructorParams {
 
 export class DependentPRAgent extends ResponsesAPIAgent {
   constructor(params: DependentPRAgentParams) {
-    const {
-      env,
-      defaultBranch,
-      repository,
-      issueNumber,
-      sessionToken,
-      jobId,
-      ...base
-    } = params
+    const { env, defaultBranch, repository, sessionToken, jobId, ...base } = params
 
     super({ model: "gpt-5", ...base })
 

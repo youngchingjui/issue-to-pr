@@ -6,6 +6,7 @@ import {
   PullRequest,
   PullRequestList,
   PullRequestReview,
+  PullRequestReviewComment,
 } from "@/lib/types/github"
 
 export async function getPullRequestOnBranch({
@@ -337,6 +338,30 @@ export async function getPullRequestReviews({
   )
 
   return reviewsResponse.data
+}
+
+export async function getPullRequestReviewComments({
+  repoFullName,
+  pullNumber,
+}: {
+  repoFullName: string
+  pullNumber: number
+}): Promise<PullRequestReviewComment[]> {
+  const octokit = await getOctokit()
+  const [owner, repo] = repoFullName.split("/")
+  if (!octokit) {
+    throw new Error("No octokit found")
+  }
+  const response = await withTiming(
+    `GitHub REST: pulls.listReviewComments ${repoFullName}#${pullNumber}`,
+    () =>
+      octokit.rest.pulls.listReviewComments({
+        owner,
+        repo,
+        pull_number: pullNumber,
+      })
+  )
+  return response.data
 }
 
 // Interface for the GraphQL response for PR reviews and comments
