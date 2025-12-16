@@ -2,7 +2,7 @@
 
 import { AsyncLocalStorage } from "node:async_hooks"
 
-import { getAccessToken } from "@/auth"
+import { getAccessToken } from "@shared/auth"
 import { getLocalRepoDir } from "@/lib/fs"
 import {
   cleanCheckout,
