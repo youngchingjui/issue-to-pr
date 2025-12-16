@@ -13,7 +13,6 @@ import {
   getPullRequestReviewComments,
   getPullRequestReviewCommentsGraphQL,
   getPullRequestReviews,
-  updatePullRequestBody,
 } from "@/lib/github/pullRequests"
 import { checkRepoPermissions } from "@/lib/github/users"
 import { langfuse } from "@/lib/langfuse"
@@ -178,6 +177,7 @@ export async function createDependentPRWorkflow({
       repository: repo,
       sessionToken: sessionToken || undefined,
       jobId: workflowId,
+      pullNumber,
     })
 
     const trace = langfuse.trace({
@@ -284,12 +284,12 @@ ${formattedReviewThreads ? `# Review Line Comments\n${formattedReviewThreads}\n`
         .map((line) => line.trim())
         .filter(Boolean)
         .map((line) => {
-          const [sha, subject] = line.split("\t")
-          return { sha, subject: subject || "" }
+          const [sha, ...rest] = line.split("\t")
+          return { sha, subject: rest.join("\t") }
         })
     }
 
-    // Update PR description: append a workflow update note with rich details
+    // Build PR description update context and hand off to the agent to update the body
     const timestamp = new Date().toISOString()
     const originalBody = pr.body ?? ""
 
@@ -315,7 +315,7 @@ ${formattedReviewThreads ? `# Review Line Comments\n${formattedReviewThreads}\n`
     const reviewCommentLines = reviewComments.map((rc) => {
       const author = rc.user?.login || "unknown"
       const when = rc.created_at
-        ? new Date(rc.created_at as unknown as string).toLocaleString()
+        ? new Date(rc.created_at).toLocaleString()
         : "unknown time"
       const url = rc.html_url || `https://github.com/${repoFullName}/pull/${pullNumber}`
       const path = rc.path || "file"
@@ -339,35 +339,31 @@ ${formattedReviewThreads ? `# Review Line Comments\n${formattedReviewThreads}\n`
       }
     })()
 
-    const updateNote = `\n\n---\n` +
-      `Update via 'updatePR' workflow (run: ${workflowId}) on ${timestamp}.\n` +
-      `${initiatorLine}. ${workflowUrl ? `View workflow run details: ${workflowUrl}` : ""}\n` +
-      `\n` +
-      `Context:\n` +
-      `- Branch: ${headRef} (${branchLink})\n` +
-      `- Starting head: ${startingHeadSha.substring(0, 12)} (${headShaLink})\n` +
-      `- New head: ${newHeadSha.substring(0, 12)} (${newHeadShaLink})\n` +
-      (commitsBetween.length > 0
-        ? `\nCommits added in this run:\n${commitsList}\n`
-        : "\nNo new commits were added in this run.\n") +
-      `\nReferenced comments:\n` +
-      (issueCommentLines.length + reviewCommentLines.length > 0
-        ? [...issueCommentLines, ...reviewCommentLines].join("\n")
-        : "- (No comments found)") +
-      `\n\nDecision notes:\n- The agent addressed actionable feedback where feasible. Some suggestions may have been deferred; see commit messages and ${workflowUrl || "the workflow log in the app"} for rationale.`
+    const prBodyContext = `
+# Current PR Body
+${originalBody || "(empty)"}
 
-    const newBody = `${originalBody}${updateNote}`
+# Update Context (for PR body)
+- Timestamp: ${timestamp}
+- ${initiatorLine}
+- Workflow: ${workflowUrl || "(n/a)"}
+- Branch: ${headRef} (${branchLink})
+- Starting head: ${startingHeadSha.substring(0, 12)} (${headShaLink})
+- New head: ${newHeadSha.substring(0, 12)} (${newHeadShaLink})
+${commitsBetween.length > 0 ? `\n## Commits added in this run\n${commitsList}` : "\n## No new commits were added in this run."}
+\n## Referenced comments
+${issueCommentLines.concat(reviewCommentLines).join("\n") || "- (No comments found)"}
 
-    await createStatusEvent({
-      workflowId,
-      content: `Updating PR #${pullNumber} description with workflow note`,
-    })
+## Guidance
+Craft an updated PR description that:
+- Preserves the original body content above (unless changes are required for clarity).
+- Adds a clear "Update" section summarizing what changed in this run and which feedback was addressed.
+- Uses concise bullets with links where helpful.
+- Avoids manually appending issue references; tooling will handle linkage where applicable.
+When ready, call the tool 'update_pull_request_body' with the full body you want to set.
+`
 
-    await updatePullRequestBody({
-      repoFullName,
-      pullNumber,
-      body: newBody,
-    })
+    await agent.addInput({ role: "user", type: "message", content: prBodyContext })
 
     await createWorkflowStateEvent({ workflowId, state: "completed" })
     return {

@@ -8,6 +8,7 @@ import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
 import { createSetupRepoTool } from "@/lib/tools/SetupRepoTool"
 import { createSyncBranchTool } from "@/lib/tools/SyncBranchTool"
 import { createWriteFileContentTool } from "@/lib/tools/WriteFileContent"
+import { createUpdatePullRequestBodyTool } from "@/lib/tools/UpdatePullRequestBodyTool"
 import { AgentConstructorParams, RepoEnvironment } from "@/lib/types"
 import { GitHubRepository, repoFullNameSchema } from "@/lib/types/github"
 
@@ -41,11 +42,13 @@ export interface DependentPRAgentParams extends AgentConstructorParams {
   /** GitHub token with push permissions (for SyncBranchTool) */
   sessionToken?: string
   jobId?: string
+  /** The pull request number being updated (required for PR body updates) */
+  pullNumber?: number
 }
 
 export class DependentPRAgent extends ResponsesAPIAgent {
   constructor(params: DependentPRAgentParams) {
-    const { env, defaultBranch, repository, sessionToken, jobId, ...base } = params
+    const { env, defaultBranch, repository, sessionToken, jobId, pullNumber, ...base } = params
 
     super({ model: "gpt-5", ...base })
 
@@ -77,6 +80,10 @@ export class DependentPRAgent extends ResponsesAPIAgent {
         const repo = repoFullNameSchema.parse(repository.full_name)
         if (sessionToken) {
           this.addTool(createSyncBranchTool(repo, env, sessionToken))
+        }
+        // Allow the agent to update the PR body itself using the provided context
+        if (pullNumber) {
+          this.addTool(createUpdatePullRequestBodyTool(repo, pullNumber))
         }
         // No CreatePRTool: we always update the existing PR.
       }
