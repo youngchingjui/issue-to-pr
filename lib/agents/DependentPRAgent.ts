@@ -70,7 +70,7 @@ export class DependentPRAgent extends ResponsesAPIAgent {
       ...base
     } = params
 
-    super({ model: "gpt-5.1-2025-11-13", ...base })
+    super({ model: "gpt-5", ...base })
 
     if (jobId) {
       this.jobId = jobId
