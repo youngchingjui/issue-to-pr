@@ -369,6 +369,9 @@ export const getPullRequestDiscussionGraphQL = async (
   auth: { authProvider: GitHubAuthProvider; authTarget: GitHubAuthTarget }
 ) => {
   const [owner, repo] = repoFullName.split("/")
+  if (!owner || !repo) {
+    throw new Error("Invalid repoFullName. Expected 'owner/repo'")
+  }
   const { authProvider, authTarget } = auth
   const { graphql } = await authProvider.getClient(authTarget)
 
