@@ -1,5 +1,11 @@
 "use server"
 
+import { Octokit } from "@octokit/rest"
+import {
+  GitHubAuthProvider,
+  GitHubAuthTarget,
+  GitHubClientBundle,
+} from "@shared/ports/github/auth"
 import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
 import { v4 as uuidv4 } from "uuid"
 
@@ -54,6 +60,20 @@ export async function createDependentPRAction(
     }
   }
 
+  const getClient = async (
+    target: GitHubAuthTarget
+  ): Promise<GitHubClientBundle> => {
+    const session = await auth()
+    if (!session?.token?.access_token) {
+      throw new Error("Authentication required")
+    }
+
+    const client = new Octokit({ auth: session.token.access_token })
+    return { rest: client, graphql: client.graphql, kind: "user" }
+  }
+
+  const githubAuthProvider: GitHubAuthProvider = { getClient }
+
   // Settings
   const settingsReader = makeSettingsReaderAdapter({
     getSession: () => neo4jDs.getSession(),
@@ -80,6 +100,7 @@ export async function createDependentPRAction(
         apiKey,
         jobId: effectiveJobId,
         initiator: { type: "ui_button", actorLogin: login },
+        authProvider: githubAuthProvider,
       })
     } catch (e) {
       console.error("[create-dependent-pr] Background run failed:", e)
@@ -88,4 +109,3 @@ export async function createDependentPRAction(
 
   return { status: "success", jobId: effectiveJobId }
 }
-
