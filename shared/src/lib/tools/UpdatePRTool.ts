@@ -48,7 +48,7 @@ async function handler(
       : trimmedUpdate
 
   try {
-    await updatePullRequestBody(
+    const result = await updatePullRequestBody(
       {
         owner,
         repo,
@@ -57,7 +57,7 @@ async function handler(
       },
       { authProvider, authTarget }
     )
-    return JSON.stringify({ status: "success" })
+    return JSON.stringify(result)
   } catch (error: unknown) {
     return JSON.stringify({
       status: "error",
