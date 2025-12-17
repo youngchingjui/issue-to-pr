@@ -17,6 +17,7 @@ import { JobEventSchema } from "shared/entities/events/Job"
 
 import { publishJobStatus } from "./helper"
 import { autoResolveIssue } from "./orchestrators/autoResolveIssue"
+import { createDependentPR } from "./orchestrators/createDependentPR"
 import { simulateLongRunningWorkflow } from "./orchestrators/simulateLongRunningWorkflow"
 import { summarizeIssue } from "./orchestrators/summarizeIssue"
 
@@ -66,6 +67,12 @@ export async function handler(job: Job): Promise<string> {
         )
         return result.map((m) => m.content).join("\n")
       }
+      case "createDependentPR": {
+        await publishJobStatus(job.id, "Job: Create dependent PR")
+        const branch = await createDependentPR(job.id, jobData)
+        await publishJobStatus(job.id, `Completed: created branch ${branch}`)
+        return branch
+      }
       default: {
         await publishJobStatus(job.id, "Failed: Unknown job name")
         throw new Error(`Unknown job name: ${job.name}`)
@@ -77,3 +84,4 @@ export async function handler(job: Job): Promise<string> {
     throw error instanceof Error ? error : new Error(msg)
   }
 }
+

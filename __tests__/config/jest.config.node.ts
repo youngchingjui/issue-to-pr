@@ -10,7 +10,11 @@ const createJestConfig = nextJest({
 const config: Config = {
   ...baseConfig,
   testEnvironment: "node",
-  testMatch: ["**/__tests__/lib/**/*.ts?(x)", "**/__tests__/api/**/*.ts?(x)"],
+  testMatch: [
+    "**/__tests__/lib/**/*.ts?(x)",
+    "**/__tests__/api/**/*.ts?(x)",
+    "**/__tests__/apps/**/*.ts?(x)",
+  ],
   testPathIgnorePatterns: [
     "/node_modules/",
     "/.next/",
