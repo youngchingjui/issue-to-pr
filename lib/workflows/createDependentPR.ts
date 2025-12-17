@@ -69,14 +69,8 @@ export async function createDependentPRWorkflow({
     // Fetch PR meta, diff, and discussion in parallel
     const [diff, prMetaAndLinkedIssue, prDiscussion] = await Promise.all([
       getPullRequestDiff({ repoFullName, pullNumber }),
-      getPullRequestMetaAndLinkedIssue(repoFullName, pullNumber, {
-        authProvider,
-        authTarget: { kind: "repoInstallation", repoFullName },
-      }),
-      getPullRequestDiscussionGraphQL(repoFullName, pullNumber, {
-        authProvider,
-        authTarget: { kind: "repoInstallation", repoFullName },
-      }),
+      getPullRequestMetaAndLinkedIssue(repoFullName, pullNumber, authProvider),
+      getPullRequestDiscussionGraphQL(repoFullName, pullNumber, authProvider),
     ])
 
     const headRef = prMetaAndLinkedIssue.headRefName

@@ -1,6 +1,6 @@
 import { graphql } from "@octokit/graphql"
 import { err, ok, type Result } from "@shared/entities/result"
-import { GitHubAuthProvider, GitHubAuthTarget } from "@shared/ports/github/auth"
+import { GitHubAuthProvider } from "@shared/ports/github/auth"
 import {
   type PRFileChange,
   type PRIssueComment,
@@ -278,15 +278,14 @@ export const makeGithubPRGraphQLAdapter = (token: string) =>
 export const getPullRequestMetaAndLinkedIssue = async (
   repoFullName: string,
   pullNumber: number,
-  auth: { authProvider: GitHubAuthProvider; authTarget: GitHubAuthTarget }
+  authProvider: GitHubAuthProvider
 ) => {
   const [owner, repo] = repoFullName.split("/")
   if (!owner || !repo) {
     throw new Error("Invalid repoFullName. Expected 'owner/repo'")
   }
-  const { authProvider, authTarget } = auth
 
-  const { graphql } = await authProvider.getClient(authTarget)
+  const { graphql } = await authProvider.getInstallationClient()
 
   const query = `
   query PullRequestMetaAndLinkedIssue(
@@ -366,14 +365,13 @@ export const getPullRequestMetaAndLinkedIssue = async (
 export const getPullRequestDiscussionGraphQL = async (
   repoFullName: string,
   pullNumber: number,
-  auth: { authProvider: GitHubAuthProvider; authTarget: GitHubAuthTarget }
+  authProvider: GitHubAuthProvider
 ) => {
   const [owner, repo] = repoFullName.split("/")
   if (!owner || !repo) {
     throw new Error("Invalid repoFullName. Expected 'owner/repo'")
   }
-  const { authProvider, authTarget } = auth
-  const { graphql } = await authProvider.getClient(authTarget)
+  const { graphql } = await authProvider.getInstallationClient()
 
   const query = `
     query PullRequestDiscussion(

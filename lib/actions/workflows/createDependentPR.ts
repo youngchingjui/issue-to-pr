@@ -1,15 +1,10 @@
 "use server"
 
-import { Octokit } from "@octokit/rest"
-import {
-  GitHubAuthProvider,
-  GitHubAuthTarget,
-  GitHubClientBundle,
-} from "@shared/ports/github/auth"
 import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
 import { v4 as uuidv4 } from "uuid"
 
 import { auth } from "@/auth"
+import { makeNextjsGitHubAuthProvider } from "@/lib/github/auth"
 import { neo4jDs } from "@/lib/neo4j"
 import * as userRepo from "@/lib/neo4j/repositories/user"
 import { createDependentPRWorkflow } from "@/lib/workflows/createDependentPR"
@@ -41,6 +36,14 @@ export async function createDependentPRAction(
     }
   }
   const { repoFullName, pullNumber, jobId } = parsed.data
+  const [owner, repo] = repoFullName.split("/")
+  if (!owner || !repo) {
+    return {
+      status: "error",
+      code: "INVALID_INPUT",
+      message: "Invalid repoFullName. Expected 'owner/repo'",
+    }
+  }
 
   // Auth
   const session = await auth()
@@ -59,20 +62,6 @@ export async function createDependentPRAction(
       message: "Login not found",
     }
   }
-
-  const getClient = async (
-    target: GitHubAuthTarget
-  ): Promise<GitHubClientBundle> => {
-    const session = await auth()
-    if (!session?.token?.access_token) {
-      throw new Error("Authentication required")
-    }
-
-    const client = new Octokit({ auth: session.token.access_token })
-    return { rest: client, graphql: client.graphql, kind: "user" }
-  }
-
-  const githubAuthProvider: GitHubAuthProvider = { getClient }
 
   // Settings
   const settingsReader = makeSettingsReaderAdapter({
@@ -100,7 +89,9 @@ export async function createDependentPRAction(
         apiKey,
         jobId: effectiveJobId,
         initiator: { type: "ui_button", actorLogin: login },
-        authProvider: githubAuthProvider,
+        authProvider: makeNextjsGitHubAuthProvider({
+          defaultInstallation: { kind: "repo", owner, repo },
+        }),
       })
     } catch (e) {
       console.error("[create-dependent-pr] Background run failed:", e)

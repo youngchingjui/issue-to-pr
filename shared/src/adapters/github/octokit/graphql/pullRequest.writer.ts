@@ -1,4 +1,4 @@
-import { GitHubAuthProvider, GitHubAuthTarget } from "@shared/ports/github/auth"
+import { GitHubAuthProvider } from "@shared/ports/github/auth"
 
 /**
  * Updates a pull request body using GitHub's GraphQL API.
@@ -10,18 +10,15 @@ export async function updatePullRequestBody(
     pullNumber: number
     body: string
   },
-  auth: {
-    authProvider: GitHubAuthProvider
-    authTarget: GitHubAuthTarget
-  }
+  authProvider: GitHubAuthProvider
 ): Promise<
   | { status: "success"; pullRequestId: string }
   | { status: "error"; message: string }
 > {
   const { owner, repo, pullNumber, body } = params
-  const { authProvider, authTarget } = auth
+
   try {
-    const { graphql } = await authProvider.getClient(authTarget)
+    const { graphql } = await authProvider.getInstallationClient()
 
     // Get the PR node ID
     const query = /* GraphQL */ `

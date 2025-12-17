@@ -107,7 +107,7 @@ export class DependentPRAgent extends ResponsesAPIAgent {
         this.addTool(
           createUpdatePullRequestBodyTool(
             { owner, repo, pullNumber, originalBody },
-            { authProvider, authTarget: { kind: "user" } }
+            authProvider
           )
         )
       }
