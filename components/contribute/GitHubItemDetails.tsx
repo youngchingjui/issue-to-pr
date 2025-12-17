@@ -25,7 +25,7 @@ export default function GitHubItemDetails(props: GitHubItemDetailsProps) {
 
   return (
     <BaseGitHubItemCard item={item}>
-      {item.type === "issue" &&
+      {item.itemType === "issue" &&
         (item.body && item.body.trim() ? (
           <div className="prose prose-sm dark:prose-invert max-w-none rounded-lg bg-muted p-4">
             <MarkdownRenderer content={item.body} />
@@ -35,7 +35,7 @@ export default function GitHubItemDetails(props: GitHubItemDetailsProps) {
             No description provided.
           </div>
         ))}
-      {item.type === "issue" ? (
+      {item.itemType === "issue" ? (
         <IssueActions
           issue={item}
           isLoading={isLoading}

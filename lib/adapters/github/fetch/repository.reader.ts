@@ -99,7 +99,7 @@ export function makeFetchRepositoryReaderAdapter(params: {
       const url = `https://api.github.com/repos/${owner}/${repo}`
       const res = await fetch(url, {
         headers: baseHeaders,
-        next: { revalidate: 60, tags: ["repo", repository.fullName] },
+        cache: "no-store",
       })
 
       if (!res.ok) {
