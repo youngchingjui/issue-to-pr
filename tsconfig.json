@@ -20,7 +20,8 @@
       "@/auth": ["auth"],
       "@/lib/*": ["lib/*"],
       "@/components/*": ["components/*"],
-      "@/styles/*": ["styles/*"]
+      "@/styles/*": ["styles/*"],
+      "@shared/*": ["shared/src/*"]
     },
 
     /* TO SORT */
