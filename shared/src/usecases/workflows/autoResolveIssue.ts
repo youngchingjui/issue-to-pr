@@ -8,7 +8,6 @@ import { v4 as uuidv4 } from "uuid"
 
 import GitHubRefsAdapter from "@/adapters/github/GitHubRefsAdapter"
 import { OpenAIAdapter } from "@/adapters/llm/OpenAIAdapter"
-import { getAccessTokenOrThrow } from "@/auth"
 import PlanAndCodeAgent from "@/lib/agents/PlanAndCodeAgent"
 import { getInstallationTokenFromRepo } from "@/lib/github/installation"
 import { getIssue, getIssueComments } from "@/lib/github/issues"
@@ -84,8 +83,10 @@ export const autoResolveIssue = async (
     throw new Error(`Failed to fetch issue #${issueNumber}, ${repoFullName}`)
   }
   const issue = issueResult.issue
-  const access_token = getAccessTokenOrThrow()
-  const octokit = new Octokit({ auth: access_token })
+
+  // Use installation token tied to the repository (avoids any global token state)
+  const sessionToken = await getInstallationTokenFromRepo({ owner, repo })
+  const octokit = new Octokit({ auth: sessionToken })
   const repository = await octokit.rest.repos.get({ owner, repo })
 
   // =================================================
@@ -168,11 +169,6 @@ export const autoResolveIssue = async (
 
     const env: RepoEnvironment = { kind: "container", name: containerName }
 
-    const sessionToken = await getInstallationTokenFromRepo({
-      owner,
-      repo,
-    })
-
     const trace = langfuse.trace({ name: "autoResolve" })
     const span = trace.span({ name: "PlanAndCodeAgent" })
 
@@ -239,3 +235,4 @@ export const autoResolveIssue = async (
     throw error
   }
 }
+
