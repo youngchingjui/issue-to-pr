@@ -7,14 +7,27 @@ import { NextRequest } from "next/server"
 // - Route events to modular handlers in a clear, tree-like series of switch statements
 // - Pass along the installation ID and any needed data directly to handlers
 // - Handlers are responsible for doing any authenticated GitHub actions or enqueuing jobs
+import { revalidateUserInstallationReposCache } from "@/lib/webhook/github/handlers/installation/revalidateRepositoriesCache.handler"
 import { handleIssueLabelAutoResolve } from "@/lib/webhook/github/handlers/issue/label.autoResolveIssue.handler"
 import { handleIssueLabelResolve } from "@/lib/webhook/github/handlers/issue/label.resolve.handler"
 import { handlePullRequestClosedRemoveContainer } from "@/lib/webhook/github/handlers/pullRequest/closed.removeContainer.handler"
+import { handleRepositoryEditedRevalidate } from "@/lib/webhook/github/handlers/repository/edited.revalidateRepoCache.handler"
 import {
+  CreatePayloadSchema,
+  DeletePayloadSchema,
+  DeploymentPayloadSchema,
+  DeploymentStatusPayloadSchema,
   GithubEventSchema,
+  InstallationPayloadSchema,
+  InstallationRepositoriesPayloadSchema,
+  IssueCommentPayloadSchema,
   IssuesPayloadSchema,
   PullRequestPayloadSchema,
   PushPayloadSchema,
+  RepositoryPayloadSchema,
+  StatusPayloadSchema,
+  WorkflowJobPayloadSchema,
+  WorkflowRunPayloadSchema,
 } from "@/lib/webhook/github/types"
 
 function verifySignature({
@@ -123,6 +136,9 @@ export async function POST(req: NextRequest) {
           case "opened":
             // No-op for now
             break
+          case "closed":
+            // No-op for now
+            break
           default:
             // Other issue actions ignored
             break
@@ -151,6 +167,12 @@ export async function POST(req: NextRequest) {
             }
             break
           }
+          case "opened":
+          case "labeled":
+          case "synchronize":
+          case "reopened":
+            // Explicitly supported as no-ops for now
+            break
           default:
             // Ignore other PR actions
             break
@@ -165,6 +187,145 @@ export async function POST(req: NextRequest) {
           return new Response("Invalid payload", { status: 400 })
         }
         // Currently no-op for push
+        break
+      }
+
+      case "create": {
+        const r = CreatePayloadSchema.safeParse(payload)
+        if (!r.success) {
+          console.error("[ERROR] Invalid create payload", r.error.flatten())
+          return new Response("Invalid payload", { status: 400 })
+        }
+        // No-op for now
+        break
+      }
+
+      case "delete": {
+        const r = DeletePayloadSchema.safeParse(payload)
+        if (!r.success) {
+          console.error("[ERROR] Invalid delete payload", r.error.flatten())
+          return new Response("Invalid payload", { status: 400 })
+        }
+        // No-op for now
+        break
+      }
+
+      case "status": {
+        const r = StatusPayloadSchema.safeParse(payload)
+        if (!r.success) {
+          console.error("[ERROR] Invalid status payload", r.error.flatten())
+          return new Response("Invalid payload", { status: 400 })
+        }
+        // No-op for now
+        break
+      }
+
+      case "issue_comment": {
+        const r = IssueCommentPayloadSchema.safeParse(payload)
+        if (!r.success) {
+          console.error(
+            "[ERROR] Invalid issue_comment payload",
+            r.error.flatten()
+          )
+          return new Response("Invalid payload", { status: 400 })
+        }
+        // Explicitly accept created/edited as no-ops for now
+        break
+      }
+
+      case "deployment": {
+        const r = DeploymentPayloadSchema.safeParse(payload)
+        if (!r.success) {
+          console.error("[ERROR] Invalid deployment payload", r.error.flatten())
+          return new Response("Invalid payload", { status: 400 })
+        }
+        // No-op
+        break
+      }
+
+      case "deployment_status": {
+        const r = DeploymentStatusPayloadSchema.safeParse(payload)
+        if (!r.success) {
+          console.error(
+            "[ERROR] Invalid deployment_status payload",
+            r.error.flatten()
+          )
+        }
+        // No-op
+        break
+      }
+
+      case "workflow_run": {
+        const r = WorkflowRunPayloadSchema.safeParse(payload)
+        if (!r.success) {
+          console.error(
+            "[ERROR] Invalid workflow_run payload",
+            r.error.flatten()
+          )
+          return new Response("Invalid payload", { status: 400 })
+        }
+        // No-op (requested)
+        break
+      }
+
+      case "workflow_job": {
+        const r = WorkflowJobPayloadSchema.safeParse(payload)
+        if (!r.success) {
+          console.error(
+            "[ERROR] Invalid workflow_job payload",
+            r.error.flatten()
+          )
+          return new Response("Invalid payload", { status: 400 })
+        }
+        // No-op (queued)
+        break
+      }
+
+      case "installation": {
+        const r = InstallationPayloadSchema.safeParse(payload)
+        if (!r.success) {
+          console.error(
+            "[ERROR] Invalid installation payload",
+            r.error.flatten()
+          )
+          return new Response("Invalid payload", { status: 400 })
+        }
+        const parsedPayload = r.data
+        const installationId = String(parsedPayload.installation.id)
+        await revalidateUserInstallationReposCache({ installationId })
+        break
+      }
+
+      case "installation_repositories": {
+        const r = InstallationRepositoriesPayloadSchema.safeParse(payload)
+        if (!r.success) {
+          console.error(
+            "[ERROR] Invalid installation_repositories payload",
+            r.error.flatten()
+          )
+          return new Response("Invalid payload", { status: 400 })
+        }
+        const parsedPayload = r.data
+        const installationId = String(parsedPayload.installation.id)
+        await revalidateUserInstallationReposCache({ installationId })
+        break
+      }
+
+      case "repository": {
+        const r = RepositoryPayloadSchema.safeParse(payload)
+        if (!r.success) {
+          console.error("[ERROR] Invalid repository payload", r.error.flatten())
+          return new Response("Invalid payload", { status: 400 })
+        }
+        const parsedPayload = r.data
+        switch (parsedPayload.action) {
+          case "edited":
+            await handleRepositoryEditedRevalidate({ payload: parsedPayload })
+            break
+          default:
+            // Ignore other repository actions
+            break
+        }
         break
       }
 

@@ -3,9 +3,9 @@ import { Octokit } from "@octokit/rest"
 import { err, ok, type Result } from "@/entities/result"
 import type {
   GetRepositoryErrors,
-  RepositoryDetails,
+  Repo,
+  RepoDetails,
   RepositoryReaderPort,
-  RepositoryRef,
 } from "@/ports/github/repository.reader"
 
 /**
@@ -16,10 +16,10 @@ export function makeRepositoryReaderAdapter(params: {
 }): RepositoryReaderPort {
   const octokit = new Octokit({ auth: params.token })
 
-  async function getRepository(
-    ref: RepositoryRef
-  ): Promise<Result<RepositoryDetails, GetRepositoryErrors>> {
-    const [owner, repo] = ref.repoFullName.split("/")
+  async function getRepo(
+    repository: Repo
+  ): Promise<Result<RepoDetails, GetRepositoryErrors>> {
+    const [owner, repo] = repository.fullName.split("/")
     if (!owner || !repo) return err("RepoNotFound")
 
     try {
@@ -29,8 +29,8 @@ export function makeRepositoryReaderAdapter(params: {
         data.visibility || (data.private ? "private" : "public")
       ).toUpperCase() as "PUBLIC" | "PRIVATE" | "INTERNAL"
 
-      const details: RepositoryDetails = {
-        repoFullName: ref.repoFullName,
+      const details: RepoDetails = {
+        fullName: repository.fullName,
         owner: data.owner?.login ?? owner,
         name: data.name ?? repo,
         description: data.description ?? null,
@@ -38,6 +38,7 @@ export function makeRepositoryReaderAdapter(params: {
         visibility,
         url: data.html_url ?? `https://github.com/${owner}/${repo}`,
         cloneUrl: data.clone_url ?? `https://github.com/${owner}/${repo}.git`,
+        has_issues: data.has_issues,
       }
 
       return ok(details)
@@ -78,7 +79,11 @@ export function makeRepositoryReaderAdapter(params: {
                 { installation_id: inst.id, per_page: 100 }
               )
               return data.repositories?.map((r) => r.full_name) ?? []
-            } catch (e: unknown) {
+            } catch (e) {
+              console.error(
+                "[octokit/rest/repository.reader] Error listing repositories for installation",
+                e
+              )
               // Best-effort: skip this installation on error but continue others
               return [] as string[]
             }
@@ -122,7 +127,7 @@ export function makeRepositoryReaderAdapter(params: {
     }
   }
 
-  return { getRepository, listUserAccessibleRepoFullNames }
+  return { getRepo, listUserAccessibleRepoFullNames }
 }
 
 export default makeRepositoryReaderAdapter

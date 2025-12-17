@@ -25,6 +25,20 @@ export interface IssueDetails extends IssueRef {
   closedAt?: string | null // ISO timestamp or null when open
 }
 
+// Minimal list item for repo issue lists (provider-agnostic)
+export interface IssueListItem {
+  id: number
+  repoFullName: string
+  number: number
+  title: string | null
+  state: "OPEN" | "CLOSED"
+  url: string
+  authorLogin: string | null
+  createdAt: string
+  updatedAt: string
+  closedAt?: string | null
+}
+
 export type GetIssueErrors =
   | "AuthRequired"
   | "RepoNotFound"
@@ -32,9 +46,17 @@ export type GetIssueErrors =
   | "Forbidden"
   | "IssuesDisabled"
   | "RateLimited"
+  | "NotImplemented"
   | "Unknown"
 
 export type AuthErrors = "AuthRequired" | "Unknown"
+
+export interface ListIssuesParams {
+  repoFullName: string
+  page?: number
+  per_page?: number
+  state?: "open" | "closed" | "all"
+}
 
 /**
  * Abstraction over GitHub for reading issue metadata.
@@ -50,6 +72,13 @@ export interface IssueReaderPort {
    * Implementations should be resilient to partial failures and return null titles when not found.
    */
   getIssueTitles(refs: IssueRef[]): Promise<IssueTitleResult[]>
+
+  /**
+   * List issues for a repository. Should exclude pull requests.
+   */
+  listIssues(
+    params: ListIssuesParams
+  ): Promise<Result<IssueListItem[], GetIssueErrors>>
 }
 
 /**

@@ -15,7 +15,7 @@ export default function BaseGitHubItemCard({ item, children }: Props) {
 
   // Construct the issue URL
   const issueUrl =
-    item.type === "issue"
+    item.itemType === "issue"
       ? `/${repoFullName}/issues/${item.number}`
       : `/${repoFullName}/pulls/${item.number}`
 
@@ -25,12 +25,12 @@ export default function BaseGitHubItemCard({ item, children }: Props) {
         <div className="flex items-center gap-3">
           <span
             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-              item.type === "issue"
+              item.itemType === "issue"
                 ? "bg-purple-100 text-purple-800"
                 : "bg-blue-100 text-blue-800"
             }`}
           >
-            {item.type === "issue" ? "Issue" : "Pull Request"}
+            {item.itemType === "issue" ? "Issue" : "Pull Request"}
           </span>
           <Link href={issueUrl} className="hover:underline">
             <CardTitle>{item.title}</CardTitle>

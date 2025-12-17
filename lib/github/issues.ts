@@ -1,13 +1,22 @@
 "use server"
 
+import {
+  makeAccessTokenProviderFrom,
+  makeSessionProvider,
+} from "shared/providers/auth"
 import { withTiming } from "shared/utils/telemetry"
 
+import { auth } from "@/auth"
+import { makeFetchIssueReaderAdapter } from "@/lib/adapters/github/fetch/issue.reader"
 import getOctokit, { getGraphQLClient, getUserOctokit } from "@/lib/github"
 import {
   getLatestPlanIdsForIssues,
   getPlanStatusForIssues,
 } from "@/lib/neo4j/services/plan"
-import { getIssuesActiveWorkflowMap } from "@/lib/neo4j/services/workflow"
+import {
+  getIssuesActiveWorkflowMap,
+  getIssuesLatestRunningWorkflowIdMap,
+} from "@/lib/neo4j/services/workflow"
 import {
   GetIssueResult,
   GitHubIssue,
@@ -119,30 +128,83 @@ export async function getIssueComments({
   return comments.data as GitHubIssueComment[]
 }
 
+// New: use Next.js fetch-based adapter to leverage caching and tags
+async function getUserAccessToken(): Promise<string | null> {
+  const sessionProvider = makeSessionProvider(() => auth())
+  const accessTokenProvider = makeAccessTokenProviderFrom(
+    sessionProvider,
+    (s) => s?.token?.access_token as unknown as string | null | undefined
+  )
+  try {
+    return await accessTokenProvider()
+  } catch {
+    return null
+  }
+}
+
 export async function getIssueList({
   repoFullName,
   ...rest
 }: {
   repoFullName: string
 } & Omit<ListForRepoParams, "owner" | "repo">): Promise<GitHubIssue[]> {
-  const octokit = await getOctokit()
-  const [owner, repo] = repoFullName.split("/")
+  const token = await getUserAccessToken()
+  if (!token) {
+    // If no user token, fall back to old path (non-cached) to avoid breaking
+    const octokit = await getOctokit()
+    const [owner, repo] = repoFullName.split("/")
 
-  if (!octokit) {
-    throw new Error("No octokit found")
+    if (!octokit) {
+      throw new Error("No octokit found")
+    }
+
+    const issuesResponse = await withTiming(
+      `GitHub REST: issues.listForRepo ${repoFullName}`,
+      async () =>
+        await octokit.rest.issues.listForRepo({
+          owner,
+          repo,
+          ...rest,
+        })
+    )
+    return issuesResponse.data.filter((issue) => !issue.pull_request)
   }
 
-  const issuesResponse = await withTiming(
-    `GitHub REST: issues.listForRepo ${repoFullName}`,
-    async () =>
-      await octokit.rest.issues.listForRepo({
-        owner,
-        repo,
-        ...rest,
-      })
+  const adapter = makeFetchIssueReaderAdapter({ token })
+  const state = (rest.state as "open" | "closed" | "all" | undefined) ?? "open"
+  const page = (rest.page as number | undefined) ?? 1
+  const per_page = (rest.per_page as number | undefined) ?? 25
+
+  const res = await adapter.listIssues({
+    repoFullName,
+    page,
+    per_page,
+    state,
+  })
+
+  if (!res.ok) {
+    // gracefully degrade with empty
+    return []
+  }
+
+  // Map provider-agnostic list items to GitHubIssue-like objects used by UI
+  const items = res.value
+  const mapped: GitHubIssue[] = items.map(
+    (i) =>
+      ({
+        id: i.id,
+        number: i.number,
+        title: i.title ?? "",
+        state: i.state === "OPEN" ? "open" : "closed",
+        html_url: i.url,
+        created_at: i.createdAt,
+        updated_at: i.updatedAt,
+        closed_at: i.closedAt ?? undefined,
+        user: i.authorLogin ? { login: i.authorLogin } : undefined,
+      }) as GitHubIssue
   )
-  // Filter out pull requests from the list of issues
-  return issuesResponse.data.filter((issue) => !issue.pull_request)
+
+  return mapped
 }
 
 export async function updateIssueComment({
@@ -180,6 +242,7 @@ export type IssueWithStatus = GitHubIssue & {
   hasPlan: boolean
   hasPR: boolean
   hasActiveWorkflow: boolean
+  activeWorkflowId?: string | null
   planId?: string | null
   prNumber?: number
 }
@@ -200,17 +263,22 @@ export async function getIssueListWithStatus({
 
   // 2. Query Neo4j for plans using the service layer
   const issueNumbers = issues.map((issue) => issue.number)
-  const [issuePlanStatus, issuePlanIds, activeWorkflowMap] = await Promise.all([
-    withTiming(`Neo4j: getPlanStatusForIssues ${repoFullName}`, () =>
-      getPlanStatusForIssues({ repoFullName, issueNumbers })
-    ),
-    withTiming(`Neo4j: getLatestPlanIdsForIssues ${repoFullName}`, () =>
-      getLatestPlanIdsForIssues({ repoFullName, issueNumbers })
-    ),
-    withTiming(`Neo4j: getIssuesActiveWorkflowMap ${repoFullName}`, () =>
-      getIssuesActiveWorkflowMap({ repoFullName, issueNumbers })
-    ),
-  ])
+  const [issuePlanStatus, issuePlanIds, activeWorkflowMap, activeWorkflowIdMap] =
+    await Promise.all([
+      withTiming(`Neo4j: getPlanStatusForIssues ${repoFullName}`, () =>
+        getPlanStatusForIssues({ repoFullName, issueNumbers })
+      ),
+      withTiming(`Neo4j: getLatestPlanIdsForIssues ${repoFullName}`, () =>
+        getLatestPlanIdsForIssues({ repoFullName, issueNumbers })
+      ),
+      withTiming(`Neo4j: getIssuesActiveWorkflowMap ${repoFullName}`, () =>
+        getIssuesActiveWorkflowMap({ repoFullName, issueNumbers })
+      ),
+      withTiming(
+        `Neo4j: getIssuesLatestRunningWorkflowIdMap ${repoFullName}`,
+        () => getIssuesLatestRunningWorkflowIdMap({ repoFullName, issueNumbers })
+      ),
+    ])
 
   // 3. Build response combining data
   const withStatus: IssueWithStatus[] = issues.map((issue) => {
@@ -220,6 +288,7 @@ export async function getIssueListWithStatus({
       // Lazily load PR info on the client to avoid heavy initial GraphQL scans
       hasPR: false,
       hasActiveWorkflow: !!activeWorkflowMap[issue.number],
+      activeWorkflowId: activeWorkflowIdMap[issue.number] || null,
       planId: issuePlanIds[issue.number] || null,
       prNumber: undefined,
     }
@@ -481,3 +550,4 @@ export async function getLinkedPRNumbersForIssues({
 
   return result
 }
+

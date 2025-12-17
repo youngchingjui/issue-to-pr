@@ -1,7 +1,12 @@
 import { Integer, ManagedTransaction, Node } from "neo4j-driver"
 
 import { Labels } from "@/lib/neo4j/labels"
-import { RepoSettings, repoSettingsSchema } from "@/lib/types/db/neo4j"
+import {
+  type BuildDeploymentSettings,
+  buildDeploymentSettingsSchema,
+  type RepoSettings,
+  repoSettingsSchema,
+} from "@/lib/types/db/neo4j"
 
 // Get repository settings, with fallback for missing node or missing settings
 export async function getRepositorySettings(
@@ -36,6 +41,41 @@ export async function setRepositorySettings(
   await tx.run(
     `
     MERGE (r:${Labels.Repository} {fullName: $repoFullName})-[:HAS_SETTINGS]->(s:${Labels.Settings})
+    SET s += $settings,
+        s.lastUpdated = datetime()
+    `,
+    { repoFullName, settings }
+  )
+}
+
+// ---- Build & Deployment settings ----
+export async function getBuildDeploymentSettings(
+  tx: ManagedTransaction,
+  repoFullName: string
+): Promise<BuildDeploymentSettings | null> {
+  const result = await tx.run<{
+    s: Node<Integer, BuildDeploymentSettings, "Settings" | "BuildDeployment">
+  }>(
+    `
+    MATCH (r:${Labels.Repository} {fullName: $repoFullName})-[:HAS_SETTINGS]->(s:${Labels.Settings}:${Labels.BuildDeployment})
+    RETURN s
+    LIMIT 1
+    `,
+    { repoFullName }
+  )
+  const settings = result.records[0]?.get("s")?.properties
+  if (!settings || Object.keys(settings).length === 0) return null
+  return buildDeploymentSettingsSchema.parse(settings)
+}
+
+export async function setBuildDeploymentSettings(
+  tx: ManagedTransaction,
+  repoFullName: string,
+  settings: Omit<BuildDeploymentSettings, "lastUpdated">
+): Promise<void> {
+  await tx.run(
+    `
+    MERGE (r:${Labels.Repository} {fullName: $repoFullName})-[:HAS_SETTINGS]->(s:${Labels.Settings}:${Labels.BuildDeployment})
     SET s += $settings,
         s.lastUpdated = datetime()
     `,
