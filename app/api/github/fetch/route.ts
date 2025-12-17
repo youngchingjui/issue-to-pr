@@ -4,7 +4,7 @@ import { z } from "zod"
 import { getIssue } from "@/lib/github/issues"
 import { getPullRequest } from "@/lib/github/pullRequests"
 import { FetchGitHubItemRequestSchema } from "@/lib/schemas/api"
-import { GetIssueResult, GitHubIssue, PullRequest } from "@/lib/types/github"
+import { GitHubItem } from "@/lib/types/github"
 
 // TODO: Not sure if this is the right implementation.
 // i.e. why is this a POST request?
@@ -15,20 +15,29 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { type, number, fullName } = FetchGitHubItemRequestSchema.parse(body)
 
-    let data: GitHubIssue | PullRequest | GetIssueResult
     if (type === "issue") {
-      data = await getIssue({ fullName, issueNumber: number })
+      const result = await getIssue({ fullName, issueNumber: number })
+      if (result.type === "success") {
+        const item: GitHubItem = { ...result.issue, itemType: "issue" }
+        return NextResponse.json(item)
+      }
+
+      if (result.type === "not_found") {
+        return NextResponse.json({ error: "Issue not found" }, { status: 404 })
+      }
+      if (result.type === "forbidden") {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+      }
+
+      return NextResponse.json({ error: "Failed to fetch issue" }, { status: 500 })
     } else {
-      data = await getPullRequest({
+      const pr = await getPullRequest({
         repoFullName: fullName,
         pullNumber: number,
       })
+      const item: GitHubItem = { ...pr, itemType: "pull" }
+      return NextResponse.json(item)
     }
-
-    return NextResponse.json({
-      ...data,
-      type,
-    })
   } catch (err) {
     console.error("Error fetching GitHub data:", err)
 
