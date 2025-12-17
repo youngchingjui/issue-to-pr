@@ -1,11 +1,11 @@
 import IdentifyPRGoalController from "@/components/pull-requests/controllers/IdentifyPRGoalController"
 import ReviewPRController from "@/components/pull-requests/controllers/ReviewPRController"
 import { Button } from "@/components/ui/button"
-import { GitHubIssue, WorkflowType } from "@/lib/types/github"
+import { PullRequest, WorkflowType } from "@/lib/types/github"
 import { getRepoFullNameFromIssue } from "@/lib/utils/utils-common"
 
 interface PRActionsProps {
-  pr: GitHubIssue
+  pr: PullRequest
   isLoading: boolean
   activeWorkflow: WorkflowType | null
   onWorkflowStart: (workflow: WorkflowType) => void
