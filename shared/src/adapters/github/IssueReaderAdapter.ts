@@ -6,9 +6,11 @@ import type {
   GetIssueErrors,
   GitHubAuthMethod,
   IssueDetails,
+  IssueListItem,
   IssueReaderPort,
   IssueRef,
   IssueTitleResult,
+  ListIssuesParams,
 } from "@/ports/github/issue.reader"
 
 /**
@@ -100,7 +102,8 @@ export function makeIssueReaderAdapter(
         return err("Unknown")
       }
       if ("status" in error && typeof error.status === "number") {
-        switch (error.status) {
+        const http = error as { status: number }
+        switch (http.status) {
           case 401:
             return err("AuthRequired")
           case 403:
@@ -172,8 +175,17 @@ export function makeIssueReaderAdapter(
     return results
   }
 
+  async function listIssues(
+    params: ListIssuesParams
+  ): Promise<Result<IssueListItem[], GetIssueErrors>> {
+    void params
+    // no-op, to be implemented
+    return ok([])
+  }
+
   return {
     getIssue,
     getIssueTitles,
+    listIssues,
   }
 }

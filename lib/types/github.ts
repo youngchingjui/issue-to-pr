@@ -57,10 +57,14 @@ export type WorkflowType =
   | "Identifying Goal..."
   | "Resolving..."
 
+// ---
 // Extended types for our application
-export type GitHubItem = GitHubIssue & {
-  type: "issue" | "pull"
-}
+//
+// Note: GitHub's REST `issue` schema already has a `type` field (issue types).
+// We use `itemType` as the app-level discriminator to avoid colliding with Octokit types.
+export type GitHubItem =
+  | (GitHubIssue & { itemType: "issue" })
+  | (PullRequest & { itemType: "pull" })
 
 // zod
 export const IssueOrderFieldSchema = z

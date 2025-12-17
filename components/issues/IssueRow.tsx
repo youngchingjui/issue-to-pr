@@ -10,10 +10,22 @@ import AutoResolveIssueController from "@/components/issues/controllers/AutoReso
 import StatusIndicators from "@/components/issues/StatusIndicators"
 import { Button } from "@/components/ui/button"
 import { TableCell, TableRow } from "@/components/ui/table"
-import type { IssueWithStatus } from "@/lib/github/issues"
+
+interface Issue {
+  id: number
+  number: number
+  title: string
+  state: string
+  updated_at: string
+  user: { login: string } | null
+  hasActiveWorkflow: boolean
+  activeWorkflowId?: string | null
+  hasPlan: boolean
+  planId?: string | null | undefined
+}
 
 interface IssueRowProps {
-  issue: IssueWithStatus
+  issue: Issue
   repoFullName: string
   prSlot?: React.ReactNode
 }

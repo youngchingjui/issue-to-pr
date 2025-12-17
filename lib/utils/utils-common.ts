@@ -4,7 +4,7 @@ import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
 import { GitHubURLSchema } from "@/lib/schemas/api"
-import { GitHubIssue } from "@/lib/types/github"
+import { GitHubIssue, PullRequest } from "@/lib/types/github"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -105,19 +105,35 @@ export function containerNameForTrace(traceId: string): string {
  * @param issue The GitHub issue object
  * @returns The full repository name in the format "owner/repo", or undefined if repository info is missing
  */
-export function getRepoFullNameFromIssue(issue: GitHubIssue): string {
-  if (issue.repository?.full_name) {
-    return issue.repository.full_name
-  } else {
-    try {
-      const { fullName } = GitHubURLSchema.parse(issue.repository_url)
-      return fullName
-    } catch (e) {
-      console.error(
-        "An unexpected error occured when parsing the repository URL",
-        e
-      )
-      throw e
-    }
+export function getRepoFullNameFromIssue(item: GitHubIssue | PullRequest): string {
+  // Issue payloads (REST issues.get)
+  const asIssue = item as GitHubIssue
+  if (asIssue.repository?.full_name) {
+    return asIssue.repository.full_name
+  }
+
+  // Pull request payloads (REST pulls.get)
+  const asPull = item as PullRequest
+  if (asPull.base?.repo?.full_name) {
+    return asPull.base.repo.full_name
+  }
+
+  // Fall back to parsing API/HTML URLs when embedded repo objects are missing
+  const repoUrl =
+    ("repository_url" in asIssue && typeof asIssue.repository_url === "string"
+      ? asIssue.repository_url
+      : undefined) ??
+    (asPull.base?.repo?.url || undefined)
+
+  if (!repoUrl) {
+    throw new Error("Repository info missing from GitHub payload")
+  }
+
+  try {
+    const { fullName } = GitHubURLSchema.parse(repoUrl)
+    return fullName
+  } catch (e) {
+    console.error("An unexpected error occured when parsing the repository URL", e)
+    throw e
   }
 }
