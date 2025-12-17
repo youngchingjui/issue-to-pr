@@ -1,6 +1,6 @@
 import { graphql } from "@octokit/graphql"
-
-import { err, ok, type Result } from "@/entities/result"
+import { err, ok, type Result } from "@shared/entities/result"
+import { GitHubAuthProvider } from "@shared/ports/github/auth"
 import {
   type PRFileChange,
   type PRIssueComment,
@@ -10,7 +10,7 @@ import {
   type PullRequestErrors,
   type PullRequestReaderPort,
   type PullRequestRef,
-} from "@/ports/github/pullRequest.reader"
+} from "@shared/ports/github/pullRequest.reader"
 
 export function makeGitHubPRGraphQLAdapter(params: {
   token: string
@@ -274,3 +274,225 @@ export function makeGitHubPRGraphQLAdapter(params: {
 
 export const makeGithubPRGraphQLAdapter = (token: string) =>
   makeGitHubPRGraphQLAdapter({ token })
+
+export const getPullRequestMetaAndLinkedIssue = async (
+  repoFullName: string,
+  pullNumber: number,
+  authProvider: GitHubAuthProvider
+) => {
+  const [owner, repo] = repoFullName.split("/")
+  if (!owner || !repo) {
+    throw new Error("Invalid repoFullName. Expected 'owner/repo'")
+  }
+
+  const { graphql } = await authProvider.getInstallationClient()
+
+  const query = `
+  query PullRequestMetaAndLinkedIssue(
+    $owner: String!,
+    $repo: String!,
+    $number: Int!
+  ) {
+    repository(owner: $owner, name: $repo) {
+      pullRequest(number: $number) {
+        number
+        title
+        body
+        headRefName
+        baseRefName
+        headRefOid
+        baseRefOid
+
+        closingIssuesReferences(first: 1) {
+          nodes {
+            number
+            title
+            body
+          }
+        }
+      }
+    }
+  }
+    `
+
+  type PullRequestMetaAndLinkedIssueResponse = {
+    repository: {
+      pullRequest: {
+        number: number
+        title: string
+        body: string | null
+        headRefName: string
+        baseRefName: string
+        headRefOid: string
+        baseRefOid: string
+        closingIssuesReferences: {
+          nodes: Array<{
+            number: number
+            title: string | null
+            body: string | null
+          }>
+        }
+      } | null
+    } | null
+  }
+
+  const variables = { owner, repo, number: pullNumber }
+  const response = await graphql<PullRequestMetaAndLinkedIssueResponse>(
+    query,
+    variables
+  )
+  const pr = response.repository?.pullRequest
+  if (!pr) {
+    throw new Error(
+      `Pull request ${repoFullName}#${pullNumber} not found when fetching meta and linked issue`
+    )
+  }
+
+  const [linkedIssue] = pr.closingIssuesReferences?.nodes ?? []
+
+  return {
+    number: pr.number,
+    title: pr.title,
+    body: pr.body,
+    headRefName: pr.headRefName,
+    baseRefName: pr.baseRefName,
+    headRefOid: pr.headRefOid,
+    baseRefOid: pr.baseRefOid,
+    linkedIssue,
+  }
+}
+
+export const getPullRequestDiscussionGraphQL = async (
+  repoFullName: string,
+  pullNumber: number,
+  authProvider: GitHubAuthProvider
+) => {
+  const [owner, repo] = repoFullName.split("/")
+  if (!owner || !repo) {
+    throw new Error("Invalid repoFullName. Expected 'owner/repo'")
+  }
+  const { graphql } = await authProvider.getInstallationClient()
+
+  const query = `
+    query PullRequestDiscussion(
+      $owner: String!,
+      $repo: String!,
+      $number: Int!,
+      $commentsFirst: Int!,
+      $reviewsFirst: Int!,
+      $reviewCommentsFirst: Int!
+    ) {
+      repository(owner: $owner, name: $repo) {
+        pullRequest(number: $number) {
+          number
+          title
+          body
+
+          # 1) Conversation tab comments
+          comments(first: $commentsFirst) {
+            nodes {
+              author { login }
+              body
+              createdAt
+              url
+            }
+          }
+
+          # 2) Reviews with their comments (for LLM context and linkable bullets)
+          reviews(first: $reviewsFirst) {
+            nodes {
+              author { login }
+              state
+              body
+              submittedAt
+              comments(first: $reviewCommentsFirst) {
+                nodes {
+                  author { login }
+                  body
+                  path
+                  diffHunk
+                  createdAt
+                  url
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  `
+  type QueryResponse = {
+    repository: {
+      pullRequest: {
+        number: number
+        title: string
+        body: string | null
+        comments: {
+          nodes: Array<{
+            author: { login: string } | null
+            body: string
+            createdAt: string
+            url: string
+          }>
+        }
+        reviews: {
+          nodes: Array<{
+            author: { login: string } | null
+            state: string
+            body: string | null
+            submittedAt: string | null
+            comments: {
+              nodes: Array<{
+                author: { login: string } | null
+                body: string
+                path: string
+                diffHunk: string
+                createdAt: string
+                url: string
+              }>
+            }
+          }>
+        }
+      } | null
+    } | null
+  }
+
+  const commentsFirst = 100
+  const reviewsFirst = 50
+  const reviewCommentsFirst = 50
+
+  const variables = {
+    owner,
+    repo,
+    number: pullNumber,
+    commentsFirst,
+    reviewsFirst,
+    reviewCommentsFirst,
+  }
+
+  const response = await graphql<QueryResponse>(query, variables)
+  const pr = response.repository?.pullRequest
+  if (!pr) {
+    throw new Error(
+      `Pull request ${repoFullName}#${pullNumber} not found when fetching discussion`
+    )
+  }
+
+  const reviews = pr.reviews.nodes.map((r) => ({
+    author: r.author,
+    state: r.state,
+    body: r.body,
+    submittedAt: r.submittedAt,
+    comments: r.comments.nodes,
+  }))
+
+  return {
+    pullRequest: {
+      number: pr.number,
+      title: pr.title,
+      body: pr.body,
+    },
+    comments: pr.comments.nodes,
+    reviews,
+  }
+}

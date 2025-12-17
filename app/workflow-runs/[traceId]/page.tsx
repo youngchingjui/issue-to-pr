@@ -93,7 +93,7 @@ export default async function WorkflowRunDetailPage({
             <h2 className="text-lg font-semibold">Associated Issue</h2>
             <div className="max-w-2xl">
               <BaseGitHubItemCard
-                item={{ ...githubIssue.issue, type: "issue" }}
+                item={{ ...githubIssue.issue, itemType: "issue" }}
               />
             </div>
           </div>

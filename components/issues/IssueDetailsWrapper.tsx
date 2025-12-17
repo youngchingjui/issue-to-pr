@@ -21,7 +21,7 @@ export default function IssueDetailsWrapper({
     <GitHubItemDetails
       item={{
         ...issue,
-        type: "issue",
+        itemType: "issue",
       }}
       isLoading={isLoading}
       activeWorkflow={activeWorkflow}
