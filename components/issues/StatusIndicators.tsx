@@ -8,13 +8,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import type { IssueWithStatus } from "@/lib/github/issues"
 
+interface Issue {
+  hasActiveWorkflow: boolean
+  activeWorkflowId?: string | null
+  hasPlan: boolean
+  planId?: string | null | undefined
+  number: number
+}
 interface Props {
-  issue: Pick<
-    IssueWithStatus,
-    "hasActiveWorkflow" | "hasPlan" | "planId" | "number"
-  >
+  issue: Issue
   repoFullName: string
   prSlot?: React.ReactNode
 }
@@ -31,10 +34,22 @@ export default function StatusIndicators({
           {issue.hasActiveWorkflow ? (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Loader2
-                  className="inline align-text-bottom mr-0.5 animate-spin text-purple-600"
-                  size={18}
-                />
+                {issue.activeWorkflowId ? (
+                  <Link
+                    href={`/workflow-runs/${issue.activeWorkflowId}`}
+                    className="cursor-pointer"
+                  >
+                    <Loader2
+                      className="inline align-text-bottom mr-0.5 animate-spin text-purple-600"
+                      size={18}
+                    />
+                  </Link>
+                ) : (
+                  <Loader2
+                    className="inline align-text-bottom mr-0.5 animate-spin text-purple-600"
+                    size={18}
+                  />
+                )}
               </TooltipTrigger>
               <TooltipContent side="bottom">Workflow running</TooltipContent>
             </Tooltip>
@@ -63,3 +78,4 @@ export default function StatusIndicators({
     </TooltipProvider>
   )
 }
+

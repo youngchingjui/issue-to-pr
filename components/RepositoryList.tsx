@@ -49,6 +49,15 @@ export default async function RepositoryList({
               >
                 Pull Requests
               </Link>
+              <span className="text-stone-300" aria-hidden="true">
+                |
+              </span>
+              <Link
+                href={`/${repo.full_name}/settings`}
+                className="text-stone-700 hover:underline"
+              >
+                Settings
+              </Link>
             </div>
           </div>
         </li>

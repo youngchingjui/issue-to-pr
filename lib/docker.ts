@@ -81,7 +81,7 @@ export async function startContainer({
 
   // 2. Build environment variable flags: -e "KEY=value"
   const envFlags = Object.entries(env).map(
-    ([key, value]) => `-e \"${key}=${value.replace(/"/g, '\\\\"')}\"`
+    ([key, value]) => `-e \"${key}=${value.replace(/"/g, '\\\"')}\"`
   )
 
   // 3. Build label flags: --label key=value
@@ -224,26 +224,26 @@ export async function execInContainerWithDockerode({
   }
 }
 
-export async function stopAndRemoveContainer(name: string): Promise<void> {
+export async function stopAndRemoveContainer(id: string): Promise<void> {
   try {
     const docker = new Docker({ socketPath: "/var/run/docker.sock" })
-    const container = docker.getContainer(name)
+    const container = docker.getContainer(id)
 
     // Attempt to stop if running; then force remove
     try {
       const info = await container.inspect()
       if (info.State?.Running) {
         await container.stop()
-        console.log(`Stopped container: ${name}`)
+        console.log(`Stopped container: ${id}`)
       }
     } catch (error: unknown) {
-      console.warn(`Warning inspecting/stopping container ${name}:`, error)
+      console.warn(`Warning inspecting/stopping container ${id}:`, error)
     }
 
     await container.remove({ force: true })
-    console.log(`Removed container: ${name}`)
+    console.log(`Removed container: ${id}`)
   } catch (e) {
-    console.warn(`[WARNING] Failed to stop/remove container ${name}:`, e)
+    console.warn(`[WARNING] Failed to stop/remove container ${id}:`, e)
   }
 }
 
@@ -263,15 +263,44 @@ export async function isContainerRunning(name: string): Promise<boolean> {
  */
 export async function listRunningContainers(): Promise<RunningContainer[]> {
   try {
-    const { stdout } = await execPromise("docker ps --format '{{json .}}'")
-    const lines = stdout.trim().split("\n").filter(Boolean)
-    return lines.map((line) => {
-      const data = JSON.parse(line) as Record<string, string>
+    const docker = new Docker({ socketPath: "/var/run/docker.sock" })
+    const containers = await docker.listContainers({
+      all: true,
+      filters: {
+        status: ["running"],
+      },
+    })
+
+    return containers.map((c) => {
+      const labels = c.Labels ?? {}
+      const owner = labels.owner
+      const repo = labels.repo
+      const branch = labels.branch
+      const subdomain = labels.subdomain
+      const repoFullName = owner && repo ? `${owner}/${repo}` : undefined
+
       return {
-        id: data.ID,
-        name: data.Names,
-        image: data.Image,
-        status: data.Status,
+        id: c.Id,
+        name: (c.Names?.[0] ?? "").replace(/^\//, ""),
+        image: c.Image,
+        status: c.State,
+        ports: c.Ports?.filter((p) => typeof p.PrivatePort === "number")
+          .map((p) => {
+            const pub =
+              typeof p.PublicPort === "number" ? p.PublicPort : undefined
+            const proto = p.Type || "tcp"
+            const host = p.IP && p.IP !== "0.0.0.0" ? `${p.IP}:` : ""
+            return pub
+              ? `${host}${pub}->${p.PrivatePort}/${proto}`
+              : `${p.PrivatePort}/${proto}`
+          })
+          .join(", "),
+        uptime: c.Status, // e.g., "Up 2 hours"
+        owner,
+        repo,
+        repoFullName,
+        branch,
+        subdomain,
       }
     })
   } catch (error) {
