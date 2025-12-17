@@ -1,18 +1,15 @@
+import {
+  getPullRequestDiscussionGraphQL,
+  getPullRequestMetaAndLinkedIssue,
+} from "@shared/adapters/github/octokit/graphql/pullRequest.reader"
+import { GitHubAuthProvider } from "@shared/ports/github/auth"
 import { v4 as uuidv4 } from "uuid"
 
 import { DependentPRAgent } from "@/lib/agents/DependentPRAgent"
 import { execInContainerWithDockerode } from "@/lib/docker"
 import { getRepoFromString } from "@/lib/github/content"
 import { getInstallationTokenFromRepo } from "@/lib/github/installation"
-import { getIssue } from "@/lib/github/issues"
-import {
-  getLinkedIssuesForPR,
-  getPullRequest,
-  getPullRequestComments,
-  getPullRequestDiff,
-  getPullRequestReviewCommentsGraphQL,
-  getPullRequestReviews,
-} from "@/lib/github/pullRequests"
+import { getPullRequestDiff } from "@/lib/github/pullRequests"
 import { checkRepoPermissions } from "@/lib/github/users"
 import { langfuse } from "@/lib/langfuse"
 import {
@@ -21,20 +18,27 @@ import {
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
-import { createBranchTool } from "@/lib/tools/Branch"
 import { RepoEnvironment } from "@/lib/types"
-import { GitHubIssue, RepoPermissions } from "@/lib/types/github"
+import { RepoPermissions } from "@/lib/types/github"
 import {
   createContainerizedDirectoryTree,
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 
+import { generatePRDataMessage } from "./createDependentPR.formatMessage"
+
 interface CreateDependentPRParams {
   repoFullName: string
   pullNumber: number
   apiKey: string
   jobId?: string
+  initiator?: {
+    type: "ui_button" | "webhook_label" | "api"
+    actorLogin?: string
+    label?: string
+  }
+  authProvider: GitHubAuthProvider
 }
 
 export async function createDependentPRWorkflow({
@@ -42,6 +46,8 @@ export async function createDependentPRWorkflow({
   pullNumber,
   apiKey,
   jobId,
+  initiator,
+  authProvider,
 }: CreateDependentPRParams) {
   const workflowId = jobId || uuidv4()
   let containerCleanup: (() => Promise<void>) | null = null
@@ -62,33 +68,22 @@ export async function createDependentPRWorkflow({
       content: `Starting dependent PR workflow for ${repoFullName}#${pullNumber}`,
     })
 
-    // Fetch PR details and context
-    const pr = await getPullRequest({ repoFullName, pullNumber })
-    const headRef = pr.head.ref
-    const baseRef = pr.base.ref
+    // Fetch PR meta, diff, and discussion in parallel
+    const [diff, prMetaAndLinkedIssue, prDiscussion] = await Promise.all([
+      getPullRequestDiff({ repoFullName, pullNumber }),
+      getPullRequestMetaAndLinkedIssue(repoFullName, pullNumber, authProvider),
+      getPullRequestDiscussionGraphQL(repoFullName, pullNumber, authProvider),
+    ])
+
+    const headRef = prMetaAndLinkedIssue.headRefName
+    const baseRef = prMetaAndLinkedIssue.baseRefName
 
     await createStatusEvent({
       workflowId,
       content: `PR #${pullNumber}: ${baseRef} <- ${headRef}`,
     })
 
-    // Fetch linked issue (first closing reference if any) and PR artifacts in parallel
-    let linkedIssue: GitHubIssue | undefined
-    const [linkedIssues, diff, comments, reviews, reviewThreads] =
-      await Promise.all([
-        getLinkedIssuesForPR({ repoFullName, pullNumber }),
-        getPullRequestDiff({ repoFullName, pullNumber }),
-        getPullRequestComments({ repoFullName, pullNumber }),
-        getPullRequestReviews({ repoFullName, pullNumber }),
-        getPullRequestReviewCommentsGraphQL({ repoFullName, pullNumber }),
-      ])
-    if (linkedIssues.length > 0) {
-      const res = await getIssue({
-        fullName: repoFullName,
-        issueNumber: linkedIssues[0],
-      })
-      if (res.type === "success") linkedIssue = res.issue
-    }
+    const linkedIssue = prMetaAndLinkedIssue.linkedIssue
 
     // Ensure local repository exists and is up-to-date
     const repo = await getRepoFromString(repoFullName)
@@ -162,18 +157,6 @@ export async function createDependentPRWorkflow({
       })
     }
 
-    // Create a dependent branch off the PR head
-    const dependentBranch = `${headRef}-followup-${workflowId.slice(0, 8)}`
-    await createStatusEvent({
-      workflowId,
-      content: `Creating dependent branch ${dependentBranch}`,
-    })
-    const branchTool = createBranchTool(env)
-    await branchTool.handler({
-      branch: dependentBranch,
-      createIfNotExists: true,
-    })
-
     // Create directory tree for context
     const tree = await createContainerizedDirectoryTree(containerName)
 
@@ -182,102 +165,66 @@ export async function createDependentPRWorkflow({
       apiKey,
       env,
       defaultBranch: repo.default_branch,
-      repository: repo,
-      issueNumber: linkedIssue?.number,
+      owner,
+      repo: repoName,
       sessionToken: sessionToken || undefined,
       jobId: workflowId,
+      pullNumber,
+      originalBody: prMetaAndLinkedIssue.body ?? "",
+      authProvider,
     })
 
     const trace = langfuse.trace({
-      name: `Create dependent PR for #${pullNumber}`,
+      name: `Update PR for #${pullNumber}`,
       input: { repoFullName, pullNumber },
     })
-    const span = trace.span({ name: "createDependentPR" })
-    agent.addSpan({ span, generationName: "createDependentPR" })
+    const span = trace.span({ name: "updatePullRequest" })
+    agent.addSpan({ span, generationName: "updatePullRequest" })
 
-    // Seed agent with context and instructions
-    const formattedComments = comments
-      .map(
-        (c, i) =>
-          `Comment ${i + 1} by ${c.user?.login || "unknown"} at ${new Date(c.created_at || new Date().toISOString()).toLocaleString()}\n${c.body}`
-      )
-      .join("\n\n")
+    // Add PR data to agent as a message
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || ""
+    const workflowUrl = baseUrl
+      ? `${baseUrl.replace(/\/$/, "")}/workflow-runs/${workflowId}`
+      : null
 
-    const formattedReviews = reviews
-      .map(
-        (r, i) =>
-          `Review ${i + 1} by ${r.user?.login || "unknown"} (${r.state}) at ${new Date(r.submitted_at || new Date().toISOString()).toLocaleString()}\n${r.body || "No comment provided"}`
-      )
-      .join("\n\n")
+    const dataMessage = generatePRDataMessage({
+      repoFullName,
+      pullNumber,
+      workflowId,
+      workflowUrl,
+      initiator,
+      prMetaAndLinkedIssue,
+      prDiscussion,
+      linkedIssue,
+      tree,
+      diff,
+    })
 
-    // Include review line comments (code review threads)
-    const formattedReviewThreads = reviewThreads
-      .map((rev, i) => {
-        const header = `Review Thread ${i + 1} by ${rev.author || "unknown"} (${rev.state}) at ${new Date(
-          rev.submittedAt || new Date().toISOString()
-        ).toLocaleString()}\n${rev.body || "No review body"}`
-        const commentsBlock = (rev.comments || [])
-          .map((c) => {
-            const hunk = c.diffHunk ? `\n      Hunk:\n${c.diffHunk}` : ""
-            return `    - [${c.file || "unknown file"}] ${c.body}${hunk}`
-          })
-          .join("\n")
-        return commentsBlock ? `${header}\n${commentsBlock}` : header
-      })
-      .join("\n\n")
+    await agent.addInput({
+      role: "user",
+      type: "message",
+      content: dataMessage,
+    })
 
-    const message = `
-# Goal
-Implement a follow-up patch that addresses reviewer comments and discussion on PR #${pullNumber}. Work directly on branch '${dependentBranch}' which is branched off '${headRef}'. When done, push this branch to origin using the sync tool, then create a new PR targeting the repository's default branch ('${repo.default_branch}') using the create_pull_request tool.
+    await createStatusEvent({ workflowId, content: "Starting PR update agent" })
 
-# Repository
-${repoFullName}
-
-# Linked Issue
-${linkedIssue ? `#${linkedIssue.number} ${linkedIssue.title}\n${linkedIssue.body}` : "(none)"}
-
-# Codebase Directory
-${tree.join("\n")}
-
-# Current PR Diff (truncated)
-${diff.slice(0, 200000)}
-... (truncated)
-
-${formattedComments ? `# Comments\n${formattedComments}\n` : ""}
-${formattedReviews ? `# Reviews\n${formattedReviews}\n` : ""}
-${formattedReviewThreads ? `# Review Line Comments\n${formattedReviewThreads}\n` : ""}
-
-# Requirements
-- Make only the changes necessary to satisfy the feedback in comments and reviews.
-- Keep changes small and focused.
-- Use meaningful commit messages.
-- Run repo checks (type-check/lint) via the provided tools before finishing.
-- When finished, push branch '${dependentBranch}' to GitHub using the sync tool.
-- Finally, create a PR with base '${repo.default_branch}' using the create_pull_request tool. Choose a clear title and provide a detailed description of the changes you made in response to the reviews. Do not manually append issue references in the body; they will be added automatically if applicable.
-`
-
-    await agent.addInput({ role: "user", type: "message", content: message })
-
-    await createStatusEvent({ workflowId, content: "Starting dependent PR agent" })
-
-    const result = await agent.runWithFunctions()
+    await agent.runWithFunctions()
 
     // Best-effort: ensure branch is pushed (idempotent if already pushed)
     await createStatusEvent({
       workflowId,
-      content: `Ensuring branch ${dependentBranch} is pushed`,
+      content: `Ensuring branch ${headRef} is pushed`,
     })
     if (sessionToken) {
       await execInContainerWithDockerode({
         name: containerName,
-        command: `git push -u origin ${dependentBranch} || true`,
+        command: `git push -u origin ${headRef} || true`,
       })
     }
 
     await createWorkflowStateEvent({ workflowId, state: "completed" })
     return {
-      agentResult: result,
-      branch: dependentBranch,
+      branch: headRef,
     }
   } catch (error) {
     await createErrorEvent({ workflowId, content: String(error) })
@@ -291,4 +238,3 @@ ${formattedReviewThreads ? `# Review Line Comments\n${formattedReviewThreads}\n`
     if (containerCleanup) await containerCleanup()
   }
 }
-
