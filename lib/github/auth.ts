@@ -69,11 +69,15 @@ export function makeNextjsGitHubAuthProvider(
     const cached = installationIdMap.get(key)
     if (cached) return cached
 
-    const installation = await requestInstallation(app, input)
-    if (!installation.data.id) {
-      throw new Error("Installation ID not found")
-    }
-    return installation.data.id
+    const promise = requestInstallation(app, input).then((installation) => {
+      if (!installation.data.id) {
+        throw new Error("Installation ID not found")
+      }
+      return installation.data.id
+    })
+
+    installationIdMap.set(key, promise)
+    return promise
   }
 
   async function getUserClient(): Promise<GitHubClientBundle<"user">> {
