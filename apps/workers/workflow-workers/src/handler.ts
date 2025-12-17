@@ -26,7 +26,7 @@ export async function handler(job: Job): Promise<string> {
   if (!job.id) {
     await publishJobStatus("unknown", "Failed: Job ID is required")
     throw new Error("Job ID is required")
-  }
+    }
 
   await publishJobStatus(job.id, "Parsing job")
 
@@ -66,6 +66,19 @@ export async function handler(job: Job): Promise<string> {
         )
         return result.map((m) => m.content).join("\n")
       }
+      case "createDependentPR": {
+        // Stub implementation for now; the full workflow runs in the web app.
+        await publishJobStatus(
+          job.id,
+          "Job: Create dependent PR (dispatching to web workflow runner)"
+        )
+        // In a future iteration, this worker can invoke a shared usecase.
+        await publishJobStatus(
+          job.id,
+          "Completed: createDependentPR job dispatched"
+        )
+        return "createDependentPR dispatched"
+      }
       default: {
         await publishJobStatus(job.id, "Failed: Unknown job name")
         throw new Error(`Unknown job name: ${job.name}`)
@@ -77,3 +90,4 @@ export async function handler(job: Job): Promise<string> {
     throw error instanceof Error ? error : new Error(msg)
   }
 }
+
