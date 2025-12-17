@@ -26,6 +26,8 @@ import {
 } from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 
+import { generatePRDataMessage } from "./createDependentPR.formatMessage"
+
 interface CreateDependentPRParams {
   repoFullName: string
   pullNumber: number
@@ -75,7 +77,6 @@ export async function createDependentPRWorkflow({
 
     const headRef = prMetaAndLinkedIssue.headRefName
     const baseRef = prMetaAndLinkedIssue.baseRefName
-    const startingHeadSha = prMetaAndLinkedIssue.headRefOid
 
     await createStatusEvent({
       workflowId,
@@ -180,74 +181,30 @@ export async function createDependentPRWorkflow({
     const span = trace.span({ name: "updatePullRequest" })
     agent.addSpan({ span, generationName: "updatePullRequest" })
 
-    // Seed agent with context and instructions
-    const formattedComments = prDiscussion.comments
-      .map((c) => {
-        const author = c.author?.login || "unknown"
-        const when = new Date(
-          c.createdAt || new Date().toISOString()
-        ).toLocaleString()
-        return `Comment by ${author} at ${when}\n${c.body}`
-      })
-      .join("\n\n")
+    // Add PR data to agent as a message
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || ""
+    const workflowUrl = baseUrl
+      ? `${baseUrl.replace(/\/$/, "")}/workflow-runs/${workflowId}`
+      : null
 
-    const formattedReviews = prDiscussion.reviews
-      .map((r) => {
-        const author = r.author?.login || "unknown"
-        const when = new Date(
-          r.submittedAt || new Date().toISOString()
-        ).toLocaleString()
-        return `Review by ${author} (${r.state}) at ${when}\n${r.body || "No comment provided"}`
-      })
-      .join("\n\n")
+    const dataMessage = generatePRDataMessage({
+      repoFullName,
+      pullNumber,
+      workflowId,
+      workflowUrl,
+      initiator,
+      prMetaAndLinkedIssue,
+      prDiscussion,
+      linkedIssue,
+      tree,
+      diff,
+    })
 
-    // Include review line comments (flattened from reviews)
-    const reviewLineComments = prDiscussion.reviews.flatMap(
-      (r) => r.comments || []
-    )
-    const formattedReviewThreads = reviewLineComments
-      .map((c, i) => {
-        const author = c.author?.login || "unknown"
-        const when = new Date(
-          c.createdAt || new Date().toISOString()
-        ).toLocaleString()
-        const location = c.path || "unknown file"
-        const hunk = c.diffHunk ? `\n      Hunk:\n${c.diffHunk}` : ""
-        return `Review Comment ${i + 1} by ${author} on ${location} at ${when}\n${c.body}${hunk}`
-      })
-      .join("\n\n")
-
-    const message = `
-# Goal
-Implement follow-up commits that address reviewer comments and discussion on PR #${pullNumber}. Work directly on the existing PR branch '${headRef}'. When done, push this branch to origin using the sync tool. Do NOT create a new PR.
-
-# Repository
-${repoFullName}
-
-# Linked Issue
-${linkedIssue ? `#${linkedIssue.number} ${linkedIssue.title}\n${linkedIssue.body}` : "(none)"}
-
-# Codebase Directory
-${tree.join("\n")}
-
-# Current PR Diff (truncated)
-${diff.slice(0, 200000)}
-... (truncated)
-
-${formattedComments ? `# Comments\n${formattedComments}\n` : ""}
-${formattedReviews ? `# Reviews\n${formattedReviews}\n` : ""}
-${formattedReviewThreads ? `# Review Line Comments\n${formattedReviewThreads}\n` : ""}
-
-# Requirements
-- Make only the changes necessary to satisfy the feedback in comments and reviews.
-- Keep changes small and focused.
-- Use meaningful commit messages.
-- Run repo checks (type-check/lint) via the provided tools before finishing.
-- When finished, push branch '${headRef}' to GitHub using the sync tool.
-- Do not create new branches or PRs; this workflow updates the existing PR.
-`
-
-    await agent.addInput({ role: "user", type: "message", content: message })
+    await agent.addInput({
+      role: "user",
+      type: "message",
+      content: dataMessage,
+    })
 
     await createStatusEvent({ workflowId, content: "Starting PR update agent" })
 
@@ -264,113 +221,6 @@ ${formattedReviewThreads ? `# Review Line Comments\n${formattedReviewThreads}\n`
         command: `git push -u origin ${headRef} || true`,
       })
     }
-
-    // Resolve new head SHA and commits added during this run
-    const { stdout: newHeadShaOut } = await execInContainerWithDockerode({
-      name: containerName,
-      command: `git rev-parse HEAD`,
-    })
-    const newHeadSha = newHeadShaOut.trim()
-
-    let commitsBetween: { sha: string; subject: string }[] = []
-    if (startingHeadSha && newHeadSha && startingHeadSha !== newHeadSha) {
-      const { stdout: logOut } = await execInContainerWithDockerode({
-        name: containerName,
-        command: `git log --pretty=format:%H\t%s ${startingHeadSha}..${newHeadSha}`,
-      })
-      commitsBetween = logOut
-        .split("\n")
-        .map((line) => line.trim())
-        .filter(Boolean)
-        .map((line) => {
-          const [sha, ...rest] = line.split("\t")
-          return { sha, subject: rest.join("\t") }
-        })
-    }
-
-    // Build PR description update context and hand off to the agent to update the body
-    const timestamp = new Date().toISOString()
-    const originalBody = prMetaAndLinkedIssue.body ?? ""
-
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || ""
-    const workflowUrl = baseUrl
-      ? `${baseUrl.replace(/\/$/, "")}/workflow-runs/${workflowId}`
-      : null
-
-    const headShaLink = `https://github.com/${repoFullName}/commit/${startingHeadSha}`
-    const newHeadShaLink = `https://github.com/${repoFullName}/commit/${newHeadSha}`
-    const branchLink = `https://github.com/${repoFullName}/tree/${headRef}`
-
-    // Build comment reference list with links
-    const issueCommentLines = prDiscussion.comments.map((c) => {
-      const author = c.author?.login || "unknown"
-      const when = c.createdAt
-        ? new Date(c.createdAt).toLocaleString()
-        : "unknown time"
-      const url =
-        c.url || `https://github.com/${repoFullName}/pull/${pullNumber}`
-      return `- General comment by @${author} on ${when}: ${url}`
-    })
-
-    const reviewCommentLines = reviewLineComments.map((rc) => {
-      const author = rc.author?.login || "unknown"
-      const when = rc.createdAt
-        ? new Date(rc.createdAt).toLocaleString()
-        : "unknown time"
-      const url =
-        rc.url || `https://github.com/${repoFullName}/pull/${pullNumber}`
-      const path = rc.path || "file"
-      return `- Review comment by @${author} on ${path} at ${when}: ${url}`
-    })
-
-    const commitsList = commitsBetween
-      .map(
-        (c) =>
-          `- ${c.sha.substring(0, 8)} ${c.subject} (${`https://github.com/${repoFullName}/commit/${c.sha}`})`
-      )
-      .join("\n")
-
-    const initiatorLine = (() => {
-      if (!initiator) return "Initiated by: (unknown)"
-      switch (initiator.type) {
-        case "ui_button":
-          return `Initiated by: @${initiator.actorLogin || "unknown"} via Create Dependent PR button`
-        case "webhook_label":
-          return `Initiated by: webhook label '${initiator.label || "unknown"}'${initiator.actorLogin ? ` (applied by @${initiator.actorLogin})` : ""}`
-        case "api":
-        default:
-          return `Initiated by: API call${initiator.actorLogin ? ` by @${initiator.actorLogin}` : ""}`
-      }
-    })()
-
-    const prBodyContext = `
-# Current PR Body
-${originalBody || "(empty)"}
-
-# Update Context (for PR body)
-- Timestamp: ${timestamp}
-- ${initiatorLine}
-- Workflow: ${workflowUrl || "(n/a)"}
-- Branch: ${headRef} (${branchLink})
-- Starting head: ${startingHeadSha.substring(0, 12)} (${headShaLink})
-- New head: ${newHeadSha.substring(0, 12)} (${newHeadShaLink})
-${commitsBetween.length > 0 ? `\n## Commits added in this run\n${commitsList}` : "\n## No new commits were added in this run."}
-\n## Referenced comments
-${issueCommentLines.concat(reviewCommentLines).join("\n") || "- (No comments found)"}
-
-## Guidance
-Craft an updated PR description that:
-- Focuses on a clear "Update" section summarizing what changed in this run and which feedback was addressed.
-- Uses concise bullets with links where helpful, especially to specific comments and commits.
-- Avoids manually appending issue references; tooling will handle linkage where applicable.
-When ready, call the tool 'update_pull_request' with ONLY the new update section to append to the existing PR body. Do not repeat or rewrite the original PR description above; it will be preserved automatically.
-`
-
-    await agent.addInput({
-      role: "user",
-      type: "message",
-      content: prBodyContext,
-    })
 
     await createWorkflowStateEvent({ workflowId, state: "completed" })
     return {
