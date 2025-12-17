@@ -4,6 +4,11 @@ jest.mock("node:child_process", () => {
   }
 })
 
+import type {
+  ChildProcess,
+  ExecException,
+  ExecOptions,
+} from "node:child_process"
 import { exec as execCallback } from "node:child_process"
 
 import { setupEnv } from "@/lib/utils/cli"
@@ -13,6 +18,13 @@ const execMock = execCallback as unknown as jest.MockedFunction<
   typeof execCallback
 >
 
+// Typed callback used by our mock
+type ExecCallback = (
+  error: ExecException | null,
+  stdout: string,
+  stderr: string
+) => void
+
 describe("setupEnv utility", () => {
   const baseDir = process.cwd()
 
@@ -21,20 +33,21 @@ describe("setupEnv utility", () => {
   })
 
   it("returns confirmation when 'pnpm i' succeeds", async () => {
-    // Arrange mocked successful exec
     execMock.mockImplementation(
       (
         cmd: string,
-        options: unknown,
-        callback: (error: Error | null, stdout: string, stderr: string) => void
-      ) => {
-        // Support optional options argument
-        if (typeof options === "function") {
-          callback = options
-        }
+        optionsOrCallback?: ExecOptions | ExecCallback | null,
+        maybeCallback?: ExecCallback | null
+      ): ChildProcess => {
+        const callback: ExecCallback =
+          typeof optionsOrCallback === "function"
+            ? optionsOrCallback
+            : (maybeCallback as ExecCallback)
+
         callback(null, "installation complete", "")
-        // Return dummy ChildProcess object
-        return {}
+
+        // We don't care about the ChildProcess in this test; satisfy TS with a cast.
+        return {} as ChildProcess
       }
     )
 
@@ -50,21 +63,27 @@ describe("setupEnv utility", () => {
   })
 
   it("throws a helpful error when the command fails", async () => {
-    // Arrange mocked failing exec
     execMock.mockImplementation(
       (
         cmd: string,
-        options: unknown,
-        callback: (error: Error | null, stdout: string, stderr: string) => void
-      ) => {
-        if (typeof options === "function") {
-          callback = options
-        }
-        const error = new Error("mock failure")
-        error.stdout = "some stdout"
-        error.stderr = "some stderr"
+        optionsOrCallback?: ExecOptions | ExecCallback | null,
+        maybeCallback?: ExecCallback | null
+      ): ChildProcess => {
+        const callback: ExecCallback =
+          typeof optionsOrCallback === "function"
+            ? optionsOrCallback
+            : (maybeCallback as ExecCallback)
+
+        const error: ExecException & {
+          stdout: string
+          stderr: string
+        } = Object.assign(new Error("mock failure"), {
+          stdout: "some stdout",
+          stderr: "some stderr",
+        })
+
         callback(error, "some stdout", "some stderr")
-        return {}
+        return {} as ChildProcess
       }
     )
 
