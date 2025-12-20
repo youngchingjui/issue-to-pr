@@ -41,11 +41,11 @@ async function getPermittedWorkflowRuns() {
     const allowed = new Set(repos.map((r) => r.nameWithOwner))
 
     return allRuns.filter((run) => {
-      // If the run is linked to an issue, ensure the user has access to the repo
-      if (run.issue) return allowed.has(run.issue.repoFullName)
-      // If the run is not linked to an issue (e.g., PR-centric or internal
-      // utility workflows), include it so the list shows all workflow types.
-      return true
+      // Only include runs that are linked to an issue in a repository the
+      // current user can access. This prevents leaking runs from private
+      // repositories or internal runs without repository context.
+      if (!run.issue) return false
+      return allowed.has(run.issue.repoFullName)
     })
   } catch (err) {
     // If we fail to retrieve the accessible repositories (likely because the
@@ -115,3 +115,4 @@ export default async function WorkflowRunsPage() {
     )
   })
 }
+
