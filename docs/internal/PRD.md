@@ -12,19 +12,19 @@ Update workflow run listing behavior to be least surprising for users today, whi
 
 ## Decision (v1)
 
-Show workflow runs initiated by the currently authenticated Issue to PR user.
-• If a run was not initiated by the current app user, it should not appear in the list.
-• All runs on a repository that is owned by the currently authenticated Issue to PR user should be shown.
+Show workflow runs visible to the currently authenticated Issue to PR user when either condition is true:
+• The run was initiated by the current user; or
+• The run executed on a repository owned by the current user.
+
+Additional notes:
 • No “partial visibility” (no placeholders like “hidden runs exist”) in v1.
-• We will keep the implementation simple and compatible with future tenancy + filtering.
+• Keep the implementation simple and compatible with future tenancy + filtering.
 
 ## Contradictions / ambiguities to resolve
 
-• “Show workflow runs initiated by the currently authenticated Issue to PR user” conflicts with “All runs on a repository that is owned by the currently authenticated Issue to PR user should be shown.” These imply different scopes (initiator-only vs repo-owner visibility).
-• Authorization policy says list/details/logs are allowed only if the current user is the initiator of the run. That conflicts with showing all runs for repos the user owns (non-initiated runs would be visible).
-• Requirements say “Workflow Runs page shows only ‘My runs’ (Definition of ‘My runs’ to be defined)” while Decision already defines behavior; this needs a single source of truth.
-• Context says: “We also want to show workflow runs that were initiated by the same user if they added a label to the issue or PR.” That implies linking a GitHub label actor to the Issue to PR user account; the mapping and trust model are unspecified.
-• Non-goals say “Data migration to retroactively attribute old workflow runs,” but the Unresolved section suggests a default rule for older runs (repo owner match). This needs a clear v1 stance (no backfill vs best-effort backfill).
+• Identity mapping and trust for webhook actors (label-based triggers): how we link a GitHub webhook "actor" to an Issue to PR user account, and how we treat unmapped actors. See “Identity mapping and trust considerations (webhooks)” below.
+• UI copy: should the page explicitly communicate repo-owner visibility (e.g., subtitle/tooltip “Includes runs on repositories you own”) vs just “My workflow runs”.
+• Shared ports/adapters boundaries: confirm the exact locations/names in the shared folder for the event store and workflow-runs listing APIs.
 
 ## Non-goals (v1)
 
@@ -40,14 +40,14 @@ A workflow run can be initiated by:
 • Issue to PR app UI: user launches from “Launch workflow” dropdown
 • GitHub event/webhook: label added to issue/PR triggers webhook -> workers launch a run (actor may be a GitHub user or automation)
 
-In v1, we only show runs where the initiator is the current Issue to PR user.
+In v1, a user can see runs they initiated and runs executed on repositories they own.
 We also want to show workflow runs that were initiated by the same user if they added a label to the issue or PR.
 Also, we want to show workflow runs on a repository that is owned by the currently authenticated Issue to PR user.
 
 ## Current status (how workflow runs are retrieved today)
 
 • Workflow Runs page (`app/workflow-runs/page.tsx`) loads all runs via `listWorkflowRuns()` and filters them by repositories returned from GitHub (`listUserRepositories`). This is a repo-access filter, not an initiator filter; public repos are included for any user.
-• The Workflow Runs API (`app/api/workflow-runs/route.ts`) behaves similarly: `listWorkflowRuns()` returns all runs, then the API filters by `listUserRepositories` unless a specific repo/issue is requested (in that case it returns all runs for that issue without further filtering).
+• The Workflow Runs API (`app/api/workflow-runs/route.ts`) behaves similarly: `listWorkflowRuns()` returns all runs, then the API filters by `listUserRepositories` unless a specific repo/issue is requested (in that case it returns all runs for that issue without further filtering). Note: this API route is used by the `components/issues/IssueWorkflowRuns.tsx` client component via SWR.
 • `listWorkflowRuns()` in `lib/neo4j/services/workflow.ts` calls `listAll()` or `listForIssue()` in `lib/neo4j/repositories/workflowRun.ts`. The underlying Neo4j query returns all `WorkflowRun` nodes and optionally joins the related `Issue` and latest `workflowState` event. There is no initiator/user filtering in the database layer.
 • `initializeWorkflowRun()` in `lib/neo4j/services/workflow.ts` currently creates a `WorkflowRun` node with only `id`, `type`, `createdAt`, and `postToGithub`, plus an optional `Issue` link. There is no stored initiator attribution today.
 
@@ -55,8 +55,7 @@ Also, we want to show workflow runs on a repository that is owned by the current
 
 ### Product behavior
 
-1. Workflow Runs page shows only “My runs”
-   (Definition of “My runs” to be defined)
+1. Workflow Runs page shows “My runs” where “My runs” = runs initiated by me OR runs on repositories I own.
 
 ### Data model / attribution (forward-looking, required for v1)
 
@@ -82,157 +81,76 @@ Nodes:
 • (:WorkflowRun {id, created_at, status, trigger_type, ...})
 • (:Repository {id, full_name, provider:"github"})
 • (:Installation {id, github_installation_id})
-• (:User {id, github_username, ...}) (Issue to PR user; GitHub mapping optional)
+• (:User {id, github_user_id, login}) (Issue to PR user; GitHub mapping preferred)
 
 Relationships:
 • (wr)-[:ON_REPO]->(repo)
 • (wr)-[:UNDER_INSTALLATION]->(inst)
 • (wr)-[:INITIATED_BY]->(user)
 
+Persistence policy:
+• Only persist immutable identifiers (e.g., GitHub numeric IDs, installation ID). Do not persist mutable fields (e.g., titles, repoFullName changes) beyond what’s necessary for linking. Fetch mutable presentation data from GitHub as the source of truth.
+
 ## Code changes outline (no implementation)
 
-### Data model + schema shape
+### Shared ports/adapters and types
 
-• `lib/types/index.ts`
-  • Extend `workflowRunSchema` to include optional attribution fields:
-    • `initiatorUserId?: string`
-    • `initiatorGithubUsername?: string`
-    • `triggerType?: "app_ui" | "webhook_label_issue" | "webhook_label_pr" | "webhook_unknown"`
-    • `installationId?: string`
-    • `repoFullName?: string` (if we want workflow-run records even without Issue linkage)
-• `lib/types/db/neo4j.ts`
-  • Mirror the additions in the Neo4j-layer `workflowRunSchema` so Neo4j models can parse the new fields.
+• Add or extend business-level types in the shared folder (source of truth):
+  • `shared/src/lib/types/index.ts` (business types)
+  • `shared/src/lib/types/db/neo4j.ts` (Neo4j-facing shapes), independently defined from business types.
+• Create/extend an Event Store port (and Neo4j adapter) in `shared` responsible for persisting workflow runs and related nodes via MERGE:
+  • On initialize/start: MERGE `WorkflowRun`, `User`, `Repository`, `Installation` nodes and relationships.
+  • Persist only immutable identifiers from GitHub; derive presentation data at read-time from GitHub APIs.
+• Create/extend a WorkflowRunsRepository/List port in `shared` with a discriminated-union filter:
+  • `{ by: 'initiator', user: User }`
+  • `{ by: 'repository', repo: Repository }`
+  • `{ by: 'issue', issue: { repoFullName: string; issueNumber: number } }`
+• Return type: `WorkflowRun[]` enriched with final run state and optionally related entities (issue?, initiator?, repository?, installation?).
 
 ### Run creation / attribution
 
-• `lib/neo4j/services/workflow.ts`
-  • Update `initializeWorkflowRun({ ... })` signature to accept attribution fields:
-    ```ts
-    export async function initializeWorkflowRun({
-      id,
-      type,
-      issueNumber,
-      repoFullName,
-      postToGithub,
-      initiatorUserId,
-      initiatorGithubUsername,
-      triggerType,
-      installationId,
-    }: {
-      id: string
-      type: WorkflowType
-      issueNumber?: number
-      repoFullName?: string
-      postToGithub?: boolean
-      initiatorUserId?: string
-      initiatorGithubUsername?: string
-      triggerType?: TriggerType
-      installationId?: string
-    }): Promise<{ issue?: AppIssue; run: AppWorkflowRun }>
-    ```
-  • Pass those fields to the repository layer when creating or merging a `WorkflowRun`.
-
-• `lib/neo4j/repositories/workflowRun.ts`
-  • Update `create(tx, workflowRun)` to include new properties in the `CREATE (w:WorkflowRun { ... })` map.
-  • Update `mergeIssueLink(tx, { workflowRun, issue })` to set `workflowRun` properties when merging.
+• Event Store port (shared): add `initializeWorkflowRun({...})` to accept attribution fields such as:
+  • `id`, `type`, `issueNumber?`, `repoFullName?`, `postToGithub?`,
+  • `initiatorUserId?`, `initiatorGithubUsername?`, `triggerType?`, `installationId?`.
+• Neo4j adapter (shared): MERGE nodes and relationships on initialize; set properties on `WorkflowRun` for the new attribution fields.
 
 ### Run listing + authorization
 
-• `lib/neo4j/services/workflow.ts`
-  • Add a user-scoped listing function (or extend `listWorkflowRuns`) to accept filters:
-    ```ts
-    export async function listWorkflowRuns({
-      issue,
-      initiatorUserId,
-      repoOwnerGithubUsername,
-    }: {
-      issue?: { repoFullName: string; issueNumber: number }
-      initiatorUserId?: string
-      repoOwnerGithubUsername?: string
-    }): Promise<(AppWorkflowRun & { state: WorkflowRunState; issue?: AppIssue })[]>
-    ```
-  • Apply v1 visibility rules consistently for list, detail, and log fetches.
-
-• `lib/neo4j/repositories/workflowRun.ts`
-  • Add a query to filter by `initiatorUserId` (and optionally by `repoOwnerGithubUsername` if we decide to honor the “repo owner sees all runs” rule).
-  • If we keep “repo owner sees all runs,” define how to derive repo ownership from `repoFullName` and compare it to the current user’s GitHub username.
-
-• `app/workflow-runs/page.tsx`
-  • Replace the repo-access filter with initiator-based filtering (and any explicit repo-owner visibility logic).
-  • Ensure UI copy changes to “My workflow runs.”
-
-• `app/api/workflow-runs/route.ts`
-  • Apply the same initiator/repo-owner filters used on the page.
-  • Keep issue-specific requests consistent with v1 access rules.
-
-• `app/workflow-runs/[traceId]/page.tsx`
-  • Gate detail view (and related event/log endpoints) using the same initiator-based access check to prevent ID-guessing.
-
-### Telemetry / reporting
-
-• `lib/neo4j/services/workflow.ts` or a shared telemetry utility
-  • Record a counter for runs missing `initiatorUserId` to quantify migration/backfill scope.
+• WorkflowRunsRepository (shared): implement `listWorkflowRuns(filter)` using the discriminated-union filters above.
+• Authorization (applied consistently across list, details, logs): allow access if requester is the initiator OR the owner of the repository.
+• App surfaces (Next.js pages and API routes) call the shared port and enforce the same authorization.
 
 ## Authorization policy (v1)
 
 For now, authorization is intentionally simple:
-• list / view_details / view_logs are allowed only if the current user is the initiator of the run.
+• list / view_details / view_logs are allowed if the current user is the initiator of the run OR owns the repository the run executed on.
 
 Note: We expect to evolve this into workspace + GitHub-permission based access later (separate PRD).
 
 ## UX / UI copy (v1)
 
 • Page title or prominent label should indicate scope clearly:
-• “My workflow runs” (preferred)
+• “My workflow runs” (consider subtitle/tooltip: “Includes runs on repositories you own”).
 • Empty state copy:
-• “No workflow runs started by you yet.”
+• “No workflow runs visible to you yet.”
 
 (We should avoid ambiguous wording like “Workflow Runs” without context.)
 
 ## Acceptance criteria
 
-• Visiting Workflow Runs page does not show runs initiated by other users, GitHub actors, or public repo activity unrelated to the current user.
-• Newly created runs launched from Issue to PR UI persist initiator_user_id and appear for that user.
-• Webhook-triggered runs without initiator_user_id do not appear in the list (v1).
-• Run detail/log endpoints enforce the same initiator-based access (no ID-guessing leaks).
-• Implementation does not block future tenancy/filtering (fields captured; model extensible).
+• Visiting Workflow Runs page shows runs initiated by the current user and runs on repositories the user owns; it does not show runs unrelated to the current user.
+• Newly created runs launched from Issue to PR UI persist initiator attribution and appear for that user.
+• Webhook-triggered runs appear when the actor maps to the current user (as initiator) or when the run’s repository is owned by the current user.
+• Run detail/log endpoints enforce the same access (no ID-guessing leaks) based on initiator-or-owner rules.
+• Implementation does not block future tenancy/filtering (fields captured; model extensible; shared ports defined).
 
-## Data migration (expanded)
+## Identity mapping and trust considerations (webhooks)
 
-### Scope / goals
-
-• Avoid exposing historical runs with unknown ownership.
-• Provide a path to improve historical visibility later without committing to a full backfill now.
-
-### Options
-
-1. **No migration (v1 default)**
-   • Do nothing for existing WorkflowRun nodes.
-   • Runs without `initiatorUserId` remain hidden in list/details/logs.
-   • Add telemetry to quantify how many runs are invisible due to missing attribution.
-
-2. **Best-effort backfill (limited, opt-in)**
-   • For runs linked to an Issue, infer `repoFullName` owner (`owner/repo`) and compare `owner` to the current user’s GitHub username.
-   • If the owner matches, set a `repoOwnerVisibility` flag (or populate `initiatorGithubUsername` with the owner) to allow the repo owner to see legacy runs.
-   • This should be explicit and logged to avoid accidental over-sharing.
-
-3. **Manual review queue (deferred)**
-   • Create an admin-only report of missing-attribution runs to review and re-attribute selectively.
-
-### Recommended v1 stance
-
-• Choose option 1 by default, while keeping the schema extensible for option 2 later.
-• If we decide to adopt option 2, document the exact criteria and add a one-time script (outside the app request path) to update legacy runs.
-
-## Implementation notes / tasks
-
-1. Add attribution at run creation
-   • Ensure worker/service that creates WorkflowRun persists initiator_user_id when launched via app UI.
-   • Persist trigger_type for all runs.
-   • Persist repo + installation identifiers. 2. Update listing query
-   • Filter workflow run listing by initiator_user_id == current_user_id. 3. Update run detail/log access checks
-   • Deny access if requester is not initiator. 4. Telemetry (optional but helpful)
-   • Log counts of runs excluded due to missing initiator_user_id (to quantify migration need later).
+• Source integrity: Verify GitHub webhook signatures (HMAC SHA-256 with shared secret) to prevent spoofed events.
+• Actor identity: Use GitHub-provided actor fields (e.g., `sender.id`, `sender.login`) as the event actor. Prefer mapping by stable numeric GitHub user ID; store only immutable identifiers.
+• App user mapping: Link the actor’s GitHub identity to an Issue to PR user account via next-auth/OAuth at sign-in time. If an actor has no mapping, treat the run as “unknown initiator” for user scope but still grant repo-owner visibility.
+• Sensitivity: Workflow run details/logs are medium sensitivity. With verified webhooks and initiator-or-owner policy, exposure risk is limited to principals who either caused the run or own the code repository.
+• Bots/automation: If the actor is a bot or GitHub App, do not attribute as a human initiator; rely on repo-owner visibility to surface relevant runs.
 
 ## Future work (explicitly deferred)
 
@@ -245,8 +163,11 @@ Note: We expect to evolve this into workspace + GitHub-permission based access l
 • Separate sensitivity levels:
 • list/details broadly visible
 • logs gated by stronger permissions
-• Backfill/migrate old runs to include attribution where possible.
+• Consider optional backfill strategies if we later want to increase historical visibility.
 
 ## Unresolved
 
-- how do we handle previous runs that don't have attributions? - maybe let's review them manually and confirm. 1 default could be if the repo owner matches their github username. that should actually be a given as well - users should be able to see all runs for repos that exist under their own github account.
+• Confirm final UI wording for union-based visibility (keep “My workflow runs” with clarifier vs alternative label).
+• Confirm shared ports/adapters file layout/names in `shared` to standardize usage across apps.
+• Finalize exact discriminated-union shapes and returned `WorkflowRun` enrichment (issue?, initiator?, repository?, installation?).
+
