@@ -81,12 +81,15 @@ Nodes:
 • (:WorkflowRun {id, created_at, status, trigger_type, ...})
 • (:Repository {id, full_name, provider:"github"})
 • (:Installation {id, github_installation_id})
-• (:User {id, github_user_id, login}) (Issue to PR user; GitHub mapping preferred)
+• (:User {id}) (Issue to PR application user)
+• (:GithubUser {id, login}) (GitHub identity; link to User when available)
 
 Relationships:
 • (wr)-[:ON_REPO]->(repo)
 • (wr)-[:UNDER_INSTALLATION]->(inst)
-• (wr)-[:INITIATED_BY]->(user)
+• (wr)-[:INITIATED_BY_USER]->(user)          // present when an app user initiated the run
+• (wr)-[:ACTOR_IS_GITHUB_USER]->(ghUser)     // webhook actor or UI actor’s mapped GitHub identity
+• (user)-[:LINKED_GITHUB_USER]->(ghUser)     // mapping between app user and GitHub identity
 
 Persistence policy:
 • Only persist immutable identifiers (e.g., GitHub numeric IDs, installation ID). Do not persist mutable fields (e.g., titles, repoFullName changes) beyond what’s necessary for linking. Fetch mutable presentation data from GitHub as the source of truth.
@@ -98,20 +101,27 @@ Persistence policy:
 • Add or extend business-level types in the shared folder (source of truth):
   • `shared/src/lib/types/index.ts` (business types)
   • `shared/src/lib/types/db/neo4j.ts` (Neo4j-facing shapes), independently defined from business types.
-• Create/extend an Event Store port (and Neo4j adapter) in `shared` responsible for persisting workflow runs and related nodes via MERGE:
-  • On initialize/start: MERGE `WorkflowRun`, `User`, `Repository`, `Installation` nodes and relationships.
+• Create/extend a DatabaseStorage port (and Neo4j adapter) in `shared` responsible for persisting workflow runs and related nodes via MERGE:
+  • On initialize/start: MERGE `WorkflowRun`, `User`, `GithubUser`, `Repository`, `Installation` nodes and relationships.
   • Persist only immutable identifiers from GitHub; derive presentation data at read-time from GitHub APIs.
+  • Proposed shapes and locations:
+    • `shared/src/ports/storage/index.ts`
+      • `export interface WorkflowRunContext { runId: string; repoId?: string; installationId?: string }`
+      • `export interface DatabaseStorage { workflow: { run: { create(input: CreateWorkflowRunInput): Promise<{ ctx: WorkflowRunContext }>; }; event: { append(ctx: WorkflowRunContext, event: WorkflowEventInput): Promise<void>; }; }; }`
+      • `export type CreateWorkflowRunInput = { id: string; type: string; issueNumber?: number; repoFullName?: string; postToGithub?: boolean; initiatorUserId?: string; initiatorGithubUserId?: string; initiatorGithubLogin?: string; triggerType?: "app_ui" | "webhook_label_issue" | "webhook_label_pr" | "webhook_unknown"; installationId?: string; }`
+      • `export type WorkflowEventInput = { type: string; payload: unknown; createdAt?: string }`
+    • Neo4j adapter at `shared/src/adapters/neo4j/repositories/WorkflowStorageAdapter.ts` implements `DatabaseStorage` and MERGEs nodes/relationships.
 • Create/extend a WorkflowRunsRepository/List port in `shared` with a discriminated-union filter:
   • `{ by: 'initiator', user: User }`
   • `{ by: 'repository', repo: Repository }`
   • `{ by: 'issue', issue: { repoFullName: string; issueNumber: number } }`
-• Return type: `WorkflowRun[]` enriched with final run state and optionally related entities (issue?, initiator?, repository?, installation?).
+• Return type: `WorkflowRun[]` enriched with final run state and optionally related entities (issue?, initiatorUser?, initiatorGithubUser?, repository?, installation?).
 
 ### Run creation / attribution
 
-• Event Store port (shared): add `initializeWorkflowRun({...})` to accept attribution fields such as:
+• DatabaseStorage port (shared): add `workflow.run.create({...})` to accept attribution fields such as:
   • `id`, `type`, `issueNumber?`, `repoFullName?`, `postToGithub?`,
-  • `initiatorUserId?`, `initiatorGithubUsername?`, `triggerType?`, `installationId?`.
+  • `initiatorUserId?`, `initiatorGithubUserId?`, `initiatorGithubLogin?`, `triggerType?`, `installationId?`.
 • Neo4j adapter (shared): MERGE nodes and relationships on initialize; set properties on `WorkflowRun` for the new attribution fields.
 
 ### Run listing + authorization
@@ -129,12 +139,10 @@ Note: We expect to evolve this into workspace + GitHub-permission based access l
 
 ## UX / UI copy (v1)
 
-• Page title or prominent label should indicate scope clearly:
-• “My workflow runs” (consider subtitle/tooltip: “Includes runs on repositories you own”).
+• H1: “Workflow Runs”
+• Subtitle (explicit scope): “Runs you started and runs on repositories you own.”
 • Empty state copy:
 • “No workflow runs visible to you yet.”
-
-(We should avoid ambiguous wording like “Workflow Runs” without context.)
 
 ## Acceptance criteria
 
@@ -167,7 +175,7 @@ Note: We expect to evolve this into workspace + GitHub-permission based access l
 
 ## Unresolved
 
-• Confirm final UI wording for union-based visibility (keep “My workflow runs” with clarifier vs alternative label).
+• Confirm final UI wording for union-based visibility (keep subtitle wording vs alternative label).
 • Confirm shared ports/adapters file layout/names in `shared` to standardize usage across apps.
-• Finalize exact discriminated-union shapes and returned `WorkflowRun` enrichment (issue?, initiator?, repository?, installation?).
+• Finalize exact discriminated-union shapes and returned `WorkflowRun` enrichment (issue?, initiatorUser?, initiatorGithubUser?, repository?, installation?).
 
