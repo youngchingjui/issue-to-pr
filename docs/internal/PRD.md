@@ -41,7 +41,7 @@ Also, we want to show workflow runs on a repository that is owned by the current
 ## Current status (how workflow runs are retrieved today)
 
 • Workflow Runs page (`app/workflow-runs/page.tsx`) loads all runs via `listWorkflowRuns()` and filters them by repositories returned from GitHub (`listUserRepositories`). This is a repo-access filter, not an initiator filter; public repos are included for any user.
-• The Workflow Runs API (`app/api/workflow-runs/route.ts`) behaves similarly: `listWorkflowRuns()` returns all runs, then the API filters by `listUserRepositories` unless a specific repo/issue is requested (in that case it returns all runs for that issue without further filtering). Note: this API route is used by the `components/issues/IssueWorkflowRuns.tsx` client component via SWR.
+• The Workflow Runs API (`app/api/workflow-runs/route.ts`) behaves similarly: `listWorkflowRuns()` returns all runs, then the API filters by `listUserRepositories` unless a specific repo/issue is requested (in that case it returns all runs for that issue without further filtering). Note: this API route is used by the `components/issues/IssueWorkflowRuns.tsx` client component via SWR. That component is rendered on the issue details page at `app/[username]/[repo]/issues/[issueId]/page.tsx`.
 • `listWorkflowRuns()` in `lib/neo4j/services/workflow.ts` calls `listAll()` or `listForIssue()` in `lib/neo4j/repositories/workflowRun.ts`. The underlying Neo4j query returns all `WorkflowRun` nodes and optionally joins the related `Issue` and latest `workflowState` event. There is no initiator/user filtering in the database layer.
 • `initializeWorkflowRun()` in `lib/neo4j/services/workflow.ts` currently creates a `WorkflowRun` node with only `id`, `type`, `createdAt`, and `postToGithub`, plus an optional `Issue` link. There is no stored initiator attribution today.
 
@@ -62,10 +62,14 @@ This PRD touches the following areas at a high level:
   - `app/workflow-runs/[traceId]/page.tsx` (details view; enforce same auth policy)
   - `app/api/workflow-runs/route.ts` (list API; use shared list port and auth)
   - `app/api/workflow-runs/[workflowId]/events/route.ts` (logs/events API; enforce same auth)
-  - `components/issues/IssueWorkflowRuns.tsx` (consumer of list API via SWR)
+  - `components/issues/IssueWorkflowRuns.tsx` (consumer of list API via SWR; rendered by `app/[username]/[repo]/issues/[issueId]/page.tsx`)
+
+• Next.js RSC vs DI usage
+  - For server components (RSC) where DI is awkward, import the shared Neo4j adapter directly for listing.
+  - For API routes, server actions, and workers, instantiate adapters and inject via ports (hexagonal) to keep composition flexible.
 
 • Workers/run initialization (persist attribution via shared port)
-  - Call `DatabaseStorage.workflow.run.create(...)` on run start, then `DatabaseStorage.workflow.event.append(ctx, ...)` for subsequent events.
+  - Call `DatabaseStorage.workflow.run.create(...)` on run start; use the returned run handle to append subsequent events via `run.append(event)`.
 
 Note: Existing `lib/neo4j/*` service/repository files remain for backward compatibility until callers migrate to the shared ports.
 
@@ -77,11 +81,11 @@ Note: Existing `lib/neo4j/*` service/repository files remain for backward compat
 
 • Run creation
   - As-is: `initializeWorkflowRun()` creates minimal `WorkflowRun` with no initiator or actor attribution.
-  - To-be: `DatabaseStorage.workflow.run.create(input)` MERGEs `WorkflowRun`, `User`, `GithubUser`, `Repository`, `Installation` and links via relationships. Returns `{ ctx }` used to `event.append(ctx, ...)`.
+  - To-be: `DatabaseStorage.workflow.run.create(input)` MERGEs `WorkflowRun`, `User`, `GithubUser`, `Repository`, `Installation` and links via relationships. Returns a run handle with `append(event)`.
 
 • Data model
   - As-is: `(:WorkflowRun)` linked to `(:Issue)` optionally; limited repo/installation info; no GithubUser separation.
-  - To-be: Introduce `(:GithubUser)` node; link `(user)-[:LINKED_GITHUB_USER]->(ghUser)`, `(wr)-[:INITIATED_BY_USER]->(user)`, `(wr)-[:ACTOR_IS_GITHUB_USER]->(ghUser)`. Persist only immutable identifiers.
+  - To-be: Introduce `(:GithubUser)` node; link `(user)-[:LINKED_GITHUB_USER]->(ghUser)`. Unify initiation via `(:User)` or `(:GithubWebhookEvent)` through a single relationship (see below). Persist only immutable identifiers.
 
 • Authorization
   - As-is: No explicit initiator check; repo-level filtering only in app/API; details/logs not consistently gated.
@@ -126,13 +130,15 @@ Nodes:
 • (:Installation {id, github_installation_id})
 • (:User {id}) (Issue to PR application user)
 • (:GithubUser {id, login}) (GitHub identity; link to User when available)
+• (:GithubWebhookEvent {id, delivery_id, type, created_at})
 
 Relationships:
 • (wr)-[:ON_REPO]->(repo)
 • (wr)-[:UNDER_INSTALLATION]->(inst)
-• (wr)-[:INITIATED_BY_USER]->(user)          // present when an app user initiated the run
-• (wr)-[:ACTOR_IS_GITHUB_USER]->(ghUser)     // webhook actor or UI actor’s mapped GitHub identity
-• (user)-[:LINKED_GITHUB_USER]->(ghUser)     // mapping between app user and GitHub identity
+• (wr)-[:INITIATED_BY]->(user)
+• (wr)-[:INITIATED_BY]->(event:GithubWebhookEvent)
+• (event)-[:SENDER]->(ghUser)
+• (user)-[:LINKED_GITHUB_USER]->(ghUser)
 
 Persistence policy:
 • Only persist immutable identifiers (e.g., GitHub numeric IDs, installation ID). Do not persist mutable fields (e.g., titles, repoFullName changes) beyond what’s necessary for linking. Fetch mutable presentation data from GitHub as the source of truth.
@@ -150,7 +156,8 @@ Persistence policy:
   • Proposed shapes and locations:
     • `shared/src/ports/db/index.ts`
       • `export interface WorkflowRunContext { runId: string; repoId?: string; installationId?: string }`
-      • `export interface DatabaseStorage { workflow: { run: { create(input: CreateWorkflowRunInput): Promise<{ ctx: WorkflowRunContext }>; }; event: { append(ctx: WorkflowRunContext, event: WorkflowEventInput): Promise<void>; }; }; }`
+      • `export interface WorkflowRunHandle { ctx: WorkflowRunContext; append(event: WorkflowEventInput): Promise<void> }`
+      • `export interface DatabaseStorage { workflow: { run: { create(input: CreateWorkflowRunInput): Promise<WorkflowRunHandle>; }; }; }`
       • `export type CreateWorkflowRunInput = { id: string; type: string; issueNumber?: number; repoFullName?: string; postToGithub?: boolean; initiatorUserId?: string; initiatorGithubUserId?: string; initiatorGithubLogin?: string; triggerType?: "app_ui" | "webhook_label_issue" | "webhook_label_pr" | "webhook_unknown"; installationId?: string; }`
       • `export type WorkflowEventInput = { type: string; payload: unknown; createdAt?: string }`
     • Neo4j adapter at `shared/src/adapters/neo4j/StorageAdapter.ts` implements `DatabaseStorage` and MERGEs nodes/relationships.
@@ -165,7 +172,7 @@ Persistence policy:
 • DatabaseStorage port (shared): add `workflow.run.create({...})` to accept attribution fields such as:
   • `id`, `type`, `issueNumber?`, `repoFullName?`, `postToGithub?`,
   • `initiatorUserId?`, `initiatorGithubUserId?`, `initiatorGithubLogin?`, `triggerType?`, `installationId?`.
-• Neo4j adapter (shared): MERGE nodes and relationships on initialize; set properties on `WorkflowRun` for the new attribution fields.
+• Neo4j adapter (shared): MERGE nodes and relationships on initialize; set properties on `WorkflowRun` for the new attribution fields. Return a handle with `append(event)` to attach subsequent events.
 
 ### Run listing + authorization
 
