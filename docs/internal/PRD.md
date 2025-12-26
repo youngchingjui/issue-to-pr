@@ -8,7 +8,7 @@ This is a trust/expectation issue: users expect the page to reflect their activi
 
 ## Goal
 
-Update workflow run listing behavior to be least surprising for users today, while laying groundwork for future tenancy/workspace visibility controls.
+Update workflow run listing behavior to be least surprising for users today, while keeping scope limited to the workflow runs page and minimal run attribution required to make that page correct.
 
 ## Decision (v1)
 
@@ -26,6 +26,13 @@ Additional notes:
 • Filters / dropdowns on the Workflow Runs page (e.g., “All accessible runs”, “Repo runs”, “Triggered by me”)
 • Differentiated access for list vs details vs logs
 • Full backfill of historical runs (existing runs may remain unattributed and may not appear)
+
+## Scope guardrails (v1)
+
+To keep the change set focused on correctness for the Workflow Runs page:
+• Only store the minimum attribution needed to satisfy the v1 decision.
+• Avoid changes that require redesigning the data model or introducing new user/tenancy concepts.
+• Keep API behavior consistent across list/details/logs but avoid adding new filters or UI controls.
 
 ## Context: how workflow runs are initiated
 
@@ -81,11 +88,11 @@ Note: Existing `lib/neo4j/*` service/repository files remain for backward compat
 
 • Run creation
   - As-is: `initializeWorkflowRun()` creates minimal `WorkflowRun` with no initiator or actor attribution.
-  - To-be: `DatabaseStorage.workflow.run.create(input)` MERGEs `WorkflowRun`, `User`, `GithubUser`, `Repository`, `Installation` and links via relationships. Returns a run handle with `append(event)`.
+  - To-be (v1): `DatabaseStorage.workflow.run.create(input)` persists `WorkflowRun` plus minimal attribution (initiator user id + repo owner) needed for listing; returns a run handle with `append(event)`.
 
 • Data model
   - As-is: `(:WorkflowRun)` linked to `(:Issue)` optionally; limited repo/installation info; no GithubUser separation.
-  - To-be: Introduce `(:GithubUser)` node; link `(user)-[:LINKED_GITHUB_USER]->(ghUser)`. Unify initiation via `(:User)` or `(:GithubWebhookEvent)` through a single relationship (see below). Persist only immutable identifiers.
+  - To-be (v1): add only the fields/relationships required to resolve “initiator OR repo owner.”
 
 • Authorization
   - As-is: No explicit initiator check; repo-level filtering only in app/API; details/logs not consistently gated.
@@ -93,7 +100,7 @@ Note: Existing `lib/neo4j/*` service/repository files remain for backward compat
 
 • Webhooks
   - As-is: Workers start runs from label events; initiator attribution not persisted.
-  - To-be: Verify HMAC signatures; extract actor (`sender.id`, `sender.login`); map to `GithubUser` and optionally to app `User`; include actor fields in `CreateWorkflowRunInput`.
+  - To-be (v1): persist best-effort initiator attribution (when available) and repo ownership data; defer any webhook signature verification and rich actor modeling.
 
 • Side effects compatibility
   - As-is consumers of `WorkflowRun` continue to function; changes are additive. MERGE semantics + immutable-only persistence avoid unintended overwrites.
@@ -104,41 +111,33 @@ Note: Existing `lib/neo4j/*` service/repository files remain for backward compat
 
 1. Workflow Runs page shows “My runs” where “My runs” = runs initiated by me OR runs on repositories I own.
 
-### Data model / attribution (forward-looking, required for v1)
+### Data model / attribution (required for v1)
 
-We need to begin storing run attribution on creation so future tenancy/filtering can be implemented cleanly.
+We need to begin storing run attribution on creation so the v1 listing is correct and consistent.
 
 For each new WorkflowRun, store at minimum:
-• repo_id / repo_full_name
-• installation_id (GitHub App installation)
+• repo_id or repo_full_name (to resolve repo ownership)
+• initiator_user_id (Issue to PR user id) when the user is known
 • created_at
 • status
 • trigger_type (e.g. app_ui, webhook_label_issue, webhook_label_pr, etc.)
-• github_username (Issue to PR user github username) — required for v1 listing
 
 Best-effort (store when available, but not required for v1):
+• installation_id (GitHub App installation)
 • trigger_actor_github_id (GitHub user/bot that caused the event)
 • issue_number / pr_number
 • head_sha / head_branch
-• Any other run context needed for debugging/audit
 
 ### Neo4j modeling (suggested)
 
-Nodes:
+Nodes (v1):
 • (:WorkflowRun {id, created_at, status, trigger_type, ...})
 • (:Repository {id, full_name, provider:"github"})
-• (:Installation {id, github_installation_id})
 • (:User {id}) (Issue to PR application user)
-• (:GithubUser {id, login}) (GitHub identity; link to User when available)
-• (:GithubWebhookEvent {id, delivery_id, type, created_at})
 
-Relationships:
+Relationships (v1):
 • (wr)-[:ON_REPO]->(repo)
-• (wr)-[:UNDER_INSTALLATION]->(inst)
 • (wr)-[:INITIATED_BY]->(user)
-• (wr)-[:INITIATED_BY]->(event:GithubWebhookEvent)
-• (event)-[:SENDER]->(ghUser)
-• (user)-[:LINKED_GITHUB_USER]->(ghUser)
 
 Persistence policy:
 • Only persist immutable identifiers (e.g., GitHub numeric IDs, installation ID). Do not persist mutable fields (e.g., titles, repoFullName changes) beyond what’s necessary for linking. Fetch mutable presentation data from GitHub as the source of truth.
@@ -151,14 +150,14 @@ Persistence policy:
   • `shared/src/lib/types/index.ts` (business types)
   • `shared/src/lib/types/db/neo4j.ts` (Neo4j-facing shapes), independently defined from business types.
 • Create/extend a DatabaseStorage port (and Neo4j adapter) in `shared` responsible for persisting workflow runs and related nodes via MERGE:
-  • On initialize/start: MERGE `WorkflowRun`, `User`, `GithubUser`, `Repository`, `Installation` nodes and relationships.
+  • On initialize/start: MERGE `WorkflowRun`, `User`, `Repository` nodes and relationships.
   • Persist only immutable identifiers from GitHub; derive presentation data at read-time from GitHub APIs.
   • Proposed shapes and locations:
     • `shared/src/ports/db/index.ts`
       • `export interface WorkflowRunContext { runId: string; repoId?: string; installationId?: string }`
       • `export interface WorkflowRunHandle { ctx: WorkflowRunContext; append(event: WorkflowEventInput): Promise<void> }`
       • `export interface DatabaseStorage { workflow: { run: { create(input: CreateWorkflowRunInput): Promise<WorkflowRunHandle>; }; }; }`
-      • `export type CreateWorkflowRunInput = { id: string; type: string; issueNumber?: number; repoFullName?: string; postToGithub?: boolean; initiatorUserId?: string; initiatorGithubUserId?: string; initiatorGithubLogin?: string; triggerType?: "app_ui" | "webhook_label_issue" | "webhook_label_pr" | "webhook_unknown"; installationId?: string; }`
+      • `export type CreateWorkflowRunInput = { id: string; type: string; issueNumber?: number; repoFullName?: string; postToGithub?: boolean; initiatorUserId?: string; triggerType?: "app_ui" | "webhook_label_issue" | "webhook_label_pr" | "webhook_unknown"; }`
       • `export type WorkflowEventInput = { type: string; payload: unknown; createdAt?: string }`
     • Neo4j adapter at `shared/src/adapters/neo4j/StorageAdapter.ts` implements `DatabaseStorage` and MERGEs nodes/relationships.
 • Create/extend a WorkflowRunsRepository/List port in `shared` with a discriminated-union filter:
@@ -171,7 +170,7 @@ Persistence policy:
 
 • DatabaseStorage port (shared): add `workflow.run.create({...})` to accept attribution fields such as:
   • `id`, `type`, `issueNumber?`, `repoFullName?`, `postToGithub?`,
-  • `initiatorUserId?`, `initiatorGithubUserId?`, `initiatorGithubLogin?`, `triggerType?`, `installationId?`.
+  • `initiatorUserId?`, `triggerType?`.
 • Neo4j adapter (shared): MERGE nodes and relationships on initialize; set properties on `WorkflowRun` for the new attribution fields. Return a handle with `append(event)` to attach subsequent events.
 
 ### Run listing + authorization
@@ -198,6 +197,22 @@ Note: We expect to evolve this into workspace + GitHub-permission based access l
 
 • Visiting Workflow Runs page shows runs initiated by the current user and runs on repositories the user owns; it does not show runs unrelated to the current user.
 • Newly created runs launched from Issue to PR UI persist initiator attribution and appear for that user.
+
+## Follow-ups / carve-outs
+
+The following items are valuable but should be separate issues to avoid expanding scope:
+• Rich actor modeling (`GithubUser`, `GithubWebhookEvent`) and linkage to app `User`.
+• Webhook signature verification and hardening of webhook ingestion.
+• Repository access based on GitHub permissions beyond “repo owner.”
+• UI filters (e.g., “Triggered by me”) and workspace/tenancy controls.
+• Backfill or migration for historical runs without attribution.
+• Differentiated access rules for list vs details vs logs.
+
+## Tradeoffs / notes
+
+• Minimal attribution (initiator user id + repo) is sufficient to fix the visible bug, but it means some webhook-triggered runs won’t show up until we can map webhook actors to app users.
+• Deferring richer GitHub identity modeling reduces near-term complexity but will require a follow-up migration to support more nuanced visibility rules.
+• Keeping the authorization rule identical across list/details/logs prevents edge-case leakage, but may make debugging harder for shared repos until workspace controls are added.
 • Webhook-triggered runs appear when the actor maps to the current user (as initiator) or when the run’s repository is owned by the current user.
 • Run detail/log endpoints enforce the same access (no ID-guessing leaks) based on initiator-or-owner rules.
 • Implementation does not block future tenancy/filtering (fields captured; model extensible; shared ports defined).
@@ -226,4 +241,3 @@ Note: We expect to evolve this into workspace + GitHub-permission based access l
 ## Unresolved
 
 • Finalize exact discriminated-union shapes and returned `WorkflowRun` enrichment (issue?, initiatorUser?, initiatorGithubUser?, repository?, installation?).
-
