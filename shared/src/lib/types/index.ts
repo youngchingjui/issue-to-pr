@@ -48,6 +48,8 @@ export const workflowRunSchema = z.object({
   type: workflowTypeEnum,
   createdAt: z.date(),
   postToGithub: z.boolean().optional(),
+  // New optional attribution fields (v1)
+  initiatorGithubLogin: z.string().optional(),
 })
 
 // Plans
@@ -316,3 +318,4 @@ export type UserMessage = z.infer<typeof userMessageSchema>
 export type WorkflowRun = z.infer<typeof workflowRunSchema>
 export type WorkflowRunState = z.infer<typeof workflowRunStateSchema>
 export type WorkflowType = z.infer<typeof workflowTypeEnum>
+

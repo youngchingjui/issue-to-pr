@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 
-import { listUserRepositories } from "@/lib/github/graphql/queries/listUserRepositories"
+import { auth } from "@/auth"
 import { listWorkflowRuns } from "@/lib/neo4j/services/workflow"
 
 export const dynamic = "force-dynamic"
@@ -11,35 +11,33 @@ export async function GET(request: NextRequest) {
     const repo = search.get("repo")
     const issue = search.get("issue")
 
+    const session = await auth()
+    const login = session?.profile?.login
+
+    // If unauthenticated, return empty to avoid leakage
+    if (!login) return NextResponse.json({ runs: [] })
+
     const allRuns = await listWorkflowRuns(
       repo && issue
         ? { repoFullName: repo, issueNumber: parseInt(issue) }
         : undefined
     )
 
-    // If a specific repository/issue is queried, we assume the caller already
-    // has permission (the repository page itself should be protected). In that
-    // case we simply return the runs.
-    if (repo && issue) {
-      return NextResponse.json({ runs: allRuns })
-    }
-
-    // Otherwise, we need to filter by the repositories the current user can
-    // access to avoid leaking private information.
-    let allowedRepos: Set<string> | null = null
-    try {
-      const repos = await listUserRepositories()
-      allowedRepos = new Set(repos.map((r) => r.nameWithOwner))
-    } catch (err) {
-      // Failure to fetch means unauthenticated or API error – in either case we
-      // refuse to return any runs to prevent data leakage.
-      console.error("[WorkflowRunsAPI] Failed to list user repositories", err)
-      return NextResponse.json({ runs: [] })
+    // Authorization policy (v1): initiator-or-owner
+    const isOwnedByUser = (repoFullName?: string) => {
+      if (!repoFullName) return false
+      const [owner] = repoFullName.split("/")
+      return owner.toLowerCase() === login.toLowerCase()
     }
 
     const filtered = allRuns.filter((run) => {
-      if (!run.issue) return false
-      return allowedRepos!.has(run.issue.repoFullName)
+      if (run.initiatorGithubLogin && run.initiatorGithubLogin === login) {
+        return true
+      }
+      if (run.issue && isOwnedByUser(run.issue.repoFullName)) {
+        return true
+      }
+      return false
     })
 
     return NextResponse.json({ runs: filtered })
@@ -51,3 +49,4 @@ export async function GET(request: NextRequest) {
     )
   }
 }
+

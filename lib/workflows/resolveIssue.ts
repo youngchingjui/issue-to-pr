@@ -41,6 +41,7 @@ import {
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
+import { auth } from "@/auth"
 
 interface ResolveIssueParams {
   issue: GitHubIssue
@@ -72,6 +73,10 @@ export const resolveIssue = async ({
     const repoSettings: RepoSettings | null =
       await getRepositorySettings(repoFullName)
 
+    // Determine initiator github login from session (best-effort)
+    const session = await auth()
+    const initiatorGithubLogin = session?.profile?.login ?? null
+
     // Emit workflow start event
     await initializeWorkflowRun({
       id: workflowId,
@@ -79,6 +84,7 @@ export const resolveIssue = async ({
       issueNumber: issue.number,
       repoFullName: repository.full_name,
       postToGithub: createPR,
+      initiatorGithubLogin,
     })
 
     // Emit workflow "running" state event
@@ -343,3 +349,4 @@ export const resolveIssue = async ({
     }
   }
 }
+

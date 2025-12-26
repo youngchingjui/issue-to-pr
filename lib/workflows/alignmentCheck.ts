@@ -27,6 +27,7 @@ import {
   PullRequestReview,
   PullRequestReviewComment,
 } from "@/lib/types/github"
+import { auth } from "@/auth"
 
 type Params = {
   repoFullName: string
@@ -67,12 +68,17 @@ export async function alignmentCheck({
 }: Params) {
   const workflowId = jobId || uuidv4()
   try {
+    // Best-effort initiator attribution from session
+    const session = await auth()
+    const initiatorGithubLogin = session?.profile?.login ?? null
+
     // Initialize workflow run
     await initializeWorkflowRun({
       id: workflowId,
       type: "alignmentCheck",
       issueNumber,
       repoFullName,
+      initiatorGithubLogin,
     })
     await createWorkflowStateEvent({
       workflowId,
@@ -274,3 +280,4 @@ export async function alignmentCheck({
     throw error
   }
 }
+

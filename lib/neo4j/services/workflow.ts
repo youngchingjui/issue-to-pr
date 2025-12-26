@@ -14,7 +14,7 @@ import {
   listForIssue,
   mergeIssueLink,
 } from "@/lib/neo4j/repositories/workflowRun"
-import { listLatestStatesForIssues } from "@/lib/neo4j/repositories/workflowRun.batch"
+import type { WorkflowRun as DbWorkflowRun } from "@/lib/types/db/neo4j"
 import {
   AnyEvent,
   Issue as AppIssue,
@@ -44,12 +44,14 @@ export async function initializeWorkflowRun({
   issueNumber,
   repoFullName,
   postToGithub,
+  initiatorGithubLogin,
 }: {
   id: string
   type: WorkflowType
   issueNumber?: number
   repoFullName?: string
   postToGithub?: boolean
+  initiatorGithubLogin?: string | null
 }): Promise<{ issue?: AppIssue; run: AppWorkflowRun }> {
   const session = await n4j.getSession()
   try {
@@ -65,7 +67,8 @@ export async function initializeWorkflowRun({
                 id,
                 type,
                 postToGithub,
-              },
+                initiatorGithubLogin: initiatorGithubLogin ?? null,
+              } as Omit<DbWorkflowRun, "createdAt">,
               issue: {
                 repoFullName,
                 number: int(issueNumber),
@@ -78,7 +81,8 @@ export async function initializeWorkflowRun({
             id,
             type,
             postToGithub,
-          })
+            initiatorGithubLogin: initiatorGithubLogin ?? null,
+          } as Omit<DbWorkflowRun, "createdAt">)
           return {
             run,
             issue: null,

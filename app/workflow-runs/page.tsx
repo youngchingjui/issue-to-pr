@@ -9,7 +9,6 @@ import {
   IssueTitlesTableBody,
   TableBodyFallback,
 } from "@/components/workflow-runs/WorkflowRunsIssueTitlesTableBody"
-import { listUserRepositories } from "@/lib/github/graphql/queries/listUserRepositories"
 import { listWorkflowRuns } from "@/lib/neo4j/services/workflow"
 
 // There were build errors
@@ -18,56 +17,47 @@ import { listWorkflowRuns } from "@/lib/neo4j/services/workflow"
 export const dynamic = "force-dynamic"
 
 /**
- * Filter workflow runs so that only runs which belong to repositories the
- * current user can access are shown. Visibility of public repositories is
- * already handled by GitHub – they will appear in listUserRepositories() even
- * for users who are not collaborators. Private repositories will only be
- * returned if the user has permission.
+ * Filter workflow runs so that only runs visible to the current user are shown.
+ * Visibility rule (v1): runs initiated by the current user OR runs on repositories
+ * owned by the current user.
  */
-async function getPermittedWorkflowRuns() {
-  const allRunsPromise = withTiming("Neo4j READ: listWorkflowRuns (page)", () =>
+async function getPermittedWorkflowRuns(login: string | undefined | null) {
+  const allRuns = await withTiming("Neo4j READ: listWorkflowRuns (page)", () =>
     listWorkflowRuns()
   )
-  const reposPromise = withTiming(
-    "GitHub GraphQL: listUserRepositories (page)",
-    () => listUserRepositories()
-  )
-  const [allRuns, repos] = await withTiming(
-    "Parallel fetch: workflow runs + repos",
-    () => Promise.all([allRunsPromise, reposPromise])
-  )
+
+  // If we don't have a session/login, show nothing to avoid leaking information
+  if (!login) return []
+
+  // Helper to determine repo owner from full name
+  const isOwnedByUser = (repoFullName?: string) => {
+    if (!repoFullName) return false
+    const [owner] = repoFullName.split("/")
+    return owner.toLowerCase() === String(login).toLowerCase()
+  }
 
   try {
-    const allowed = new Set(repos.map((r) => r.nameWithOwner))
-
     return allRuns.filter((run) => {
-      // If the run is linked to an issue, ensure the user has access to the repo
-      if (run.issue) return allowed.has(run.issue.repoFullName)
-      // If the run is not linked to an issue (e.g., PR-centric or internal
-      // utility workflows), include it so the list shows all workflow types.
-      return true
+      // Initiator-based visibility
+      if (run.initiatorGithubLogin && run.initiatorGithubLogin === login) {
+        return true
+      }
+      // Repository-ownership visibility when issue is linked
+      if (run.issue && isOwnedByUser(run.issue.repoFullName)) {
+        return true
+      }
+      return false
     })
   } catch (err) {
-    // If we fail to retrieve the accessible repositories (likely because the
-    // user is not authenticated), we return an empty array instead of leaking
-    // information.
-    console.error("[WorkflowRunsPage] Failed to list user repositories", err)
+    console.error("[WorkflowRunsPage] Filtering error", err)
     return []
   }
 }
 
 export default async function WorkflowRunsPage() {
   return await withTiming("Render: WorkflowRunsPage", async () => {
-    const runsPromise = withTiming("getPermittedWorkflowRuns()", () =>
-      getPermittedWorkflowRuns()
-    )
-    const authPromise = withTiming("NextAuth: auth()", () => auth())
-    const [workflows, session] = await withTiming(
-      "Parallel fetch: permitted runs + auth",
-      () => Promise.all([runsPromise, authPromise])
-    )
-
-    // Extract token for lazy, batched issue title fetch in a child component
+    const session = await withTiming("NextAuth: auth()", () => auth())
+    const login = session?.profile?.login
     const token =
       typeof session?.token === "object" &&
       session?.token &&
@@ -75,9 +65,16 @@ export default async function WorkflowRunsPage() {
         ? String((session.token as Record<string, unknown>)["access_token"])
         : undefined
 
+    const workflows = await withTiming("getPermittedWorkflowRuns()", () =>
+      getPermittedWorkflowRuns(login)
+    )
+
     return (
       <main className="container mx-auto p-4">
-        <h1 className="text-2xl font-bold mb-4">Workflow Runs</h1>
+        <h1 className="text-2xl font-bold mb-1">Workflow Runs</h1>
+        <p className="text-sm text-muted-foreground mb-4">
+          Runs you started and runs on repositories you own.
+        </p>
         <Suspense fallback={<TableSkeleton />}>
           <Card className="max-w-screen-xl mx-auto rounded">
             <CardContent>
@@ -101,12 +98,18 @@ export default async function WorkflowRunsPage() {
                     </TableHead>
                   </TableRow>
                 </TableHeader>
-                {/* Render immediately with stored titles; stream fetched titles via Suspense */}
-                <Suspense
-                  fallback={<TableBodyFallback workflows={workflows} />}
-                >
-                  <IssueTitlesTableBody workflows={workflows} token={token} />
-                </Suspense>
+                {workflows.length === 0 ? (
+                  <div className="p-6 text-sm text-muted-foreground">
+                    No workflow runs visible to you yet.
+                  </div>
+                ) : (
+                  // Render immediately with stored titles; stream fetched titles via Suspense
+                  <Suspense
+                    fallback={<TableBodyFallback workflows={workflows} />}
+                  >
+                    <IssueTitlesTableBody workflows={workflows} token={token} />
+                  </Suspense>
+                )}
               </Table>
             </CardContent>
           </Card>
@@ -115,3 +118,4 @@ export default async function WorkflowRunsPage() {
     )
   })
 }
+

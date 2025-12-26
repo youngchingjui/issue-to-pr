@@ -2,6 +2,7 @@ import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 
+import { auth } from "@/auth"
 import BaseGitHubItemCard from "@/components/github/BaseGitHubItemCard"
 import { Button } from "@/components/ui/button"
 import ContainerManager from "@/components/workflow-runs/ContainerManager"
@@ -19,7 +20,26 @@ export default async function WorkflowRunDetailPage({
 }) {
   const { traceId } = params
 
+  const session = await auth()
+  const login = session?.profile?.login
+  if (!login) notFound()
+
   const { workflow, events, issue } = await getWorkflowRunWithDetails(traceId)
+
+  const isOwnedByUser = (repoFullName?: string) => {
+    if (!repoFullName) return false
+    const [owner] = repoFullName.split("/")
+    return owner.toLowerCase() === String(login).toLowerCase()
+  }
+
+  const authorized =
+    (workflow.initiatorGithubLogin &&
+      workflow.initiatorGithubLogin === login) ||
+    (issue && isOwnedByUser(issue.repoFullName))
+
+  if (!authorized) {
+    notFound()
+  }
 
   let githubIssue: GetIssueResult | null = null
   if (issue) {
@@ -114,3 +134,4 @@ export default async function WorkflowRunDetailPage({
     </main>
   )
 }
+

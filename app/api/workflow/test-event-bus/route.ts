@@ -1,31 +1,37 @@
-import { NextResponse } from "next/server"
-import { testEventInfrastructure } from "shared/usecases/workflows/testEventInfrastructure"
-import { v4 as uuidv4 } from "uuid"
+import { NextRequest, NextResponse } from "next/server"
 
-import PersistingEventBusAdapter from "@/lib/adapters/PersistingEventBusAdapter"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
+import { BaseStreamEvent } from "@/lib/types/events"
+import { publishEvent } from "@/lib/services/redis-stream"
+import { auth } from "@/auth"
 
 export const dynamic = "force-dynamic"
 
-export async function POST() {
-  const workflowId = uuidv4()
-
+export async function POST(request: NextRequest) {
   try {
+    const { workflowId } = await request.json()
+
+    // Determine initiator from session
+    const session = await auth()
+    const initiatorGithubLogin = session?.profile?.login ?? null
+
     // Initialize the workflow run record first so the UI can navigate immediately
-    await initializeWorkflowRun({ id: workflowId, type: "testEventBus" })
+    await initializeWorkflowRun({ id: workflowId, type: "testEventBus", initiatorGithubLogin })
 
-    const redisUrl = process.env.REDIS_URL
-    const eventBus = new PersistingEventBusAdapter(redisUrl)
+    // Publish a test event
+    const event: BaseStreamEvent = {
+      type: "status",
+      content: "Test event published",
+    }
+    await publishEvent(workflowId, event)
 
-    // Fire the test workflow; it will emit events via the event bus
-    await testEventInfrastructure({ eventBus }, { workflowId })
-
-    return NextResponse.json({ workflowId })
-  } catch (err) {
-    console.error("Error starting test event workflow:", err)
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("[test-event-bus] Failed:", error)
     return NextResponse.json(
-      { error: "Failed to start workflow" },
+      { error: "Failed to publish test event." },
       { status: 500 }
     )
   }
 }
+

@@ -195,3 +195,4 @@ export const userSettingsSchema = appSettingsSchema.merge(
 )
 
 export type UserSettings = z.infer<typeof userSettingsSchema>
+

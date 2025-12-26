@@ -22,13 +22,14 @@ export async function create(
   const result = await withTiming("Neo4j QUERY: create WorkflowRun", () =>
     tx.run<{ w: Node<Integer, WorkflowRun, "WorkflowRun"> }>(
       `
-    CREATE (w:WorkflowRun {id: $id, type: $type, createdAt: datetime(), postToGithub: $postToGithub}) 
+    CREATE (w:WorkflowRun {id: $id, type: $type, createdAt: datetime(), postToGithub: $postToGithub, initiatorGithubLogin: $initiatorGithubLogin}) 
     RETURN w
     `,
       {
         id: workflowRun.id,
         type: workflowRun.type,
         postToGithub: workflowRun.postToGithub ?? null,
+        initiatorGithubLogin: workflowRun.initiatorGithubLogin ?? null,
       }
     )
   )
@@ -233,7 +234,7 @@ export async function mergeIssueLink(
       tx.run(
         `
     MERGE (w:WorkflowRun {id: $workflowRun.id})
-      ON CREATE SET w.type = $workflowRun.type, w.createdAt = datetime(), w.postToGithub = $workflowRun.postToGithub
+      ON CREATE SET w.type = $workflowRun.type, w.createdAt = datetime(), w.postToGithub = $workflowRun.postToGithub, w.initiatorGithubLogin = $workflowRun.initiatorGithubLogin
     MERGE (i:Issue {repoFullName: $issue.repoFullName, number: $issue.number})
     MERGE (w)-[:BASED_ON_ISSUE]->(i)
     RETURN w, i
@@ -248,3 +249,4 @@ export async function mergeIssueLink(
   const parsedIssue = issueSchema.parse(result.records[0].get("i").properties)
   return { run, issue: parsedIssue }
 }
+
