@@ -2,11 +2,13 @@ import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 
+import { auth } from "@/auth"
 import BaseGitHubItemCard from "@/components/github/BaseGitHubItemCard"
 import { Button } from "@/components/ui/button"
 import ContainerManager from "@/components/workflow-runs/ContainerManager"
 import WorkflowRunEventsFeed from "@/components/workflow-runs/WorkflowRunEventsFeed"
 import { getContainerStatus } from "@/lib/docker"
+import { listUserRepositories } from "@/lib/github/graphql/queries/listUserRepositories"
 import { getIssue } from "@/lib/github/issues"
 import { getWorkflowRunWithDetails } from "@/lib/neo4j/services/workflow"
 import { GetIssueResult } from "@/lib/types/github"
@@ -20,6 +22,17 @@ export default async function WorkflowRunDetailPage({
   const { traceId } = params
 
   const { workflow, events, issue } = await getWorkflowRunWithDetails(traceId)
+
+  // Authorization: allow if initiator is the requester or repo is owned
+  const session = await auth()
+  const login = session?.profile?.login
+  const repos = await listUserRepositories().catch(() => [])
+  const allowedRepos = new Set(repos.map((r) => r.nameWithOwner))
+  const initiatorOk = login && workflow.initiatorGithubLogin === login
+  const repoOk = issue && allowedRepos.has(issue.repoFullName)
+  if (!initiatorOk && !repoOk) {
+    notFound()
+  }
 
   let githubIssue: GetIssueResult | null = null
   if (issue) {
@@ -114,3 +127,4 @@ export default async function WorkflowRunDetailPage({
     </main>
   )
 }
+

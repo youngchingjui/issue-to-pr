@@ -41,6 +41,7 @@ type Params = {
   plan?: Plan
   issue?: GitHubIssue
   jobId?: string
+  initiatorGithubLogin?: string
 }
 /**
  * Orchestrate fetching all necessary context, then invoke the inconsistency identifier agent/LLM for root-cause analysis.
@@ -64,6 +65,7 @@ export async function alignmentCheck({
   issue,
   plan,
   jobId,
+  initiatorGithubLogin,
 }: Params) {
   const workflowId = jobId || uuidv4()
   try {
@@ -73,6 +75,7 @@ export async function alignmentCheck({
       type: "alignmentCheck",
       issueNumber,
       repoFullName,
+      initiatorGithubLogin,
     })
     await createWorkflowStateEvent({
       workflowId,
@@ -274,3 +277,4 @@ export async function alignmentCheck({
     throw error
   }
 }
+

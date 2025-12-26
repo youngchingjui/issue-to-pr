@@ -31,6 +31,7 @@ interface ReviewPullRequestParams {
   baseDir?: string
   apiKey: string
   jobId?: string
+  initiatorGithubLogin?: string
 }
 
 export async function reviewPullRequest({
@@ -41,6 +42,7 @@ export async function reviewPullRequest({
   baseDir,
   apiKey,
   jobId,
+  initiatorGithubLogin,
 }: ReviewPullRequestParams) {
   const workflowId = jobId || uuidv4()
 
@@ -74,6 +76,7 @@ export async function reviewPullRequest({
       issueNumber: issue?.number || undefined,
       repoFullName: repoFullName,
       postToGithub: false,
+      initiatorGithubLogin,
     })
 
     // Emit workflow start event
@@ -186,7 +189,6 @@ export async function reviewPullRequest({
     }
     ## Codebase directory\n
     ${tree.join("\n")}\n
-
     ${formattedComments ? `## Comments\n${formattedComments}\n` : ""}
 
     ${formattedReviews ? `## Reviews\n${formattedReviews}\n` : ""}
@@ -227,3 +229,4 @@ export async function reviewPullRequest({
     throw error
   }
 }
+

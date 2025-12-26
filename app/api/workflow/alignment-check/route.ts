@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 
+import { auth } from "@/auth"
 import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
 import { AlignmentCheckRequestSchema } from "@/lib/types/api/schemas"
 import { alignmentCheck } from "@/lib/workflows/alignmentCheck"
@@ -25,10 +26,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const session = await auth()
+    const initiatorGithubLogin = session?.profile?.login
+
     const result = await alignmentCheck({
       repoFullName,
       pullNumber,
       openAIApiKey: apiKey,
+      initiatorGithubLogin,
     })
     return NextResponse.json({ success: true, result })
   } catch (e) {
@@ -40,3 +45,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
