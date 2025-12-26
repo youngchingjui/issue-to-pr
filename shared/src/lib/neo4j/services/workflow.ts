@@ -24,18 +24,10 @@ import {
   WorkflowRunState,
   WorkflowType,
 } from "@/lib/types"
+import type { WorkflowRun as DbWorkflowRun } from "@/lib/types/db/neo4j"
 
 /**
  * Merges (matches or creates) a WorkflowRun node and the corresponding Issue node in the database, linking the two.
- *
- * If a WorkflowRun or Issue node does not exist, it will be created. If they are matched on the following properties, then they will be used:
- * - id (workflowRun)
- * - repoFullName (issue)
- * - issueNumber (issue)
- *
- * The function then links the WorkflowRun to the Issue with the following pattern:
- * (w:WorkflowRun)-[:BASED_ON_ISSUE]->(i:Issue)
- * and returns the application representations of both.
  */
 export async function initializeWorkflowRun({
   id,
@@ -43,41 +35,38 @@ export async function initializeWorkflowRun({
   issueNumber,
   repoFullName,
   postToGithub,
+  initiatorGithubLogin,
 }: {
   id: string
   type: WorkflowType
   issueNumber?: number
   repoFullName?: string
   postToGithub?: boolean
+  initiatorGithubLogin?: string
 }): Promise<{ issue?: AppIssue; run: AppWorkflowRun }> {
   const session = await n4j.getSession()
   try {
-    // Handle database operations within transaction
     const result = await withTiming(
       `Neo4j WRITE: initializeWorkflowRun ${repoFullName ?? "<no-repo>"}`,
       async () =>
         session.executeWrite(async (tx) => {
-          // If we have both issueNumber and repoFullName, create and link the issue
+          const wfRunInput: Omit<DbWorkflowRun, "createdAt"> = {
+            id,
+            type,
+            postToGithub,
+            initiatorGithubLogin,
+          }
+
           if (issueNumber && repoFullName) {
             return await mergeIssueLink(tx, {
-              workflowRun: {
-                id,
-                type,
-                postToGithub,
-              },
+              workflowRun: wfRunInput,
               issue: {
                 repoFullName,
                 number: int(issueNumber),
               },
             })
           }
-
-          // Otherwise just create the workflow run without an issue
-          const run = await create(tx, {
-            id,
-            type,
-            postToGithub,
-          })
+          const run = await create(tx, wfRunInput)
           return {
             run,
             issue: null,
@@ -85,7 +74,6 @@ export async function initializeWorkflowRun({
         })
     )
 
-    // Transform database models to application models outside the transaction
     return {
       run: workflowRunSchema.parse(neo4jToJs(result.run)),
       ...(result.issue && {
@@ -220,3 +208,4 @@ export async function getWorkflowRunEvents(
     await session.close()
   }
 }
+

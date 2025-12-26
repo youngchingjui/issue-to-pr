@@ -51,6 +51,7 @@ interface ResolveIssueParams {
   planId?: string
   // Optional custom repository setup commands
   installCommand?: string // Legacy alias; treat as setupCommands when provided
+  initiatorGithubLogin?: string
 }
 
 export const resolveIssue = async ({
@@ -61,6 +62,7 @@ export const resolveIssue = async ({
   createPR,
   planId,
   installCommand,
+  initiatorGithubLogin,
 }: ResolveIssueParams) => {
   const workflowId = jobId // Keep workflowId alias for clarity if preferred
 
@@ -79,6 +81,7 @@ export const resolveIssue = async ({
       issueNumber: issue.number,
       repoFullName: repository.full_name,
       postToGithub: createPR,
+      initiatorGithubLogin,
     })
 
     // Emit workflow "running" state event
@@ -343,3 +346,4 @@ export const resolveIssue = async ({
     }
   }
 }
+

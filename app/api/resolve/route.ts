@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { v4 as uuidv4 } from "uuid"
 import { z } from "zod"
 
+import { auth } from "@/auth"
 import { getRepoFromString } from "@/lib/github/content"
 import { getIssue } from "@/lib/github/issues"
 import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
@@ -29,6 +30,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const session = await auth()
+    const initiatorGithubLogin = session?.profile?.login
+
     const jobId = uuidv4()
 
     ;(async () => {
@@ -47,6 +51,7 @@ export async function POST(request: NextRequest) {
           jobId,
           createPR,
           planId,
+          initiatorGithubLogin,
           ...(environment && { environment }),
           ...(installCommand && { installCommand }),
         })
@@ -70,3 +75,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+

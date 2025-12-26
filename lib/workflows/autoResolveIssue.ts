@@ -74,6 +74,7 @@ export const autoResolveIssue = async (
       issueNumber: issue.number,
       repoFullName: repository.full_name,
       postToGithub: true,
+      initiatorGithubLogin: login,
     })
 
     await createWorkflowStateEvent({ workflowId, state: "running" })
@@ -225,3 +226,4 @@ export const autoResolveIssue = async (
 }
 
 export default autoResolveIssue
+

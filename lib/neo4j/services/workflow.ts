@@ -25,6 +25,7 @@ import {
   WorkflowRunState,
   WorkflowType,
 } from "@/lib/types"
+import type { WorkflowRun as DbWorkflowRun } from "@/lib/types/db/neo4j"
 
 /**
  * Merges (matches or creates) a WorkflowRun node and the corresponding Issue node in the database, linking the two.
@@ -44,12 +45,14 @@ export async function initializeWorkflowRun({
   issueNumber,
   repoFullName,
   postToGithub,
+  initiatorGithubLogin,
 }: {
   id: string
   type: WorkflowType
   issueNumber?: number
   repoFullName?: string
   postToGithub?: boolean
+  initiatorGithubLogin?: string
 }): Promise<{ issue?: AppIssue; run: AppWorkflowRun }> {
   const session = await n4j.getSession()
   try {
@@ -58,14 +61,17 @@ export async function initializeWorkflowRun({
       `Neo4j WRITE: initializeWorkflowRun ${repoFullName ?? "<no-repo>"}`,
       async () =>
         session.executeWrite(async (tx) => {
+          const wfRunInput: Omit<DbWorkflowRun, "createdAt"> = {
+            id,
+            type,
+            postToGithub,
+            initiatorGithubLogin,
+          }
+
           // If we have both issueNumber and repoFullName, create and link the issue
           if (issueNumber && repoFullName) {
             return await mergeIssueLink(tx, {
-              workflowRun: {
-                id,
-                type,
-                postToGithub,
-              },
+              workflowRun: wfRunInput,
               issue: {
                 repoFullName,
                 number: int(issueNumber),
@@ -74,11 +80,7 @@ export async function initializeWorkflowRun({
           }
 
           // Otherwise just create the workflow run without an issue
-          const run = await create(tx, {
-            id,
-            type,
-            postToGithub,
-          })
+          const run = await create(tx, wfRunInput)
           return {
             run,
             issue: null,
@@ -223,7 +225,7 @@ export async function getIssuesLatestRunningWorkflowIdMap({
 
     for (const row of rows) {
       const issueNumber = row.issue.number.toNumber()
-      const run = row.run
+      const run = row
       const effective = deriveState(row.state, run.createdAt.toStandardDate())
       if (effective !== "running") continue
 

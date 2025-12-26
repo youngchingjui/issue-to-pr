@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { v4 as uuidv4 } from "uuid"
 
+import { auth } from "@/auth"
 import { createIssueComment } from "@/lib/github/issues"
 import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
 import { reviewPullRequest } from "@/lib/workflows/reviewPullRequest"
@@ -22,6 +23,9 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  const session = await auth()
+  const initiatorGithubLogin = session?.profile?.login
+
   // Generate a unique job ID
   const jobId = uuidv4()
 
@@ -33,6 +37,7 @@ export async function POST(request: NextRequest) {
         pullNumber,
         apiKey,
         jobId,
+        initiatorGithubLogin,
       })
 
       // Post the AI-generated review as a comment on the pull request
@@ -57,3 +62,4 @@ export async function POST(request: NextRequest) {
   // Immediately return the job ID to the client
   return NextResponse.json({ jobId })
 }
+
