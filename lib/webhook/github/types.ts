@@ -34,14 +34,18 @@ export type IssuesPayload = z.infer<typeof IssuesPayloadSchema>
 
 export const PullRequestPayloadSchema = z.object({
   action: z.string(),
+  number: z.number().optional(),
+  label: z.object({ name: z.string() }).optional(),
   pull_request: z.object({
     merged: z.boolean().optional(),
     head: z.object({ ref: z.string() }).optional(),
+    number: z.number().optional(),
   }),
   repository: z.object({
     name: z.string(),
     owner: z.object({ login: z.string() }),
   }),
+  sender: z.object({ login: z.string() }).optional(),
   installation: InstallationSchema,
 })
 export type PullRequestPayload = z.infer<typeof PullRequestPayloadSchema>
