@@ -11,7 +11,7 @@ const baseConfig: Config = {
     "^@shared/(.*)$": "<rootDir>/shared/src/$1",
     "^shared/(.*)$": "<rootDir>/shared/src/$1",
     "^@workers/(.*)$": "<rootDir>/apps/workers/src/$1",
-    "^@/(adapters|entities|lib|ports|providers|services|ui|usecases|utils)(/.*)$":
+    "^@/(adapters|entities|ports|providers|services|ui|usecases|utils)(/.*)?$":
       "<rootDir>/shared/src/$1$2",
     "^@/(.*)$": "<rootDir>/$1",
   },
