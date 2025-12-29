@@ -65,10 +65,11 @@ async function fnHandler(
         }
       }
     } else {
-      const exec = async (cmd: string) =>
-        execInContainerWithDockerode({ name: env.name, command: cmd })
-
-      const { stdout: branchList } = await exec(`git branch --list ${branch}`)
+      // Use array commands to prevent injection attacks
+      const { stdout: branchList } = await execInContainerWithDockerode({ 
+        name: env.name, 
+        command: ["git", "branch", "--list", branch] 
+      })
       const exists = branchList.trim().length > 0
 
       if (!exists && !createIfNotExists) {
@@ -78,7 +79,10 @@ async function fnHandler(
         })
       }
       if (!exists) {
-        const { exitCode, stderr } = await exec(`git checkout -b ${branch}`)
+        const { exitCode, stderr } = await execInContainerWithDockerode({ 
+          name: env.name, 
+          command: ["git", "checkout", "-b", branch] 
+        })
         if (exitCode !== 0) {
           return JSON.stringify({
             status: "error",
@@ -91,7 +95,10 @@ async function fnHandler(
           created: true,
         })
       } else {
-        const { exitCode, stderr } = await exec(`git checkout -q ${branch}`)
+        const { exitCode, stderr } = await execInContainerWithDockerode({ 
+          name: env.name, 
+          command: ["git", "checkout", "-q", branch] 
+        })
         if (exitCode !== 0) {
           return JSON.stringify({
             status: "error",
