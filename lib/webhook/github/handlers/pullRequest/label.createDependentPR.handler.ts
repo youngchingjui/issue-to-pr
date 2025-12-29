@@ -1,12 +1,9 @@
-import { QueueEnum, WORKFLOW_JOBS_QUEUE } from "shared/entities/Queue"
-import { addJob } from "shared/services/job"
-
 import type { PullRequestPayload } from "@/lib/webhook/github/types"
 
 /**
  * Handler: PR labeled with "I2PR: Update PR"
- * - Enqueues the createDependentPR job onto the workflow-jobs queue
- * - Includes installation id and labeler login in job data
+ * - For now, this is a no-op boundary that validates payload and logs receipt
+ * - Actual job enqueueing will be added in a follow-up PR once worker schema supports it
  */
 export async function handlePullRequestLabelCreateDependentPR({
   payload,
@@ -15,11 +12,6 @@ export async function handlePullRequestLabelCreateDependentPR({
   payload: PullRequestPayload
   installationId: string
 }) {
-  const redisUrl = process.env.REDIS_URL
-  if (!redisUrl) {
-    throw new Error("REDIS_URL is not set")
-  }
-
   const owner = payload.repository?.owner?.login
   const repo = payload.repository?.name
   const pullNumber = payload.number || payload.pull_request?.number
@@ -27,29 +19,23 @@ export async function handlePullRequestLabelCreateDependentPR({
 
   if (!owner || !repo || typeof pullNumber !== "number" || !githubLogin) {
     throw new Error(
-      "Missing required fields for createDependentPR job (owner, repo, pullNumber, sender.login)"
+      "Missing required fields for createDependentPR (owner, repo, pullNumber, sender.login)"
     )
   }
 
   const repoFullName = `${owner}/${repo}`
-  const queue: QueueEnum = WORKFLOW_JOBS_QUEUE
 
-  await addJob(
-    queue,
-    {
-      name: "createDependentPR",
-      data: {
-        repoFullName,
-        pullNumber,
-        githubLogin,
-        githubInstallationId: installationId,
-      },
-    },
-    {},
-    redisUrl
-  )
-
+  // No-op: Log receipt and defer enqueueing to a later PR when worker is ready
   console.log(
-    `[WEBHOOK] Enqueued createDependentPR job for ${repoFullName}#${pullNumber} by ${githubLogin}`
+    `[Webhook] Received PR label 'I2PR: Update PR' for ${repoFullName}#${pullNumber} by ${githubLogin}. Enqueue skipped (noop). installationId=${installationId}`
   )
+
+  return {
+    status: "noop",
+    repoFullName,
+    pullNumber,
+    githubLogin,
+    installationId,
+  }
 }
+

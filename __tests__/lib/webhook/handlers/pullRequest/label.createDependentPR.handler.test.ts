@@ -1,11 +1,7 @@
 import { handlePullRequestLabelCreateDependentPR } from "@/lib/webhook/github/handlers/pullRequest/label.createDependentPR.handler"
 import type { PullRequestPayload } from "@/lib/webhook/github/types"
 
-jest.mock("shared/services/job", () => ({
-  addJob: jest.fn().mockResolvedValue("job-id-123"),
-}))
-
-describe("handlePullRequestLabelCreateDependentPR", () => {
+describe("handlePullRequestLabelCreateDependentPR (noop)", () => {
   const installationId = "123456"
 
   function makePayload(overrides: Partial<PullRequestPayload> = {}): PullRequestPayload {
@@ -23,28 +19,29 @@ describe("handlePullRequestLabelCreateDependentPR", () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    process.env.REDIS_URL = "redis://localhost:6379"
   })
 
-  afterEach(() => {
-    delete process.env.REDIS_URL
-  })
+  it("logs a noop message with expected context", async () => {
+    const logSpy = jest.spyOn(console, "log").mockImplementation(() => {})
 
-  it("enqueues a createDependentPR job with expected payload", async () => {
-    const { addJob } = require("shared/services/job")
     const payload = makePayload({ number: 100 })
+    const result = await handlePullRequestLabelCreateDependentPR({ payload, installationId })
 
-    await handlePullRequestLabelCreateDependentPR({ payload, installationId })
-
-    expect(addJob).toHaveBeenCalledTimes(1)
-    const [queueName, job, _opts, _redisUrl] = addJob.mock.calls[0]
-    expect(job.name).toBe("createDependentPR")
-    expect(job.data).toEqual({
+    expect(result).toEqual({
+      status: "noop",
       repoFullName: "owner/repo",
       pullNumber: 100,
       githubLogin: "octocat",
-      githubInstallationId: installationId,
+      installationId,
     })
+
+    expect(logSpy).toHaveBeenCalled()
+    const message = (logSpy.mock.calls[0]?.[0] as string) ?? ""
+    expect(message).toContain("Received PR label 'I2PR: Update PR'")
+    expect(message).toContain("owner/repo#100")
+    expect(message).toContain("octocat")
+
+    logSpy.mockRestore()
   })
 
   it("throws if required fields are missing", async () => {
@@ -55,15 +52,5 @@ describe("handlePullRequestLabelCreateDependentPR", () => {
       })
     ).rejects.toThrow()
   })
-
-  it("throws if REDIS_URL is not set", async () => {
-    delete process.env.REDIS_URL
-
-    await expect(
-      handlePullRequestLabelCreateDependentPR({
-        payload: makePayload(),
-        installationId,
-      })
-    ).rejects.toThrow("REDIS_URL is not set")
-  })
 })
+
