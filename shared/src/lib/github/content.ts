@@ -177,15 +177,12 @@ export async function checkBranchExists(
   }
 
   try {
-    await withTiming(
-      `GitHub REST: repos.getBranch ${repoFullName}:${branch}`,
-      () =>
-        octokit.rest.repos.getBranch({
-          owner,
-          repo,
-          branch,
-        })
-    )
+    octokit.rest.repos.getBranch({
+      owner,
+      repo,
+      branch,
+    })
+
     return true
   } catch (error: unknown) {
     const http = error as HttpLikeError | undefined

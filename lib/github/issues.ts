@@ -133,7 +133,7 @@ async function getUserAccessToken(): Promise<string | null> {
   const sessionProvider = makeSessionProvider(() => auth())
   const accessTokenProvider = makeAccessTokenProviderFrom(
     sessionProvider,
-    (s) => s?.token?.access_token as unknown as string | null | undefined
+    (s) => s?.token?.access_token ?? null
   )
   try {
     return await accessTokenProvider()

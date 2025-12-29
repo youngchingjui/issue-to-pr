@@ -1,16 +1,16 @@
-import { ResponsesAPIAgent } from "@/lib/agents/base"
-import { createBranchTool } from "@/lib/tools/Branch"
-import { createCommitTool } from "@/lib/tools/Commit"
-import { createContainerExecTool } from "@/lib/tools/ContainerExecTool"
-import { createCreatePRTool } from "@/lib/tools/CreatePRTool"
-import { createFileCheckTool } from "@/lib/tools/FileCheckTool"
-import { createGetFileContentTool } from "@/lib/tools/GetFileContent"
-import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
-import { createSetupRepoTool } from "@/lib/tools/SetupRepoTool"
-import { createSyncBranchTool } from "@/lib/tools/SyncBranchTool"
-import { createWriteFileContentTool } from "@/lib/tools/WriteFileContent"
-import { AgentConstructorParams, RepoEnvironment } from "@/lib/types"
-import { GitHubRepository, repoFullNameSchema } from "@/lib/types/github"
+import { ResponsesAPIAgent } from "@/shared/lib/agents/base"
+import { createBranchTool } from "@/shared/lib/tools/Branch"
+import { createCommitTool } from "@/shared/lib/tools/Commit"
+import { createContainerExecTool } from "@/shared/lib/tools/ContainerExecTool"
+import { createCreatePRTool } from "@/shared/lib/tools/CreatePRTool"
+import { createFileCheckTool } from "@/shared/lib/tools/FileCheckTool"
+import { createGetFileContentTool } from "@/shared/lib/tools/GetFileContent"
+import { createRipgrepSearchTool } from "@/shared/lib/tools/RipgrepSearchTool"
+import { createSetupRepoTool } from "@/shared/lib/tools/SetupRepoTool"
+import { createSyncBranchTool } from "@/shared/lib/tools/SyncBranchTool"
+import { createWriteFileContentTool } from "@/shared/lib/tools/WriteFileContent"
+import { AgentConstructorParams, RepoEnvironment } from "@/shared/lib/types"
+import { GitHubRepository, repoFullNameSchema } from "@/shared/lib/types/github"
 
 const DEVELOPER_PROMPT = `
 You are a senior software engineer focused on follow-up changes for an existing pull request.
@@ -102,4 +102,3 @@ export class DependentPRAgent extends ResponsesAPIAgent {
 }
 
 export default DependentPRAgent
-

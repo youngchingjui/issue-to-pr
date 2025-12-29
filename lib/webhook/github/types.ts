@@ -36,7 +36,6 @@ export const PullRequestPayloadSchema = z.object({
   action: z.string(),
   number: z.number().optional(),
   label: z.object({ name: z.string() }).optional(),
-  sender: z.object({ login: z.string() }).optional(),
   pull_request: z.object({
     merged: z.boolean().optional(),
     head: z.object({ ref: z.string() }).optional(),
@@ -46,6 +45,7 @@ export const PullRequestPayloadSchema = z.object({
     name: z.string(),
     owner: z.object({ login: z.string() }),
   }),
+  sender: z.object({ login: z.string() }).optional(),
   installation: InstallationSchema,
 })
 export type PullRequestPayload = z.infer<typeof PullRequestPayloadSchema>
@@ -164,4 +164,3 @@ export const RepositoryPayloadSchema = z.discriminatedUnion("action", [
 ])
 
 export type RepositoryPayload = z.infer<typeof RepositoryPayloadSchema>
-

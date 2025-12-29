@@ -1,10 +1,10 @@
 import { v4 as uuidv4 } from "uuid"
 
-import DependentPRAgent from "@/lib/agents/DependentPRAgent"
-import { execInContainerWithDockerode } from "@/lib/docker"
-import { getRepoFromString } from "@/lib/github/content"
-import { getInstallationTokenFromRepo } from "@/lib/github/installation"
-import { getIssue } from "@/lib/github/issues"
+import DependentPRAgent from "@/shared/lib/agents/DependentPRAgent"
+import { execInContainerWithDockerode } from "@/shared/lib/docker"
+import { getRepoFromString } from "@/shared/lib/github/content"
+import { getInstallationTokenFromRepo } from "@/shared/lib/github/installation"
+import { getIssue } from "@/shared/lib/github/issues"
 import {
   getLinkedIssuesForPR,
   getPullRequest,
@@ -12,27 +12,27 @@ import {
   getPullRequestDiff,
   getPullRequestReviewCommentsGraphQL,
   getPullRequestReviews,
-} from "@/lib/github/pullRequests"
-import { checkRepoPermissions } from "@/lib/github/users"
-import { langfuse } from "@/lib/langfuse"
+} from "@/shared/lib/github/pullRequests"
+import { checkRepoPermissions } from "@/shared/lib/github/users"
+import { langfuse } from "@/shared/lib/langfuse"
 import {
   createErrorEvent,
   createStatusEvent,
   createWorkflowStateEvent,
-} from "@/lib/neo4j/services/event"
-import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
-import { createBranchTool } from "@/lib/tools/Branch"
-import { RepoEnvironment } from "@/lib/types"
-import { GitHubIssue, RepoPermissions } from "@/lib/types/github"
+} from "@/shared/lib/neo4j/services/event"
+import { initializeWorkflowRun } from "@/shared/lib/neo4j/services/workflow"
+import { createBranchTool } from "@/shared/lib/tools/Branch"
+import { RepoEnvironment } from "@/shared/lib/types"
+import { GitHubIssue, RepoPermissions } from "@/shared/lib/types/github"
 import {
   createContainerizedDirectoryTree,
   createContainerizedWorkspace,
-} from "@/lib/utils/container"
-import { setupLocalRepository } from "@/lib/utils/utils-server"
-import { EventBusPort } from "@/ports/events/eventBus"
-import { createWorkflowEventPublisher } from "@/ports/events/publisher"
-import { CheckoutCommitPort } from "@/ports/git/checkoutCommit"
-import { SettingsReaderPort } from "@/ports/repositories/settings.reader"
+} from "@/shared/lib/utils/container"
+import { setupLocalRepository } from "@/shared/lib/utils/utils-server"
+import { EventBusPort } from "@/shared/ports/events/eventBus"
+import { createWorkflowEventPublisher } from "@/shared/ports/events/publisher"
+import { CheckoutCommitPort } from "@/shared/ports/git/checkoutCommit"
+import { SettingsReaderPort } from "@/shared/ports/repositories/settings.reader"
 
 interface CreateDependentPRParams {
   repoFullName: string

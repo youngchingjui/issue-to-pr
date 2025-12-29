@@ -1,19 +1,48 @@
+// Mock @octokit packages to prevent ES module issues
+jest.mock("@octokit/auth-app", () => ({
+  createAppAuth: jest.fn(() => () => Promise.resolve({ token: "fake-token" })),
+}))
+
+jest.mock("@octokit/auth-oauth-user", () => ({
+  createOAuthUserAuth: jest.fn(
+    () => () => Promise.resolve({ token: "fake-token" })
+  ),
+}))
+
+jest.mock("@octokit/graphql", () => ({
+  graphql: jest.fn(),
+}))
+
+jest.mock("@octokit/rest", () => ({
+  Octokit: jest.fn().mockImplementation(() => ({
+    rest: {
+      apps: { getInstallation: jest.fn() },
+      repos: { get: jest.fn() },
+    },
+  })),
+}))
+
+jest.mock("octokit", () => ({
+  App: jest.fn().mockImplementation(() => ({
+    getInstallationOctokit: jest.fn(),
+  })),
+}))
+
 jest.mock(
-  "../../../apps/workers/workflow-workers/src/orchestrators/autoResolveIssue",
+  "apps/workers/workflow-workers/src/orchestrators/autoResolveIssue",
   () => ({
     autoResolveIssue: jest.fn(),
   })
 )
 
-jest.mock("../../../apps/workers/workflow-workers/src/helper", () => ({
+jest.mock("apps/workers/workflow-workers/src/helper", () => ({
   publishJobStatus: jest.fn(),
 }))
 
+import { handler } from "apps/workers/workflow-workers/src/handler"
+import { publishJobStatus } from "apps/workers/workflow-workers/src/helper"
+import { autoResolveIssue } from "apps/workers/workflow-workers/src/orchestrators/autoResolveIssue"
 import type { Job } from "bullmq"
-
-import { handler } from "../../../apps/workers/workflow-workers/src/handler"
-import { publishJobStatus } from "../../../apps/workers/workflow-workers/src/helper"
-import { autoResolveIssue } from "../../../apps/workers/workflow-workers/src/orchestrators/autoResolveIssue"
 
 const mockAutoResolveIssue = jest.mocked(autoResolveIssue)
 const mockPublishJobStatus = jest.mocked(publishJobStatus)
@@ -28,7 +57,7 @@ describe("handler - autoResolveIssue", () => {
       { role: "assistant" as const, content: "first message" },
       { role: "assistant" as const, content: "second message" },
     ]
-    mockAutoResolveIssue.mockResolvedValue(messages as any)
+    mockAutoResolveIssue.mockResolvedValue(messages)
 
     const job = {
       id: "job-123",
@@ -57,4 +86,3 @@ describe("handler - autoResolveIssue", () => {
     )
   })
 })
-

@@ -21,6 +21,7 @@
       "@/lib/*": ["lib/*"],
       "@/components/*": ["components/*"],
       "@/styles/*": ["styles/*"],
+      "@/shared/*": ["shared/src/*"],
       "@shared/*": ["shared/src/*"]
     },
 
@@ -41,5 +42,5 @@
     ".next/types/**/*.ts",
     "shared/dist/**/*.d.ts"
   ],
-  "exclude": ["node_modules", "apps/**"]
+  "exclude": ["node_modules", "apps/**", "shared/**"]
 }

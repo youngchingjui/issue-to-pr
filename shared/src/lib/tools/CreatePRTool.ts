@@ -4,9 +4,9 @@ import {
   addLabelsToPullRequest,
   createPullRequest,
   getPullRequestOnBranch,
-} from "@/lib/github/pullRequests"
-import { createTool } from "@/lib/tools/helper"
-import { GitHubRepository } from "@/lib/types/github"
+} from "@/shared/lib/github/pullRequests"
+import { createTool } from "@/shared/lib/tools/helper"
+import { GitHubRepository } from "@/shared/lib/types/github"
 
 const createPRParameters = z.object({
   branch: z

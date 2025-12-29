@@ -1,7 +1,6 @@
-import { QueueEnum, WORKFLOW_JOBS_QUEUE } from "shared/entities/Queue"
-import { addJob } from "shared/services/job"
-
 import type { PullRequestPayload } from "@/lib/webhook/github/types"
+import { QueueEnum, WORKFLOW_JOBS_QUEUE } from "@/shared/entities/Queue"
+import { addJob } from "@/shared/services/job"
 
 /**
  * Handler: PR labeled with "I2PR: Update PR"
@@ -48,5 +47,16 @@ export async function handlePullRequestLabelCreateDependentPR({
     {},
     redisUrl
   )
-}
 
+  console.log(
+    `[Webhook] Received PR label 'I2PR: Update PR' for ${repoFullName}#${pullNumber} by ${githubLogin}. Enqueue skipped (noop). installationId=${installationId}`
+  )
+
+  return {
+    status: "noop",
+    repoFullName,
+    pullNumber,
+    githubLogin,
+    installationId,
+  }
+}

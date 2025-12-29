@@ -12,7 +12,6 @@
  * @returns The result of the job. Currently, this is not being used.
  */
 
-import { Job } from "bullmq"
 import { JobEventSchema } from "shared/entities/events/Job"
 
 import { publishJobStatus } from "./helper"
@@ -21,7 +20,13 @@ import { createDependentPR } from "./orchestrators/createDependentPR"
 import { simulateLongRunningWorkflow } from "./orchestrators/simulateLongRunningWorkflow"
 import { summarizeIssue } from "./orchestrators/summarizeIssue"
 
-export async function handler(job: Job): Promise<string> {
+export interface JobInput<D = unknown> {
+  id?: string | undefined
+  name: string
+  data: D
+}
+
+export async function handler<D = unknown>(job: JobInput<D>): Promise<string> {
   console.log(`Received job ${job.id}: ${job.name}`)
 
   if (!job.id) {
@@ -84,4 +89,3 @@ export async function handler(job: Job): Promise<string> {
     throw error instanceof Error ? error : new Error(msg)
   }
 }
-
