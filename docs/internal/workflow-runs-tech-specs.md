@@ -13,11 +13,10 @@ Scope: Define the shape of new/updated functions, types, and files required to i
     issueNumber?: number;
     repoFullName?: string; // e.g. "owner/name"
     postToGithub?: boolean;
-    initiatorUserId?: string; // Issue to PR user id
-    initiatorGithubUserId?: string; // numeric GitHub user id
-    initiatorGithubLogin?: string; // GitHub login handle
-    triggerType?: "app_ui" | "webhook_label_issue" | "webhook_label_pr" | "webhook_unknown";
-    installationId?: string; // GitHub App installation id
+    actor:
+      | { kind: "user"; userId: string; github?: { id?: string; login?: string } }
+      | { kind: "webhook"; source: "github"; event?: "issues.labeled" | "pull_request.labeled" | "unknown"; installationId?: string; sender?: { id?: string; login?: string } }
+      | { kind: "system"; reason?: string };
   };
   - export type WorkflowEventInput = {
     type: string; // event discriminator
@@ -27,14 +26,14 @@ Scope: Define the shape of new/updated functions, types, and files required to i
   - export interface WorkflowRunContext {
     runId: string;
     repoId?: string;
-    installationId?: string;
+    installationId?: string; // also available via actor when kind=="webhook"
   }
   - export interface WorkflowRunHandle {
     ctx: WorkflowRunContext;
     append(event: WorkflowEventInput): Promise<void>;
   }
   - export type ListWorkflowRunsFilter =
-    | { by: "initiator"; user: { id: string; githubUserId?: string; githubLogin?: string } }
+    | { by: "initiator"; user: { id: string; githubUserId?: string; githubLogin?: string } } // derives from actor.kind=="user"
     | { by: "repository"; repo: { id?: string; fullName: string } }
     | { by: "issue"; issue: { repoFullName: string; issueNumber: number } };
   - export type ListedWorkflowRun = {
@@ -44,11 +43,11 @@ Scope: Define the shape of new/updated functions, types, and files required to i
     postToGithub?: boolean;
     state: "running" | "completed" | "error" | "timedOut";
     issue?: { repoFullName: string; number: number };
-    initiatorUserId?: string;
-    initiatorGithubUserId?: string;
-    initiatorGithubLogin?: string;
+    actor:
+      | { kind: "user"; userId: string; github?: { id?: string; login?: string } }
+      | { kind: "webhook"; source: "github"; installationId?: string; sender?: { id?: string; login?: string } }
+      | { kind: "system"; reason?: string };
     repository?: { id?: string; fullName: string };
-    installationId?: string;
   };
   - export interface WorkflowRunsRepository {
     list(filter: ListWorkflowRunsFilter): Promise<ListedWorkflowRun[]>;
@@ -147,12 +146,12 @@ Scope: Define the shape of new/updated functions, types, and files required to i
 ## Webhook attribution inputs (extraction only)
 
 - File: app/api/webhook/github/route.ts
-  - Extract actor from verified webhook and pass attribution fields into CreateWorkflowRunInput at run creation call sites (no shape change to this route itself here)
+  - Extract actor from verified webhook and pass actor into CreateWorkflowRunInput at run creation call sites (no shape change to this route itself here)
 
 ## Authorization helpers (call sites use them; shapes only)
 
 - File: shared/src/ports/github/auth.ts (or existing auth provider)
-  - export type Requester = { userId?: string; githubUserId?: string; githubLogin?: string };
+  - export type Requester = { userId?: string; githubUserId?: string; githubLogin?: string }; // may derive from actor when kind=="user" or from webhook sender
 
 - File: shared/src/usecases/workflows/resolveIssue.ts and related usecases
   - Use DatabaseStorage.runs.list with { by: "issue", issue: { repoFullName, issueNumber } }
