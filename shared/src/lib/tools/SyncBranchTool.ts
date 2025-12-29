@@ -1,13 +1,13 @@
 import { z } from "zod"
 
-import { execInContainerWithDockerode } from "@/lib/docker"
-import { pushBranch } from "@/lib/git"
-import { checkBranchExists } from "@/lib/github/content"
-import { BranchCreationStatus, createBranch } from "@/lib/github/git"
-import { createTool } from "@/lib/tools/helper"
-import { asRepoEnvironment, RepoEnvironment, Tool } from "@/lib/types"
-import { RepoFullName } from "@/lib/types/github"
-import { getCloneUrlWithAccessToken } from "@/lib/utils/utils-common"
+import { execInContainerWithDockerode } from "@/shared/lib/docker"
+import { pushBranch } from "@/shared/lib/git"
+import { checkBranchExists } from "@/shared/lib/github/content"
+import { BranchCreationStatus, createBranch } from "@/shared/lib/github/git"
+import { createTool } from "@/shared/lib/tools/helper"
+import { asRepoEnvironment, RepoEnvironment, Tool } from "@/shared/lib/types"
+import { RepoFullName } from "@/shared/lib/types/github"
+import { getCloneUrlWithAccessToken } from "@/shared/lib/utils/utils-common"
 
 const syncBranchParameters = z.object({
   branch: z

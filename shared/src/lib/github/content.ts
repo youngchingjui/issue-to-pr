@@ -1,10 +1,9 @@
-import { withTiming } from "shared/utils/telemetry"
-
-import getOctokit from "@/lib/github"
+import getOctokit from "@/shared/lib/github"
 import {
   AuthenticatedUserRepository,
   GitHubRepository,
-} from "@/lib/types/github"
+} from "@/shared/lib/types/github"
+import { withTiming } from "@/shared/utils/telemetry"
 
 export class GitHubError extends Error {
   constructor(
