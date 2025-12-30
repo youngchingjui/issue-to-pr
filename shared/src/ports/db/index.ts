@@ -50,7 +50,7 @@ export type ListedWorkflowRun = {
   postToGithub?: boolean
   state: "running" | "completed" | "error" | "timedOut"
   issue?: { repoFullName: string; number: number }
-  actor:
+  actor?:
     | { kind: "user"; userId: string; github?: { id?: string; login?: string } }
     | {
         kind: "webhook"

@@ -1,19 +1,9 @@
-import neo4j, { type Driver, Integer, Node, type Session } from "neo4j-driver"
-
-import { Issue } from "@/entities/Issue"
-import { listForIssue } from "@/lib/neo4j/repositories/workflowRun"
-import {
-  issueSchema,
-  WorkflowRun,
-  workflowRunSchema,
-  WorkflowRunState,
-  workflowRunStateSchema,
-} from "@/lib/types"
 import { Neo4jDataSource } from "@/shared/adapters/neo4j/dataSource"
+import { listForIssue } from "@/shared/adapters/neo4j/queries/workflowRuns/listForIssue"
+import { mapListForIssueResult } from "@/shared/adapters/neo4j/queries/workflowRuns/listForIssue.mapper"
 import {
   getWorkflowRunEvents,
   getWorkflowRunWithDetails,
-  listWorkflowRuns as listWorkflowRunsRaw,
 } from "@/shared/lib/neo4j/services/workflow"
 import type {
   CreateWorkflowRunInput,
@@ -61,73 +51,32 @@ export class StorageAdapter implements DatabaseStorage {
     list: async (
       filter: ListWorkflowRunsFilter
     ): Promise<ListedWorkflowRun[]> => {
-      // Delegate to existing read APIs where possible; scope by issue only for now.
-      switch (filter.by) {
-        case "issue":
-          // const rows = await listWorkflowRunsRaw(filter.issue)
+      const session = this.dataSource.getSession("READ")
 
-          const session = this.dataSource.getSession("READ")
-
-          try {
+      try {
+        switch (filter.by) {
+          case "issue":
             const result = await session.executeRead(async (tx) => {
-              const internalResult = await tx.run<{
-                w: Node<Integer, WorkflowRun, "WorkflowRun">
-                state: WorkflowRunState
-                i: Node<Integer, Issue, "Issue">
-              }>(
-                `MATCH (w:WorkflowRun)-[:BASED_ON_ISSUE]->(i:Issue {number: $filter.issue.number, repoFullName: $filter.issue.repoFullName})
-                OPTIONAL MATCH (w)-[:STARTS_WITH|NEXT*]->(e:Event {type: 'workflowState'})
-                WITH w, e, i
-                ORDER BY e.createdAt DESC
-                WITH w, collect(e)[0] as latestWorkflowState, i
-                RETURN w, latestWorkflowState.state AS state, i
-                `,
-                { filter }
-              )
-
-              return internalResult.records.map((record) => {
-                const run = workflowRunSchema.parse(record.get("w").properties)
-                const stateParse = workflowRunStateSchema.safeParse(
-                  record.get("state")
-                )
-                const state: WorkflowRunState = stateParse.success
-                  ? stateParse.data
-                  : "completed"
-                const issue = issueSchema.parse(record.get("i").properties)
-                return {
-                  run,
-                  state,
-                  issue,
-                }
+              return await listForIssue(tx, {
+                issue: {
+                  number: filter.issue.issueNumber,
+                  repoFullName: filter.issue.repoFullName,
+                },
               })
             })
-
-            return result.map((r) => ({
-              id: r.id,
-              type: r.type,
-              createdAt: r.createdAt.toISOString(),
-              postToGithub: r.postToGithub,
-              state: r.state,
-              issue: r.issue
-                ? { repoFullName: r.issue.repoFullName, number: r.issue.number }
-                : undefined,
-              actor: { kind: "system" as const },
-              repository: r.issue
-                ? { fullName: r.issue.repoFullName }
-                : undefined,
-            }))
-          } catch (error) {
-            console.error(error)
-            throw error
-          } finally {
-            await session.close()
-          }
-        case "initiator":
-          return []
-        case "repository":
-          return []
-        default:
-          throw new Error(`Unsupported filter: ${JSON.stringify(filter)}`)
+            return mapListForIssueResult(result)
+          case "initiator":
+            return []
+          case "repository":
+            return []
+          default:
+            throw new Error(`Unsupported filter: ${JSON.stringify(filter)}`)
+        }
+      } catch (error) {
+        console.error(error)
+        throw error
+      } finally {
+        await session.close()
       }
     },
 
