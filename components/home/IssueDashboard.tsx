@@ -4,7 +4,6 @@ import NoRepoCTA from "@/components/common/NoRepoCTA"
 import IssueDashboardClient from "@/components/home/IssueDashboardClient"
 import { getRepoFromString } from "@/lib/github/content"
 import { listUserAppRepositories } from "@/lib/github/repos"
-import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
 import { repoFullNameSchema } from "@/lib/types/github"
 
 export default async function IssueDashboard() {
@@ -25,15 +24,12 @@ export default async function IssueDashboard() {
   const repoFullName = repoFullNameSchema.parse(preferredRepo.full_name)
   const repo = await getRepoFromString(repoFullName.fullName)
   const issuesEnabled = !!repo.has_issues
-  const existingKey = await getUserOpenAIApiKey()
-  const hasOpenAIKey = !!(existingKey && existingKey.trim())
 
   return (
     <IssueDashboardClient
       repoFullName={repoFullName}
       repositories={repos}
       issuesEnabled={issuesEnabled}
-      hasOpenAIKey={hasOpenAIKey}
     />
   )
 }

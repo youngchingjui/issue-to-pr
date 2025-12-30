@@ -4,9 +4,11 @@ import { err, ok, type Result } from "@/entities/result"
 import type {
   GetIssueErrors,
   IssueDetails,
+  IssueListItem,
   IssueReaderPort,
   IssueRef,
   IssueTitleResult,
+  ListIssuesParams,
 } from "@/ports/github/issue.reader"
 
 /**
@@ -94,9 +96,17 @@ export function makeIssueReaderAdapter(params: {
     return results
   }
 
+  async function listIssues(
+    params: ListIssuesParams
+  ): Promise<Result<IssueListItem[], GetIssueErrors>> {
+    // no-op, to be implemented
+    return ok([])
+  }
+
   return {
     getIssue,
     getIssueTitles,
+    listIssues,
   }
 }
 

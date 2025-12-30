@@ -48,6 +48,20 @@ export default async function PlaygroundHubPage() {
 
         <Card>
           <CardHeader>
+            <CardTitle>Containers</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2">
+            <p className="text-sm text-muted-foreground">
+              Manage Docker containers.
+            </p>
+            <Link href="/playground/container">
+              <Button size="sm">Open Containers</Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Components</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
@@ -91,4 +105,3 @@ export default async function PlaygroundHubPage() {
     </div>
   )
 }
-

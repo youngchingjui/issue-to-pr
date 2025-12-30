@@ -265,6 +265,17 @@ export const repoSettingsSchema = z.object({
 })
 export type RepoSettings = z.infer<typeof repoSettingsSchema>
 
+// ---- Build & Deployment Settings Schema ----
+export const buildDeploymentSettingsSchema = z.object({
+  installCommand: z.string().optional(),
+  buildCommand: z.string().optional(),
+  devCommand: z.string().optional(),
+  lastUpdated: z.date().optional(),
+})
+export type BuildDeploymentSettings = z.infer<
+  typeof buildDeploymentSettingsSchema
+>
+
 // Blog Posts
 export const blogPostSchema = z.object({
   slug: z.string().optional(),

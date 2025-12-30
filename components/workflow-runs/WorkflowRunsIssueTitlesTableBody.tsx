@@ -1,9 +1,7 @@
 import { formatDistanceToNow } from "date-fns"
 import Link from "next/link"
-import { TimedIssueReaderPort } from "shared/adapters/decorators/timing"
 import { makeIssueReaderAdapter } from "shared/adapters/github/octokit/graphql/issue.reader"
 import { fetchIssueTitles } from "shared/services/github/issues"
-import { withTiming } from "shared/utils/telemetry"
 
 import { Badge } from "@/components/ui/badge"
 import { TableBody, TableCell, TableRow } from "@/components/ui/table"
@@ -91,11 +89,8 @@ export async function IssueTitlesTableBody({
       }))
 
     if (refs.length > 0 && token) {
-      const baseAdapter = makeIssueReaderAdapter({ token })
-      const adapter = new TimedIssueReaderPort(baseAdapter)
-      const results = await withTiming("GitHub: getIssueTitles", () =>
-        fetchIssueTitles(adapter, refs)
-      )
+      const adapter = makeIssueReaderAdapter({ token })
+      const results = await fetchIssueTitles(adapter, refs)
       issueTitleMap = new Map(
         results.map((r) => [`${r.repoFullName}#${r.number}`, r.title])
       )

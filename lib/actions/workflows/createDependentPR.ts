@@ -4,6 +4,7 @@ import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/Se
 import { v4 as uuidv4 } from "uuid"
 
 import { auth } from "@/auth"
+import { makeNextjsGitHubAuthProvider } from "@/lib/github/auth"
 import { neo4jDs } from "@/lib/neo4j"
 import * as userRepo from "@/lib/neo4j/repositories/user"
 import { createDependentPRWorkflow } from "@/lib/workflows/createDependentPR"
@@ -35,6 +36,14 @@ export async function createDependentPRAction(
     }
   }
   const { repoFullName, pullNumber, jobId } = parsed.data
+  const [owner, repo] = repoFullName.split("/")
+  if (!owner || !repo) {
+    return {
+      status: "error",
+      code: "INVALID_INPUT",
+      message: "Invalid repoFullName. Expected 'owner/repo'",
+    }
+  }
 
   // Auth
   const session = await auth()
@@ -79,6 +88,10 @@ export async function createDependentPRAction(
         pullNumber,
         apiKey,
         jobId: effectiveJobId,
+        initiator: { type: "ui_button", actorLogin: login },
+        authProvider: makeNextjsGitHubAuthProvider({
+          defaultInstallation: { kind: "repo", owner, repo },
+        }),
       })
     } catch (e) {
       console.error("[create-dependent-pr] Background run failed:", e)
