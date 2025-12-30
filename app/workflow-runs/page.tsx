@@ -77,7 +77,12 @@ export default async function WorkflowRunsPage() {
 
     return (
       <main className="container mx-auto p-4">
-        <h1 className="text-2xl font-bold mb-4">Workflow Runs</h1>
+        <div className="mb-4">
+          <h1 className="text-2xl font-bold">Workflow Runs</h1>
+          <p className="text-sm text-muted-foreground">
+            Runs you started and runs on repositories you own.
+          </p>
+        </div>
         <Suspense fallback={<TableSkeleton />}>
           <Card className="max-w-screen-xl mx-auto rounded">
             <CardContent>
@@ -115,3 +120,4 @@ export default async function WorkflowRunsPage() {
     )
   })
 }
+
