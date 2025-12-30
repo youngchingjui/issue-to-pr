@@ -76,4 +76,3 @@ export interface DatabaseStorage {
   }
   runs: WorkflowRunsRepository
 }
-

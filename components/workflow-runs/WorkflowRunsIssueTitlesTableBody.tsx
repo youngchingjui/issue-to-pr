@@ -18,60 +18,6 @@ export type WorkflowRunItem = {
   } | null
 }
 
-export function TableBodyFallback({
-  workflows,
-}: {
-  workflows: WorkflowRunItem[]
-}) {
-  return (
-    <TableBody>
-      {workflows.map((workflow) => (
-        <TableRow key={workflow.id}>
-          <TableCell className="py-4">
-            <Link
-              href={`/workflow-runs/${workflow.id}`}
-              className="text-blue-600 hover:underline font-medium"
-            >
-              {workflow.id.slice(0, 8)}
-            </Link>
-          </TableCell>
-          <TableCell>
-            <Badge
-              variant={
-                workflow.state === "completed"
-                  ? "default"
-                  : workflow.state === "error"
-                    ? "destructive"
-                    : "secondary"
-              }
-            >
-              {workflow.state}
-            </Badge>
-          </TableCell>
-          <TableCell className="py-4 text-muted-foreground">
-            {workflow.createdAt
-              ? formatDistanceToNow(workflow.createdAt as Date | number, {
-                  addSuffix: true,
-                })
-              : "N/A"}
-          </TableCell>
-          <TableCell className="py-4">
-            {workflow.issue ? (
-              <div className="animate-pulse space-y-2">
-                <div className="h-3 w-3/4 rounded bg-muted" />
-                <div className="h-3 w-2/3 rounded bg-muted" />
-              </div>
-            ) : (
-              <span className="text-zinc-400">N/A</span>
-            )}
-          </TableCell>
-          <TableCell className="py-4">{workflow.type}</TableCell>
-        </TableRow>
-      ))}
-    </TableBody>
-  )
-}
-
 export async function IssueTitlesTableBody({
   workflows,
   token,

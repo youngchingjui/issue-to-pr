@@ -35,4 +35,3 @@ export async function GET(
     return NextResponse.json({ run: null }, { status: 200 })
   }
 }
-

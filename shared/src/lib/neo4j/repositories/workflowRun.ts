@@ -13,7 +13,7 @@ import {
   workflowRunSchema,
   WorkflowRunState,
   workflowRunStateSchema,
-} from "@/lib/types/db/neo4j"
+} from "@/shared/lib/types"
 
 export async function create(
   tx: ManagedTransaction,

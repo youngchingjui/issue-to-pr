@@ -18,4 +18,3 @@ export type Neo4jRepositoryDTO = { id?: string; fullName: string }
 export type Neo4jUserDTO = { id: string }
 export type Neo4jGithubUserDTO = { id?: string; login?: string }
 export type Neo4jInstallationDTO = { id: string }
-

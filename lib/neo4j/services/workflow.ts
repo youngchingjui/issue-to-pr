@@ -114,6 +114,7 @@ function deriveState(
 }
 
 /**
+ * @deprecated Use StorageAdapter.runs.list instead
  * Returns workflows with run state and connected issue (if any)
  */
 export async function listWorkflowRuns(issue?: {
@@ -313,4 +314,3 @@ export async function getWorkflowRunEvents(
     await session.close()
   }
 }
-
