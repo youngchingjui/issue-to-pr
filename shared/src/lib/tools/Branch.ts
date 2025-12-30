@@ -66,9 +66,9 @@ async function fnHandler(
       }
     } else {
       // Use array commands to prevent injection attacks
-      const { stdout: branchList } = await execInContainerWithDockerode({ 
-        name: env.name, 
-        command: ["git", "branch", "--list", branch] 
+      const { stdout: branchList } = await execInContainerWithDockerode({
+        name: env.name,
+        command: ["git", "branch", "--list", branch],
       })
       const exists = branchList.trim().length > 0
 
@@ -79,9 +79,9 @@ async function fnHandler(
         })
       }
       if (!exists) {
-        const { exitCode, stderr } = await execInContainerWithDockerode({ 
-          name: env.name, 
-          command: ["git", "checkout", "-b", branch] 
+        const { exitCode, stderr } = await execInContainerWithDockerode({
+          name: env.name,
+          command: ["git", "checkout", "-b", branch],
         })
         if (exitCode !== 0) {
           return JSON.stringify({
@@ -95,9 +95,9 @@ async function fnHandler(
           created: true,
         })
       } else {
-        const { exitCode, stderr } = await execInContainerWithDockerode({ 
-          name: env.name, 
-          command: ["git", "checkout", "-q", branch] 
+        const { exitCode, stderr } = await execInContainerWithDockerode({
+          name: env.name,
+          command: ["git", "checkout", "-q", branch],
         })
         if (exitCode !== 0) {
           return JSON.stringify({
