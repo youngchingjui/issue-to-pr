@@ -11,16 +11,14 @@
 
  */
 import { QueueEvents, Worker } from "bullmq"
-import { getRedisConnection } from "shared/adapters/ioredis/client"
 import { WORKFLOW_JOBS_QUEUE } from "shared/entities/Queue"
 
 import { handler } from "./handler"
 import { getEnvVar, registerGracefulShutdown } from "./helper"
+import { neo4jDs } from "./neo4j"
+import { eventsConn, workerConn } from "./redis"
 
-const { REDIS_URL, WORKER_CONCURRENCY } = getEnvVar()
-
-const workerConn = getRedisConnection(REDIS_URL, "bullmq:worker")
-const eventsConn = getRedisConnection(REDIS_URL, "bullmq:events")
+const { WORKER_CONCURRENCY } = getEnvVar()
 
 const concurrency = Math.max(1, WORKER_CONCURRENCY)
 
@@ -94,4 +92,9 @@ queueEvents.on("error", (err) => {
 })
 
 // Register graceful shutdown with a default 1 hour timeout (overridable via SHUTDOWN_TIMEOUT_MS)
-registerGracefulShutdown({ worker, queueEvents, connection: workerConn })
+registerGracefulShutdown({
+  worker,
+  queueEvents,
+  redis: [workerConn, eventsConn],
+  neo4jDs,
+})

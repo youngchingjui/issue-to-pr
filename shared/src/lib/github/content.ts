@@ -1,10 +1,9 @@
-import { withTiming } from "shared/utils/telemetry"
-
-import getOctokit from "@/lib/github"
+import getOctokit from "@/shared/lib/github"
 import {
   AuthenticatedUserRepository,
   GitHubRepository,
-} from "@/lib/types/github"
+} from "@/shared/lib/types/github"
+import { withTiming } from "@/shared/utils/telemetry"
 
 export class GitHubError extends Error {
   constructor(
@@ -177,15 +176,12 @@ export async function checkBranchExists(
   }
 
   try {
-    await withTiming(
-      `GitHub REST: repos.getBranch ${repoFullName}:${branch}`,
-      () =>
-        octokit.rest.repos.getBranch({
-          owner,
-          repo,
-          branch,
-        })
-    )
+    octokit.rest.repos.getBranch({
+      owner,
+      repo,
+      branch,
+    })
+
     return true
   } catch (error: unknown) {
     const http = error as HttpLikeError | undefined

@@ -12,15 +12,21 @@
  * @returns The result of the job. Currently, this is not being used.
  */
 
-import { Job } from "bullmq"
 import { JobEventSchema } from "shared/entities/events/Job"
 
 import { publishJobStatus } from "./helper"
 import { autoResolveIssue } from "./orchestrators/autoResolveIssue"
+import { createDependentPR } from "./orchestrators/createDependentPR"
 import { simulateLongRunningWorkflow } from "./orchestrators/simulateLongRunningWorkflow"
 import { summarizeIssue } from "./orchestrators/summarizeIssue"
 
-export async function handler(job: Job): Promise<string> {
+export interface JobInput<D = unknown> {
+  id?: string | undefined
+  name: string
+  data: D
+}
+
+export async function handler<D = unknown>(job: JobInput<D>): Promise<string> {
   console.log(`Received job ${job.id}: ${job.name}`)
 
   if (!job.id) {
@@ -65,6 +71,12 @@ export async function handler(job: Job): Promise<string> {
           `Completed: ${result.map((m) => m.content).join("\n")}`
         )
         return result.map((m) => m.content).join("\n")
+      }
+      case "createDependentPR": {
+        await publishJobStatus(job.id, "Job: Create dependent PR")
+        const branch = await createDependentPR(job.id, jobData)
+        await publishJobStatus(job.id, `Completed: created branch ${branch}`)
+        return branch
       }
       default: {
         await publishJobStatus(job.id, "Failed: Unknown job name")

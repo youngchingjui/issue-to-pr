@@ -128,25 +128,25 @@ export async function startContainer({
 
 /**
  * Executes a command in a running container using Dockerode.
- * 
+ *
  * SECURITY NOTICE:
  * - String commands use shell interpolation (sh -c) and are vulnerable to injection
  * - Array commands are executed directly and are safe from injection attacks
  * - Always prefer array form when user input is involved
- * 
+ *
  * @example
  * // UNSAFE - vulnerable to injection if userInput contains malicious characters
- * await execInContainerWithDockerode({ 
- *   name: "container", 
- *   command: `git checkout ${userInput}` 
+ * await execInContainerWithDockerode({
+ *   name: "container",
+ *   command: `git checkout ${userInput}`
  * })
- * 
+ *
  * // SAFE - no shell interpolation, injection-proof
- * await execInContainerWithDockerode({ 
- *   name: "container", 
- *   command: ["git", "checkout", userInput] 
+ * await execInContainerWithDockerode({
+ *   name: "container",
+ *   command: ["git", "checkout", userInput]
  * })
- * 
+ *
  * @param name Container name or ID
  * @param command Shell command to run (string uses sh -c, array avoids shell)
  * @param cwd Optional working directory inside container
@@ -197,7 +197,7 @@ export async function execInContainerWithDockerode({
     // If command is an array, pass it directly (safer, no shell interpolation)
     // If command is a string, use shell to match parity with the CLI version
     const cmd = Array.isArray(command) ? command : ["sh", "-c", command]
-    
+
     const exec = await container.exec({
       Cmd: cmd,
       AttachStdout: true,
