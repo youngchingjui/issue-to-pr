@@ -17,24 +17,22 @@ import {
 import { createIssueAction } from "@/lib/actions/createIssue"
 import { useHasKeyboard } from "@/lib/hooks/use-has-keyboard"
 import { toast } from "@/lib/hooks/use-toast"
+import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
+import { GetRepoResponse } from "@/lib/types/api/github"
 import { IssueTitleResponseSchema } from "@/lib/types/api/schemas"
 import type { RepoFullName } from "@/lib/types/github"
 import { mapGithubErrorToCopy } from "@/lib/ui/errorMessages"
 
 interface Props {
-  repoFullName: RepoFullName | null
-  issuesEnabled?: boolean
-  hasOpenAIKey: boolean
+  repoFullName: RepoFullName
 }
 
-export default function NewTaskInput({
-  repoFullName,
-  issuesEnabled = true,
-  hasOpenAIKey,
-}: Props) {
+export default function NewTaskInput({ repoFullName }: Props) {
   const [description, setDescription] = useState("")
   const [loading, setLoading] = useState(false)
   const [generatingTitle, setGeneratingTitle] = useState(false)
+  const [issuesEnabled, setIssuesEnabled] = useState(false)
+  const [hasOpenAIKey, setHasOpenAIKey] = useState(false)
   // useTransition is useful for UI updates (e.g. router.refresh).
   // We should NOT perform remote/network work inside the transition callback
   // because any thrown error will escape the surrounding try/catch resulting
@@ -56,10 +54,39 @@ export default function NewTaskInput({
     setIsMac(/mac/i.test(ua) || /mac/i.test(platform))
   }, [])
 
+  useEffect(() => {
+    const fetchGithubData = async () => {
+      try {
+        // Check if issues are enabled
+        const repoDetails = await fetch(
+          `/api/github/repos/${repoFullName.owner}/${repoFullName.repo}`
+        )
+        if (!repoDetails.ok) {
+          throw new Error("Failed to fetch repository details")
+        }
+        const result = GetRepoResponse.safeParse(await repoDetails.json())
+        if (result.error) {
+          console.error("Failed to check if issues are enabled", result.error)
+          return
+        }
+        setIssuesEnabled(result.data.has_issues)
+        // Check if user has OpenAI API key, so we can turn on microphone
+        const existingKey = await getUserOpenAIApiKey()
+        setHasOpenAIKey(!!(existingKey && existingKey.trim()))
+      } catch (error) {
+        console.error("Error retrieving repository and OpenAI key data", error)
+        setIssuesEnabled(false)
+        setHasOpenAIKey(false)
+      }
+    }
+    fetchGithubData()
+  }, [repoFullName.owner, repoFullName.repo])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!repoFullName) {
+      // TODO: This will likely never occur. Check if we can remove.
       toast({
         title: "No repository selected",
         description: "Please select a repository to create an issue.",
@@ -69,6 +96,7 @@ export default function NewTaskInput({
     }
 
     if (!issuesEnabled) {
+      // TODO: We should probably be disabling the form submission or the button if this is true, instead.
       const { owner, repo } = repoFullName
       toast({
         title: "Issues are disabled",
@@ -92,6 +120,7 @@ export default function NewTaskInput({
     }
 
     if (!description.trim()) {
+      // TODO: Same, probably grey out or disable when this field is empty.
       toast({
         title: "Description required",
         description: "Please enter a description for your task.",

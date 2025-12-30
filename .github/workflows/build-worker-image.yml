@@ -62,6 +62,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: false
+          platforms: linux/amd64,linux/arm64
 
       # Safer, targeted cleanup: only prune the Buildx cache for the builder created above.
       - name: Prune Buildx cache for this builder

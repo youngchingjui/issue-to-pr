@@ -74,4 +74,18 @@ export interface RunningContainer {
   name: string
   image: string
   status: string
+  ports?: string
+  uptime?: string
+  // Optional metadata from container labels
+  owner?: string
+  repo?: string
+  repoFullName?: string
+  branch?: string
+  // Whether we have an install command configured for this container's repo
+  hasInstallCommand?: boolean
+  // Whether we have a dev command configured for this container's repo
+  hasDevCommand?: boolean
+  // Preview subdomain (label set when container is created); used to build visitable URL
+  subdomain?: string
 }
+
