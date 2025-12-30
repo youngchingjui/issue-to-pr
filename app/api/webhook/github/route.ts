@@ -11,6 +11,7 @@ import { revalidateUserInstallationReposCache } from "@/lib/webhook/github/handl
 import { handleIssueLabelAutoResolve } from "@/lib/webhook/github/handlers/issue/label.autoResolveIssue.handler"
 import { handleIssueLabelResolve } from "@/lib/webhook/github/handlers/issue/label.resolve.handler"
 import { handlePullRequestClosedRemoveContainer } from "@/lib/webhook/github/handlers/pullRequest/closed.removeContainer.handler"
+import { handlePullRequestLabelCreateDependentPR } from "@/lib/webhook/github/handlers/pullRequest/label.createDependentPR.handler"
 import { handleRepositoryEditedRevalidate } from "@/lib/webhook/github/handlers/repository/edited.revalidateRepoCache.handler"
 import {
   CreatePayloadSchema,
@@ -167,8 +168,26 @@ export async function POST(req: NextRequest) {
             }
             break
           }
+          case "labeled": {
+            // installation is required by schema; safe to access
+            const installationId = String(parsedPayload.installation.id)
+            const labelName: string | undefined =
+              parsedPayload.label?.name?.trim()
+            switch (labelName?.toLowerCase()) {
+              case "i2pr: update pr": {
+                await handlePullRequestLabelCreateDependentPR({
+                  payload: parsedPayload,
+                  installationId,
+                })
+                break
+              }
+              default:
+                // Unhandled label; ignore
+                break
+            }
+            break
+          }
           case "opened":
-          case "labeled":
           case "synchronize":
           case "reopened":
             // Explicitly supported as no-ops for now
