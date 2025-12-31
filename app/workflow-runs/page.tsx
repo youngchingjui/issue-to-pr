@@ -6,6 +6,7 @@ import TableSkeleton from "@/components/layout/TableSkeleton"
 import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { IssueTitlesTableBody } from "@/components/workflow-runs/WorkflowRunsIssueTitlesTableBody"
+import { neo4jDs } from "@/lib/neo4j"
 import { StorageAdapter } from "@/shared/adapters/neo4j/StorageAdapter"
 
 export default async function WorkflowRunsPage() {
@@ -17,22 +18,18 @@ export default async function WorkflowRunsPage() {
   }
 
   const session = await auth()
-  const userId = session?.user?.id
+  const login = session?.user?.name
   const token = session?.token?.access_token
 
-  if (!userId || !token) {
+  if (!login || !token) {
     redirect("/api/auth/signin")
   }
 
-  const storage = new StorageAdapter({
-    uri,
-    user,
-    password,
-  })
+  const storage = new StorageAdapter(neo4jDs)
 
   const workflows = await storage.runs.list({
     by: "initiator",
-    user: { id: userId },
+    user: { id: login },
   })
 
   return (
