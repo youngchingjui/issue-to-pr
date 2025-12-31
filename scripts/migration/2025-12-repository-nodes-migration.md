@@ -19,6 +19,47 @@ This migration creates Repository nodes with immutable GitHub IDs and establishe
 
 // TODO: We should verify current data, graph structure, relationships, and basics to confirm that migration is correct (we didn't miss any nodes).
 
+## Multi-Environment Migration Checklist
+
+This migration must be run on all three environments. Complete each environment fully before moving to the next.
+
+### MacBook Air
+- [ ] Pre-migration backup completed
+- [ ] Pre-migration verification queries run
+- [ ] Step 1: Normalize existing Repository nodes
+- [ ] Step 2: Create Repository nodes from Issues
+- [ ] Step 3: Link WorkflowRuns to Repositories
+- [ ] Step 4: Link Issues to Repositories
+- [ ] Step 5: Create indexes
+- [ ] Verification queries passed
+- [ ] Application code updated and tested
+
+### Mac Mini
+- [ ] Pre-migration backup completed
+- [ ] Pre-migration verification queries run
+- [ ] Step 1: Normalize existing Repository nodes
+- [ ] Step 2: Create Repository nodes from Issues
+- [ ] Step 3: Link WorkflowRuns to Repositories
+- [ ] Step 4: Link Issues to Repositories
+- [ ] Step 5: Create indexes
+- [ ] Verification queries passed
+- [ ] Application code updated and tested
+
+### Production Server
+- [ ] Pre-migration backup completed
+- [ ] Pre-migration verification queries run
+- [ ] Step 1: Normalize existing Repository nodes
+- [ ] Step 2: Create Repository nodes from Issues
+- [ ] Step 3: Link WorkflowRuns to Repositories
+- [ ] Step 4: Link Issues to Repositories
+- [ ] Step 5: Create indexes
+- [ ] Verification queries passed
+- [ ] Application code updated and tested
+- [ ] Monitor first few workflow runs
+- [ ] Confirm no errors in logs
+
+---
+
 ## Migration Steps
 
 ### Step 1: Normalize Existing Repository Nodes
