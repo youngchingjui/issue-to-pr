@@ -11,6 +11,104 @@ export const workflowRunSchema = z.object({
   postToGithub: z.boolean().optional(),
 })
 
+// User node (app user)
+export const userSchema = z.object({
+  id: z.string(),
+  username: z.string().optional(), // GitHub username used for auth
+  joinDate: neo4jDateTime,
+})
+
+// GithubUser node (GitHub identity)
+export const githubUserSchema = z.object({
+  id: z.string(), // GitHub numeric ID (immutable)
+  login: z.string(), // GitHub login (mutable)
+  avatar_url: z.string().optional(),
+  url: z.string().optional(),
+  name: z.string().optional(),
+})
+
+// Webhook events that launch workflows
+// Modeled after GitHub's webhook structure where:
+// - Event type comes from X-GitHub-Event header ("issues", "pull_request", etc.)
+// - Action comes from payload.action field ("labeled", "opened", "closed", etc.)
+// - We only store the properties needed for workflow run attribution and tracking
+//
+// Based on app/api/webhook/github/route.ts, we currently handle:
+// - issues + labeled action (with labels "resolve" or "i2pr: resolve issue")
+// - pull_request + labeled action (with label "i2pr: update pr")
+//
+// References:
+// - https://docs.github.com/en/webhooks/webhook-events-and-payloads
+
+// Base schema for all webhook events stored in Neo4j
+const baseWebhookEventSchema = z.object({
+  id: z.string(), // Our internal event ID
+  deliveryId: z.string().optional(), // GitHub's X-GitHub-Delivery header
+  createdAt: z.date(), // When we received/stored the event
+})
+
+// Issues event - labeled action
+// Triggered when a label is added to an issue
+// Note: Sender information is stored via (event)-[:SENDER]->(GithubUser) relationship, not as properties
+export const issuesLabeledEventSchema = baseWebhookEventSchema.extend({
+  event: z.literal("issues"), // GitHub event type
+  action: z.literal("labeled"), // GitHub action type
+  labelName: z.string(), // The label that was added (e.g., "resolve", "i2pr: resolve issue")
+  repoFullName: z.string(), // owner/repo format from payload.repository.full_name
+  issueNumber: z.number(), // Issue number from payload.issue.number
+})
+
+// Pull request event - labeled action
+// Triggered when a label is added to a pull request
+// Note: Sender information is stored via (event)-[:SENDER]->(GithubUser) relationship, not as properties
+export const pullRequestLabeledEventSchema = baseWebhookEventSchema.extend({
+  event: z.literal("pull_request"), // GitHub event type
+  action: z.literal("labeled"), // GitHub action type
+  labelName: z.string(), // The label that was added (e.g., "i2pr: update pr")
+  repoFullName: z.string(), // owner/repo format from payload.repository
+  prNumber: z.number(), // PR number from payload.pull_request.number
+})
+
+// Discriminated union of all workflow-launching webhook events
+// Uses "event" as the discriminator to match GitHub's structure
+export const githubWebhookEventSchema = z.discriminatedUnion("event", [
+  issuesLabeledEventSchema,
+  pullRequestLabeledEventSchema,
+])
+
+// Generic schema for storing unknown/future event types
+// Used when we want to store an event but don't have a specific schema yet
+export const genericWebhookEventSchema = z.object({
+  id: z.string(),
+  deliveryId: z.string().optional(),
+  event: z.string(), // Generic event type
+  action: z.string().optional(), // Generic action type
+  createdAt: z.date(),
+})
+
+// Installation node (GitHub App installation)
+export const installationSchema = z.object({
+  id: z.string(),
+  githubInstallationId: z.string(),
+})
+
+// Repository node (stores GitHub repository metadata)
+// Properties follow the shape from CreateWorkflowRunInput.repository
+// Immutable identifiers: id, nodeId
+// Mutable properties: fullName, owner, name, defaultBranch, visibility, hasIssues
+export const repositorySchema = z.object({
+  id: z.string(), // GitHub numeric ID (stored as string in Neo4j)
+  nodeId: z.string(), // GitHub global node ID (immutable)
+  fullName: z.string(), // owner/repo format (mutable, can change via rename/transfer)
+  owner: z.string(), // Repository owner (mutable)
+  name: z.string(), // Repository name (mutable)
+  defaultBranch: z.string().optional(), // Default branch name (mutable)
+  visibility: z.enum(["PUBLIC", "PRIVATE", "INTERNAL"]).optional(),
+  hasIssues: z.boolean().optional(), // Whether issues are enabled
+  createdAt: neo4jDateTime.optional(), // When this node was created in Neo4j
+  lastUpdated: neo4jDateTime.optional(), // Last time this node was updated
+})
+
 export const workflowRunStateSchema = z.enum([
   "running",
   "completed",
@@ -146,7 +244,16 @@ export const anyEventSchema = z.discriminatedUnion("type", [
 //--------Export all types--------
 export type AnyEvent = z.infer<typeof anyEventSchema>
 export type ErrorEvent = z.infer<typeof errorEventSchema>
+export type GenericWebhookEvent = z.infer<typeof genericWebhookEventSchema>
+export type GithubUser = z.infer<typeof githubUserSchema>
+export type GithubWebhookEvent = z.infer<typeof githubWebhookEventSchema>
+export type Installation = z.infer<typeof installationSchema>
 export type Issue = z.infer<typeof issueSchema>
+export type IssuesLabeledEvent = z.infer<typeof issuesLabeledEventSchema>
+export type PullRequestLabeledEvent = z.infer<
+  typeof pullRequestLabeledEventSchema
+>
+export type Repository = z.infer<typeof repositorySchema>
 export type LLMResponse = z.infer<typeof llmResponseSchema>
 export type LLMResponseWithPlan = z.infer<typeof llmResponseWithPlanSchema>
 export type MessageEvent = z.infer<typeof messageEventSchema>
@@ -157,6 +264,7 @@ export type StatusEvent = z.infer<typeof statusEventSchema>
 export type SystemPrompt = z.infer<typeof systemPromptSchema>
 export type ToolCall = z.infer<typeof toolCallSchema>
 export type ToolCallResult = z.infer<typeof toolCallResultSchema>
+export type User = z.infer<typeof userSchema>
 export type UserMessage = z.infer<typeof userMessageSchema>
 export type WorkflowRun = z.infer<typeof workflowRunSchema>
 export type WorkflowRunState = z.infer<typeof workflowRunStateSchema>

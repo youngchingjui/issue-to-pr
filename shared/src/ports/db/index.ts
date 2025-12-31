@@ -5,14 +5,25 @@ export type CreateWorkflowRunInput = {
   id: string
   type: string // workflow type
   issueNumber?: number
-  repoFullName?: string // e.g. "owner/name"
+  repoFullName?: string // Deprecated: use repository instead. Kept for backward compatibility.
+  repository?: {
+    id: number // GitHub numeric ID (immutable)
+    nodeId: string // GitHub global node ID (immutable)
+    fullName: string // owner/repo format (mutable)
+    owner: string // Repository owner (mutable)
+    name: string // Repository name (mutable)
+    defaultBranch?: string // Default branch name
+    visibility?: "PUBLIC" | "PRIVATE" | "INTERNAL"
+    hasIssues?: boolean // Whether issues are enabled
+  }
   postToGithub?: boolean
   actor:
     | { kind: "user"; userId: string; github?: { id?: string; login?: string } }
     | {
         kind: "webhook"
         source: "github"
-        event?: "issues.labeled" | "pull_request.labeled" | "unknown"
+        event?: "issues" | "pull_request"
+        action?: "labeled" | "opened" | "closed"
         installationId?: string
         sender?: { id?: string; login?: string }
       }

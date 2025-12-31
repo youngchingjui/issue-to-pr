@@ -1,6 +1,6 @@
 import { QueryResult } from "neo4j-driver"
 
-import { WorkflowEventInput } from "@/ports/db"
+import { WorkflowEventInput } from "@/shared/ports/db"
 
 import { anyEventSchema } from "../../types"
 import { ListEventsForWorkflowRunResult } from "./listEvents"
