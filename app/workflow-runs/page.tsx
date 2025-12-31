@@ -8,6 +8,7 @@ import { Table, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { IssueTitlesTableBody } from "@/components/workflow-runs/WorkflowRunsIssueTitlesTableBody"
 import { neo4jDs } from "@/lib/neo4j"
 import { StorageAdapter } from "@/shared/adapters/neo4j/StorageAdapter"
+import { getWorkflowRunsForUser } from "@/shared/services/workflowRuns/getWorkflowRunsForUser"
 
 export default async function WorkflowRunsPage() {
   const uri = process.env.NEO4J_URI
@@ -27,10 +28,7 @@ export default async function WorkflowRunsPage() {
 
   const storage = new StorageAdapter(neo4jDs)
 
-  const workflows = await storage.runs.list({
-    by: "initiator",
-    user: { id: login },
-  })
+  const workflows = await getWorkflowRunsForUser(storage, { userId: login })
 
   return (
     <main className="container mx-auto p-4">
