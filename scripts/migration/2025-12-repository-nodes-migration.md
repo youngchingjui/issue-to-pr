@@ -15,9 +15,119 @@ This migration creates Repository nodes with immutable GitHub IDs and establishe
 - [ ] Confirm no active workflow runs are in progress
 - [ ] Review estimated execution time based on data volume
 
-// TODO: Add backup instructions
+### Backup Instructions
 
-// TODO: We should verify current data, graph structure, relationships, and basics to confirm that migration is correct (we didn't miss any nodes).
+Before running this migration, create a backup of your Neo4j database:
+
+**Option 1: Using Neo4j Admin Dump (Recommended)**
+```bash
+# Stop Neo4j if running
+neo4j stop
+
+# Create dump file
+neo4j-admin database dump neo4j --to-path=/path/to/backup/location
+
+# Restart Neo4j
+neo4j start
+```
+
+**Option 2: Using Neo4j Desktop**
+1. Open Neo4j Desktop
+2. Select your database
+3. Click the three dots menu
+4. Select "Dump" to create a backup file
+5. Save with timestamp: `neo4j-backup-2025-12-31.dump`
+
+**Option 3: Copy Data Directory (Simple but requires downtime)**
+```bash
+# Stop Neo4j
+neo4j stop
+
+# Copy data directory
+cp -r /path/to/neo4j/data /path/to/backup/neo4j-data-2025-12-31
+
+# Restart Neo4j
+neo4j start
+```
+
+**Restore Instructions (if needed)**
+```bash
+# Stop Neo4j
+neo4j stop
+
+# Load from dump
+neo4j-admin database load neo4j --from-path=/path/to/backup/location
+
+# Restart Neo4j
+neo4j start
+```
+
+### Pre-Migration Verification Queries
+
+Run these queries to understand your current data structure and verify the migration will work correctly:
+
+**1. Count all node types**
+```cypher
+MATCH (n)
+RETURN labels(n) as nodeType, count(n) as count
+ORDER BY count DESC
+```
+
+**Expected**: Should show counts of Issue, WorkflowRun, Repository (if any), and other node types.
+
+**2. Check Issues with repository information**
+```cypher
+MATCH (i:Issue)
+RETURN
+  count(i) as totalIssues,
+  count(i.repoFullName) as issuesWithRepoFullName,
+  collect(DISTINCT i.repoFullName)[..10] as sampleRepoNames
+```
+
+**Expected**: All or most Issues should have `repoFullName`.
+
+**3. Check WorkflowRuns linked to Issues**
+```cypher
+MATCH (w:WorkflowRun)
+OPTIONAL MATCH (w)-[:BASED_ON_ISSUE]->(i:Issue)
+RETURN
+  count(w) as totalWorkflowRuns,
+  count(i) as workflowRunsWithIssues
+```
+
+**Expected**: Most WorkflowRuns should be linked to Issues.
+
+**4. Check existing Repository nodes**
+```cypher
+MATCH (r:Repository)
+RETURN
+  count(r) as existingRepoNodes,
+  count(r.id) as reposWithGithubId,
+  count(r.fullName) as reposWithFullName,
+  collect(r.fullName)[..10] as sampleRepos
+```
+
+**Expected**: May have 0 or some Repository nodes from settings management.
+
+**5. Check existing Repository relationships**
+```cypher
+MATCH (r:Repository)-[rel]-()
+RETURN
+  type(rel) as relationshipType,
+  count(rel) as count
+```
+
+**Expected**: May show `HAS_SETTINGS` or other existing relationships.
+
+**6. Verify no duplicate or orphaned data**
+```cypher
+// Check for Issues without repoFullName
+MATCH (i:Issue)
+WHERE i.repoFullName IS NULL
+RETURN count(i) as issuesWithoutRepo, collect(i.number)[..10] as sampleIssueNumbers
+```
+
+**Expected**: Should be 0 or minimal.
 
 ## Multi-Environment Migration Checklist
 
