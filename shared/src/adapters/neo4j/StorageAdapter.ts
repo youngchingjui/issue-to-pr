@@ -1,10 +1,4 @@
-import { Neo4jDataSource } from "@/shared/adapters/neo4j/dataSource"
-import { listForIssue } from "@/shared/adapters/neo4j/queries/workflowRuns/listForIssue"
-import { mapListForIssueResult } from "@/shared/adapters/neo4j/queries/workflowRuns/listForIssue.mapper"
-import {
-  getWorkflowRunEvents,
-  getWorkflowRunWithDetails,
-} from "@/shared/lib/neo4j/services/workflow"
+import { getWorkflowRunWithDetails } from "@/shared/lib/neo4j/services/workflow"
 import type {
   CreateWorkflowRunInput,
   DatabaseStorage,
@@ -15,6 +9,12 @@ import type {
   WorkflowRunHandle,
   WorkflowRunsRepository,
 } from "@/shared/ports/db"
+
+import { Neo4jDataSource } from "./dataSource"
+import { listEventsForWorkflowRun } from "./queries/workflowRuns/listEvents"
+import { mapListEventsResult } from "./queries/workflowRuns/listEvents.mapper"
+import { listForIssue } from "./queries/workflowRuns/listForIssue"
+import { mapListForIssueResult } from "./queries/workflowRuns/listForIssue.mapper"
 
 // Minimal, forward-compatible StorageAdapter. The goal is to provide the port
 // shapes for callers while delegating to existing read APIs for now.
@@ -106,14 +106,18 @@ export class StorageAdapter implements DatabaseStorage {
     },
 
     listEvents: async (runId: string): Promise<WorkflowEventInput[]> => {
-      const events = await getWorkflowRunEvents(runId)
-      return events.map((e) => ({
-        type: e.type,
-        payload: e.payload,
-        createdAt: e.createdAt
-          ? new Date(e.createdAt).toISOString()
-          : undefined,
-      }))
+      const session = this.dataSource.getSession("READ")
+      try {
+        const events = await session.executeRead(async (tx) => {
+          return await listEventsForWorkflowRun(tx, { workflowRunId: runId })
+        })
+        return mapListEventsResult(events)
+      } catch (error) {
+        console.error(error)
+        throw error
+      } finally {
+        await session.close()
+      }
     },
   }
 }

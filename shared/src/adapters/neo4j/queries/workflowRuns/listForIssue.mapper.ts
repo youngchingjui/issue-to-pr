@@ -1,12 +1,13 @@
 import { QueryResult } from "neo4j-driver"
 
-import { ListForIssueResult } from "@/shared/adapters/neo4j/queries/workflowRuns/listForIssue"
 import {
   issueSchema,
   workflowRunSchema,
   workflowRunStateSchema,
 } from "@/shared/adapters/neo4j/types"
 import { ListedWorkflowRun } from "@/shared/ports/db"
+
+import { ListForIssueResult } from "./listForIssue"
 
 // Maps types from Neo4j to the domain types
 export function mapListForIssueResult(
