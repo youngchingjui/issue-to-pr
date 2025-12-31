@@ -2,13 +2,13 @@ import { createAppAuth } from "@octokit/auth-app"
 import { Octokit } from "@octokit/rest"
 import type { Transaction } from "neo4j-driver"
 import { EventBusAdapter } from "shared/adapters/ioredis/EventBusAdapter"
-import { createNeo4jDataSource } from "shared/adapters/neo4j/dataSource"
 import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
 import { setAccessToken } from "shared/auth"
 import { getPrivateKeyFromFile } from "shared/services/fs"
 import { autoResolveIssue as autoResolveIssueWorkflow } from "shared/usecases/workflows/autoResolveIssue"
 
 import { getEnvVar, publishJobStatus } from "../helper"
+import { neo4jDs } from "../neo4j"
 
 // Minimal user repository implementation for SettingsReaderAdapter
 const userRepo = {
@@ -56,24 +56,10 @@ export async function autoResolveIssue(
   )
 
   // Load environment
-  const {
-    NEO4J_URI,
-    NEO4J_USER,
-    NEO4J_PASSWORD,
-    GITHUB_APP_ID,
-    GITHUB_APP_PRIVATE_KEY_PATH,
-    REDIS_URL,
-  } = getEnvVar()
-
-  // Settings adapter (loads OpenAI API key from Neo4j)
-  const neo4jDs = createNeo4jDataSource({
-    uri: NEO4J_URI,
-    user: NEO4J_USER,
-    password: NEO4J_PASSWORD,
-  })
+  const { GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_PATH, REDIS_URL } = getEnvVar()
 
   const settingsAdapter = makeSettingsReaderAdapter({
-    getSession: () => neo4jDs.getSession(),
+    getSession: () => neo4jDs.getSession("READ"),
     userRepo,
   })
 

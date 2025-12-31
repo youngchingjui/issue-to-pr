@@ -1,4 +1,3 @@
-import { int } from "neo4j-driver"
 import { withTiming } from "shared/utils/telemetry"
 
 import { n4j } from "@/lib/neo4j/client"
@@ -53,37 +52,33 @@ export async function initializeWorkflowRun({
   const session = await n4j.getSession()
   try {
     // Handle database operations within transaction
-    const result = await withTiming(
-      `Neo4j WRITE: initializeWorkflowRun ${repoFullName ?? "<no-repo>"}`,
-      async () =>
-        session.executeWrite(async (tx) => {
-          // If we have both issueNumber and repoFullName, create and link the issue
-          if (issueNumber && repoFullName) {
-            return await mergeIssueLink(tx, {
-              workflowRun: {
-                id,
-                type,
-                postToGithub,
-              },
-              issue: {
-                repoFullName,
-                number: int(issueNumber),
-              },
-            })
-          }
-
-          // Otherwise just create the workflow run without an issue
-          const run = await create(tx, {
+    const result = await session.executeWrite(async (tx) => {
+      // If we have both issueNumber and repoFullName, create and link the issue
+      if (issueNumber && repoFullName) {
+        return await mergeIssueLink(tx, {
+          workflowRun: {
             id,
             type,
             postToGithub,
-          })
-          return {
-            run,
-            issue: null,
-          }
+          },
+          issue: {
+            repoFullName,
+            number: issueNumber,
+          },
         })
-    )
+      }
+
+      // Otherwise just create the workflow run without an issue
+      const run = await create(tx, {
+        id,
+        type,
+        postToGithub,
+      })
+      return {
+        run,
+        issue: null,
+      }
+    })
 
     // Transform database models to application models outside the transaction
     return {
@@ -123,19 +118,15 @@ export async function listWorkflowRuns(issue?: {
 > {
   const session = await n4j.getSession()
   try {
-    const result = await withTiming(
-      `Neo4j READ: listWorkflowRuns ${issue ? `${issue.repoFullName}#${issue.issueNumber}` : "all"}`,
-      async () =>
-        session.executeRead(async (tx) => {
-          if (issue) {
-            return await listForIssue(tx, {
-              repoFullName: issue.repoFullName,
-              number: int(issue.issueNumber),
-            })
-          }
-          return await listAll(tx)
+    const result = await session.executeRead(async (tx) => {
+      if (issue) {
+        return await listForIssue(tx, {
+          repoFullName: issue.repoFullName,
+          number: issue.issueNumber,
         })
-    )
+      }
+      return await listAll(tx)
+    })
 
     return result
       .map(({ run, state, issue }) => {

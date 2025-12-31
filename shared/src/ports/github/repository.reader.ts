@@ -6,9 +6,13 @@ export interface Repo {
 }
 
 export interface RepoDetails extends Repo {
-  /** Repository owner */
+  /** GitHub numeric repository ID (immutable) */
+  id: number
+  /** GitHub global node ID (immutable) */
+  nodeId: string
+  /** Repository owner (mutable - can change via org transfers) */
   owner: string
-  /** Repository name */
+  /** Repository name (mutable - can be renamed) */
   name: string
   /** Short description of the repository */
   description: string | null

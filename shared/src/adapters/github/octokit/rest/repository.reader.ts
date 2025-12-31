@@ -30,6 +30,8 @@ export function makeRepositoryReaderAdapter(params: {
       ).toUpperCase() as "PUBLIC" | "PRIVATE" | "INTERNAL"
 
       const details: RepoDetails = {
+        id: data.id,
+        nodeId: data.node_id,
         fullName: repository.fullName,
         owner: data.owner?.login ?? owner,
         name: data.name ?? repo,

@@ -26,24 +26,13 @@ export async function handleIssueLabelResolve({
   payload: IssuesPayload
   installationId: string
 }) {
-  const repoFullName = payload.repository?.full_name
-  const issueNumber = payload.issue?.number
-  const labelerLogin = payload.sender?.login
-
-  if (!repoFullName || typeof issueNumber !== "number") {
-    console.error(
-      "Missing repository.full_name or issue.number in Issues payload"
-    )
-    return
-  }
-
-  if (!labelerLogin) {
-    console.error("Missing sender.login for labeled issue event")
-    return
-  }
+  const repoFullName = payload.repository.full_name
+  const issueNumber = payload.issue.number
+  const labelerLogin = payload.sender.login
+  const labelerId = payload.sender.id
 
   const settingsReader = makeSettingsReaderAdapter({
-    getSession: () => neo4jDs.getSession(),
+    getSession: () => neo4jDs.getSession("READ"),
     userRepo: userRepo,
   })
 
@@ -80,6 +69,15 @@ export async function handleIssueLabelResolve({
         apiKey,
         jobId,
         createPR: createPR && postToGithub,
+        webhookContext: {
+          event: "issues",
+          action: "labeled",
+          sender: {
+            id: String(labelerId),
+            login: labelerLogin,
+          },
+          installationId: String(installationId),
+        },
       })
     } catch (e) {
       console.error("Failed to run resolveIssue workflow from label:", e)
