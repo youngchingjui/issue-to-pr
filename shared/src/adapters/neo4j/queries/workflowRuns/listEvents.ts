@@ -1,17 +1,24 @@
-import type { WorkflowEvent } from "@shared/ports/db"
-import type { Session } from "neo4j-driver"
+import { Integer, ManagedTransaction, Node, QueryResult } from "neo4j-driver"
 
-import { mapListEvents } from "./listEvents.mapper"
+import { AnyEvent } from "@/shared/adapters/neo4j/types"
 
-export async function listWorkflowRunEvents(
-  session: Session,
-  runId: string
-): Promise<WorkflowEvent[]> {
-  const res = await session.run(
-    `MATCH (wr:WorkflowRun { id: $runId })-[:HAS_EVENT]->(e:Event)
-     RETURN e
-     ORDER BY e.createdAt ASC`,
-    { runId }
-  )
-  return mapListEvents(res.records)
+const QUERY = `
+  MATCH (w:WorkflowRun {id: $workflowRunId})-[:STARTS_WITH|NEXT*]->(e:Event)
+  RETURN e
+  ORDER BY e.createdAt ASC
+`
+
+export interface ListEventsForWorkflowRunParams {
+  workflowRunId: string
+}
+
+export interface ListEventsForWorkflowRunResult {
+  e: Node<Integer, AnyEvent, "Event">
+}
+
+export async function listEventsForWorkflowRun(
+  tx: ManagedTransaction,
+  params: ListEventsForWorkflowRunParams
+): Promise<QueryResult<ListEventsForWorkflowRunResult>> {
+  return await tx.run<ListEventsForWorkflowRunResult>(QUERY, params)
 }

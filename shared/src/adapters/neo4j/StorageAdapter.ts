@@ -6,7 +6,6 @@ import type {
   WorkflowRunFilter,
   WorkflowRunHandle,
 } from "@shared/ports/db/index"
-import type { Session } from "neo4j-driver"
 
 import type { Neo4jDataSource } from "./dataSource"
 
