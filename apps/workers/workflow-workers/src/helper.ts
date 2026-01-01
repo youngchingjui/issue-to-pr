@@ -5,7 +5,6 @@ import path from "path"
 import { getRedisConnection } from "shared/adapters/ioredis/client"
 import { JOB_STATUS_CHANNEL } from "shared/entities/Channels"
 import { JobStatusUpdateSchema } from "shared/entities/events/JobStatus"
-import { fileURLToPath } from "url"
 
 import { envSchema, type EnvVariables } from "./schemas"
 
@@ -14,9 +13,9 @@ let envLoaded = false
 function loadEnvFromWorkerRoot(): void {
   if (envLoaded) return
 
-  const filename = fileURLToPath(import.meta.url)
-  const dirname = path.dirname(filename)
-  const workerRoot = path.resolve(dirname, "..")
+  // Use process.cwd() as the worker root, which is where the process is started from
+  // This works correctly whether the dist structure is flat or nested
+  const workerRoot = process.cwd()
 
   const nodeEnv = process.env.NODE_ENV ?? "development"
 
