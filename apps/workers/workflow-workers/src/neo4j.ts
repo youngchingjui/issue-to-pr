@@ -5,17 +5,18 @@ import {
 
 import { getEnvVar } from "./helper"
 
-let _ds: Neo4jDataSource | undefined
+let _neo4jDs: Neo4jDataSource | undefined
 
-export function getWorkerNeo4jDs(): Neo4jDataSource {
-  if (_ds) return _ds
+const { NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD } = getEnvVar()
 
-  const { NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD } = getEnvVar()
+// Create a singleton instance of the Neo4j data source
+// So we can utilize their connection pools and session management
+// And avoid creating a new driver for each request
 
-  _ds = createNeo4jDataSource({
+export const neo4jDs =
+  _neo4jDs ??
+  (_neo4jDs = createNeo4jDataSource({
     uri: NEO4J_URI,
     user: NEO4J_USER,
     password: NEO4J_PASSWORD,
-  })
-  return _ds
-}
+  }))
