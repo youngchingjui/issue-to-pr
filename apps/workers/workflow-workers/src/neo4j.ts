@@ -1,20 +1,21 @@
-import type { Neo4jDataSource } from "shared/adapters/neo4j/dataSource"
-import { createNeo4jDataSource } from "shared/adapters/neo4j/dataSource"
+import {
+  createNeo4jDataSource,
+  type Neo4jDataSource,
+} from "@/shared/adapters/neo4j/dataSource"
+
+import { getEnvVar } from "./helper"
 
 let _ds: Neo4jDataSource | undefined
 
 export function getWorkerNeo4jDs(): Neo4jDataSource {
   if (_ds) return _ds
 
-  const uri = process.env.NEO4J_URI
-  const user = process.env.NEO4J_USER
-  const password = process.env.NEO4J_PASSWORD
-  if (!uri || !user || !password) {
-    throw new Error(
-      "NEO4J_URI, NEO4J_USER, and NEO4J_PASSWORD must be set for workers"
-    )
-  }
+  const { NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD } = getEnvVar()
 
-  _ds = createNeo4jDataSource({ uri, user, password })
+  _ds = createNeo4jDataSource({
+    uri: NEO4J_URI,
+    user: NEO4J_USER,
+    password: NEO4J_PASSWORD,
+  })
   return _ds
 }
