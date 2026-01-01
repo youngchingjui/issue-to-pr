@@ -110,6 +110,7 @@ export const repositorySchema = z.object({
 })
 
 export const workflowRunStateSchema = z.enum([
+  "pending",
   "running",
   "completed",
   "error",

@@ -46,9 +46,9 @@ export interface WorkflowRun {
   type: string
   createdAt: Date
   postToGithub: boolean
-  state: "pending" | "running" | "completed" | "error"
+  state: "pending" | "running" | "completed" | "error" | "timedOut"
   issue?: { repoFullName: string; number: number }
-  actor: { kind: "user" | "webhook" | "system" }
+  actor?: { kind: "user" | "webhook" | "system" }
   repository?: { fullName: string }
 }
 
