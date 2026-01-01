@@ -2,21 +2,33 @@ import type { QueueEvents, Worker } from "bullmq"
 import dotenv from "dotenv"
 import type IORedis from "ioredis"
 import path from "path"
-import { getRedisConnection } from "shared/adapters/ioredis/client"
-import { JOB_STATUS_CHANNEL } from "shared/entities/Channels"
-import { JobStatusUpdateSchema } from "shared/entities/events/JobStatus"
-import { fileURLToPath } from "url"
+
+import { getRedisConnection } from "@/shared/adapters/ioredis/client"
+import { JOB_STATUS_CHANNEL } from "@/shared/entities/Channels"
+import { JobStatusUpdateSchema } from "@/shared/entities/events/JobStatus"
 
 import { envSchema, type EnvVariables } from "./schemas"
 
 let envLoaded = false
 
+/**
+ * Environment loading strategy:
+ *
+ * - Docker production: Environment variables are loaded via `env_file` in docker-compose.yml
+ *   before the container starts. The dotenv.config() calls below will find no .env files
+ *   in the container (they are not copied), so they silently no-op. This is harmless.
+ *
+ * - Local development: dotenv.config() loads .env files from process.cwd() (repository root).
+ *   Developers should provide .env.local or .env files at the repository root for local development.
+ *
+ * In both cases, envSchema.parse(process.env) validates that all required variables are present.
+ */
 function loadEnvFromWorkerRoot(): void {
   if (envLoaded) return
 
-  const filename = fileURLToPath(import.meta.url)
-  const dirname = path.dirname(filename)
-  const workerRoot = path.resolve(dirname, "..")
+  // Use process.cwd() as the worker root, which is where the process is started from
+  // This works correctly whether the dist structure is flat or nested
+  const workerRoot = process.cwd()
 
   const nodeEnv = process.env.NODE_ENV ?? "development"
 

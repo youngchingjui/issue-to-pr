@@ -1,4 +1,4 @@
-import IORedis, { RedisOptions } from "ioredis"
+import IORedis, { type RedisOptions } from "ioredis"
 
 // Roles describe how a connection is used. Some can be shared safely, others must be dedicated.
 export type RedisRole =
