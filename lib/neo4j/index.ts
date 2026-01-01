@@ -9,7 +9,10 @@
  ================================================= */
 import "server-only"
 
-import { createNeo4jDataSource } from "shared/adapters/neo4j/dataSource"
+import {
+  createNeo4jDataSource,
+  type Neo4jDataSource,
+} from "@/shared/adapters/neo4j/dataSource"
 
 declare global {
   // cache across HMR
