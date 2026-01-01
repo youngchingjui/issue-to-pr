@@ -1,5 +1,5 @@
-import type { Record as Neo4jRecord } from "neo4j-driver"
 import type { WorkflowEvent } from "@shared/ports/db"
+import type { Record as Neo4jRecord } from "neo4j-driver"
 
 export function mapListEvents(records: Neo4jRecord[]): WorkflowEvent[] {
   return records.map((r) => {
@@ -12,4 +12,3 @@ export function mapListEvents(records: Neo4jRecord[]): WorkflowEvent[] {
     }
   })
 }
-

@@ -1,5 +1,5 @@
-import type { Record as Neo4jRecord } from "neo4j-driver"
 import type { WorkflowRun } from "@shared/ports/db"
+import type { Record as Neo4jRecord } from "neo4j-driver"
 
 export function mapListForIssue(records: Neo4jRecord[]): WorkflowRun[] {
   return records.map((r) => {
@@ -13,8 +13,10 @@ export function mapListForIssue(records: Neo4jRecord[]): WorkflowRun[] {
       state: (wr.state as WorkflowRun["state"]) ?? "pending",
       actor: { kind: "system" },
       repository: repoFullName ? { fullName: repoFullName } : undefined,
-      issue: repoFullName && typeof wr.issueNumber === "number" ? { repoFullName, number: wr.issueNumber } : undefined,
+      issue:
+        repoFullName && typeof wr.issueNumber === "number"
+          ? { repoFullName, number: wr.issueNumber }
+          : undefined,
     }
   })
 }
-

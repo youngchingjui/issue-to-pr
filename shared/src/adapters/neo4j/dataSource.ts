@@ -32,4 +32,3 @@ export function createNeo4jDataSource(cfg: Neo4jConfig): Neo4jDataSource {
 
   return { getDriver, getSession }
 }
-

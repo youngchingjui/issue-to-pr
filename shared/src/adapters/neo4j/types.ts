@@ -29,4 +29,3 @@ export interface WorkflowRunNode {
   createdAt: DateTime
   postToGithub: boolean
 }
-

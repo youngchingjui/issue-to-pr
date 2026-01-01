@@ -1,5 +1,3 @@
-import type { Session } from "neo4j-driver"
-import type { Neo4jDataSource } from "./dataSource"
 import type {
   CreateWorkflowRunInput,
   DatabaseStorage,
@@ -8,6 +6,9 @@ import type {
   WorkflowRunFilter,
   WorkflowRunHandle,
 } from "@shared/ports/db/index"
+import type { Session } from "neo4j-driver"
+
+import type { Neo4jDataSource } from "./dataSource"
 
 // Minimal StorageAdapter implementation that satisfies the DatabaseStorage port.
 // Focused on add-only behavior for WorkflowRun creation with Repository/User nodes.
@@ -18,13 +19,18 @@ export class StorageAdapter implements DatabaseStorage {
     run: {
       create: (input: CreateWorkflowRunInput): Promise<WorkflowRunHandle> =>
         this.createWorkflowRun(input),
-      getById: (id: string): Promise<WorkflowRun | null> => this.getWorkflowRunById(id),
-      list: (filter: WorkflowRunFilter): Promise<WorkflowRun[]> => this.listWorkflowRuns(filter),
-      listEvents: (runId: string): Promise<WorkflowEvent[]> => this.listWorkflowRunEvents(runId),
+      getById: (id: string): Promise<WorkflowRun | null> =>
+        this.getWorkflowRunById(id),
+      list: (filter: WorkflowRunFilter): Promise<WorkflowRun[]> =>
+        this.listWorkflowRuns(filter),
+      listEvents: (runId: string): Promise<WorkflowEvent[]> =>
+        this.listWorkflowRunEvents(runId),
     },
   }
 
-  private async createWorkflowRun(input: CreateWorkflowRunInput): Promise<WorkflowRunHandle> {
+  private async createWorkflowRun(
+    input: CreateWorkflowRunInput
+  ): Promise<WorkflowRunHandle> {
     const session = this.ds.getSession("WRITE")
     try {
       const params: Record<string, unknown> = {
@@ -110,7 +116,7 @@ export class StorageAdapter implements DatabaseStorage {
         `MATCH (wr:WorkflowRun { id: $id })
          OPTIONAL MATCH (wr)-[:TARGETS]->(repo:Repository)
          RETURN wr { .id, .type, .createdAt, .postToGithub, .state } AS wr, repo.fullName AS repoFullName`,
-        { id },
+        { id }
       )
       const rec = res.records[0]
       if (!rec) return null
@@ -136,14 +142,17 @@ export class StorageAdapter implements DatabaseStorage {
     }
   }
 
-  private async listWorkflowRuns(_filter: WorkflowRunFilter): Promise<WorkflowRun[]> {
+  private async listWorkflowRuns(
+    _filter: WorkflowRunFilter
+  ): Promise<WorkflowRun[]> {
     // Foundation PR: keep simple and return empty until wired by subsequent PRs.
     // Implementers can build queries using helpers in queries/workflowRuns/*
     return []
   }
 
-  private async listWorkflowRunEvents(_runId: string): Promise<WorkflowEvent[]> {
+  private async listWorkflowRunEvents(
+    _runId: string
+  ): Promise<WorkflowEvent[]> {
     return []
   }
 }
-

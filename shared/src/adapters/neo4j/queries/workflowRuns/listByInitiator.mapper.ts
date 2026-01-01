@@ -1,5 +1,5 @@
-import type { Record as Neo4jRecord } from "neo4j-driver"
 import type { WorkflowRun } from "@shared/ports/db"
+import type { Record as Neo4jRecord } from "neo4j-driver"
 
 export function mapListByInitiator(records: Neo4jRecord[]): WorkflowRun[] {
   return records.map((r) => {
@@ -16,4 +16,3 @@ export function mapListByInitiator(records: Neo4jRecord[]): WorkflowRun[] {
     }
   })
 }
-

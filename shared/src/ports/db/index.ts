@@ -64,4 +64,3 @@ export interface WorkflowRunFilter {
   repositoryId?: string
   issueNumber?: number
 }
-
