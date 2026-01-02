@@ -75,7 +75,8 @@ function neo4jEventToDomainEvent(neo4jEvent: AnyEvent): AllEvents {
       return {
         type: "tool.call",
         timestamp: isoTimestamp,
-        content: neo4jEvent.data ?? `${neo4jEvent.toolName}(${neo4jEvent.args ?? ''})`,
+        content:
+          neo4jEvent.data ?? `${neo4jEvent.toolName}(${neo4jEvent.args ?? ""})`,
       }
 
     case "toolCallResult":
@@ -99,13 +100,7 @@ export function mapListEvents(
   result: QueryResult<ListEventsForWorkflowRunResult>
 ): AllEvents[] {
   return result.records.map((record) => {
-    const neo4jEvent = anyEventSchema.safeParse(record.get("e").properties)
-    if (!neo4jEvent.success) {
-      console.log("error parsing Neo4j event")
-      console.log(record.get("e").properties)
-      console.log(neo4jEvent.error)
-      throw new Error("Failed to parse Neo4j event")
-    }
-    return neo4jEventToDomainEvent(neo4jEvent.data)
+    const neo4jEvent = anyEventSchema.parse(record.get("e").properties)
+    return neo4jEventToDomainEvent(neo4jEvent)
   })
 }
