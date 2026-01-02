@@ -189,14 +189,18 @@ export const statusEventSchema = baseEventSchema.extend({
   content: z.string(),
 })
 
-export const workflowStateEventSchema = baseEventSchema.extend({
-  type: z.literal("workflowState"),
-  state: workflowRunStateSchema,
-})
+export const workflowStateEventSchema = baseEventSchema
+  .omit({ content: true })
+  .extend({
+    type: z.literal("workflowState"),
+    state: workflowRunStateSchema,
+  })
 
 export const systemPromptSchema = baseEventSchema.extend({
   type: z.literal("systemPrompt"),
   content: z.string(),
+  data: z.string().optional(),
+  timestamp: neo4jDateTime.optional(),
 })
 
 export const userMessageSchema = baseEventSchema.extend({
@@ -211,7 +215,7 @@ export const llmResponseSchema = baseEventSchema.extend({
 
 export const reasoningEventSchema = baseEventSchema.extend({
   type: z.literal("reasoning"),
-  content: z.string(),
+  summary: z.string(),
 })
 
 export const planSchema = z.object({
@@ -230,12 +234,20 @@ export const llmResponseWithPlanSchema = llmResponseSchema.merge(
 
 export const toolCallSchema = baseEventSchema.extend({
   type: z.literal("toolCall"),
-  content: z.string(),
+  toolName: z.string(),
+  toolCallId: z.string(),
+  args: z.string().optional(),
+  data: z.string().optional(),
+  timestamp: neo4jDateTime.optional(),
 })
 
 export const toolCallResultSchema = baseEventSchema.extend({
   type: z.literal("toolCallResult"),
+  toolCallId: z.string(),
+  toolName: z.string(),
   content: z.string(),
+  data: z.string().optional(),
+  timestamp: neo4jDateTime.optional(),
 })
 
 export const reviewCommentSchema = baseEventSchema.extend({

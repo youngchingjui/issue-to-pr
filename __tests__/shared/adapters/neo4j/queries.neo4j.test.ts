@@ -42,7 +42,7 @@ describe("Neo4j Query Helpers - Read Operations", () => {
           })
         })
 
-        expect(result).toBeNull()
+        expect(result.records).toEqual([])
       } finally {
         await session.close()
       }
@@ -129,13 +129,13 @@ describe("Neo4j Query Helpers - Read Operations", () => {
     it("should execute query without errors for non-existent issue", async () => {
       const session = dataSource.getSession("READ")
       try {
-        const result = session.executeRead(async (tx) => {
+        const result = await session.executeRead(async (tx) => {
           return await listForIssue(tx, {
             issue: { number: 99999, repoFullName: "owner/repo" },
           })
         })
 
-        expect(result).toEqual([])
+        expect(result.records).toEqual([])
       } finally {
         await session.close()
       }

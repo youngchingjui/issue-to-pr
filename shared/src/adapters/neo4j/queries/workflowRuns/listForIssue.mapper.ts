@@ -24,7 +24,7 @@ export function mapListForIssue(
     // Parse schemas
     const run = workflowRunSchema.parse(w?.properties)
     const issue = issueSchema.parse(issueNode?.properties)
-    const commit = commitSchema.parse(commitNode?.properties)
+    const commit = commitNode ? commitSchema.parse(commitNode.properties) : null
     const state = workflowRunStateSchema.parse(stateNode)
 
     const workflowRun: WorkflowRun = {

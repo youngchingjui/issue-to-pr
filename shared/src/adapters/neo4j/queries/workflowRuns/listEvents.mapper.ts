@@ -17,16 +17,11 @@ function neo4jEventToDomainEvent(neo4jEvent: AnyEvent): AllEvents {
   switch (neo4jEvent.type) {
     // ===== Workflow Events =====
     case "workflowState": {
-      // Map Neo4j state to domain state
-      // Note: Neo4j allows "pending" but domain doesn't, so we map it to "running"
-      const domainState =
-        neo4jEvent.state === "pending" ? "running" : neo4jEvent.state
       return {
         id,
         timestamp,
         type: "workflow.state",
-        state: domainState,
-        content: neo4jEvent.content,
+        state: neo4jEvent.state,
       }
     }
 
@@ -72,14 +67,15 @@ function neo4jEventToDomainEvent(neo4jEvent: AnyEvent): AllEvents {
       return {
         type: "reasoning",
         timestamp: isoTimestamp,
-        content: neo4jEvent.content,
+        // Map Neo4j 'summary' field to domain 'content' field
+        content: neo4jEvent.summary,
       }
 
     case "toolCall":
       return {
         type: "tool.call",
         timestamp: isoTimestamp,
-        content: neo4jEvent.content,
+        content: neo4jEvent.data ?? `${neo4jEvent.toolName}(${neo4jEvent.args ?? ''})`,
       }
 
     case "toolCallResult":
@@ -103,7 +99,13 @@ export function mapListEvents(
   result: QueryResult<ListEventsForWorkflowRunResult>
 ): AllEvents[] {
   return result.records.map((record) => {
-    const neo4jEvent = anyEventSchema.parse(record.get("e").properties)
-    return neo4jEventToDomainEvent(neo4jEvent)
+    const neo4jEvent = anyEventSchema.safeParse(record.get("e").properties)
+    if (!neo4jEvent.success) {
+      console.log("error parsing Neo4j event")
+      console.log(record.get("e").properties)
+      console.log(neo4jEvent.error)
+      throw new Error("Failed to parse Neo4j event")
+    }
+    return neo4jEventToDomainEvent(neo4jEvent.data)
   })
 }

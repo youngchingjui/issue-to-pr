@@ -131,7 +131,7 @@ export class StorageAdapter implements DatabaseStorage {
         CREATE (wr:WorkflowRun { id: $runId, type: $type, postToGithub: $postToGithub, createdAt: datetime(), state: 'pending' })
 
         // Relationships
-        MERGE (wr)-[:TARGETS]->(repo)
+        MERGE (wr)-[:BASED_ON_REPOSITORY]->(repo)
         MERGE (wr)-[:BASED_ON_ISSUE]->(issue)
         MERGE (wr)-[:INITIATED_BY]->(actor)
         ${input.commit ? "MERGE (wr)-[:BASED_ON_COMMIT]->(commit)" : ""}
@@ -152,7 +152,7 @@ export class StorageAdapter implements DatabaseStorage {
       // TODO: This is not exactly the right implementation. Something is off with actor attribution, mixing of domain and adapter types. To be reviewed.
       const res = await session.run(
         `MATCH (wr:WorkflowRun { id: $id })
-         OPTIONAL MATCH (wr)-[:TARGETS]->(repo:Repository)
+         OPTIONAL MATCH (wr)-[:BASED_ON_REPOSITORY]->(repo:Repository)
          OPTIONAL MATCH (wr)-[:INITIATED_BY]->(actor:User)
          OPTIONAL MATCH (wr)-[:INITIATED_BY]->(actor:GithubUser)
          RETURN wr { .id, .type, .createdAt, .postToGithub, .state } AS wr, repo.fullName AS repoFullName, actor as actor`,
