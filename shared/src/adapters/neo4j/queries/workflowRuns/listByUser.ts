@@ -23,7 +23,7 @@ const QUERY = `
 `
 
 export interface ListByUserParams {
-  user: { id: string; githubUserId?: string; githubLogin?: string }
+  user: { id: string }
 }
 
 export interface ListByUserResult {
