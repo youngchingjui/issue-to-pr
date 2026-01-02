@@ -119,8 +119,8 @@ export function mapListForRepoResult(
 
     // Validate all nodes with Zod
     const run = workflowRunSchema.parse(w.properties)
-    const issue = issueSchema.parse(i?.properties)
-    const repo = repositorySchema.parse(r?.properties)
+    const issue = i ? issueSchema.parse(i.properties) : null
+    const repo = repositorySchema.parse(r.properties)
     const commit = c ? commitSchema.parse(c.properties) : null
     const state = workflowRunStateSchema.safeParse(stateNode)
 
