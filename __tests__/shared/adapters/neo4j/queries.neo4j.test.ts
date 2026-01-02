@@ -32,6 +32,10 @@ describe("Neo4j Query Helpers - Read Operations", () => {
     await verifyConnection(dataSource)
   })
 
+  afterAll(async () => {
+    await dataSource.getDriver().close()
+  })
+
   describe("listByUser", () => {
     it("should execute query without errors for non-existent user", async () => {
       const session = dataSource.getSession("READ")
