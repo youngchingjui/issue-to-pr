@@ -60,7 +60,10 @@ interface ResolveIssueParams {
   }
 }
 
-function getOwnerLoginFromRepository(repository: GitHubRepository, fallback: string): string {
+function getOwnerLoginFromRepository(
+  repository: GitHubRepository,
+  fallback: string
+): string {
   const ownerAny = repository.owner as unknown
   if (ownerAny && typeof ownerAny === "object" && "login" in ownerAny) {
     const login = (ownerAny as { login?: unknown }).login
@@ -90,6 +93,7 @@ export const resolveIssue = async ({
       await getRepositorySettings(repoFullName)
 
     // Initialize WorkflowRun via StorageAdapter
+    // TODO: In the future, we should try to inject these adapters, instead of importing directly. But this is generally OK, since we're in the /lib folder, which is focused on NextJS app.
     const storage = new StorageAdapter(neo4jDs)
     await storage.workflow.run.create({
       id: workflowId,
@@ -385,4 +389,3 @@ export const resolveIssue = async ({
     }
   }
 }
-
