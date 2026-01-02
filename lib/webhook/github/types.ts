@@ -25,9 +25,21 @@ const InstallationSchema = z.object({ id: z.number() })
 export const IssuesPayloadSchema = z.object({
   action: z.string(),
   label: z.object({ name: z.string() }).optional(),
-  repository: z.object({ full_name: z.string() }),
+  repository: z.object({
+    id: z.number(),
+    node_id: z.string(),
+    full_name: z.string(),
+    name: z.string(),
+    owner: z.object({ login: z.string() }),
+    default_branch: z.string().optional(),
+    visibility: z.enum(["public", "private", "internal"]).optional(),
+    has_issues: z.boolean().optional(),
+  }),
   issue: z.object({ number: z.number() }),
-  sender: z.object({ login: z.string() }),
+  sender: z.object({
+    id: z.number(),
+    login: z.string(),
+  }),
   installation: InstallationSchema,
 })
 export type IssuesPayload = z.infer<typeof IssuesPayloadSchema>
@@ -164,3 +176,4 @@ export const RepositoryPayloadSchema = z.discriminatedUnion("action", [
 ])
 
 export type RepositoryPayload = z.infer<typeof RepositoryPayloadSchema>
+

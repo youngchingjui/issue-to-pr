@@ -8,6 +8,7 @@ import { getInstallationTokenFromRepo } from "@/lib/github/installation"
 import { getIssueComments } from "@/lib/github/issues"
 import { checkRepoPermissions } from "@/lib/github/users"
 import { langfuse } from "@/lib/langfuse"
+import { neo4jDs } from "@/lib/neo4j"
 import {
   createErrorEvent,
   createStatusEvent,
@@ -18,7 +19,6 @@ import {
   listPlansForIssue,
 } from "@/lib/neo4j/services/plan"
 import { getRepositorySettings } from "@/lib/neo4j/services/repository"
-import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
 import { createBranchTool } from "@/lib/tools/Branch"
 import { createCommitTool } from "@/lib/tools/Commit"
 import { createCreatePRTool } from "@/lib/tools/CreatePRTool"
@@ -41,6 +41,7 @@ import {
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
+import { StorageAdapter } from "@/shared/adapters/neo4j/StorageAdapter"
 
 interface ResolveIssueParams {
   issue: GitHubIssue
@@ -51,6 +52,21 @@ interface ResolveIssueParams {
   planId?: string
   // Optional custom repository setup commands
   installCommand?: string // Legacy alias; treat as setupCommands when provided
+  webhookContext?: {
+    event: "issues" | "pull_request"
+    action: "labeled" | "opened" | "closed"
+    sender: { id: string; login: string }
+    installationId: string
+  }
+}
+
+function getOwnerLoginFromRepository(repository: GitHubRepository, fallback: string): string {
+  const ownerAny = repository.owner as unknown
+  if (ownerAny && typeof ownerAny === "object" && "login" in ownerAny) {
+    const login = (ownerAny as { login?: unknown }).login
+    if (typeof login === "string") return login
+  }
+  return fallback
 }
 
 export const resolveIssue = async ({
@@ -61,6 +77,7 @@ export const resolveIssue = async ({
   createPR,
   planId,
   installCommand,
+  webhookContext,
 }: ResolveIssueParams) => {
   const workflowId = jobId // Keep workflowId alias for clarity if preferred
 
@@ -72,13 +89,38 @@ export const resolveIssue = async ({
     const repoSettings: RepoSettings | null =
       await getRepositorySettings(repoFullName)
 
-    // Emit workflow start event
-    await initializeWorkflowRun({
+    // Initialize WorkflowRun via StorageAdapter
+    const storage = new StorageAdapter(neo4jDs)
+    await storage.workflow.run.create({
       id: workflowId,
       type: "resolveIssue",
       issueNumber: issue.number,
-      repoFullName: repository.full_name,
-      postToGithub: createPR,
+      repository: {
+        id: Number(repository.id),
+        nodeId: repository.node_id,
+        fullName: repository.full_name,
+        owner: getOwnerLoginFromRepository(repository, repoFullName.owner),
+        name: repository.name,
+        defaultBranch: repository.default_branch || undefined,
+        visibility: (repository.visibility
+          ? repository.visibility.toUpperCase()
+          : undefined) as "PUBLIC" | "PRIVATE" | "INTERNAL" | undefined,
+        hasIssues: repository.has_issues ?? undefined,
+      },
+      postToGithub: Boolean(createPR),
+      actor: webhookContext
+        ? {
+            type: "webhook",
+            source: "github",
+            event: webhookContext.event,
+            action: webhookContext.action,
+            sender: webhookContext.sender,
+            installationId: webhookContext.installationId,
+          }
+        : {
+            type: "user",
+            userId: "system", // TODO: Get actual user ID from auth context
+          },
     })
 
     // Emit workflow "running" state event
@@ -343,3 +385,4 @@ export const resolveIssue = async ({
     }
   }
 }
+

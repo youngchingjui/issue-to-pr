@@ -115,6 +115,7 @@ function deriveState(
 
 /**
  * Returns workflows with run state and connected issue (if any)
+ * @deprecated Use StorageAdapter.workflow.run.list instead
  */
 export async function listWorkflowRuns(issue?: {
   repoFullName: string

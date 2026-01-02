@@ -1,4 +1,4 @@
-import { int, Integer, ManagedTransaction, Node } from "neo4j-driver"
+import { Integer, ManagedTransaction, Node } from "neo4j-driver"
 import { withTiming } from "shared/utils/telemetry"
 import { ZodError } from "zod"
 
@@ -137,29 +137,6 @@ export async function listForIssue(
   })
 }
 
-export async function linkToIssue(
-  tx: ManagedTransaction,
-  {
-    workflowId,
-    issueId,
-    repoFullName,
-  }: { workflowId: string; issueId: number; repoFullName: string }
-) {
-  const result = await withTiming(
-    `Neo4j QUERY: linkToIssue ${repoFullName}#${issueId}`,
-    () =>
-      tx.run(
-        `
-    MATCH (w:WorkflowRun {id: $workflowId}), (i:Issue {number: $issueId, repoFullName: $repoFullName}) 
-    CREATE (w)-[:BASED_ON_ISSUE]->(i)
-    RETURN w, i
-    `,
-        { workflowId, issueId: int(issueId), repoFullName }
-      )
-  )
-  return result
-}
-
 /**
  * Helper function to parse AnyEvent + LLMResponseWithPlan
  * LLMResponseWithPlan is a superset of LLMResponse, so it needs to be parsed first.
@@ -248,3 +225,4 @@ export async function mergeIssueLink(
   const parsedIssue = issueSchema.parse(result.records[0].get("i").properties)
   return { run, issue: parsedIssue }
 }
+
