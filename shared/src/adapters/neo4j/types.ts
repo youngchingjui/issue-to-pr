@@ -200,7 +200,7 @@ export const systemPromptSchema = baseEventSchema.extend({
   type: z.literal("systemPrompt"),
   content: z.string(),
   data: z.string().optional(),
-  timestamp: neo4jDateTime.optional(),
+  timestamp: neo4jDateTime.optional(), // Legacy, use createdAt instead
 })
 
 export const userMessageSchema = baseEventSchema.extend({
@@ -238,7 +238,7 @@ export const toolCallSchema = baseEventSchema.extend({
   toolCallId: z.string(),
   args: z.string().optional(),
   data: z.string().optional(),
-  timestamp: neo4jDateTime.optional(),
+  timestamp: neo4jDateTime.optional(), // Legacy, use createdAt instead
 })
 
 export const toolCallResultSchema = baseEventSchema.extend({
@@ -247,7 +247,7 @@ export const toolCallResultSchema = baseEventSchema.extend({
   toolName: z.string(),
   content: z.string(),
   data: z.string().optional(),
-  timestamp: neo4jDateTime.optional(),
+  timestamp: neo4jDateTime.optional(), // Legacy, use createdAt instead
 })
 
 export const reviewCommentSchema = baseEventSchema.extend({
