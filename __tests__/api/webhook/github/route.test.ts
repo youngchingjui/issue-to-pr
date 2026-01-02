@@ -13,22 +13,34 @@ jest.mock(
 jest.mock("@/lib/webhook/github/handlers/issue/label.resolve.handler", () => ({
   handleIssueLabelResolve: jest.fn(),
 }))
-jest.mock("@/lib/webhook/github/handlers/pullRequest/closed.removeContainer.handler", () => ({
-  handlePullRequestClosedRemoveContainer: jest.fn(),
-}))
-jest.mock("@/lib/webhook/github/handlers/pullRequest/label.createDependentPR.handler", () => ({
-  handlePullRequestLabelCreateDependentPR: jest.fn(),
-}))
-jest.mock("@/lib/webhook/github/handlers/repository/edited.revalidateRepoCache.handler", () => ({
-  handleRepositoryEditedRevalidate: jest.fn(),
-}))
+jest.mock(
+  "@/lib/webhook/github/handlers/pullRequest/closed.removeContainer.handler",
+  () => ({
+    handlePullRequestClosedRemoveContainer: jest.fn(),
+  })
+)
+jest.mock(
+  "@/lib/webhook/github/handlers/pullRequest/label.createDependentPR.handler",
+  () => ({
+    handlePullRequestLabelCreateDependentPR: jest.fn(),
+  })
+)
+jest.mock(
+  "@/lib/webhook/github/handlers/repository/edited.revalidateRepoCache.handler",
+  () => ({
+    handleRepositoryEditedRevalidate: jest.fn(),
+  })
+)
 import { POST } from "@/app/api/webhook/github/route"
 import { handleIssueLabelAutoResolve } from "@/lib/webhook/github/handlers/issue/label.autoResolveIssue.handler"
 import { handlePullRequestLabelCreateDependentPR } from "@/lib/webhook/github/handlers/pullRequest/label.createDependentPR.handler"
 
-jest.mock("@/lib/webhook/github/handlers/issue/label.autoResolveIssue.handler", () => ({
-  handleIssueLabelAutoResolve: jest.fn(),
-}))
+jest.mock(
+  "@/lib/webhook/github/handlers/issue/label.autoResolveIssue.handler",
+  () => ({
+    handleIssueLabelAutoResolve: jest.fn(),
+  })
+)
 
 describe("POST /api/webhook/github", () => {
   const secret = "test-secret"
@@ -61,7 +73,8 @@ describe("POST /api/webhook/github", () => {
 
     const rawBody = Buffer.from(JSON.stringify(payload))
     const signature =
-      "sha256=" + crypto.createHmac("sha256", secret).update(rawBody).digest("hex")
+      "sha256=" +
+      crypto.createHmac("sha256", secret).update(rawBody).digest("hex")
 
     const headers = new Headers({
       "x-hub-signature-256": signature,
@@ -81,7 +94,9 @@ describe("POST /api/webhook/github", () => {
     const callArgs = jest.mocked(handleIssueLabelAutoResolve).mock.calls[0]?.[0]
     expect(callArgs).toBeDefined()
     expect(callArgs.installationId).toBe(String(payload.installation.id))
-    expect(callArgs.payload.repository.full_name).toBe(payload.repository.full_name)
+    expect(callArgs.payload.repository.full_name).toBe(
+      payload.repository.full_name
+    )
     expect(callArgs.payload.issue.number).toBe(payload.issue.number)
     expect(callArgs.payload.sender.login).toBe(payload.sender.login)
   })
@@ -99,7 +114,8 @@ describe("POST /api/webhook/github", () => {
 
     const rawBody = Buffer.from(JSON.stringify(payload))
     const signature =
-      "sha256=" + crypto.createHmac("sha256", secret).update(rawBody).digest("hex")
+      "sha256=" +
+      crypto.createHmac("sha256", secret).update(rawBody).digest("hex")
 
     const headers = new Headers({
       "x-hub-signature-256": signature,
@@ -116,7 +132,8 @@ describe("POST /api/webhook/github", () => {
     expect(response.status).toBe(200)
 
     expect(handlePullRequestLabelCreateDependentPR).toHaveBeenCalledTimes(1)
-    const callArgs = jest.mocked(handlePullRequestLabelCreateDependentPR).mock.calls[0]?.[0]
+    const callArgs = jest.mocked(handlePullRequestLabelCreateDependentPR).mock
+      .calls[0]?.[0]
     expect(callArgs).toBeDefined()
     expect(callArgs.installationId).toBe(String(payload.installation.id))
     expect(callArgs.payload.number).toBe(payload.number)
@@ -124,4 +141,3 @@ describe("POST /api/webhook/github", () => {
     expect(callArgs.payload.sender?.login).toBe(payload.sender.login)
   })
 })
-
