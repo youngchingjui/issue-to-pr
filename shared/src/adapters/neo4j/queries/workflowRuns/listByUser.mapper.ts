@@ -29,9 +29,15 @@ export function mapListByUser(
     // Parse schemas
     const run = workflowRunSchema.parse(w?.properties)
     const user = userSchema.parse(userNode?.properties)
-    const issue = issueSchema.parse(issueNode?.properties)
-    const repo = repositorySchema.parse(repoNode?.properties)
-    const commit = commitSchema.parse(commitNode?.properties)
+    const issue = issueNode
+      ? issueSchema.parse(issueNode.properties)
+      : undefined
+    const repo = repoNode
+      ? repositorySchema.parse(repoNode.properties)
+      : undefined
+    const commit = commitNode
+      ? commitSchema.parse(commitNode.properties)
+      : undefined
     const state = workflowRunStateSchema.parse(stateNode)
 
     // Map actor from User relationship (this query only returns user-initiated runs)
@@ -54,14 +60,14 @@ export function mapListByUser(
       issue: issue
         ? { repoFullName: issue.repoFullName, number: issue.number.toNumber() }
         : undefined,
-      repository: { fullName: repo.fullName },
+      repository: repo ? { fullName: repo.fullName } : undefined,
       actor,
       commit: commit
         ? {
             sha: commit.sha,
             message: commit.message,
             repository: {
-              fullName: repo.fullName,
+              fullName: repo?.fullName ?? issue?.repoFullName ?? "unknown",
             },
           }
         : undefined,
