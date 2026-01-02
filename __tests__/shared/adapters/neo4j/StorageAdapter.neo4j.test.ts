@@ -30,6 +30,11 @@ describe("StorageAdapter - Read Operations", () => {
     adapter = new StorageAdapter(dataSource)
   })
 
+  afterAll(async () => {
+    // Ensure the Neo4j driver is closed so Jest can exit cleanly
+    await dataSource.getDriver().close()
+  })
+
   describe("workflow.run.getById", () => {
     it("should return null for non-existent workflow run", async () => {
       const result = await adapter.workflow.run.getById("non-existent-id-12345")
@@ -202,3 +207,4 @@ describe("StorageAdapter - Read Operations", () => {
     })
   })
 })
+
