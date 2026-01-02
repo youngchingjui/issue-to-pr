@@ -1,6 +1,8 @@
 // These schemas define the nodes on Neo4j
 // You'll have to separately map the relationships to a schema after retreiving the nodes
 
+// TODO: We haven't touched Settings schemas here yet. They'll need to be added.
+
 import { DateTime, Integer } from "neo4j-driver"
 import { z } from "zod"
 
@@ -199,7 +201,7 @@ export const workflowStateEventSchema = baseEventSchema
 export const systemPromptSchema = baseEventSchema.extend({
   type: z.literal("systemPrompt"),
   content: z.string(),
-  data: z.string().optional(),
+  data: z.string().optional(), // Legacy, use content instead
   timestamp: neo4jDateTime.optional(), // Legacy, use createdAt instead
 })
 
@@ -237,7 +239,7 @@ export const toolCallSchema = baseEventSchema.extend({
   toolName: z.string(),
   toolCallId: z.string(),
   args: z.string().optional(),
-  data: z.string().optional(),
+  data: z.string().optional(), // Legacy, use content instead
   timestamp: neo4jDateTime.optional(), // Legacy, use createdAt instead
 })
 
@@ -246,7 +248,7 @@ export const toolCallResultSchema = baseEventSchema.extend({
   toolCallId: z.string(),
   toolName: z.string(),
   content: z.string(),
-  data: z.string().optional(),
+  data: z.string().optional(), // Legacy, use content instead
   timestamp: neo4jDateTime.optional(), // Legacy, use createdAt instead
 })
 
