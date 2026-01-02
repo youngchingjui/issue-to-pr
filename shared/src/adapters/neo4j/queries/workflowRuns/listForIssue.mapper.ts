@@ -1,12 +1,12 @@
 import { QueryResult } from "neo4j-driver"
 
-import { WorkflowRun } from "@/entities/WorkflowRun"
 import {
   commitSchema,
   issueSchema,
   workflowRunSchema,
   workflowRunStateSchema,
 } from "@/shared/adapters/neo4j/types"
+import { WorkflowRun } from "@/shared/entities/WorkflowRun"
 
 import { ListForIssueResult } from "./listForIssue"
 
