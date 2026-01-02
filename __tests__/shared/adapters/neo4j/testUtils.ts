@@ -1,7 +1,7 @@
 import {
   createNeo4jDataSource,
   type Neo4jDataSource,
-} from "@shared/adapters/neo4j/dataSource"
+} from "@/shared/adapters/neo4j/dataSource"
 
 /**
  * Test utilities for Neo4j integration tests
@@ -38,7 +38,7 @@ export async function verifyConnection(ds: Neo4jDataSource): Promise<void> {
   const session = ds.getSession("READ")
   try {
     const result = await session.run("RETURN 1 AS num")
-    const value = result.records[0]?.get("num")
+    const value = result.records[0]?.get("num").toNumber()
     if (value !== 1) {
       throw new Error("Connection test failed - unexpected result")
     }
