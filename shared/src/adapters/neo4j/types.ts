@@ -1,5 +1,5 @@
 // These schemas define the nodes on Neo4j
-// You'll have to separately map the relationships to a schema after retreiving the nodes
+// You'll have to separately map the relationships to a schema after retrieving the nodes
 
 // TODO: We haven't touched Settings schemas here yet. They'll need to be added.
 
