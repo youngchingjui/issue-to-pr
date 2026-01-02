@@ -314,4 +314,3 @@ export async function getWorkflowRunEvents(
     await session.close()
   }
 }
-

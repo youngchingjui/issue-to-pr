@@ -225,4 +225,3 @@ export async function mergeIssueLink(
   const parsedIssue = issueSchema.parse(result.records[0].get("i").properties)
   return { run, issue: parsedIssue }
 }
-

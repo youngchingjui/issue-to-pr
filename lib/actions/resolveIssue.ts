@@ -157,4 +157,3 @@ export async function resolveIssueAction(
   }
   return errorPayload
 }
-

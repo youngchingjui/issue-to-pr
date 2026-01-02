@@ -56,11 +56,7 @@ export async function autoResolveIssue(
   )
 
   // Load environment
-  const {
-    GITHUB_APP_ID,
-    GITHUB_APP_PRIVATE_KEY_PATH,
-    REDIS_URL,
-  } = getEnvVar()
+  const { GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_PATH, REDIS_URL } = getEnvVar()
 
   // Settings adapter (loads OpenAI API key from Neo4j)
   const settingsAdapter = makeSettingsReaderAdapter({
@@ -114,4 +110,3 @@ export async function autoResolveIssue(
   // Handler will publish the completion status
   return result.messages
 }
-
