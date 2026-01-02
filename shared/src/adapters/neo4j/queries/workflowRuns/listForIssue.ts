@@ -23,7 +23,7 @@ export interface ListForIssueParams {
 
 export interface ListForIssueResult {
   w: Node<Integer, WorkflowRun, "WorkflowRun">
-  state: WorkflowRunState
+  state: WorkflowRunState | null
   i: Node<Integer, Issue, "Issue">
   c: Node<Integer, Commit, "Commit"> | null
 }
