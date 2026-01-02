@@ -1,10 +1,17 @@
+import { AllEvents } from "@/shared/entities"
+import {
+  UserActor,
+  WebhookActor,
+  WorkflowRun,
+} from "@/shared/entities/WorkflowRun"
+
 export interface DatabaseStorage {
   workflow: {
     run: {
       create(input: CreateWorkflowRunInput): Promise<WorkflowRunHandle>
       getById(id: string): Promise<WorkflowRun | null>
       list(filter: WorkflowRunFilter): Promise<WorkflowRun[]>
-      listEvents(runId: string): Promise<WorkflowEvent[]>
+      listEvents(runId: string): Promise<AllEvents[]>
     }
   }
 }
@@ -24,39 +31,31 @@ export interface CreateWorkflowRunInput {
     hasIssues?: boolean
   }
   postToGithub: boolean
-  actor:
-    | { kind: "user"; userId: string }
-    | {
-        kind: "webhook"
-        source: "github"
-        event: string
-        action: string
-        sender: { id: string; login: string }
-        installationId: string
-      }
-    | { kind: "system" }
+  actor: UserActor | WebhookActor
+  // Optional: Commit information for the workflow run
+  // MIGRATION NOTE: Should be provided whenever possible
+  // Fetch from GitHub API: GET /repos/{owner}/{repo}/commits/{ref}
+  // where ref is the default branch or specific branch/tag
+  commit?: {
+    sha: string // Git commit SHA (40 hex chars)
+    nodeId: string // GitHub GraphQL node ID
+    message: string // Commit message
+    treeSha: string // Git tree SHA
+    author: {
+      name: string
+      email: string
+      date: string // ISO 8601 format
+    }
+    committer: {
+      name: string
+      email: string
+      date: string // ISO 8601 format
+    }
+  }
 }
 
 export interface WorkflowRunHandle {
   id: string
-}
-
-export interface WorkflowRun {
-  id: string
-  type: string
-  createdAt: Date
-  postToGithub: boolean
-  state: "pending" | "running" | "completed" | "error" | "timedOut"
-  issue?: { repoFullName: string; number: number }
-  actor?: { kind: "user" | "webhook" | "system" }
-  repository?: { fullName: string }
-}
-
-export interface WorkflowEvent {
-  id: string
-  type: string
-  createdAt: Date
-  data: unknown
 }
 
 export interface WorkflowRunFilter {

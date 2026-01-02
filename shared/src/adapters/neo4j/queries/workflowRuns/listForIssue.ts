@@ -1,6 +1,7 @@
 import { Integer, ManagedTransaction, Node, QueryResult } from "neo4j-driver"
 
 import {
+  Commit,
   Issue,
   WorkflowRun,
   WorkflowRunState,
@@ -8,11 +9,12 @@ import {
 
 const QUERY = `
   MATCH (w:WorkflowRun)-[:BASED_ON_ISSUE]->(i:Issue {number: $issue.number, repoFullName: $issue.repoFullName})
+  OPTIONAL MATCH (w)-[:BASED_ON_COMMIT]->(c:Commit)
   OPTIONAL MATCH (w)-[:STARTS_WITH|NEXT*]->(e:Event {type: 'workflowState'})
-  WITH w, e, i
+  WITH w, c, e, i
   ORDER BY e.createdAt DESC
-  WITH w, collect(e)[0] as latestWorkflowState, i
-  RETURN w, latestWorkflowState.state AS state, i
+  WITH w, c, collect(e)[0] as latestWorkflowState, i
+  RETURN w, latestWorkflowState.state AS state, i, c
 `
 
 export interface ListForIssueParams {
@@ -23,6 +25,7 @@ export interface ListForIssueResult {
   w: Node<Integer, WorkflowRun, "WorkflowRun">
   state: WorkflowRunState
   i: Node<Integer, Issue, "Issue">
+  c: Node<Integer, Commit, "Commit"> | null
 }
 
 export async function listForIssue(

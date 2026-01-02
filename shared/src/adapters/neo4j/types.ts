@@ -1,3 +1,6 @@
+// These schemas define the nodes on Neo4j
+// You'll have to separately map the relationships to a schema after retreiving the nodes
+
 import { DateTime, Integer } from "neo4j-driver"
 import { z } from "zod"
 
@@ -86,12 +89,6 @@ export const genericWebhookEventSchema = z.object({
   createdAt: neo4jDateTime,
 })
 
-// Installation node (GitHub App installation)
-export const installationSchema = z.object({
-  id: z.string(),
-  githubInstallationId: z.string(),
-})
-
 // Repository node (stores GitHub repository metadata)
 // Properties follow the shape from CreateWorkflowRunInput.repository
 // Immutable identifiers: id, nodeId
@@ -107,6 +104,35 @@ export const repositorySchema = z.object({
   hasIssues: z.boolean().optional(), // Whether issues are enabled
   createdAt: neo4jDateTime.optional(), // When this node was created in Neo4j
   lastUpdated: neo4jDateTime.optional(), // Last time this node was updated
+  githubInstallationId: z.string().optional(), // Store this here instead of a separate node, since we'll only have 1 Github App to reference
+})
+
+// Commit node (stores Git commit metadata)
+// All fields are immutable - a commit's SHA is derived from its content,
+// so changing any field would result in a different SHA (a different commit)
+// Reference: https://docs.github.com/en/rest/git/commits
+export const commitSchema = z.object({
+  // Immutable identifiers
+  sha: z.string(), // Primary key - Git SHA-1 hash (40 hex chars)
+  nodeId: z.string(), // GitHub GraphQL node ID
+
+  // Commit content (immutable)
+  message: z.string(), // Full commit message
+  treeSha: z.string(), // Git tree object SHA (represents file structure)
+
+  // Author (person who wrote the code)
+  authorName: z.string(),
+  authorEmail: z.string(),
+  authoredAt: neo4jDateTime,
+
+  // Committer (person who applied the commit to the repository)
+  // Often same as author, but differs in cases like rebasing, cherry-picking, or applying patches
+  committerName: z.string(),
+  committerEmail: z.string(),
+  committedAt: neo4jDateTime,
+
+  // Metadata about when we stored this in Neo4j
+  createdAt: neo4jDateTime.optional(),
 })
 
 export const workflowRunStateSchema = z.enum([
@@ -244,11 +270,11 @@ export const anyEventSchema = z.discriminatedUnion("type", [
 
 //--------Export all types--------
 export type AnyEvent = z.infer<typeof anyEventSchema>
+export type Commit = z.infer<typeof commitSchema>
 export type ErrorEvent = z.infer<typeof errorEventSchema>
 export type GenericWebhookEvent = z.infer<typeof genericWebhookEventSchema>
 export type GithubUser = z.infer<typeof githubUserSchema>
 export type GithubWebhookEvent = z.infer<typeof githubWebhookEventSchema>
-export type Installation = z.infer<typeof installationSchema>
 export type Issue = z.infer<typeof issueSchema>
 export type IssuesLabeledEvent = z.infer<typeof issuesLabeledEventSchema>
 export type PullRequestLabeledEvent = z.infer<

@@ -1,31 +1,49 @@
 import { QueryResult } from "neo4j-driver"
 
-import { WorkflowRun } from "@/entities/WorkflowRun"
 import {
   commitSchema,
   issueSchema,
+  repositorySchema,
+  userSchema,
   workflowRunSchema,
   workflowRunStateSchema,
 } from "@/shared/adapters/neo4j/types"
+import { WorkflowRun } from "@/shared/entities/WorkflowRun"
 
-import { ListForIssueResult } from "./listForIssue"
+import { ListByUserResult } from "./listByUser"
 
 // Maps types from Neo4j to the domain types
-export function mapListForIssue(
-  result: QueryResult<ListForIssueResult>
+export function mapListByUser(
+  result: QueryResult<ListByUserResult>
 ): WorkflowRun[] {
   const results = result.records.map((record) => {
     // Get nodes
+
     const w = record.get("w")
+    const userNode = record.get("u")
     const issueNode = record.get("i")
+    const repoNode = record.get("r")
     const commitNode = record.get("c")
     const stateNode = record.get("state")
 
     // Parse schemas
     const run = workflowRunSchema.parse(w?.properties)
+    const user = userSchema.parse(userNode?.properties)
     const issue = issueSchema.parse(issueNode?.properties)
+    const repo = repositorySchema.parse(repoNode?.properties)
     const commit = commitSchema.parse(commitNode?.properties)
     const state = workflowRunStateSchema.parse(stateNode)
+
+    // Map actor from User relationship (this query only returns user-initiated runs)
+    if (!user) {
+      throw new Error(
+        `Expected user node for workflow run ${run.id}, but got null`
+      )
+    }
+    const actor: WorkflowRun["actor"] = {
+      type: "user",
+      userId: user.id,
+    }
 
     const workflowRun: WorkflowRun = {
       id: run.id,
@@ -33,18 +51,17 @@ export function mapListForIssue(
       createdAt: run.createdAt.toStandardDate(),
       postToGithub: run.postToGithub ?? false,
       state: state,
-      issue: {
-        repoFullName: issue.repoFullName,
-        number: issue.number.toNumber(),
-      },
-      // Actor is not queried in listForIssue - would need to update query to include it
-      actor: undefined,
+      issue: issue
+        ? { repoFullName: issue.repoFullName, number: issue.number.toNumber() }
+        : undefined,
+      repository: { fullName: repo.fullName },
+      actor,
       commit: commit
         ? {
             sha: commit.sha,
             message: commit.message,
             repository: {
-              fullName: issue.repoFullName,
+              fullName: repo.fullName,
             },
           }
         : undefined,

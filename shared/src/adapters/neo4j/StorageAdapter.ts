@@ -1,13 +1,14 @@
+import { AllEvents } from "@/shared/entities"
+import { WorkflowRun, WorkflowRunActor } from "@/shared/entities/WorkflowRun"
 import type {
   CreateWorkflowRunInput,
   DatabaseStorage,
-  WorkflowEvent,
-  WorkflowRun,
   WorkflowRunFilter,
   WorkflowRunHandle,
-} from "@shared/ports/db/index"
+} from "@/shared/ports/db/index"
 
 import type { Neo4jDataSource } from "./dataSource"
+import { listEventsForWorkflowRun, mapListEvents } from "./queries/workflowRuns"
 
 // Minimal StorageAdapter implementation that satisfies the DatabaseStorage port.
 // Focused on add-only behavior for WorkflowRun creation with Repository/User nodes.
@@ -22,11 +23,12 @@ export class StorageAdapter implements DatabaseStorage {
         this.getWorkflowRunById(id),
       list: (filter: WorkflowRunFilter): Promise<WorkflowRun[]> =>
         this.listWorkflowRuns(filter),
-      listEvents: (runId: string): Promise<WorkflowEvent[]> =>
+      listEvents: (runId: string): Promise<AllEvents[]> =>
         this.listWorkflowRunEvents(runId),
     },
   }
 
+  // TODO: Create a query helper file for this.
   private async createWorkflowRun(
     input: CreateWorkflowRunInput
   ): Promise<WorkflowRunHandle> {
@@ -49,11 +51,42 @@ export class StorageAdapter implements DatabaseStorage {
         issueNumber: input.issueNumber,
       }
 
+      // Add commit params if provided
+      let commitCypher = ""
+      if (input.commit) {
+        params.commit = {
+          sha: input.commit.sha,
+          nodeId: input.commit.nodeId,
+          message: input.commit.message,
+          treeSha: input.commit.treeSha,
+          authorName: input.commit.author.name,
+          authorEmail: input.commit.author.email,
+          authoredAt: input.commit.author.date,
+          committerName: input.commit.committer.name,
+          committerEmail: input.commit.committer.email,
+          committedAt: input.commit.committer.date,
+        }
+        commitCypher = `
+        // Commit (optional - MERGE to avoid duplicates)
+        MERGE (commit:Commit { sha: $commit.sha })
+        ON CREATE SET commit.nodeId = $commit.nodeId,
+                      commit.message = $commit.message,
+                      commit.treeSha = $commit.treeSha,
+                      commit.authorName = $commit.authorName,
+                      commit.authorEmail = $commit.authorEmail,
+                      commit.authoredAt = datetime($commit.authoredAt),
+                      commit.committerName = $commit.committerName,
+                      commit.committerEmail = $commit.committerEmail,
+                      commit.committedAt = datetime($commit.committedAt),
+                      commit.createdAt = datetime()
+        `
+      }
+
       let actorCypher = ""
-      if (input.actor.kind === "user") {
+      if (input.actor.type === "user") {
         params.userId = input.actor.userId
         actorCypher = `MERGE (actor:User {id: $userId})\nON CREATE SET actor.createdAt = datetime()`
-      } else if (input.actor.kind === "webhook") {
+      } else if (input.actor.type === "webhook") {
         params.senderId = String(input.actor.sender.id)
         params.senderLogin = input.actor.sender.login
         params.webhook = {
@@ -92,6 +125,8 @@ export class StorageAdapter implements DatabaseStorage {
         // Issue (optional)
         MERGE (issue:Issue { number: $issueNumber, repoFullName: $repo.fullName })
 
+        ${commitCypher}
+
         // WorkflowRun
         CREATE (wr:WorkflowRun { id: $runId, type: $type, postToGithub: $postToGithub, createdAt: datetime(), state: 'pending' })
 
@@ -99,6 +134,8 @@ export class StorageAdapter implements DatabaseStorage {
         MERGE (wr)-[:TARGETS]->(repo)
         MERGE (wr)-[:BASED_ON_ISSUE]->(issue)
         MERGE (wr)-[:INITIATED_BY]->(actor)
+        ${input.commit ? "MERGE (wr)-[:BASED_ON_COMMIT]->(commit)" : ""}
+        ${input.commit ? "MERGE (commit)-[:IN_REPOSITORY]->(repo)" : ""}
       `
 
       await session.run(cypher, params)
@@ -108,13 +145,17 @@ export class StorageAdapter implements DatabaseStorage {
     }
   }
 
+  // TODO: Create a query helper file for this.
   private async getWorkflowRunById(id: string): Promise<WorkflowRun | null> {
     const session = this.ds.getSession("READ")
     try {
+      // TODO: This is not exactly the right implementation. Something is off with actor attribution, mixing of domain and adapter types. To be reviewed.
       const res = await session.run(
         `MATCH (wr:WorkflowRun { id: $id })
          OPTIONAL MATCH (wr)-[:TARGETS]->(repo:Repository)
-         RETURN wr { .id, .type, .createdAt, .postToGithub, .state } AS wr, repo.fullName AS repoFullName`,
+         OPTIONAL MATCH (wr)-[:INITIATED_BY]->(actor:User)
+         OPTIONAL MATCH (wr)-[:INITIATED_BY]->(actor:GithubUser)
+         RETURN wr { .id, .type, .createdAt, .postToGithub, .state } AS wr, repo.fullName AS repoFullName, actor as actor`,
         { id }
       )
       const rec = res.records[0]
@@ -126,6 +167,7 @@ export class StorageAdapter implements DatabaseStorage {
         postToGithub: boolean
         state: WorkflowRun["state"]
       }
+      const actor = rec.get("actor") as WorkflowRunActor
       const repoFullName = rec.get("repoFullName") as string | undefined
       return {
         id: wr.id,
@@ -133,7 +175,7 @@ export class StorageAdapter implements DatabaseStorage {
         createdAt: new Date(wr.createdAt.toString()),
         postToGithub: wr.postToGithub,
         state: wr.state ?? "pending",
-        actor: { kind: "system" },
+        actor: actor,
         repository: repoFullName ? { fullName: repoFullName } : undefined,
       }
     } finally {
@@ -149,9 +191,16 @@ export class StorageAdapter implements DatabaseStorage {
     return []
   }
 
-  private async listWorkflowRunEvents(
-    _runId: string
-  ): Promise<WorkflowEvent[]> {
-    return []
+  private async listWorkflowRunEvents(runId: string): Promise<AllEvents[]> {
+    const session = this.ds.getSession("READ")
+    try {
+      const result = await session.executeRead((tx) =>
+        listEventsForWorkflowRun(tx, { workflowRunId: runId })
+      )
+
+      return mapListEvents(result)
+    } finally {
+      await session.close()
+    }
   }
 }
