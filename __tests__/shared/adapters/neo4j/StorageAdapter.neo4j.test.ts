@@ -179,9 +179,9 @@ describe("StorageAdapter - Read Operations", () => {
     it("should verify relationships exist for workflow runs", async () => {
       const session = dataSource.getSession("READ")
       try {
-        // Check if any workflow runs have TARGETS relationships
+        // Check if any workflow runs have BASED_ON_REPOSITORY relationships
         const result = await session.run(`
-          MATCH (wr:WorkflowRun)-[:TARGETS]->(repo:Repository)
+          MATCH (wr:WorkflowRun)-[:BASED_ON_REPOSITORY]->(repo:Repository)
           RETURN count(wr) AS count
         `)
         const count = result.records[0].get("count").toNumber()
@@ -189,10 +189,12 @@ describe("StorageAdapter - Read Operations", () => {
 
         if (count > 0) {
           console.log(
-            `✓ Found ${count} workflow runs with TARGETS relationships`
+            `✓ Found ${count} workflow runs with BASED_ON_REPOSITORY relationships`
           )
         } else {
-          console.log("⚠️  No workflow runs with TARGETS relationships found")
+          console.log(
+            "⚠️  No workflow runs with BASED_ON_REPOSITORY relationships found"
+          )
         }
       } finally {
         await session.close()
