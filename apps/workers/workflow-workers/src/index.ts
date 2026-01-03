@@ -11,8 +11,9 @@
 
  */
 import { QueueEvents, Worker } from "bullmq"
-import { getRedisConnection } from "shared/adapters/ioredis/client"
-import { WORKFLOW_JOBS_QUEUE } from "shared/entities/Queue"
+
+import { getRedisConnection } from "@/shared/adapters/ioredis/client"
+import { WORKFLOW_JOBS_QUEUE } from "@/shared/entities/Queue"
 
 import { handler } from "./handler"
 import { getEnvVar, registerGracefulShutdown } from "./helper"
