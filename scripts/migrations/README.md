@@ -119,3 +119,19 @@ docker compose start neo4j
 - Any Workflow nodes with invalid or missing metadata will be preserved and reported
 - The Event nodes retain their original label while also having the Message label
 - New PART_OF relationships are created alongside existing BELONGS_TO_WORKFLOW relationships
+
+---
+
+## Repository Nodes Migration (2025-12)
+
+For migrating existing Issues and WorkflowRuns to the new Repository node structure, see:
+
+- scripts/migration/2025-12-repository-nodes-migration.md
+
+This runbook covers:
+- Creating/normalizing Repository nodes
+- Linking Issue and WorkflowRun nodes to Repository nodes
+- Creating indexes for performance
+- Pre/post-verification queries
+- Rollback steps and multi-environment checklist
+
