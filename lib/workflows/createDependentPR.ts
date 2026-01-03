@@ -12,6 +12,7 @@ import { getInstallationTokenFromRepo } from "@/lib/github/installation"
 import { getPullRequestDiff } from "@/lib/github/pullRequests"
 import { checkRepoPermissions } from "@/lib/github/users"
 import { langfuse } from "@/lib/langfuse"
+import { neo4jDs } from "@/lib/neo4j"
 import {
   createErrorEvent,
   createStatusEvent,
@@ -26,7 +27,6 @@ import {
 } from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 import { StorageAdapter } from "@/shared/adapters/neo4j/StorageAdapter"
-import { neo4jDs } from "@/lib/neo4j"
 
 import { generatePRDataMessage } from "./createDependentPR.formatMessage"
 
@@ -77,7 +77,8 @@ export async function createDependentPRWorkflow({
           nodeId: repo.node_id,
           fullName: repo.full_name,
           owner:
-            (repo.owner as unknown && typeof repo.owner === "object" &&
+            ((repo.owner as unknown) &&
+            typeof repo.owner === "object" &&
             "login" in (repo.owner as object)
               ? (repo.owner as { login?: string }).login || ""
               : repo.full_name.split("/")[0]) || "",
@@ -275,4 +276,3 @@ export async function createDependentPRWorkflow({
     if (containerCleanup) await containerCleanup()
   }
 }
-

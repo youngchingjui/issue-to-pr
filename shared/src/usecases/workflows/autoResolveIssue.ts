@@ -20,7 +20,10 @@ import {
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
 import { RepoEnvironment } from "@/lib/types"
-import { createContainerizedDirectoryTree, createContainerizedWorkspace } from "@/lib/utils/container"
+import {
+  createContainerizedDirectoryTree,
+  createContainerizedWorkspace,
+} from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 import { EventBusPort } from "@/ports/events/eventBus"
 import { createWorkflowEventPublisher } from "@/ports/events/publisher"
@@ -230,4 +233,3 @@ export const autoResolveIssue = async (
     throw error
   }
 }
-

@@ -11,6 +11,7 @@ import { getInstallationTokenFromRepo } from "@/lib/github/installation"
 import { getIssueComments } from "@/lib/github/issues"
 import { checkRepoPermissions } from "@/lib/github/users"
 import { langfuse } from "@/lib/langfuse"
+import { neo4jDs } from "@/lib/neo4j"
 import {
   createErrorEvent,
   createStatusEvent,
@@ -23,7 +24,6 @@ import {
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
-import { neo4jDs } from "@/lib/neo4j"
 import { StorageAdapter } from "@/shared/adapters/neo4j/StorageAdapter"
 
 interface Params {
@@ -78,7 +78,8 @@ export const autoResolveIssue = async (
       nodeId: repository.node_id,
       fullName: repository.full_name,
       owner:
-        (repository.owner as unknown && typeof repository.owner === "object" &&
+        ((repository.owner as unknown) &&
+        typeof repository.owner === "object" &&
         "login" in (repository.owner as object)
           ? (repository.owner as { login?: string }).login || ""
           : repository.full_name.split("/")[0]) || "",
@@ -243,4 +244,3 @@ export const autoResolveIssue = async (
 }
 
 export default autoResolveIssue
-

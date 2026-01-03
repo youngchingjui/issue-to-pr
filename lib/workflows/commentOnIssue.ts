@@ -9,6 +9,7 @@ import {
   updateIssueComment,
 } from "@/lib/github/issues"
 import { langfuse } from "@/lib/langfuse"
+import { neo4jDs } from "@/lib/neo4j"
 import {
   createStatusEvent,
   createWorkflowStateEvent,
@@ -26,7 +27,6 @@ import {
 } from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 import { StorageAdapter } from "@/shared/adapters/neo4j/StorageAdapter"
-import { neo4jDs } from "@/lib/neo4j"
 
 interface GitHubError extends Error {
   status?: number
@@ -61,7 +61,8 @@ export default async function commentOnIssue(
       nodeId: repo.node_id,
       fullName: repo.full_name,
       owner:
-        (repo.owner as unknown && typeof repo.owner === "object" &&
+        ((repo.owner as unknown) &&
+        typeof repo.owner === "object" &&
         "login" in (repo.owner as object)
           ? (repo.owner as { login?: string }).login || ""
           : repo.full_name.split("/")[0]) || "",
@@ -373,4 +374,3 @@ export default async function commentOnIssue(
     }
   }
 }
-

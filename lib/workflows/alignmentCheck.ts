@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from "uuid"
 
 import { AlignmentAgent } from "@/lib/agents/alignmentAgent"
 import { PostAlignmentAssessmentAgent } from "@/lib/agents/PostAlignmentAssessmentAgent"
+import { getRepoFromString } from "@/lib/github/content"
 import { getIssue } from "@/lib/github/issues"
 import {
   getLinkedIssuesForPR,
@@ -12,6 +13,7 @@ import {
   getPullRequestReviews,
 } from "@/lib/github/pullRequests"
 import { langfuse } from "@/lib/langfuse"
+import { neo4jDs } from "@/lib/neo4j"
 import {
   createStatusEvent,
   createWorkflowStateEvent,
@@ -26,9 +28,7 @@ import {
   PullRequestReview,
   PullRequestReviewComment,
 } from "@/lib/types/github"
-import { getRepoFromString } from "@/lib/github/content"
 import { StorageAdapter } from "@/shared/adapters/neo4j/StorageAdapter"
-import { neo4jDs } from "@/lib/neo4j"
 
 type Params = {
   repoFullName: string
@@ -179,7 +179,8 @@ export async function alignmentCheck({
         nodeId: repo.node_id,
         fullName: repo.full_name,
         owner:
-          (repo.owner as unknown && typeof repo.owner === "object" &&
+          ((repo.owner as unknown) &&
+          typeof repo.owner === "object" &&
           "login" in (repo.owner as object)
             ? (repo.owner as { login?: string }).login || ""
             : repo.full_name.split("/")[0]) || "",
@@ -297,4 +298,3 @@ export async function alignmentCheck({
     throw error
   }
 }
-

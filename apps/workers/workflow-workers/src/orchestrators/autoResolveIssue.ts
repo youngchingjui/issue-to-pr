@@ -3,13 +3,13 @@ import { Octokit } from "@octokit/rest"
 import type { Transaction } from "neo4j-driver"
 import { EventBusAdapter } from "shared/adapters/ioredis/EventBusAdapter"
 import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
+import { StorageAdapter } from "shared/adapters/neo4j/StorageAdapter"
 import { setAccessToken } from "shared/auth"
 import { getPrivateKeyFromFile } from "shared/services/fs"
 import { autoResolveIssue as autoResolveIssueWorkflow } from "shared/usecases/workflows/autoResolveIssue"
 
 import { getEnvVar, publishJobStatus } from "../helper"
 import { neo4jDs } from "../neo4j"
-import { StorageAdapter } from "shared/adapters/neo4j/StorageAdapter"
 
 // Minimal user repository implementation for SettingsReaderAdapter
 const userRepo = {
@@ -106,7 +106,8 @@ export async function autoResolveIssue(
       nodeId: repository.node_id,
       fullName: repository.full_name,
       owner:
-        (repository.owner as unknown && typeof repository.owner === "object" &&
+        ((repository.owner as unknown) &&
+        typeof repository.owner === "object" &&
         "login" in (repository.owner as object)
           ? (repository.owner as { login?: string }).login || ""
           : repository.full_name.split("/")[0]) || "",
@@ -115,7 +116,9 @@ export async function autoResolveIssue(
       visibility: (repository.visibility
         ? String(repository.visibility).toUpperCase()
         : undefined) as "PUBLIC" | "PRIVATE" | "INTERNAL" | undefined,
-      hasIssues: (repository as unknown as { has_issues?: boolean }).has_issues ?? undefined,
+      hasIssues:
+        (repository as unknown as { has_issues?: boolean }).has_issues ??
+        undefined,
     },
     postToGithub: true,
     actor: { type: "user", userId: "system" },
@@ -139,4 +142,3 @@ export async function autoResolveIssue(
   // Handler will publish the completion status
   return result.messages
 }
-
