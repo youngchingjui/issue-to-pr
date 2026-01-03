@@ -21,11 +21,11 @@ export interface CreateWorkflowRunInput {
   type: string
   issueNumber: number
   repository: {
-    id: number
-    nodeId: string
+    id?: number
+    nodeId?: string
     fullName: string
-    owner: string
-    name: string
+    owner?: string
+    name?: string
     defaultBranch?: string
     visibility?: "PUBLIC" | "PRIVATE" | "INTERNAL"
     hasIssues?: boolean
