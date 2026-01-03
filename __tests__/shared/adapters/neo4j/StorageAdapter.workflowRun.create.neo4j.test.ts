@@ -15,6 +15,7 @@
  */
 
 import { randomUUID } from "node:crypto"
+
 import { isInt } from "neo4j-driver"
 
 import { StorageAdapter } from "@/shared/adapters/neo4j/StorageAdapter"
