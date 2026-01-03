@@ -25,6 +25,8 @@ import {
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
+import { StorageAdapter } from "@/shared/adapters/neo4j/StorageAdapter"
+import { neo4jDs } from "@/lib/neo4j"
 
 import { generatePRDataMessage } from "./createDependentPR.formatMessage"
 
@@ -53,13 +55,51 @@ export async function createDependentPRWorkflow({
   let containerCleanup: (() => Promise<void>) | null = null
 
   try {
+    // Fetch PR meta, diff, and discussion in parallel (need meta for linked issue and repo details for StorageAdapter)
+    const [diff, prMetaAndLinkedIssue] = await Promise.all([
+      getPullRequestDiff({ repoFullName, pullNumber }),
+      getPullRequestMetaAndLinkedIssue(repoFullName, pullNumber, authProvider),
+    ])
+
+    const headRef = prMetaAndLinkedIssue.headRefName
+    const baseRef = prMetaAndLinkedIssue.baseRefName
+
     // Initialize workflow run
-    await initializeWorkflowRun({
-      id: workflowId,
-      type: "createDependentPR",
-      repoFullName,
-      postToGithub: true,
-    })
+    const storage = new StorageAdapter(neo4jDs)
+    const repo = await getRepoFromString(repoFullName)
+    if (prMetaAndLinkedIssue.linkedIssue) {
+      await storage.workflow.run.create({
+        id: workflowId,
+        type: "createDependentPR",
+        issueNumber: prMetaAndLinkedIssue.linkedIssue.number,
+        repository: {
+          id: Number(repo.id),
+          nodeId: repo.node_id,
+          fullName: repo.full_name,
+          owner:
+            (repo.owner as unknown && typeof repo.owner === "object" &&
+            "login" in (repo.owner as object)
+              ? (repo.owner as { login?: string }).login || ""
+              : repo.full_name.split("/")[0]) || "",
+          name: repo.name,
+          defaultBranch: repo.default_branch || undefined,
+          visibility: (repo.visibility
+            ? repo.visibility.toUpperCase()
+            : undefined) as "PUBLIC" | "PRIVATE" | "INTERNAL" | undefined,
+          hasIssues: repo.has_issues ?? undefined,
+        },
+        postToGithub: true,
+        actor: { type: "user", userId: "system" },
+      })
+    } else {
+      // Fallback to legacy initialization if we cannot determine the linked issue yet
+      await initializeWorkflowRun({
+        id: workflowId,
+        type: "createDependentPR",
+        repoFullName,
+        postToGithub: true,
+      })
+    }
 
     await createWorkflowStateEvent({ workflowId, state: "running" })
 
@@ -68,15 +108,12 @@ export async function createDependentPRWorkflow({
       content: `Starting dependent PR workflow for ${repoFullName}#${pullNumber}`,
     })
 
-    // Fetch PR meta, diff, and discussion in parallel
-    const [diff, prMetaAndLinkedIssue, prDiscussion] = await Promise.all([
-      getPullRequestDiff({ repoFullName, pullNumber }),
-      getPullRequestMetaAndLinkedIssue(repoFullName, pullNumber, authProvider),
-      getPullRequestDiscussionGraphQL(repoFullName, pullNumber, authProvider),
-    ])
-
-    const headRef = prMetaAndLinkedIssue.headRefName
-    const baseRef = prMetaAndLinkedIssue.baseRefName
+    // Continue fetching discussion after initialization
+    const prDiscussion = await getPullRequestDiscussionGraphQL(
+      repoFullName,
+      pullNumber,
+      authProvider
+    )
 
     await createStatusEvent({
       workflowId,
@@ -86,16 +123,16 @@ export async function createDependentPRWorkflow({
     const linkedIssue = prMetaAndLinkedIssue.linkedIssue
 
     // Ensure local repository exists and is up-to-date
-    const repo = await getRepoFromString(repoFullName)
+    const repoData = await getRepoFromString(repoFullName)
     const hostRepoPath = await setupLocalRepository({
       repoFullName,
-      workingBranch: repo.default_branch,
+      workingBranch: repoData.default_branch,
     })
 
     // Setup containerized workspace using the local copy
     const { containerName, cleanup } = await createContainerizedWorkspace({
       repoFullName,
-      branch: repo.default_branch,
+      branch: repoData.default_branch,
       workflowId,
       hostRepoPath,
     })
@@ -164,7 +201,7 @@ export async function createDependentPRWorkflow({
     const agent = new DependentPRAgent({
       apiKey,
       env,
-      defaultBranch: repo.default_branch,
+      defaultBranch: repoData.default_branch,
       owner,
       repo: repoName,
       sessionToken: sessionToken || undefined,
@@ -238,3 +275,4 @@ export async function createDependentPRWorkflow({
     if (containerCleanup) await containerCleanup()
   }
 }
+

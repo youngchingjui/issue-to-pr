@@ -14,7 +14,6 @@ import {
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
 import { tagMessageAsPlan } from "@/lib/neo4j/services/plan"
-import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
 import { createContainerExecTool } from "@/lib/tools/ContainerExecTool"
 import { createGetFileContentTool } from "@/lib/tools/GetFileContent"
 import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
@@ -26,6 +25,8 @@ import {
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
+import { StorageAdapter } from "@/shared/adapters/neo4j/StorageAdapter"
+import { neo4jDs } from "@/lib/neo4j"
 
 interface GitHubError extends Error {
   status?: number
@@ -49,16 +50,34 @@ export default async function commentOnIssue(
   let latestEvent: appBaseEvent | AllEvents | null = null
   let containerCleanup: (() => Promise<void>) | null = null
 
-  try {
-    await initializeWorkflowRun({
-      id: jobId,
-      type: "commentOnIssue",
-      issueNumber,
-      repoFullName: repo.full_name,
-      postToGithub,
-    })
+  // Initialize workflow run via StorageAdapter
+  const storage = new StorageAdapter(neo4jDs)
+  await storage.workflow.run.create({
+    id: jobId,
+    type: "commentOnIssue",
+    issueNumber,
+    repository: {
+      id: Number(repo.id),
+      nodeId: repo.node_id,
+      fullName: repo.full_name,
+      owner:
+        (repo.owner as unknown && typeof repo.owner === "object" &&
+        "login" in (repo.owner as object)
+          ? (repo.owner as { login?: string }).login || ""
+          : repo.full_name.split("/")[0]) || "",
+      name: repo.name,
+      defaultBranch: repo.default_branch || undefined,
+      visibility: (repo.visibility
+        ? repo.visibility.toUpperCase()
+        : undefined) as "PUBLIC" | "PRIVATE" | "INTERNAL" | undefined,
+      hasIssues: repo.has_issues ?? undefined,
+    },
+    postToGithub: Boolean(postToGithub),
+    actor: { type: "user", userId: "system" },
+  })
 
-    latestEvent = await createWorkflowStateEvent({
+  try {
+    await createWorkflowStateEvent({
       workflowId: jobId,
       state: "running",
     })
@@ -354,3 +373,4 @@ export default async function commentOnIssue(
     }
   }
 }
+

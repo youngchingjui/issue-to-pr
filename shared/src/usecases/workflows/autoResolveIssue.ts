@@ -19,12 +19,8 @@ import {
   createStatusEvent,
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
-import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
 import { RepoEnvironment } from "@/lib/types"
-import {
-  createContainerizedDirectoryTree,
-  createContainerizedWorkspace,
-} from "@/lib/utils/container"
+import { createContainerizedDirectoryTree, createContainerizedWorkspace } from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 import { EventBusPort } from "@/ports/events/eventBus"
 import { createWorkflowEventPublisher } from "@/ports/events/publisher"
@@ -93,13 +89,8 @@ export const autoResolveIssue = async (
   // =================================================
 
   try {
-    await initializeWorkflowRun({
-      id: workflowId,
-      type: "autoResolveIssue",
-      issueNumber,
-      repoFullName,
-      postToGithub: true,
-    })
+    // NOTE: WorkflowRun creation is now handled by the caller (orchestrator) via StorageAdapter.
+    // This usecase will only emit events assuming the WorkflowRun already exists.
 
     await createWorkflowStateEvent({ workflowId, state: "running" })
 
@@ -239,3 +230,4 @@ export const autoResolveIssue = async (
     throw error
   }
 }
+

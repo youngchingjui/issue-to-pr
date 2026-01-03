@@ -16,7 +16,6 @@ import {
   createStatusEvent,
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
-import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
 import { RepoEnvironment } from "@/lib/types"
 import { GitHubIssue, GitHubRepository } from "@/lib/types/github"
 import {
@@ -24,6 +23,8 @@ import {
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
+import { neo4jDs } from "@/lib/neo4j"
+import { StorageAdapter } from "@/shared/adapters/neo4j/StorageAdapter"
 
 interface Params {
   issue: GitHubIssue
@@ -64,18 +65,35 @@ export const autoResolveIssue = async (
   const apiKey = apiKeyResult.value
 
   // =================================================
-  // Step 2: Initialize workflow
+  // Step 2: Initialize workflow via StorageAdapter
   // =================================================
 
-  try {
-    await initializeWorkflowRun({
-      id: workflowId,
-      type: "autoResolveIssue",
-      issueNumber: issue.number,
-      repoFullName: repository.full_name,
-      postToGithub: true,
-    })
+  const storage = new StorageAdapter(neo4jDs)
+  await storage.workflow.run.create({
+    id: workflowId,
+    type: "autoResolveIssue",
+    issueNumber: issue.number,
+    repository: {
+      id: Number(repository.id),
+      nodeId: repository.node_id,
+      fullName: repository.full_name,
+      owner:
+        (repository.owner as unknown && typeof repository.owner === "object" &&
+        "login" in (repository.owner as object)
+          ? (repository.owner as { login?: string }).login || ""
+          : repository.full_name.split("/")[0]) || "",
+      name: repository.name,
+      defaultBranch: repository.default_branch || undefined,
+      visibility: (repository.visibility
+        ? repository.visibility.toUpperCase()
+        : undefined) as "PUBLIC" | "PRIVATE" | "INTERNAL" | undefined,
+      hasIssues: repository.has_issues ?? undefined,
+    },
+    postToGithub: true,
+    actor: { type: "user", userId: "system" },
+  })
 
+  try {
     await createWorkflowStateEvent({ workflowId, state: "running" })
 
     await createStatusEvent({
@@ -225,3 +243,4 @@ export const autoResolveIssue = async (
 }
 
 export default autoResolveIssue
+
