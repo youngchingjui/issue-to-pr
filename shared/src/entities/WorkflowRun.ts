@@ -1,4 +1,4 @@
-import { Commit } from "./Commit"
+import type { Commit } from "./Commit"
 
 export interface UserActor {
   type: "user"

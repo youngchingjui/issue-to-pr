@@ -1,8 +1,8 @@
-import { AllEvents } from "@/shared/entities"
+import type { AllEvents } from "@/shared/entities"
 import {
-  UserActor,
-  WebhookActor,
-  WorkflowRun,
+  type UserActor,
+  type WebhookActor,
+  type WorkflowRun,
 } from "@/shared/entities/WorkflowRun"
 
 export interface DatabaseStorage {
