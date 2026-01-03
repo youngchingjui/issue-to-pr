@@ -1,8 +1,8 @@
-import { AllEvents } from "@/shared/entities"
+import type { AllEvents } from "@/shared/entities"
 import {
-  UserActor,
-  WebhookActor,
-  WorkflowRun,
+  type UserActor,
+  type WebhookActor,
+  type WorkflowRun,
 } from "@/shared/entities/WorkflowRun"
 
 export interface DatabaseStorage {
@@ -21,11 +21,11 @@ export interface CreateWorkflowRunInput {
   type: string
   issueNumber: number
   repository: {
-    id: number
-    nodeId: string
+    id?: number
+    nodeId?: string
     fullName: string
-    owner: string
-    name: string
+    owner?: string
+    name?: string
     defaultBranch?: string
     visibility?: "PUBLIC" | "PRIVATE" | "INTERNAL"
     hasIssues?: boolean

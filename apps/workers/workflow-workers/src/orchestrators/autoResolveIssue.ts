@@ -2,13 +2,14 @@ import { createAppAuth } from "@octokit/auth-app"
 import { Octokit } from "@octokit/rest"
 import type { Transaction } from "neo4j-driver"
 import { EventBusAdapter } from "shared/adapters/ioredis/EventBusAdapter"
-import { createNeo4jDataSource } from "shared/adapters/neo4j/dataSource"
 import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
+import { StorageAdapter } from "shared/adapters/neo4j/StorageAdapter"
 import { setAccessToken } from "shared/auth"
 import { getPrivateKeyFromFile } from "shared/services/fs"
 import { autoResolveIssue as autoResolveIssueWorkflow } from "shared/usecases/workflows/autoResolveIssue"
 
 import { getEnvVar, publishJobStatus } from "../helper"
+import { neo4jDs } from "../neo4j"
 
 // Minimal user repository implementation for SettingsReaderAdapter
 const userRepo = {
@@ -56,24 +57,11 @@ export async function autoResolveIssue(
   )
 
   // Load environment
-  const {
-    NEO4J_URI,
-    NEO4J_USER,
-    NEO4J_PASSWORD,
-    GITHUB_APP_ID,
-    GITHUB_APP_PRIVATE_KEY_PATH,
-    REDIS_URL,
-  } = getEnvVar()
+  const { GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_PATH, REDIS_URL } = getEnvVar()
 
   // Settings adapter (loads OpenAI API key from Neo4j)
-  const neo4jDs = createNeo4jDataSource({
-    uri: NEO4J_URI,
-    user: NEO4J_USER,
-    password: NEO4J_PASSWORD,
-  })
-
   const settingsAdapter = makeSettingsReaderAdapter({
-    getSession: () => neo4jDs.getSession(),
+    getSession: () => neo4jDs.getSession("READ"),
     userRepo,
   })
 
@@ -104,6 +92,37 @@ export async function autoResolveIssue(
     throw new Error("Failed to get installation token")
   }
   setAccessToken(auth.token)
+
+  // Create WorkflowRun via StorageAdapter before emitting any events
+  const [owner, repo] = repoFullName.split("/")
+  const { data: repository } = await octokit.rest.repos.get({ owner, repo })
+  const storage = new StorageAdapter(neo4jDs)
+  await storage.workflow.run.create({
+    id: jobId,
+    type: "autoResolveIssue",
+    issueNumber,
+    repository: {
+      id: Number(repository.id),
+      nodeId: repository.node_id,
+      fullName: repository.full_name,
+      owner:
+        ((repository.owner as unknown) &&
+        typeof repository.owner === "object" &&
+        "login" in (repository.owner as object)
+          ? (repository.owner as { login?: string }).login || ""
+          : repository.full_name.split("/")[0]) || "",
+      name: repository.name,
+      defaultBranch: repository.default_branch || undefined,
+      visibility: (repository.visibility
+        ? String(repository.visibility).toUpperCase()
+        : undefined) as "PUBLIC" | "PRIVATE" | "INTERNAL" | undefined,
+      hasIssues:
+        (repository as unknown as { has_issues?: boolean }).has_issues ??
+        undefined,
+    },
+    postToGithub: true,
+    actor: { type: "user", userId: "system" },
+  })
 
   await publishJobStatus(jobId, "Fetching issue and running LLM")
 
