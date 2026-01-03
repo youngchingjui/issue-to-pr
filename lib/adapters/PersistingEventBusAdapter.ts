@@ -13,6 +13,7 @@ import {
   createUserResponseEvent,
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
+import { upsertCreatedPullRequestFromToolResult } from "@/lib/neo4j/services/pullRequest"
 
 /**
  * EventBus adapter that both publishes to the transport (Redis Streams)
@@ -127,12 +128,34 @@ async function persistToNeo4j(
     case "tool.result": {
       const toolName = (event.metadata?.["toolName"] as string) || "unknown"
       const toolCallId = (event.metadata?.["toolCallId"] as string) || ""
-      await createToolCallResultEvent({
+      const created = await createToolCallResultEvent({
         workflowId,
         toolName,
         toolCallId,
         content: event.content ?? "",
       })
+
+      // Normalize agent-created PRs into first-class nodes
+      if (toolName === "create_pull_request") {
+        try {
+          const parsed = JSON.parse(event.content || "{}")
+          const pr = parsed?.pullRequest?.data
+          if (parsed?.status === "success" && pr?.number && pr?.url) {
+            const number = Number(pr.number)
+            const url = String(pr.url)
+            const title = pr?.title ? String(pr.title) : undefined
+            await upsertCreatedPullRequestFromToolResult({
+              eventId: created.id,
+              url,
+              number,
+              title,
+            })
+          }
+        } catch {
+          // ignore parse errors – content may be arbitrary
+        }
+      }
+
       return
     }
 

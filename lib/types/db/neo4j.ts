@@ -64,6 +64,23 @@ export const taskSchema = appTaskSchema.merge(
   })
 )
 
+// PullRequest node schema (normalized PRs ingested from tool results)
+export const pullRequestSchema = z.object({
+  repoFullName: z.string(),
+  number: z.instanceof(Integer),
+  url: z.string(),
+  title: z.string().optional(),
+  createdAt: z.instanceof(DateTime),
+  lastCheckedAt: z.instanceof(DateTime).optional(),
+  state: z.string().optional(),
+  isDraft: z.boolean().optional(),
+  merged: z.boolean().optional(),
+  mergedAt: z.instanceof(DateTime).optional(),
+  closedAt: z.instanceof(DateTime).optional(),
+  mergeable: z.string().optional(),
+  mergeStateStatus: z.string().optional(),
+})
+
 // Event schemas
 export const errorEventSchema = appErrorEventSchema
   .merge(
@@ -164,6 +181,7 @@ export type ToolCallResult = z.infer<typeof toolCallResultSchema>
 export type UserMessage = z.infer<typeof userMessageSchema>
 export type WorkflowRun = z.infer<typeof workflowRunSchema>
 export type WorkflowStateEvent = z.infer<typeof workflowStateEventSchema>
+export type PullRequestNode = z.infer<typeof pullRequestSchema>
 
 export function isLLMResponseWithPlan(
   event: LLMResponse
