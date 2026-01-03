@@ -29,6 +29,7 @@
     "test:components": "jest --selectProjects dom",
     "test:node": "jest --selectProjects node",
     "test:agent": "NODE_OPTIONS='--experimental-vm-modules' jest -c __tests__/config/jest.config.agent.ts",
+    "test:neo4j": "jest -c __tests__/config/jest.config.neo4j.ts",
     "storybook": "pnpm --filter @issue-to-pr/storybook dev",
     "build-storybook": "pnpm --filter @issue-to-pr/storybook build"
   },

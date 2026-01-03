@@ -9,12 +9,15 @@
  ================================================= */
 import "server-only"
 
-import { createNeo4jDataSource } from "shared/adapters/neo4j/dataSource"
+import {
+  createNeo4jDataSource,
+  type Neo4jDataSource,
+} from "@/shared/adapters/neo4j/dataSource"
 
 declare global {
   // cache across HMR
   // eslint-disable-next-line no-var
-  var __neo4jDs__: ReturnType<typeof createNeo4jDataSource> | undefined
+  var __neo4jDs__: Neo4jDataSource | undefined
 }
 
 const uri = process.env.NEO4J_URI
@@ -24,7 +27,7 @@ if (!uri || !user || !password) {
   throw new Error("NEO4J_URI, NEO4J_USER, and NEO4J_PASSWORD must be set")
 }
 
-export const neo4jDs =
+export const neo4jDs: Neo4jDataSource =
   global.__neo4jDs__ ??
   (global.__neo4jDs__ = createNeo4jDataSource({
     uri,

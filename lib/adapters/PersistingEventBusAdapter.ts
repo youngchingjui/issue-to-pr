@@ -63,7 +63,7 @@ async function persistToNeo4j(
     case "workflow.state": {
       await createWorkflowStateEvent({
         workflowId,
-        state: event.state,
+        state: event.state === "pending" ? "running" : event.state, // Temp fix as we slowly migrate to using entities and types from shared folder
         content: event.content,
       })
       return
