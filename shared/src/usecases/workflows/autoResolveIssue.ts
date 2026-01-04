@@ -25,10 +25,10 @@ import {
   createContainerizedWorkspace,
 } from "@/shared/lib/utils/container"
 import { setupLocalRepository } from "@/shared/lib/utils/utils-server"
-import { DatabaseStorage } from "@/shared/ports/db"
-import { EventBusPort } from "@/shared/ports/events/eventBus"
+import { type DatabaseStorage } from "@/shared/ports/db"
+import { type EventBusPort } from "@/shared/ports/events/eventBus"
 import { createWorkflowEventPublisher } from "@/shared/ports/events/publisher"
-import { SettingsReaderPort } from "@/shared/ports/repositories/settings.reader"
+import { type SettingsReaderPort } from "@/shared/ports/repositories/settings.reader"
 import { generateNonConflictingBranchName } from "@/shared/usecases/git/generateBranchName"
 
 interface Params {

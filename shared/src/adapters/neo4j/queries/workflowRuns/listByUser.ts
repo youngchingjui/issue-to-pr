@@ -1,12 +1,17 @@
-import { Integer, ManagedTransaction, Node, QueryResult } from "neo4j-driver"
+import {
+  Integer,
+  ManagedTransaction,
+  Node,
+  type QueryResult,
+} from "neo4j-driver"
 
 import {
-  Commit,
-  GithubUser,
-  Issue,
-  User,
-  WorkflowRun,
-  WorkflowRunState,
+  type Commit,
+  type GithubUser,
+  type Issue,
+  type User,
+  type WorkflowRun,
+  type WorkflowRunState,
 } from "@/shared/adapters/neo4j/types"
 
 const QUERY = `

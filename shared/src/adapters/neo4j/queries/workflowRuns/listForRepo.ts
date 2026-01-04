@@ -1,14 +1,19 @@
-import { Integer, ManagedTransaction, Node, QueryResult } from "neo4j-driver"
+import {
+  Integer,
+  ManagedTransaction,
+  Node,
+  type QueryResult,
+} from "neo4j-driver"
 
 import {
-  Commit,
-  GithubUser,
-  GithubWebhookEvent,
-  Issue,
-  Repository,
-  User,
-  WorkflowRun,
-  WorkflowRunState,
+  type Commit,
+  type GithubUser,
+  type GithubWebhookEvent,
+  type Issue,
+  type Repository,
+  type User,
+  type WorkflowRun,
+  type WorkflowRunState,
 } from "@/shared/adapters/neo4j/types"
 
 // Query workflow runs for a repository by traversing BASED_ON_REPOSITORY relationship

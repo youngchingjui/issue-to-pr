@@ -1,4 +1,4 @@
-import { Node, QueryResult } from "neo4j-driver"
+import { Node, type QueryResult } from "neo4j-driver"
 
 import {
   commitSchema,
@@ -10,9 +10,12 @@ import {
   workflowRunSchema,
   workflowRunStateSchema,
 } from "@/shared/adapters/neo4j/types"
-import { WorkflowRun, WorkflowRunActor } from "@/shared/entities/WorkflowRun"
+import {
+  type WorkflowRun,
+  type WorkflowRunActor,
+} from "@/shared/entities/WorkflowRun"
 
-import { ListForRepoResult } from "./listForRepo"
+import { type ListForRepoResult } from "./listForRepo"
 
 // ============================================================================
 // Actor Mapping Helpers

@@ -1,5 +1,8 @@
-import { AllEvents } from "@/shared/entities"
-import { WorkflowRun, WorkflowRunActor } from "@/shared/entities/WorkflowRun"
+import { type AllEvents } from "@/shared/entities"
+import {
+  type WorkflowRun,
+  type WorkflowRunActor,
+} from "@/shared/entities/WorkflowRun"
 import type {
   CreateWorkflowRunInput,
   DatabaseStorage,
