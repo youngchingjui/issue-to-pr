@@ -1,7 +1,7 @@
 import { createAppAuth } from "@octokit/auth-app"
 import { Octokit } from "@octokit/rest"
 
-import { err, ok, type Result } from "@/entities/result"
+import { err, ok, type Result } from "@/shared/entities/result"
 import type {
   GetIssueErrors,
   GitHubAuthMethod,
@@ -11,7 +11,7 @@ import type {
   IssueRef,
   IssueTitleResult,
   ListIssuesParams,
-} from "@/ports/github/issue.reader"
+} from "@/shared/ports/github/issue.reader"
 
 /**
  * Creates an Octokit instance based on the provided authentication method

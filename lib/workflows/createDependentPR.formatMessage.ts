@@ -1,7 +1,7 @@
 import {
   getPullRequestDiscussionGraphQL,
   getPullRequestMetaAndLinkedIssue,
-} from "@shared/adapters/github/octokit/graphql/pullRequest.reader"
+} from "@/shared/adapters/github/octokit/graphql/pullRequest.reader"
 
 type PRMetaAndLinkedIssue = Awaited<
   ReturnType<typeof getPullRequestMetaAndLinkedIssue>

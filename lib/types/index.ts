@@ -1,9 +1,10 @@
 import { ChatModel } from "openai/resources"
+import { z, ZodType } from "zod"
+
 import {
   WorkflowStateEventSchema,
   WorkflowStatusEventSchema,
-} from "shared/entities/events/WorkflowEvent"
-import { z, ZodType } from "zod"
+} from "@/shared/entities/events/WorkflowEvent"
 
 // Tools
 export interface Tool<Schema extends ZodType, Output> {

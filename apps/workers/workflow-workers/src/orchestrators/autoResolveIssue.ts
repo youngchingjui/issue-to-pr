@@ -1,12 +1,13 @@
 import { createAppAuth } from "@octokit/auth-app"
 import { Octokit } from "@octokit/rest"
 import type { Transaction } from "neo4j-driver"
-import { EventBusAdapter } from "shared/adapters/ioredis/EventBusAdapter"
-import { createNeo4jDataSource } from "shared/adapters/neo4j/dataSource"
-import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
-import { setAccessToken } from "shared/auth"
-import { getPrivateKeyFromFile } from "shared/services/fs"
-import { autoResolveIssue as autoResolveIssueWorkflow } from "shared/usecases/workflows/autoResolveIssue"
+
+import { EventBusAdapter } from "@/shared/adapters/ioredis/EventBusAdapter"
+import { createNeo4jDataSource } from "@/shared/adapters/neo4j/dataSource"
+import { makeSettingsReaderAdapter } from "@/shared/adapters/neo4j/repositories/SettingsReaderAdapter"
+import { setAccessToken } from "@/shared/auth"
+import { getPrivateKeyFromFile } from "@/shared/services/fs"
+import { autoResolveIssue as autoResolveIssueWorkflow } from "@/shared/usecases/workflows/autoResolveIssue"
 
 import { getEnvVar, publishJobStatus } from "../helper"
 

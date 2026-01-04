@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
-import { AnthropicAdapter } from "shared/adapters/llm/anthropic"
-import { generateIssueTitle } from "shared/usecases/workflows/generateIssueTitle"
 
 import {
   IssueTitleRequestSchema,
   IssueTitleResponseSchema,
 } from "@/lib/types/api/schemas"
+import { AnthropicAdapter } from "@/shared/adapters/llm/anthropic"
+import { generateIssueTitle } from "@/shared/usecases/workflows/generateIssueTitle"
 
 export async function POST(req: NextRequest) {
   try {

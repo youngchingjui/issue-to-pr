@@ -7,8 +7,6 @@
 
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@shared/*": ["./src/*"], // @deprecated, migrate to using "@/shared/*" instead
       "@/shared/*": ["./src/*"]
     },
 

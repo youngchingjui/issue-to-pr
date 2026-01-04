@@ -1,11 +1,11 @@
-import type { Result } from "@/entities/result"
+import type { Result } from "@/shared/entities/result"
+import { Issue } from "@/shared/ports/github/issue.writer"
 import {
   type CreateIssueInput,
   type GithubIssueErrors,
   IssueWriterPort,
-} from "@/ports/github/issue.writer"
-import { Issue } from "@/ports/github/issue.writer"
-import { withTiming } from "@/utils/telemetry"
+} from "@/shared/ports/github/issue.writer"
+import { withTiming } from "@/shared/utils/telemetry"
 
 export class TimedIssueWriterPort implements IssueWriterPort {
   constructor(

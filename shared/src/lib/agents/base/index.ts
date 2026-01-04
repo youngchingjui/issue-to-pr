@@ -1,14 +1,14 @@
-import { LangfuseSpanClient, observeOpenAI } from "langfuse"
+import { type LangfuseSpanClient, observeOpenAI } from "langfuse"
 import OpenAI from "openai"
-import { ChatModel } from "openai/resources"
+import type { ChatModel } from "openai/resources"
 import {
-  ChatCompletionCreateParamsNonStreaming,
-  ChatCompletionMessageParam,
+  type ChatCompletionCreateParamsNonStreaming,
+  type ChatCompletionMessageParam,
 } from "openai/resources/chat/completions"
 import {
-  ResponseCreateParamsNonStreaming,
-  ResponseInput,
-  ResponseInputItem,
+  type ResponseCreateParamsNonStreaming,
+  type ResponseInput,
+  type ResponseInputItem,
 } from "openai/resources/responses/responses"
 import { ZodType } from "zod"
 
@@ -21,10 +21,14 @@ import {
   createToolCallResultEvent,
   createUserResponseEvent,
   deleteEvent,
-} from "@/lib/neo4j/services/event"
-import { AgentConstructorParams, AnyEvent, Tool } from "@/lib/types"
-import { EnhancedMessage } from "@/lib/types/chat"
-import { convertToolToFunctionTool } from "@/lib/utils/chat"
+} from "@/shared/lib/neo4j/services/event"
+import {
+  type AgentConstructorParams,
+  type AnyEvent,
+  type Tool,
+} from "@/shared/lib/types"
+import { type EnhancedMessage } from "@/shared/lib/types/chat"
+import { convertToolToFunctionTool } from "@/shared/lib/utils/chat"
 
 interface RunResponse {
   jobId?: string
