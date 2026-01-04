@@ -1,6 +1,3 @@
-import { createUpdatePullRequestBodyTool } from "@shared/lib/tools/UpdatePRTool"
-import { GitHubAuthProvider } from "@shared/ports/github/auth"
-
 import { ResponsesAPIAgent } from "@/lib/agents/base"
 import { createBranchTool } from "@/lib/tools/Branch"
 import { createCommitTool } from "@/lib/tools/Commit"
@@ -12,6 +9,8 @@ import { createSetupRepoTool } from "@/lib/tools/SetupRepoTool"
 import { createSyncBranchTool } from "@/lib/tools/SyncBranchTool"
 import { createWriteFileContentTool } from "@/lib/tools/WriteFileContent"
 import { AgentConstructorParams, RepoEnvironment } from "@/lib/types"
+import { createUpdatePullRequestBodyTool } from "@/shared/lib/tools/UpdatePRTool"
+import { GitHubAuthProvider } from "@/shared/ports/github/auth"
 
 const DEVELOPER_PROMPT = `
 You are a senior software engineer focused on follow-up changes for an existing pull request.

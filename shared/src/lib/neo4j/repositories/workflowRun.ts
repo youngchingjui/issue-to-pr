@@ -1,19 +1,19 @@
-import { int, Integer, ManagedTransaction, Node } from "neo4j-driver"
-import { withTiming } from "shared/utils/telemetry"
+import { Integer, ManagedTransaction, Node } from "neo4j-driver"
 import { ZodError } from "zod"
 
 import {
-  AnyEvent,
+  type AnyEvent,
   anyEventSchema,
-  Issue,
+  type Issue,
   issueSchema,
-  LLMResponseWithPlan,
+  type LLMResponseWithPlan,
   llmResponseWithPlanSchema,
-  WorkflowRun,
+  type WorkflowRun,
   workflowRunSchema,
-  WorkflowRunState,
+  type WorkflowRunState,
   workflowRunStateSchema,
-} from "@/lib/types/db/neo4j"
+} from "@/shared/lib/types/db/neo4j"
+import { withTiming } from "@/shared/utils/telemetry"
 
 export async function create(
   tx: ManagedTransaction,
@@ -135,29 +135,6 @@ export async function listForIssue(
       issue,
     }
   })
-}
-
-export async function linkToIssue(
-  tx: ManagedTransaction,
-  {
-    workflowId,
-    issueId,
-    repoFullName,
-  }: { workflowId: string; issueId: number; repoFullName: string }
-) {
-  const result = await withTiming(
-    `Neo4j QUERY: linkToIssue ${repoFullName}#${issueId}`,
-    () =>
-      tx.run(
-        `
-    MATCH (w:WorkflowRun {id: $workflowId}), (i:Issue {number: $issueId, repoFullName: $repoFullName}) 
-    CREATE (w)-[:BASED_ON_ISSUE]->(i)
-    RETURN w, i
-    `,
-        { workflowId, issueId: int(issueId), repoFullName }
-      )
-  )
-  return result
 }
 
 /**
