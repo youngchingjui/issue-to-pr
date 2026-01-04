@@ -1,7 +1,7 @@
-import { FunctionTool } from "openai/resources/responses/responses"
+import { type FunctionTool } from "openai/resources/responses/responses"
 import { ZodType } from "zod"
 
-import { Tool } from "@/lib/types"
+import { type Tool } from "@/shared/lib/types"
 
 /**
  * Converts a custom Tool interface to OpenAI's FunctionTool format.

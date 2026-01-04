@@ -1,6 +1,6 @@
 import { Octokit } from "@octokit/rest"
 
-import { err, ok, type Result } from "@/entities/result"
+import { err, ok, type Result } from "@/shared/entities/result"
 import type {
   GetIssueErrors,
   IssueDetails,
@@ -9,7 +9,7 @@ import type {
   IssueRef,
   IssueTitleResult,
   ListIssuesParams,
-} from "@/ports/github/issue.reader"
+} from "@/shared/ports/github/issue.reader"
 
 /**
  * Factory to create a REST-based GitHub adapter implementing IssueReaderPort.

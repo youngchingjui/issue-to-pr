@@ -2,9 +2,13 @@ import { exec } from "child_process"
 import { promisify } from "util"
 import { z } from "zod"
 
-import { execInContainerWithDockerode } from "@/lib/docker"
-import { createTool } from "@/lib/tools/helper"
-import { asRepoEnvironment, RepoEnvironment, Tool } from "@/lib/types"
+import { execInContainerWithDockerode } from "@/shared/lib/docker"
+import { createTool } from "@/shared/lib/tools/helper"
+import {
+  asRepoEnvironment,
+  type RepoEnvironment,
+  type Tool,
+} from "@/shared/lib/types"
 
 // Input schema (what the LLM Agent provides)
 const fileCheckParameters = z.object({

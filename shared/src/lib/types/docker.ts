@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { relativePathSchema } from "@/lib/types/utils/path"
+import { relativePathSchema } from "@/shared/lib/types/utils/path"
 
 // Default image name and literal type
 const DEFAULT_AGENT_BASE_IMAGE = "ghcr.io/youngchingjui/agent-base" as const

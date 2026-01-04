@@ -1,5 +1,5 @@
-import { err, ok, type Result } from "@/entities/result"
-import type { SettingsReaderPort } from "@/ports/repositories/settings.reader"
+import { err, ok, type Result } from "@/shared/entities/result"
+import type { SettingsReaderPort } from "@/shared/ports/repositories/settings.reader"
 
 // Minimal session surface used by this adapter
 export interface Neo4jSessionLike {

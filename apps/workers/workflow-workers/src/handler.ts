@@ -13,7 +13,8 @@
  */
 
 import { Job } from "bullmq"
-import { JobEventSchema } from "shared/entities/events/Job"
+
+import { JobEventSchema } from "@/shared/entities/events/Job"
 
 import { publishJobStatus } from "./helper"
 import { autoResolveIssue } from "./orchestrators/autoResolveIssue"

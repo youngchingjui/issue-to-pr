@@ -6,7 +6,7 @@ import { listUserAppRepositories } from "@/lib/github/repos"
 import { GitHubUser, RepoPermissions } from "@/lib/types/github"
 
 /**
- * @deprecated Use getGithubUser from @shared/adapters/github/users.ts instead
+ * @deprecated Use getGithubUser from @/shared/adapters/github/users.ts instead
  */
 export async function getGithubUser(): Promise<GitHubUser | null> {
   try {

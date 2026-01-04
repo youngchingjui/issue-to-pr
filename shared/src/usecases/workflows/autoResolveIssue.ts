@@ -6,30 +6,30 @@
 import { Octokit } from "@octokit/rest"
 import { v4 as uuidv4 } from "uuid"
 
-import GitHubRefsAdapter from "@/adapters/github/GitHubRefsAdapter"
-import { OpenAIAdapter } from "@/adapters/llm/OpenAIAdapter"
-import { getAccessTokenOrThrow } from "@/auth"
-import PlanAndCodeAgent from "@/lib/agents/PlanAndCodeAgent"
-import { getInstallationTokenFromRepo } from "@/lib/github/installation"
-import { getIssue, getIssueComments } from "@/lib/github/issues"
-import { checkRepoPermissions } from "@/lib/github/users"
-import { langfuse } from "@/lib/langfuse"
+import GitHubRefsAdapter from "@/shared/adapters/github/GitHubRefsAdapter"
+import { OpenAIAdapter } from "@/shared/adapters/llm/OpenAIAdapter"
+import { getAccessTokenOrThrow } from "@/shared/auth"
+import PlanAndCodeAgent from "@/shared/lib/agents/PlanAndCodeAgent"
+import { getInstallationTokenFromRepo } from "@/shared/lib/github/installation"
+import { getIssue, getIssueComments } from "@/shared/lib/github/issues"
+import { checkRepoPermissions } from "@/shared/lib/github/users"
+import { langfuse } from "@/shared/lib/langfuse"
 import {
   createErrorEvent,
   createStatusEvent,
   createWorkflowStateEvent,
-} from "@/lib/neo4j/services/event"
-import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
-import { RepoEnvironment } from "@/lib/types"
+} from "@/shared/lib/neo4j/services/event"
+import { initializeWorkflowRun } from "@/shared/lib/neo4j/services/workflow"
+import { type RepoEnvironment } from "@/shared/lib/types"
 import {
   createContainerizedDirectoryTree,
   createContainerizedWorkspace,
-} from "@/lib/utils/container"
-import { setupLocalRepository } from "@/lib/utils/utils-server"
-import { EventBusPort } from "@/ports/events/eventBus"
-import { createWorkflowEventPublisher } from "@/ports/events/publisher"
-import { SettingsReaderPort } from "@/ports/repositories/settings.reader"
-import { generateNonConflictingBranchName } from "@/usecases/git/generateBranchName"
+} from "@/shared/lib/utils/container"
+import { setupLocalRepository } from "@/shared/lib/utils/utils-server"
+import { type EventBusPort } from "@/shared/ports/events/eventBus"
+import { createWorkflowEventPublisher } from "@/shared/ports/events/publisher"
+import { type SettingsReaderPort } from "@/shared/ports/repositories/settings.reader"
+import { generateNonConflictingBranchName } from "@/shared/usecases/git/generateBranchName"
 
 interface Params {
   issueNumber: number

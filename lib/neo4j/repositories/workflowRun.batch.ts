@@ -1,5 +1,4 @@
 import { Integer, ManagedTransaction, Node } from "neo4j-driver"
-import { withTiming } from "shared/utils/telemetry"
 
 import {
   Issue,
@@ -9,6 +8,7 @@ import {
   WorkflowRunState,
   workflowRunStateSchema,
 } from "@/lib/types/db/neo4j"
+import { withTiming } from "@/shared/utils/telemetry"
 
 /**
  * Returns the latest workflow state per workflow run for a set of issues.

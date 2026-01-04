@@ -14,7 +14,6 @@
       "@/styles/*": ["styles/*"],
       "@/lib/*": ["lib/*"],
       "@/__tests__/*": ["__tests__/*"],
-      "@shared/*": ["shared/src/*"], // @deprecated: use "@/shared/*" instead
       "@/shared/*": ["shared/src/*"],
       "@workers/*": ["apps/workers/src/*"]
     }

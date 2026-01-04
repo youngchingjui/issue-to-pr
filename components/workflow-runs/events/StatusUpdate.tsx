@@ -1,12 +1,12 @@
 "use client"
 
 import { CheckCircle2 } from "lucide-react"
+
+import { EventTime } from "@/components/workflow-runs/events/EventTime"
 import {
   WorkflowStateEvent,
   WorkflowStatusEvent,
-} from "shared/entities/events/WorkflowEvent"
-
-import { EventTime } from "@/components/workflow-runs/events/EventTime"
+} from "@/shared/entities/events/WorkflowEvent"
 
 interface Props {
   event: WorkflowStatusEvent | WorkflowStateEvent

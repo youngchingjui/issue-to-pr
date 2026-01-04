@@ -1,4 +1,4 @@
-import { lazy } from "@/utils/lazy"
+import { lazy } from "@/shared/utils/lazy"
 
 export interface SessionWithTokenLike {
   token?: { access_token?: string | null } | null

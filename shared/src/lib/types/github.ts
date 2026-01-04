@@ -1,5 +1,5 @@
-import { components } from "@octokit/openapi-types"
-import { RestEndpointMethodTypes } from "@octokit/rest"
+import type { components } from "@octokit/openapi-types"
+import type { RestEndpointMethodTypes } from "@octokit/rest"
 import { Octokit } from "@octokit/rest"
 import { z } from "zod"
 

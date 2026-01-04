@@ -1,12 +1,11 @@
 "use client"
 
-import { WORKFLOW_JOBS_QUEUE } from "shared/entities/Queue"
-
 import {
   type EnqueueJobsRequest,
   enqueueJobsResponseSchema,
 } from "@/app/api/queues/[queueId]/jobs/schemas"
 import { toast } from "@/lib/hooks/use-toast"
+import { WORKFLOW_JOBS_QUEUE } from "@/shared/entities/Queue"
 
 interface Props {
   issueNumber: number

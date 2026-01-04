@@ -1,11 +1,5 @@
 "use server"
 
-import {
-  makeAccessTokenProviderFrom,
-  makeSessionProvider,
-} from "shared/providers/auth"
-import { withTiming } from "shared/utils/telemetry"
-
 import { auth } from "@/auth"
 import { makeFetchIssueReaderAdapter } from "@/lib/adapters/github/fetch/issue.reader"
 import getOctokit, { getGraphQLClient, getUserOctokit } from "@/lib/github"
@@ -23,6 +17,11 @@ import {
   GitHubIssueComment,
   ListForRepoParams,
 } from "@/lib/types/github"
+import {
+  makeAccessTokenProviderFrom,
+  makeSessionProvider,
+} from "@/shared/providers/auth"
+import { withTiming } from "@/shared/utils/telemetry"
 
 type CreateIssueParams = {
   repo: string
@@ -263,22 +262,26 @@ export async function getIssueListWithStatus({
 
   // 2. Query Neo4j for plans using the service layer
   const issueNumbers = issues.map((issue) => issue.number)
-  const [issuePlanStatus, issuePlanIds, activeWorkflowMap, activeWorkflowIdMap] =
-    await Promise.all([
-      withTiming(`Neo4j: getPlanStatusForIssues ${repoFullName}`, () =>
-        getPlanStatusForIssues({ repoFullName, issueNumbers })
-      ),
-      withTiming(`Neo4j: getLatestPlanIdsForIssues ${repoFullName}`, () =>
-        getLatestPlanIdsForIssues({ repoFullName, issueNumbers })
-      ),
-      withTiming(`Neo4j: getIssuesActiveWorkflowMap ${repoFullName}`, () =>
-        getIssuesActiveWorkflowMap({ repoFullName, issueNumbers })
-      ),
-      withTiming(
-        `Neo4j: getIssuesLatestRunningWorkflowIdMap ${repoFullName}`,
-        () => getIssuesLatestRunningWorkflowIdMap({ repoFullName, issueNumbers })
-      ),
-    ])
+  const [
+    issuePlanStatus,
+    issuePlanIds,
+    activeWorkflowMap,
+    activeWorkflowIdMap,
+  ] = await Promise.all([
+    withTiming(`Neo4j: getPlanStatusForIssues ${repoFullName}`, () =>
+      getPlanStatusForIssues({ repoFullName, issueNumbers })
+    ),
+    withTiming(`Neo4j: getLatestPlanIdsForIssues ${repoFullName}`, () =>
+      getLatestPlanIdsForIssues({ repoFullName, issueNumbers })
+    ),
+    withTiming(`Neo4j: getIssuesActiveWorkflowMap ${repoFullName}`, () =>
+      getIssuesActiveWorkflowMap({ repoFullName, issueNumbers })
+    ),
+    withTiming(
+      `Neo4j: getIssuesLatestRunningWorkflowIdMap ${repoFullName}`,
+      () => getIssuesLatestRunningWorkflowIdMap({ repoFullName, issueNumbers })
+    ),
+  ])
 
   // 3. Build response combining data
   const withStatus: IssueWithStatus[] = issues.map((issue) => {
@@ -550,4 +553,3 @@ export async function getLinkedPRNumbersForIssues({
 
   return result
 }
-

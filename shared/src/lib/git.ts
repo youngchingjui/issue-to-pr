@@ -6,7 +6,7 @@ import { promises as fs } from "fs"
 import path from "path"
 import util from "util"
 
-import { getCloneUrlWithAccessToken } from "@/lib/utils/utils-common"
+import { getCloneUrlWithAccessToken } from "@/shared/lib/utils/utils-common"
 
 const execPromise = util.promisify(exec)
 

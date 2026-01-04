@@ -1,6 +1,7 @@
-import { IssueRow, type SharedIssue } from "@shared/ui/IssueRow"
 import type { Meta, StoryObj } from "@storybook/nextjs"
 import React from "react"
+
+import { IssueRow, type SharedIssue } from "@/shared/ui/IssueRow"
 
 const meta: Meta<typeof IssueRow> = {
   title: "Shared/IssueRow",

@@ -4,9 +4,12 @@ import {
   getAppOctokit,
   getUserInstallations,
   getUserOctokit,
-} from "@/lib/github"
-import { combineRepositories, getUserRepositories } from "@/lib/github/content"
-import { AuthenticatedUserRepository } from "@/lib/types/github"
+} from "@/shared/lib/github"
+import {
+  combineRepositories,
+  getUserRepositories,
+} from "@/shared/lib/github/content"
+import type { AuthenticatedUserRepository } from "@/shared/lib/types/github"
 
 /**
  * Returns a deduplicated list of repositories that the current user can access **and**

@@ -1,8 +1,3 @@
-import {
-  getPullRequestDiscussionGraphQL,
-  getPullRequestMetaAndLinkedIssue,
-} from "@shared/adapters/github/octokit/graphql/pullRequest.reader"
-import { GitHubAuthProvider } from "@shared/ports/github/auth"
 import { v4 as uuidv4 } from "uuid"
 
 import { DependentPRAgent } from "@/lib/agents/DependentPRAgent"
@@ -25,6 +20,11 @@ import {
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
+import {
+  getPullRequestDiscussionGraphQL,
+  getPullRequestMetaAndLinkedIssue,
+} from "@/shared/adapters/github/octokit/graphql/pullRequest.reader"
+import { GitHubAuthProvider } from "@/shared/ports/github/auth"
 
 import { generatePRDataMessage } from "./createDependentPR.formatMessage"
 

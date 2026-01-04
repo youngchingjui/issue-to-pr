@@ -1,17 +1,19 @@
-import { withTiming } from "shared/utils/telemetry"
-
-import getOctokit, { getGraphQLClient, getUserOctokit } from "@/lib/github"
+import getOctokit, {
+  getGraphQLClient,
+  getUserOctokit,
+} from "@/shared/lib/github"
 import {
   getLatestPlanIdsForIssues,
   getPlanStatusForIssues,
-} from "@/lib/neo4j/services/plan"
-import { listWorkflowRuns } from "@/lib/neo4j/services/workflow"
+} from "@/shared/lib/neo4j/services/plan"
+import { listWorkflowRuns } from "@/shared/lib/neo4j/services/workflow"
 import {
-  GetIssueResult,
-  GitHubIssue,
-  GitHubIssueComment,
-  ListForRepoParams,
-} from "@/lib/types/github"
+  type GetIssueResult,
+  type GitHubIssue,
+  type GitHubIssueComment,
+  type ListForRepoParams,
+} from "@/shared/lib/types/github"
+import { withTiming } from "@/shared/utils/telemetry"
 
 type CreateIssueParams = {
   repo: string

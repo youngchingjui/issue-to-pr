@@ -16,11 +16,11 @@ import {
   toolCallSchema as appToolCallSchema,
   userMessageSchema as appUserMessageSchema,
   workflowRunSchema as appWorkflowRunSchema,
-  WorkflowRunState,
+  type WorkflowRunState,
   workflowRunStateSchema,
-  WorkflowType,
+  type WorkflowType,
   workflowTypeEnum,
-} from "@/lib/types"
+} from "@/shared/lib/types"
 
 // Re-export for Neo4j DB layer
 export { workflowRunStateSchema, workflowTypeEnum }

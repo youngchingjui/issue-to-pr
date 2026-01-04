@@ -1,29 +1,33 @@
 import { int } from "neo4j-driver"
-import { withTiming } from "shared/utils/telemetry"
 
-import { n4j } from "@/lib/neo4j/client"
-import { neo4jToJs, toAppEvent, toAppMessageEvent } from "@/lib/neo4j/convert"
+import { n4j } from "@/shared/lib/neo4j/client"
+import {
+  neo4jToJs,
+  toAppEvent,
+  toAppMessageEvent,
+} from "@/shared/lib/neo4j/convert"
 import {
   getEventsForWorkflowRun,
   getMessagesForWorkflowRun,
-} from "@/lib/neo4j/repositories/event"
+} from "@/shared/lib/neo4j/repositories/event"
 import {
   create,
   getWithDetails,
   listAll,
   listForIssue,
   mergeIssueLink,
-} from "@/lib/neo4j/repositories/workflowRun"
+} from "@/shared/lib/neo4j/repositories/workflowRun"
 import {
-  AnyEvent,
-  Issue as AppIssue,
+  type AnyEvent,
+  type Issue as AppIssue,
   issueSchema,
-  MessageEvent,
-  WorkflowRun as AppWorkflowRun,
+  type MessageEvent,
+  type WorkflowRun as AppWorkflowRun,
   workflowRunSchema,
-  WorkflowRunState,
-  WorkflowType,
-} from "@/lib/types"
+  type WorkflowRunState,
+  type WorkflowType,
+} from "@/shared/lib/types"
+import { withTiming } from "@/shared/utils/telemetry"
 
 /**
  * Merges (matches or creates) a WorkflowRun node and the corresponding Issue node in the database, linking the two.

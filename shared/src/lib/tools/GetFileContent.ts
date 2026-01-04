@@ -1,11 +1,15 @@
 import path from "path"
 import { z } from "zod"
 
-import { execInContainerWithDockerode } from "@/lib/docker"
-import { getFileContent } from "@/lib/fs"
-import { createTool } from "@/lib/tools/helper"
-import { asRepoEnvironment, RepoEnvironment, Tool } from "@/lib/types"
-import { relativePathSchema } from "@/lib/types/utils/path"
+import { execInContainerWithDockerode } from "@/shared/lib/docker"
+import { getFileContent } from "@/shared/lib/fs"
+import { createTool } from "@/shared/lib/tools/helper"
+import {
+  asRepoEnvironment,
+  type RepoEnvironment,
+  type Tool,
+} from "@/shared/lib/types"
+import { relativePathSchema } from "@/shared/lib/types/utils/path"
 
 const name = "get_file_content"
 const description =

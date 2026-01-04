@@ -7,8 +7,8 @@ import { Octokit } from "@octokit/rest"
 import * as fs from "fs/promises"
 import { App } from "octokit"
 
-import { getAccessTokenOrThrow } from "@/auth"
-import { ExtendedOctokit } from "@/lib/types/github"
+import { getAccessTokenOrThrow } from "@/shared/auth"
+import type { ExtendedOctokit } from "@/shared/lib/types/github"
 
 export async function getPrivateKeyFromFile(): Promise<string> {
   const privateKeyPath = process.env.GITHUB_APP_PRIVATE_KEY_PATH

@@ -1,7 +1,7 @@
 "use server"
 
-import { getGraphQLClient } from "@/lib/github"
-import { RepoFullName } from "@/lib/types/github"
+import { getGraphQLClient } from "@/shared/lib/github"
+import type { RepoFullName } from "@/shared/lib/types/github"
 
 interface BranchByCommitDate {
   name: string

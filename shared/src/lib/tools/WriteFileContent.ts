@@ -1,10 +1,14 @@
 import path from "path"
 import { z } from "zod"
 
-import { writeFileInContainer } from "@/lib/docker"
-import { writeFile } from "@/lib/fs"
-import { createTool } from "@/lib/tools/helper"
-import { asRepoEnvironment, RepoEnvironment, Tool } from "@/lib/types"
+import { writeFileInContainer } from "@/shared/lib/docker"
+import { writeFile } from "@/shared/lib/fs"
+import { createTool } from "@/shared/lib/tools/helper"
+import {
+  asRepoEnvironment,
+  type RepoEnvironment,
+  type Tool,
+} from "@/shared/lib/types"
 
 const writeFileContentParameters = z.object({
   relativePath: z

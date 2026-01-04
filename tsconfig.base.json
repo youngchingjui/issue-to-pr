@@ -32,7 +32,6 @@
       "@/*": ["./*"],
       "@/components/*": ["components/*"],
       "@/styles/*": ["styles/*"],
-      "@shared/*": ["shared/src/*"],
       "@workers/*": ["apps/workers/src/*"]
     },
 

@@ -1,6 +1,6 @@
-import { getRedisConnection } from "@/adapters/ioredis/client"
-import type { AllEvents } from "@/entities/events"
-import type { EventBusPort } from "@/ports/events/eventBus"
+import { getRedisConnection } from "@/shared/adapters/ioredis/client"
+import type { AllEvents } from "@/shared/entities/events"
+import type { EventBusPort } from "@/shared/ports/events/eventBus"
 
 /**
  * Redis Streams implementation of the EventBusPort.

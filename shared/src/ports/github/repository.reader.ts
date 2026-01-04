@@ -1,4 +1,4 @@
-import { type Result } from "@/entities/result"
+import { type Result } from "@/shared/entities/result"
 
 export interface Repo {
   /** Full repository name (owner/repo) */

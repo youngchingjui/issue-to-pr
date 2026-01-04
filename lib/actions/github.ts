@@ -1,13 +1,12 @@
 "use server"
 
-import { makeRepositoryReaderAdapter } from "shared/adapters/github/octokit/rest/repository.reader"
-import { withTiming } from "shared/utils/telemetry"
-
 import { auth } from "@/auth"
 import { getLocalRepoDir } from "@/lib/fs"
 import { checkIfGitExists } from "@/lib/git"
 import { getIssueList } from "@/lib/github/issues"
 import { GitHubIssue } from "@/lib/types/github"
+import { makeRepositoryReaderAdapter } from "@/shared/adapters/github/octokit/rest/repository.reader"
+import { withTiming } from "@/shared/utils/telemetry"
 
 export async function getRepositoryIssues(
   repoFullName: string

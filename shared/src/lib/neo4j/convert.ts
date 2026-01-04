@@ -1,14 +1,14 @@
 import neo4j, { DateTime, Integer } from "neo4j-driver"
 
 import {
-  AnyEvent as appAnyEvent,
-  MessageEvent as appMessageEvent,
-} from "@/lib/types"
+  type AnyEvent as appAnyEvent,
+  type MessageEvent as appMessageEvent,
+} from "@/shared/lib/types"
 import {
-  AnyEvent,
+  type AnyEvent,
   isLLMResponseWithPlan,
-  MessageEvent,
-} from "@/lib/types/db/neo4j"
+  type MessageEvent,
+} from "@/shared/lib/types/db/neo4j"
 
 export function neo4jToJs<T>(value: T) {
   if (value === null || value === undefined) return value

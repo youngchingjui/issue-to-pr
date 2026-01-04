@@ -1,5 +1,6 @@
-import { modelList } from "shared/entities/llm/models"
 import { z } from "zod"
+
+import { modelList } from "@/shared/entities/llm/models"
 
 // =================================================
 // Create Issue Action

@@ -1,5 +1,6 @@
-import type { Meta, StoryObj } from "@storybook/react"
+import type { Meta, StoryObj } from "@storybook/nextjs"
 import React, { useMemo, useState } from "react"
+
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
@@ -117,4 +118,3 @@ type Story = StoryObj<typeof TableWithAddRowSkeleton>
 export const Default: Story = {
   render: () => <TableWithAddRowSkeleton />,
 }
-

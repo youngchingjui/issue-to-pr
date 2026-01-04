@@ -1,14 +1,13 @@
 "use server"
 
-import { makeIssueReaderAdapter } from "shared/adapters/github/IssueReaderAdapter"
+import { auth } from "@/auth"
+import type { GetIssueResult } from "@/lib/types/github"
+import { makeIssueReaderAdapter } from "@/shared/adapters/github/IssueReaderAdapter"
 import {
   makeAccessTokenProviderFrom,
   makeSessionProvider,
-} from "shared/providers/auth"
-import { makeGetIssueUseCase } from "shared/usecases/github/getIssue"
-
-import { auth } from "@/auth"
-import type { GetIssueResult } from "@/lib/types/github"
+} from "@/shared/providers/auth"
+import { makeGetIssueUseCase } from "@/shared/usecases/github/getIssue"
 
 export const getIssue = async (
   repoFullName: string,

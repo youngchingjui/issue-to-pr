@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server"
-import { testEventInfrastructure } from "shared/usecases/workflows/testEventInfrastructure"
 import { v4 as uuidv4 } from "uuid"
 
 import PersistingEventBusAdapter from "@/lib/adapters/PersistingEventBusAdapter"
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
+import { testEventInfrastructure } from "@/shared/usecases/workflows/testEventInfrastructure"
 
 export const dynamic = "force-dynamic"
 

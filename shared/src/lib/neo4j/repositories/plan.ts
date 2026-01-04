@@ -2,15 +2,15 @@ import { int, Integer, ManagedTransaction, Node } from "neo4j-driver"
 import { z } from "zod"
 
 import {
-  Issue,
+  type Issue,
   issueSchema,
-  LLMResponseWithPlan,
+  type LLMResponseWithPlan,
   llmResponseWithPlanSchema,
-  Plan,
+  type Plan,
   planSchema,
-  WorkflowRun,
+  type WorkflowRun,
   workflowRunSchema,
-} from "@/lib/types/db/neo4j"
+} from "@/shared/lib/types/db/neo4j"
 
 // Retrieve Event node by id
 export async function getEventById(

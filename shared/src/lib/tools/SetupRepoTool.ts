@@ -1,8 +1,12 @@
 import { z } from "zod"
 
-import { execInContainerWithDockerode } from "@/lib/docker"
-import { createTool } from "@/lib/tools/helper"
-import { asRepoEnvironment, RepoEnvironment, Tool } from "@/lib/types"
+import { execInContainerWithDockerode } from "@/shared/lib/docker"
+import { createTool } from "@/shared/lib/tools/helper"
+import {
+  asRepoEnvironment,
+  type RepoEnvironment,
+  type Tool,
+} from "@/shared/lib/types"
 
 // Input schema for setup commands
 const setupRepoParameters = z.object({

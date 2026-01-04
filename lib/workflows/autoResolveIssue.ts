@@ -1,8 +1,3 @@
-import { OpenAIAdapter } from "shared/adapters/llm/OpenAIAdapter"
-import { EventBusPort } from "shared/ports/events/eventBus"
-import { createWorkflowEventPublisher } from "shared/ports/events/publisher"
-import { SettingsReaderPort } from "shared/ports/repositories/settings.reader"
-import { generateNonConflictingBranchName } from "shared/usecases/git/generateBranchName"
 import { v4 as uuidv4 } from "uuid"
 
 import { GitHubRefsAdapter } from "@/lib/adapters/GitHubRefsAdapter"
@@ -24,6 +19,11 @@ import {
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
+import { OpenAIAdapter } from "@/shared/adapters/llm/OpenAIAdapter"
+import { EventBusPort } from "@/shared/ports/events/eventBus"
+import { createWorkflowEventPublisher } from "@/shared/ports/events/publisher"
+import { SettingsReaderPort } from "@/shared/ports/repositories/settings.reader"
+import { generateNonConflictingBranchName } from "@/shared/usecases/git/generateBranchName"
 
 interface Params {
   issue: GitHubIssue

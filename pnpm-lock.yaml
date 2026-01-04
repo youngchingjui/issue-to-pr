@@ -162,9 +162,6 @@ importers:
       redis:
         specifier: ^4.7.0
         version: 4.7.1
-      shared:
-        specifier: workspace:*
-        version: link:shared
       simple-git:
         specifier: ^3.27.0
         version: 3.30.0
@@ -398,12 +395,18 @@ importers:
       ioredis:
         specifier: ^5.3.4
         version: 5.8.2
+      langfuse:
+        specifier: 3.32.0
+        version: 3.32.0
+      langfuse-core:
+        specifier: 3.37.0
+        version: 3.37.0
       openai:
         specifier: ^5.12.2
         version: 5.23.2(ws@8.18.3)(zod@3.25.67)
-      shared:
-        specifier: workspace:*
-        version: link:../../../shared
+      tar-fs:
+        specifier: 3.1.1
+        version: 3.1.1
       zod:
         specifier: ^3.24.2
         version: 3.25.67
@@ -6308,8 +6311,16 @@ packages:
     resolution: {integrity: sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==}
     engines: {node: '>=6'}
 
+  langfuse-core@3.37.0:
+    resolution: {integrity: sha512-7ZOFJ51u4dOeCpsQ8otNuNYeMb7xsExVQcOIBOByPFKjjd1mjf/03xF907F44dRzgf7n1U8ZYa0XgMSRgxKNoA==}
+    engines: {node: '>=18'}
+
   langfuse-core@3.38.6:
     resolution: {integrity: sha512-EcZXa+DK9FJdi1I30+u19eKjuBJ04du6j2Nybk19KKCuraLczg/ppkTQcGvc4QOk//OAi3qUHrajUuV74RXsBQ==}
+    engines: {node: '>=18'}
+
+  langfuse@3.32.0:
+    resolution: {integrity: sha512-Qto8+CW8ZulNaZ/gn4JgVe5v/yeKbvMyvQ/s2DXO5bP5o1PmqE6YOCHQ3Uep6W94B8kpXUgOHg7ZS5Wg8Xljsw==}
     engines: {node: '>=18'}
 
   langfuse@3.38.6:
@@ -15735,9 +15746,17 @@ snapshots:
 
   kleur@3.0.3: {}
 
+  langfuse-core@3.37.0:
+    dependencies:
+      mustache: 4.2.0
+
   langfuse-core@3.38.6:
     dependencies:
       mustache: 4.2.0
+
+  langfuse@3.32.0:
+    dependencies:
+      langfuse-core: 3.37.0
 
   langfuse@3.38.6:
     dependencies:

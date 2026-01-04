@@ -1,12 +1,12 @@
 import { Octokit } from "@octokit/rest"
 
-import { err, ok, type Result } from "@/entities/result"
+import { err, ok, type Result } from "@/shared/entities/result"
 import type {
   BranchRef,
   BranchWriterPort,
   CreateBranchErrors,
   CreateBranchInput,
-} from "@/ports/github/branch.writer"
+} from "@/shared/ports/github/branch.writer"
 
 export function makeBranchWriterAdapter(params: {
   token: string

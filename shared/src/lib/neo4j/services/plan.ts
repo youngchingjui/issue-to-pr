@@ -1,8 +1,7 @@
 import { int, ManagedTransaction } from "neo4j-driver"
-import { withTiming } from "shared/utils/telemetry"
 
-import { n4j } from "@/lib/neo4j/client"
-import { neo4jToJs } from "@/lib/neo4j/convert"
+import { n4j } from "@/shared/lib/neo4j/client"
+import { neo4jToJs } from "@/shared/lib/neo4j/convert"
 import {
   createPlanImplementsIssue,
   getPlanWithDetails as dbGetPlanWithDetails,
@@ -10,16 +9,17 @@ import {
   listLatestPlanIdsForIssues as dbListLatestPlanIdsForIssues,
   listPlansForIssue as dbListPlansForIssue,
   listPlanStatusForIssues as dbListPlanStatusForIssues,
-} from "@/lib/neo4j/repositories/plan"
+} from "@/shared/lib/neo4j/repositories/plan"
 import {
-  Issue,
+  type Issue,
   issueSchema,
-  LLMResponseWithPlan,
-  Plan,
+  type LLMResponseWithPlan,
+  type Plan,
   planSchema,
-  WorkflowRun,
+  type WorkflowRun,
   workflowRunSchema,
-} from "@/lib/types"
+} from "@/shared/lib/types"
+import { withTiming } from "@/shared/utils/telemetry"
 
 export async function listPlansForIssue({
   repoFullName,

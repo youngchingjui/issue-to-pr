@@ -1,4 +1,4 @@
-import { ChatCompletionMessageParam } from "openai/resources/chat/completions"
+import { type ChatCompletionMessageParam } from "openai/resources/chat/completions"
 import { z } from "zod"
 
 export const ChatCompletionMessageParamSchema: z.ZodType<ChatCompletionMessageParam> =

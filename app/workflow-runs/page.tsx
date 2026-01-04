@@ -1,5 +1,4 @@
 import { Suspense } from "react"
-import { withTiming } from "shared/utils/telemetry"
 
 import { auth } from "@/auth"
 import TableSkeleton from "@/components/layout/TableSkeleton"
@@ -11,6 +10,7 @@ import {
 } from "@/components/workflow-runs/WorkflowRunsIssueTitlesTableBody"
 import { listUserRepositories } from "@/lib/github/graphql/queries/listUserRepositories"
 import { listWorkflowRuns } from "@/lib/neo4j/services/workflow"
+import { withTiming } from "@/shared/utils/telemetry"
 
 // There were build errors
 // "Dynamic server usage: Route /workflow-runs couldn't be rendered statically because it used `headers`. See more info here: https://nextjs.org/docs/messages/dynamic-server-error"

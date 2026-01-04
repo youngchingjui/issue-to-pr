@@ -1,15 +1,18 @@
 "use server"
 
-import { getInstallationOctokit, getUserOctokit } from "@/lib/github"
-import { listUserRepositories } from "@/lib/github/graphql/queries/listUserRepositories"
+import { getInstallationOctokit, getUserOctokit } from "@/shared/lib/github"
+import { listUserRepositories } from "@/shared/lib/github/graphql/queries/listUserRepositories"
 import {
   getInstallationFromRepo,
   listUserAppRepositories,
-} from "@/lib/github/repos"
-import { GitHubUser, RepoPermissions } from "@/lib/types/github"
+} from "@/shared/lib/github/repos"
+import {
+  type GitHubUser,
+  type RepoPermissions,
+} from "@/shared/lib/types/github"
 
 /**
- * @deprecated Use getGithubUser from @shared/adapters/github/users.ts instead
+ * @deprecated Use getGithubUser from @/shared/adapters/github/users.ts instead
  */
 export async function getGithubUser(): Promise<GitHubUser | null> {
   try {

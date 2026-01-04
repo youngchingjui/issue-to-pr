@@ -10,14 +10,16 @@
     "start": "node dist/apps/workers/workflow-workers/src/index.js"
   },
   "dependencies": {
+    "@octokit/auth-app": "^7.2.0",
+    "@octokit/rest": "^21.0.2",
     "bullmq": "~5.56.0",
     "dotenv": "^16.5.0",
     "ioredis": "^5.3.4",
+    "langfuse": "3.32.0",
+    "langfuse-core": "3.37.0",
     "openai": "^5.12.2",
-    "shared": "workspace:*",
-    "zod": "^3.24.2",
-    "@octokit/auth-app": "^7.2.0",
-    "@octokit/rest": "^21.0.2"
+    "tar-fs": "3.1.1",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "tsc-alias": "^1.8.16",

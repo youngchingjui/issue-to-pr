@@ -2,11 +2,11 @@ import type {
   IssueReaderPort,
   IssueRef,
   IssueTitleResult,
-} from "@/ports/github/issue.reader"
+} from "@/shared/ports/github/issue.reader"
 import {
   type CreateIssueInput,
   IssueWriterPort,
-} from "@/ports/github/issue.writer"
+} from "@/shared/ports/github/issue.writer"
 
 /**
  * Service-level function to fetch issue titles using a provided GitHub port.

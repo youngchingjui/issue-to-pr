@@ -2,16 +2,16 @@ import "server-only"
 
 import { createAppAuth } from "@octokit/auth-app"
 import { Octokit } from "@octokit/rest"
+import * as fs from "fs/promises"
+import { App } from "octokit"
+
+import { auth } from "@/auth"
 import type {
   GitHubAuthProvider,
   GitHubClientBundle,
   GitHubInstallationId,
   GitHubInstallationLookup,
-} from "@shared/ports/github/auth"
-import * as fs from "fs/promises"
-import { App } from "octokit"
-
-import { auth } from "@/auth"
+} from "@/shared/ports/github/auth"
 
 type MakeProviderOpts = {
   defaultInstallation: GitHubInstallationLookup | GitHubInstallationId

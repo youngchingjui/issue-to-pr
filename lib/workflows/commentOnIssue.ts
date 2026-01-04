@@ -1,5 +1,3 @@
-import { AllEvents } from "shared/entities/events/index"
-
 import { ThinkerAgent } from "@/lib/agents/thinker"
 import { AUTH_CONFIG } from "@/lib/auth/config"
 import { isContainerRunning } from "@/lib/docker"
@@ -26,6 +24,7 @@ import {
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
+import { AllEvents } from "@/shared/entities/events/index"
 
 interface GitHubError extends Error {
   status?: number

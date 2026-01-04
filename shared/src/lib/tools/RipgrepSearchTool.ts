@@ -1,10 +1,14 @@
 import { spawn } from "child_process"
 import { z } from "zod"
 
-import { execInContainerWithDockerode } from "@/lib/docker"
-import { createTool } from "@/lib/tools/helper"
-import { asRepoEnvironment, RepoEnvironment, Tool } from "@/lib/types"
-import { shellEscape } from "@/lib/utils/cli"
+import { execInContainerWithDockerode } from "@/shared/lib/docker"
+import { createTool } from "@/shared/lib/tools/helper"
+import {
+  asRepoEnvironment,
+  type RepoEnvironment,
+  type Tool,
+} from "@/shared/lib/types"
+import { shellEscape } from "@/shared/lib/utils/cli"
 
 /**
  * Execute ripgrep using spawn to avoid shell escaping issues

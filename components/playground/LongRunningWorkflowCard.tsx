@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { WORKFLOW_JOBS_QUEUE } from "shared/entities/Queue"
 
 import {
   type EnqueueJobsRequest,
@@ -12,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/lib/hooks/use-toast"
+import { WORKFLOW_JOBS_QUEUE } from "@/shared/entities/Queue"
 
 export default function LongRunningWorkflowCard() {
   const { toast } = useToast()

@@ -1,10 +1,10 @@
 import { formatDistanceToNow } from "date-fns"
 import Link from "next/link"
-import { makeIssueReaderAdapter } from "shared/adapters/github/octokit/graphql/issue.reader"
-import { fetchIssueTitles } from "shared/services/github/issues"
 
 import { Badge } from "@/components/ui/badge"
 import { TableBody, TableCell, TableRow } from "@/components/ui/table"
+import { makeIssueReaderAdapter } from "@/shared/adapters/github/octokit/graphql/issue.reader"
+import { fetchIssueTitles } from "@/shared/services/github/issues"
 
 export type WorkflowRunItem = {
   id: string

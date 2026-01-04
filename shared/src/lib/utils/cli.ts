@@ -4,8 +4,8 @@ import { exec as execCallback } from "node:child_process"
 
 import { promisify } from "util"
 const execPromise = promisify(execCallback)
-import { execInContainerWithDockerode } from "@/lib/docker"
-import { asRepoEnvironment, RepoEnvironment } from "@/lib/types"
+import { execInContainerWithDockerode } from "@/shared/lib/docker"
+import { asRepoEnvironment, type RepoEnvironment } from "@/shared/lib/types"
 
 /**
  * Safe quoting helper for POSIX shells.

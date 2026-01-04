@@ -3,8 +3,8 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
-import { GitHubURLSchema } from "@/lib/schemas/api"
-import { GitHubIssue, PullRequest } from "@/lib/types/github"
+import { GitHubURLSchema } from "@/shared/lib/schemas/api"
+import { type GitHubIssue, type PullRequest } from "@/shared/lib/types/github"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -105,7 +105,9 @@ export function containerNameForTrace(traceId: string): string {
  * @param issue The GitHub issue object
  * @returns The full repository name in the format "owner/repo", or undefined if repository info is missing
  */
-export function getRepoFullNameFromIssue(item: GitHubIssue | PullRequest): string {
+export function getRepoFullNameFromIssue(
+  item: GitHubIssue | PullRequest
+): string {
   // Issue payloads (REST issues.get)
   const asIssue = item as GitHubIssue
   if (asIssue.repository?.full_name) {
@@ -133,7 +135,10 @@ export function getRepoFullNameFromIssue(item: GitHubIssue | PullRequest): strin
     const { fullName } = GitHubURLSchema.parse(repoUrl)
     return fullName
   } catch (e) {
-    console.error("An unexpected error occured when parsing the repository URL", e)
+    console.error(
+      "An unexpected error occured when parsing the repository URL",
+      e
+    )
     throw e
   }
 }

@@ -1,9 +1,9 @@
-import { Session } from "@/entities/Session"
+import { Session } from "@/shared/entities/Session"
 import {
   AccessToken,
-  AuthenticatedUser,
-  AuthReaderPort,
-} from "@/ports/auth/reader"
+  type AuthenticatedUser,
+  type AuthReaderPort,
+} from "@/shared/ports/auth/reader"
 
 function toAccessToken(input: unknown): AccessToken | null {
   if (typeof input !== "object" || input === null) return null

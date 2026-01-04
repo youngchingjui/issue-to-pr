@@ -1,4 +1,6 @@
-import { err, ok, type Result } from "shared/entities/result"
+import { z } from "zod"
+
+import { err, ok, type Result } from "@/shared/entities/result"
 import type {
   GetIssueErrors,
   IssueDetails,
@@ -7,8 +9,7 @@ import type {
   IssueRef,
   IssueTitleResult,
   ListIssuesParams,
-} from "shared/ports/github/issue.reader"
-import { z } from "zod"
+} from "@/shared/ports/github/issue.reader"
 
 // Minimal shape we need from GitHub issue list endpoint
 const GitHubIssueLiteSchema = z.object({
