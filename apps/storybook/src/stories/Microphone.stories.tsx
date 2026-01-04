@@ -1,6 +1,7 @@
-import type { Meta, StoryObj } from "@storybook/react"
+import type { Meta, StoryObj } from "@storybook/nextjs"
 import React, { useState } from "react"
-import { Microphone, type MicrophoneState } from "@shared/ui/Microphone"
+
+import { Microphone, type MicrophoneState } from "@/shared/ui/Microphone"
 
 const meta: Meta<typeof Microphone> = {
   title: "Shared/Microphone",
@@ -63,22 +64,21 @@ export const Controlled: Story = {
       <div className="space-y-4">
         <Microphone {...args} state={state} onStateChange={setState} />
         <div className="flex flex-wrap gap-2">
-          {(["idle", "recording", "transcribing", "success", "error"] as const).map(
-            (s) => (
-              <button
-                key={s}
-                className={`rounded border px-2 py-1 text-sm ${
-                  state === s ? "bg-muted" : ""
-                }`}
-                onClick={() => setState(s)}
-              >
-                {s}
-              </button>
-            )
-          )}
+          {(
+            ["idle", "recording", "transcribing", "success", "error"] as const
+          ).map((s) => (
+            <button
+              key={s}
+              className={`rounded border px-2 py-1 text-sm ${
+                state === s ? "bg-muted" : ""
+              }`}
+              onClick={() => setState(s)}
+            >
+              {s}
+            </button>
+          ))}
         </div>
       </div>
     )
   },
 }
-

@@ -1,20 +1,20 @@
 import Docker from "dockerode"
 import os from "os"
 import path from "path"
-import { buildPreviewSubdomainSlug } from "shared/entities/previewSlug"
 import { pack } from "tar-fs"
 import { v4 as uuidv4 } from "uuid"
 
+import { buildPreviewSubdomainSlug } from "@/shared/entities/previewSlug"
 import {
   execInContainerWithDockerode,
   startContainer,
   stopAndRemoveContainer,
-} from "@/lib/docker"
-import { addWorktree, removeWorktree } from "@/lib/git"
-import { getInstallationTokenFromRepo } from "@/lib/github/installation"
-import { AGENT_BASE_IMAGE } from "@/lib/types/docker"
-import { containerNameForTrace } from "@/lib/utils/utils-common"
-import { setupLocalRepository } from "@/lib/utils/utils-server"
+} from "@/shared/lib/docker"
+import { addWorktree, removeWorktree } from "@/shared/lib/git"
+import { getInstallationTokenFromRepo } from "@/shared/lib/github/installation"
+import { AGENT_BASE_IMAGE } from "@/shared/lib/types/docker"
+import { containerNameForTrace } from "@/shared/lib/utils/utils-common"
+import { setupLocalRepository } from "@/shared/lib/utils/utils-server"
 
 interface ContainerizedWorktreeResult {
   worktreeDir: string

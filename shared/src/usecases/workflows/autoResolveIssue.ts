@@ -19,7 +19,7 @@ import {
   createStatusEvent,
   createWorkflowStateEvent,
 } from "@/shared/lib/neo4j/services/event"
-import { RepoEnvironment } from "@/shared/lib/types"
+import { type RepoEnvironment } from "@/shared/lib/types"
 import {
   createContainerizedDirectoryTree,
   createContainerizedWorkspace,
@@ -105,7 +105,7 @@ export const autoResolveIssue = async (
         fullName: repository.data.full_name,
       },
       postToGithub: true,
-      actor: { type: "user", userId: "system" },
+      actor: { type: "user", userId: login },
     })
 
     await createWorkflowStateEvent({ workflowId, state: "running" })

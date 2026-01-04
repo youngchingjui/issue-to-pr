@@ -1,7 +1,7 @@
 import { z, ZodType } from "zod"
 import { zodToJsonSchema } from "zod-to-json-schema"
 
-import { Tool } from "@/lib/types"
+import { type Tool } from "@/shared/lib/types"
 
 type Params<Schema extends ZodType, Output> = {
   name: string

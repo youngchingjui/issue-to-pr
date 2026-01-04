@@ -1,9 +1,9 @@
 "use server"
 
-import { withTiming } from "shared/utils/telemetry"
 import { z } from "zod"
 
 import { getGraphQLClient } from "@/lib/github"
+import { withTiming } from "@/shared/utils/telemetry"
 
 const PullRequestConflictContextQuery = `
   query PullRequestConflictContext($owner: String!, $repo: String!, $number: Int!) {

@@ -21,7 +21,6 @@
       "@/lib/*": ["lib/*"],
       "@/components/*": ["components/*"],
       "@/styles/*": ["styles/*"],
-      "@shared/*": ["shared/src/*"], // @deprecated, migrate to using "@/shared/*" instead
       "@/shared/*": ["shared/src/*"]
     },
 
