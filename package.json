@@ -60,6 +60,7 @@
     "@types/dockerode": "^3.3.42",
     "@upstash/redis": "^1.34.4",
     "@vercel/otel": "^1.13.0",
+    "bcryptjs": "^2.4.3",
     "bullmq": "~5.56.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
@@ -149,3 +150,4 @@
     "rootDir": "."
   }
 }
+
