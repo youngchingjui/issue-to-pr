@@ -75,6 +75,96 @@ export async function cleanupTestData(
   }
 }
 
+export async function cleanupWorkflowRunTestData(
+  ds: Neo4jDataSource,
+  {
+    runIds = [],
+    repoIds = [],
+    issues = [],
+    userIds = [],
+    githubUserIds = [],
+    commitShas = [],
+  }: {
+    runIds?: string[]
+    repoIds?: string[]
+    issues?: { repoFullName: string; number: number }[]
+    userIds?: string[]
+    githubUserIds?: string[]
+    commitShas?: string[]
+  }
+): Promise<void> {
+  const session = ds.getSession("WRITE")
+  try {
+    if (runIds.length > 0) {
+      await session.run(
+        `
+        MATCH (wr:WorkflowRun)
+        WHERE wr.id IN $runIds
+        DETACH DELETE wr
+      `,
+        { runIds }
+      )
+    }
+
+    if (issues.length > 0) {
+      await session.run(
+        `
+        UNWIND $issues AS issue
+        MATCH (i:Issue { repoFullName: issue.repoFullName, number: issue.number })
+        DETACH DELETE i
+      `,
+        { issues }
+      )
+    }
+
+    if (repoIds.length > 0) {
+      await session.run(
+        `
+        MATCH (r:Repository)
+        WHERE r.id IN $repoIds
+        DETACH DELETE r
+      `,
+        { repoIds }
+      )
+    }
+
+    if (userIds.length > 0) {
+      await session.run(
+        `
+        MATCH (u:User)
+        WHERE u.id IN $userIds
+        DETACH DELETE u
+      `,
+        { userIds }
+      )
+    }
+
+    if (githubUserIds.length > 0) {
+      await session.run(
+        `
+        MATCH (u:GithubUser)
+        WHERE u.id IN $githubUserIds
+        DETACH DELETE u
+      `,
+        { githubUserIds }
+      )
+    }
+
+    if (commitShas.length > 0) {
+      await session.run(
+        `
+        MATCH (c:Commit)
+        WHERE c.sha IN $commitShas
+        DETACH DELETE c
+      `,
+        { commitShas }
+      )
+    }
+  } finally {
+    await session.close()
+  }
+}
+
 /**
  * Get count of nodes by label for verification
  */
