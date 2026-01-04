@@ -84,7 +84,6 @@
     "react-hook-form": "7",
     "react-markdown": "^10.1.0",
     "redis": "^4.7.0",
-    "shared": "workspace:*",
     "simple-git": "^3.27.0",
     "swr": "^2.3.4",
     "tailwind-merge": "^2.6.0",

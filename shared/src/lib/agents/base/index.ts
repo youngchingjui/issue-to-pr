@@ -1,4 +1,4 @@
-import { LangfuseSpanClient, observeOpenAI } from "langfuse"
+import { type LangfuseSpanClient, observeOpenAI } from "langfuse"
 import OpenAI from "openai"
 import type { ChatModel } from "openai/resources"
 import {
