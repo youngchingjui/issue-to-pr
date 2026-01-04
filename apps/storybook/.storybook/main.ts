@@ -29,7 +29,7 @@ const config: StorybookConfig = {
       ...(config.resolve.alias || {}),
       "@": rootDir,
       shared: path.resolve(rootDir, "shared/src"),
-      "@shared": path.resolve(rootDir, "shared/src"),
+      "@/shared": path.resolve(rootDir, "shared/src"),
     }
     return config
   },

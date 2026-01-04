@@ -5,7 +5,7 @@
     "moduleResolution": "bundler",
     "paths": {
       "@/*": ["../../*"],
-      "@shared/*": ["../../shared/src/*"],
+      "@/shared/*": ["../../shared/src/*"],
       "@workers/*": ["../workers/src/*"]
     }
   },
