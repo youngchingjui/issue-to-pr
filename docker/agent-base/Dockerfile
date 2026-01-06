@@ -1,12 +1,12 @@
 # Lightweight base image for containerized agent workflows
-# Includes Node.js 22 (npm), pnpm, Python 3.11, Poetry, ripgrep, git, and tree
+# Includes Node.js 22 (npm), pnpm, Python 3.11, Poetry, ripgrep, git, tree, make
 # OS: Debian "bookworm-slim"
 FROM node:22-slim
 
 # Avoid interactive prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install CLI tooling: ripgrep, git, tree, Python 3.11, pip, and curl
+# Install CLI tooling: ripgrep, git, tree, Python 3.11, pip, curl, make
 # - Python 3.11 and pip3 are available directly in Debian Bookworm
 # - curl is needed for Poetry installation
 # - Clean package lists after installation to minimize image size
@@ -15,6 +15,7 @@ RUN apt-get update && \
         ripgrep \
         git \
         tree \
+        make \
         python3 \
         python3.11 \
         python3-pip \
@@ -38,6 +39,7 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 # Now includes: Python, pip, and Poetry checks
 RUN rg --version \
  && git --version \
+ && make --version \
  && node --version \
  && npm --version \
  && pnpm --version \
@@ -50,3 +52,4 @@ WORKDIR /workspace
 
 # Default command keeps the container alive for interactive use
 CMD ["/bin/bash"]
+
