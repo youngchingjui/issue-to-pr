@@ -7,10 +7,12 @@ import { NextRequest } from "next/server"
 // - Route events to modular handlers in a clear, tree-like series of switch statements
 // - Pass along the installation ID and any needed data directly to handlers
 // - Handlers are responsible for doing any authenticated GitHub actions or enqueuing jobs
+import { runWithInstallationId } from "@/lib/utils/utils-server"
 import { revalidateUserInstallationReposCache } from "@/lib/webhook/github/handlers/installation/revalidateRepositoriesCache.handler"
 import { handleIssueLabelAutoResolve } from "@/lib/webhook/github/handlers/issue/label.autoResolveIssue.handler"
 import { handleIssueLabelResolve } from "@/lib/webhook/github/handlers/issue/label.resolve.handler"
 import { handlePullRequestClosedRemoveContainer } from "@/lib/webhook/github/handlers/pullRequest/closed.removeContainer.handler"
+import { handlePullRequestCommentAuthorize } from "@/lib/webhook/github/handlers/pullRequest/comment.authorizeWorkflow.handler"
 import { handlePullRequestLabelCreateDependentPR } from "@/lib/webhook/github/handlers/pullRequest/label.createDependentPR.handler"
 import { handleRepositoryEditedRevalidate } from "@/lib/webhook/github/handlers/repository/edited.revalidateRepoCache.handler"
 import {
@@ -248,7 +250,27 @@ export async function POST(req: NextRequest) {
           )
           return new Response("Invalid payload", { status: 400 })
         }
-        // Explicitly accept created/edited as no-ops for now
+        const parsedPayload = r.data
+        const installationId = String(parsedPayload.installation?.id ?? "")
+        if (!installationId) {
+          console.error("[ERROR] No installation ID found in webhook payload")
+          return new Response("No installation ID found", { status: 400 })
+        }
+
+        // Gate privileged actions for PR comment commands using author_association
+        // We intentionally fire-and-forget to keep webhook fast.
+        runWithInstallationId(installationId, async () => {
+          try {
+            await handlePullRequestCommentAuthorize({
+              payload: parsedPayload,
+              installationId,
+            })
+          } catch (e) {
+            console.error("[ERROR] Failed handling PR comment auth:", e)
+          }
+        })
+
+        // Explicitly accept created/edited as no-ops otherwise
         break
       }
 
@@ -359,3 +381,4 @@ export async function POST(req: NextRequest) {
     return new Response("Error", { status: 500 })
   }
 }
+

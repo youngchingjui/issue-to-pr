@@ -85,8 +85,20 @@ export type StatusPayload = z.infer<typeof StatusPayloadSchema>
 
 export const IssueCommentPayloadSchema = z.object({
   action: z.string(),
-  issue: z.object({ number: z.number() }).optional(),
-  comment: z.object({ id: z.number() }).optional(),
+  issue: z
+    .object({
+      number: z.number(),
+      // When the comment is on a PR, GitHub includes a pull_request field on the issue
+      pull_request: z.any().optional(),
+    })
+    .optional(),
+  comment: z
+    .object({
+      id: z.number(),
+      body: z.string().optional(),
+      author_association: z.string().optional(),
+    })
+    .optional(),
   repository: z.object({ full_name: z.string() }),
   installation: InstallationSchema,
 })
@@ -164,3 +176,4 @@ export const RepositoryPayloadSchema = z.discriminatedUnion("action", [
 ])
 
 export type RepositoryPayload = z.infer<typeof RepositoryPayloadSchema>
+
