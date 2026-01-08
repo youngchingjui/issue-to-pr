@@ -61,7 +61,7 @@ export async function autoResolveIssueAction(
     // Step 2: Prepare adapters
     // =================================================
     const settingsAdapter = makeSettingsReaderAdapter({
-      getSession: () => neo4jDs.getSession("READ"),
+      getSession: () => neo4jDs.getSession(),
       userRepo: userRepo,
     })
 

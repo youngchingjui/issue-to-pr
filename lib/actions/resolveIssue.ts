@@ -83,7 +83,7 @@ export async function resolveIssueAction(
   const llmAdapter = (apiKey: string) => new OpenAIAdapter(apiKey)
 
   const settingsAdapter = makeSettingsReaderAdapter({
-    getSession: () => neo4jDs.getSession("READ"),
+    getSession: () => neo4jDs.getSession(),
     userRepo: userRepo,
   })
 

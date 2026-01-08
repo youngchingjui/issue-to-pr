@@ -65,7 +65,7 @@ export async function createDependentPRAction(
 
   // Settings
   const settingsReader = makeSettingsReaderAdapter({
-    getSession: () => neo4jDs.getSession("READ"),
+    getSession: () => neo4jDs.getSession(),
     userRepo: userRepo,
   })
   const apiKeyResult = await settingsReader.getOpenAIKey(login)
