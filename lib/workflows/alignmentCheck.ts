@@ -2,7 +2,6 @@ import { v4 as uuidv4 } from "uuid"
 
 import { AlignmentAgent } from "@/lib/agents/alignmentAgent"
 import { PostAlignmentAssessmentAgent } from "@/lib/agents/PostAlignmentAssessmentAgent"
-import { getRepoFromString } from "@/lib/github/content"
 import { getIssue } from "@/lib/github/issues"
 import {
   getLinkedIssuesForPR,
@@ -13,12 +12,12 @@ import {
   getPullRequestReviews,
 } from "@/lib/github/pullRequests"
 import { langfuse } from "@/lib/langfuse"
-import { neo4jDs } from "@/lib/neo4j"
 import {
   createStatusEvent,
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
 import { listPlansForIssue } from "@/lib/neo4j/services/plan"
+import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
 import { createIssueCommentTool } from "@/lib/tools/IssueCommentTool"
 import { AgentConstructorParams, Plan } from "@/lib/types"
 import {
@@ -28,7 +27,6 @@ import {
   PullRequestReview,
   PullRequestReviewComment,
 } from "@/lib/types/github"
-import { StorageAdapter } from "@/shared/adapters/neo4j/StorageAdapter"
 
 type Params = {
   repoFullName: string
@@ -69,6 +67,21 @@ export async function alignmentCheck({
 }: Params) {
   const workflowId = jobId || uuidv4()
   try {
+    // Initialize workflow run
+    await initializeWorkflowRun({
+      id: workflowId,
+      type: "alignmentCheck",
+      issueNumber,
+      repoFullName,
+    })
+    await createWorkflowStateEvent({
+      workflowId,
+      state: "running",
+    })
+    await createStatusEvent({
+      workflowId,
+      content: "Starting alignment check workflow",
+    })
     // Start a trace for this workflow
     const trace = langfuse.trace({
       name: `Alignment Check PR#${pullNumber}`,
@@ -166,43 +179,6 @@ export async function alignmentCheck({
         throw e
       }
     }
-
-    // 2.5 Initialize WorkflowRun via StorageAdapter once we know issueNumber
-    const repo = await getRepoFromString(repoFullName)
-    const storage = new StorageAdapter(neo4jDs)
-    await storage.workflow.run.create({
-      id: workflowId,
-      type: "alignmentCheck",
-      issueNumber,
-      repository: {
-        id: Number(repo.id),
-        nodeId: repo.node_id,
-        fullName: repo.full_name,
-        owner:
-          ((repo.owner as unknown) &&
-          typeof repo.owner === "object" &&
-          "login" in (repo.owner as object)
-            ? (repo.owner as { login?: string }).login || ""
-            : repo.full_name.split("/")[0]) || "",
-        name: repo.name,
-        defaultBranch: repo.default_branch || undefined,
-        visibility: (repo.visibility
-          ? repo.visibility.toUpperCase()
-          : undefined) as "PUBLIC" | "PRIVATE" | "INTERNAL" | undefined,
-        hasIssues: repo.has_issues ?? undefined,
-      },
-      postToGithub: false,
-      actor: { type: "user", userId: "system" },
-    })
-
-    await createWorkflowStateEvent({
-      workflowId,
-      state: "running",
-    })
-    await createStatusEvent({
-      workflowId,
-      content: "Starting alignment check workflow",
-    })
 
     // 3. Init agent
     const agentParams: AgentConstructorParams = {

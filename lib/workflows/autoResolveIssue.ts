@@ -6,12 +6,12 @@ import { getInstallationTokenFromRepo } from "@/lib/github/installation"
 import { getIssueComments } from "@/lib/github/issues"
 import { checkRepoPermissions } from "@/lib/github/users"
 import { langfuse } from "@/lib/langfuse"
-import { neo4jDs } from "@/lib/neo4j"
 import {
   createErrorEvent,
   createStatusEvent,
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
+import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
 import { RepoEnvironment } from "@/lib/types"
 import { GitHubIssue, GitHubRepository } from "@/lib/types/github"
 import {
@@ -20,7 +20,6 @@ import {
 } from "@/lib/utils/container"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 import { OpenAIAdapter } from "@/shared/adapters/llm/OpenAIAdapter"
-import { StorageAdapter } from "@/shared/adapters/neo4j/StorageAdapter"
 import { EventBusPort } from "@/shared/ports/events/eventBus"
 import { createWorkflowEventPublisher } from "@/shared/ports/events/publisher"
 import { SettingsReaderPort } from "@/shared/ports/repositories/settings.reader"
@@ -65,36 +64,18 @@ export const autoResolveIssue = async (
   const apiKey = apiKeyResult.value
 
   // =================================================
-  // Step 2: Initialize workflow via StorageAdapter
+  // Step 2: Initialize workflow
   // =================================================
 
-  const storage = new StorageAdapter(neo4jDs)
-  await storage.workflow.run.create({
-    id: workflowId,
-    type: "autoResolveIssue",
-    issueNumber: issue.number,
-    repository: {
-      id: Number(repository.id),
-      nodeId: repository.node_id,
-      fullName: repository.full_name,
-      owner:
-        ((repository.owner as unknown) &&
-        typeof repository.owner === "object" &&
-        "login" in (repository.owner as object)
-          ? (repository.owner as { login?: string }).login || ""
-          : repository.full_name.split("/")[0]) || "",
-      name: repository.name,
-      defaultBranch: repository.default_branch || undefined,
-      visibility: (repository.visibility
-        ? repository.visibility.toUpperCase()
-        : undefined) as "PUBLIC" | "PRIVATE" | "INTERNAL" | undefined,
-      hasIssues: repository.has_issues ?? undefined,
-    },
-    postToGithub: true,
-    actor: { type: "user", userId: "system" },
-  })
-
   try {
+    await initializeWorkflowRun({
+      id: workflowId,
+      type: "autoResolveIssue",
+      issueNumber: issue.number,
+      repoFullName: repository.full_name,
+      postToGithub: true,
+    })
+
     await createWorkflowStateEvent({ workflowId, state: "running" })
 
     await createStatusEvent({
