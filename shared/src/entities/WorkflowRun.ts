@@ -1,4 +1,4 @@
-import { Commit } from "./Commit"
+import type { Commit } from "./Commit"
 
 export interface UserActor {
   type: "user"
@@ -16,9 +16,17 @@ export interface WebhookActor {
 
 export type WorkflowRunActor = UserActor | WebhookActor
 
+export type WorkflowRunTypes =
+  | "summarizeIssue"
+  | "generateIssueTitle"
+  | "resolveIssue"
+  | "createDependentPR"
+  | "reviewPullRequest"
+  | "commentOnIssue"
+
 export interface WorkflowRun {
   id: string
-  type: string
+  type: WorkflowRunTypes
   createdAt: Date
   postToGithub: boolean
   state: "pending" | "running" | "completed" | "error" | "timedOut"

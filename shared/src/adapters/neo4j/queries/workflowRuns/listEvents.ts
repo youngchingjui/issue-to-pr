@@ -1,6 +1,11 @@
-import { Integer, ManagedTransaction, Node, QueryResult } from "neo4j-driver"
+import {
+  Integer,
+  ManagedTransaction,
+  Node,
+  type QueryResult,
+} from "neo4j-driver"
 
-import { AnyEvent } from "@/shared/adapters/neo4j/types"
+import { type AnyEvent } from "@/shared/adapters/neo4j/types"
 
 const QUERY = `
   MATCH (w:WorkflowRun {id: $workflowRunId})-[:STARTS_WITH|NEXT*]->(e:Event)

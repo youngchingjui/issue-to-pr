@@ -40,6 +40,8 @@ import { withTiming } from "@/shared/utils/telemetry"
  * The function then links the WorkflowRun to the Issue with the following pattern:
  * (w:WorkflowRun)-[:BASED_ON_ISSUE]->(i:Issue)
  * and returns the application representations of both.
+ *
+ * @deprecated Use StorageAdapter.workflow.run.create instead. This legacy function does not create Repository/User attribution.
  */
 export async function initializeWorkflowRun({
   id,
@@ -118,6 +120,7 @@ function deriveState(
 
 /**
  * Returns workflows with run state and connected issue (if any)
+ * @deprecated Use StorageAdapter.workflow.run.list instead
  */
 export async function listWorkflowRuns(issue?: {
   repoFullName: string
