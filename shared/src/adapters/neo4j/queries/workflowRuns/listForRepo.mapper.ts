@@ -23,78 +23,46 @@ import { type ListForRepoResult } from "./listForRepo"
 // ============================================================================
 
 /**
- * Maps a validated User node to a UserActor domain type
- */
-function mapUserActor(
-  userNode: Node,
-  _githubUserNode: Node | null // Available but not needed for UserActor
-): WorkflowRunActor {
-  const user = userSchema.parse(userNode.properties)
-
-  return {
-    type: "user",
-    userId: user.id,
-  }
-}
-
-/**
- * Maps validated GithubWebhookEvent and GithubUser nodes to a WebhookActor domain type
- */
-function mapWebhookActor(
-  webhookEventNode: Node,
-  senderNode: Node | null,
-  installationId: string
-): WorkflowRunActor {
-  const webhookEvent = githubWebhookEventSchema.parse(
-    webhookEventNode.properties
-  )
-  const sender = senderNode
-    ? githubUserSchema.parse(senderNode.properties)
-    : null
-
-  if (!sender) {
-    throw new Error(
-      `WebhookActor requires a sender, but got null for webhook event ${webhookEvent.id}`
-    )
-  }
-
-  return {
-    type: "webhook",
-    source: "github",
-    event: webhookEvent.event,
-    action: webhookEvent.action,
-    sender: {
-      id: sender.id,
-      login: sender.login,
-    },
-    installationId,
-  }
-}
-
-/**
- * Maps the actor node based on its labels (User or GithubWebhookEvent)
- * Uses Zod to validate each node before composing into domain actor
+ * Maps actor nodes to a WorkflowRunActor domain type
+ * Handles two patterns:
+ * - User-initiated: userActor node present
+ * - Webhook-triggered: webhookEvent and webhookSender nodes present
  */
 function mapActor(
-  actorNode: Node | null,
-  userGhNode: Node | null,
-  webhookGhNode: Node | null,
+  userActorNode: Node | null,
+  webhookEventNode: Node | null,
+  webhookSenderNode: Node | null,
   installationId: string
 ): WorkflowRunActor | undefined {
-  if (!actorNode) {
-    return undefined
+  // Webhook-triggered workflow
+  if (webhookEventNode && webhookSenderNode) {
+    const webhookEvent = githubWebhookEventSchema.parse(
+      webhookEventNode.properties
+    )
+    const sender = githubUserSchema.parse(webhookSenderNode.properties)
+
+    return {
+      type: "webhook",
+      source: "github",
+      event: webhookEvent.event,
+      action: webhookEvent.action,
+      sender: {
+        id: sender.id,
+        login: sender.login,
+      },
+      installationId,
+    }
   }
 
-  const labels = Array.from(actorNode.labels || []) as string[]
-
-  if (labels.includes("User")) {
-    return mapUserActor(actorNode, userGhNode)
-  } else if (labels.includes("GithubWebhookEvent")) {
-    return mapWebhookActor(actorNode, webhookGhNode, installationId)
+  // User-initiated workflow
+  if (userActorNode) {
+    const user = userSchema.parse(userActorNode.properties)
+    return {
+      type: "user",
+      userId: user.id,
+    }
   }
 
-  // Unknown actor type - log warning and return undefined
-  console.warn(`Unknown actor type with labels: ${labels.join(", ")}`)
   return undefined
 }
 
@@ -112,9 +80,9 @@ export function mapListForRepoResult(
   return result.records.map((record) => {
     // Get the records
     const w = record.get("w")
-    const actorNode = record.get("actor")
-    const userGhNode = record.get("userGh")
-    const webhookGhNode = record.get("webhookGh")
+    const userActorNode = record.get("userActor")
+    const webhookEventNode = record.get("webhookEvent")
+    const webhookSenderNode = record.get("webhookSender")
     const stateNode = record.get("state")
     const i = record.get("i")
     const r = record.get("r")
@@ -129,9 +97,9 @@ export function mapListForRepoResult(
 
     // Map actor using helper function with Zod validation
     const actor = mapActor(
-      actorNode,
-      userGhNode,
-      webhookGhNode,
+      userActorNode,
+      webhookEventNode,
+      webhookSenderNode,
       repo?.githubInstallationId ?? ""
     )
 
