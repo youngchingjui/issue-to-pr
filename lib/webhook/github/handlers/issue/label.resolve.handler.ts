@@ -81,15 +81,6 @@ export async function handleIssueLabelResolve({
         apiKey,
         jobId,
         createPR: createPR && postToGithub,
-        webhookContext: {
-          event: "issues",
-          action: "labeled",
-          sender: {
-            id: String(labelerId ?? ""),
-            login: labelerLogin,
-          },
-          installationId: String(installationId),
-        },
       })
     } catch (e) {
       console.error("Failed to run resolveIssue workflow from label:", e)
