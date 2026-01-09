@@ -4,6 +4,23 @@
 import crypto from "crypto"
 import { NextRequest } from "next/server"
 
+// Mock next-auth and GitHub modules to avoid ES module issues
+jest.mock("@/auth", () => ({
+  auth: jest.fn(),
+  signIn: jest.fn(),
+  signOut: jest.fn(),
+  handlers: {},
+}))
+
+jest.mock("@/lib/github", () => ({
+  __esModule: true,
+  default: jest.fn(),
+  getOctokit: jest.fn(),
+  getUserOctokit: jest.fn(),
+  getInstallationOctokit: jest.fn(),
+  getAppOctokit: jest.fn(),
+}))
+
 jest.mock(
   "@/lib/webhook/github/handlers/installation/revalidateRepositoriesCache.handler",
   () => ({
