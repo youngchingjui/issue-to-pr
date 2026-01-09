@@ -6,12 +6,18 @@ import {
 } from "@/shared/entities/WorkflowRun"
 
 export type Target = {
-  issue?: { id: string; repoFullName: string }
+  issue?: { id?: string; number: number; repoFullName: string }
   ref?:
     | { type: "commit"; sha: string }
     | { type: "branch"; name: string }
     | { type: "tag"; name: string }
-  repository?: { fullName: string }
+  repository?: {
+    id?: number
+    nodeId?: string
+    owner?: string
+    name?: string
+    githubInstallationId?: string
+  }
 }
 export type WorkflowRunConfig = {
   postToGithub?: boolean
@@ -21,7 +27,7 @@ export type WorkflowRunTrigger = { type: "ui" | "webhook" }
 export interface CreateWorkflowRunInput {
   id?: string
   type: WorkflowRunTypes
-  trigger: WorkflowRunTrigger
+  trigger?: WorkflowRunTrigger
   actor?: WorkflowRunActor
   target?: Target
   config?: WorkflowRunConfig
@@ -33,6 +39,26 @@ export interface WorkflowEventInput {
   createdAt?: string
 }
 
+export interface RepositoryAttachment {
+  id: number
+  nodeId?: string
+  fullName: string
+  owner: string
+  name: string
+  githubInstallationId?: string
+}
+
+export interface IssueAttachment {
+  number: number
+  repoFullName: string
+}
+
+export interface CommitAttachment {
+  sha: string
+  nodeId?: string
+  message?: string
+}
+
 export interface WorkflowRunHandle {
   readonly run: WorkflowRun
   add: {
@@ -41,6 +67,9 @@ export interface WorkflowRunHandle {
   attach: {
     target(target: Target): Promise<void>
     actor(actor: WorkflowRunActor): Promise<void>
+    repository(repo: RepositoryAttachment): Promise<void>
+    issue(issue: IssueAttachment): Promise<void>
+    commit(commit: CommitAttachment): Promise<void>
   }
 }
 
