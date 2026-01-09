@@ -29,7 +29,7 @@ export async function handleIssueLabelResolve({
   const repoFullName = payload.repository?.full_name
   const issueNumber = payload.issue?.number
   const labelerLogin = payload.sender?.login
-  const labelerId = payload.sender?.id
+  const _labelerId = payload.sender?.id
 
   if (!repoFullName || typeof issueNumber !== "number") {
     console.error(
@@ -87,3 +87,4 @@ export async function handleIssueLabelResolve({
     }
   })
 }
+

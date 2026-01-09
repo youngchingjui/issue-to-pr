@@ -97,8 +97,16 @@ export type StatusPayload = z.infer<typeof StatusPayloadSchema>
 
 export const IssueCommentPayloadSchema = z.object({
   action: z.string(),
-  issue: z.object({ number: z.number() }).optional(),
-  comment: z.object({ id: z.number() }).optional(),
+  issue: z
+    .object({ number: z.number(), pull_request: z.unknown().optional() })
+    .optional(),
+  comment: z
+    .object({
+      id: z.number(),
+      body: z.string().optional(),
+      user: z.object({ login: z.string() }).optional(),
+    })
+    .optional(),
   repository: z.object({ full_name: z.string() }),
   installation: InstallationSchema,
 })
@@ -176,3 +184,4 @@ export const RepositoryPayloadSchema = z.discriminatedUnion("action", [
 ])
 
 export type RepositoryPayload = z.infer<typeof RepositoryPayloadSchema>
+

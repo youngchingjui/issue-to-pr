@@ -10,6 +10,7 @@ import { NextRequest } from "next/server"
 import { revalidateUserInstallationReposCache } from "@/lib/webhook/github/handlers/installation/revalidateRepositoriesCache.handler"
 import { handleIssueLabelAutoResolve } from "@/lib/webhook/github/handlers/issue/label.autoResolveIssue.handler"
 import { handleIssueLabelResolve } from "@/lib/webhook/github/handlers/issue/label.resolve.handler"
+import { handleIssueCommentAcknowledgeMention } from "@/lib/webhook/github/handlers/issueComment/acknowledgeMention.handler"
 import { handlePullRequestClosedRemoveContainer } from "@/lib/webhook/github/handlers/pullRequest/closed.removeContainer.handler"
 import { handlePullRequestLabelCreateDependentPR } from "@/lib/webhook/github/handlers/pullRequest/label.createDependentPR.handler"
 import { handleRepositoryEditedRevalidate } from "@/lib/webhook/github/handlers/repository/edited.revalidateRepoCache.handler"
@@ -248,7 +249,15 @@ export async function POST(req: NextRequest) {
           )
           return new Response("Invalid payload", { status: 400 })
         }
-        // Explicitly accept created/edited as no-ops for now
+        const parsedPayload = r.data
+        // For newly created comments only, acknowledge when our app is mentioned
+        if (parsedPayload.action === "created") {
+          const installationId = String(parsedPayload.installation.id)
+          await handleIssueCommentAcknowledgeMention({
+            payload: parsedPayload,
+            installationId,
+          })
+        }
         break
       }
 
@@ -359,3 +368,4 @@ export async function POST(req: NextRequest) {
     return new Response("Error", { status: 500 })
   }
 }
+
