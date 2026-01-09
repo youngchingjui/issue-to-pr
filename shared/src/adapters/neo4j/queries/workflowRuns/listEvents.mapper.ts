@@ -1,9 +1,9 @@
-import { QueryResult } from "neo4j-driver"
+import { type QueryResult } from "neo4j-driver"
 
-import { AllEvents } from "@/shared/entities"
+import { type AllEvents } from "@/shared/entities"
 
-import { type AnyEvent, anyEventSchema, ReviewComment } from "../../types"
-import { ListEventsForWorkflowRunResult } from "./listEvents"
+import { type AnyEvent, anyEventSchema, type ReviewComment } from "../../types"
+import { type ListEventsForWorkflowRunResult } from "./listEvents"
 
 /**
  * Translates Neo4j event to domain event.

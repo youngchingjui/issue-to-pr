@@ -5,9 +5,10 @@
  * against a real Neo4j database with existing data.
  *
  * Setup:
- * 1. Ensure Neo4j is running locally
- * 2. Set environment variables in .env.local
- * 3. Ensure your database has workflow runs with relationships
+ * 1. Ensure Neo4j test database is running
+ * 2. Copy __tests__/.env.example to __tests__/.env and configure test database credentials
+ *    IMPORTANT: Use a separate test database, not production!
+ * 3. Ensure your test database has workflow runs with relationships
  *
  * Run with: pnpm test:neo4j
  */

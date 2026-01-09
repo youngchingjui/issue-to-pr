@@ -1,3 +1,6 @@
+import * as dotenv from "dotenv"
+import * as path from "path"
+
 import {
   createNeo4jDataSource,
   type Neo4jDataSource,
@@ -8,9 +11,14 @@ import {
  * These utilities help set up and tear down test data in a local Neo4j instance
  */
 
+// Load test-specific environment variables from __tests__/.env
+// This allows tests to use a separate test database
+const testEnvPath = path.resolve(__dirname, "../../../.env")
+dotenv.config({ path: testEnvPath })
+
 /**
  * Creates a Neo4j data source for testing
- * Uses environment variables: NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
+ * Uses environment variables from __tests__/.env: NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD
  */
 export function createTestDataSource(): Neo4jDataSource {
   const uri = process.env.NEO4J_URI
@@ -19,8 +27,9 @@ export function createTestDataSource(): Neo4jDataSource {
 
   if (!uri || !user || !password) {
     throw new Error(
-      "NEO4J_URI, NEO4J_USER, and NEO4J_PASSWORD must be set for integration tests. " +
-        "Create a .env.local file with these values pointing to your local Neo4j instance."
+      "NEO4J_URI, NEO4J_USER, and NEO4J_PASSWORD must be set for integration tests.\n" +
+        "Create a __tests__/.env file (use __tests__/.env.example as a template) with these values pointing to your TEST Neo4j database.\n" +
+        "IMPORTANT: Use a separate test database, not your production/development database!"
     )
   }
 
@@ -61,12 +70,55 @@ export async function cleanupTestData(
 
   const session = ds.getSession("WRITE")
   try {
-    // Delete workflow runs and their relationships created during tests
+    // Delete workflow runs and all related nodes created during tests
+    // This includes repositories, issues, commits, and actors that were created
     await session.run(
       `
+      // Find all workflow runs to delete
       MATCH (wr:WorkflowRun)
       WHERE wr.id IN $runIds
+
+      // Find related nodes
+      OPTIONAL MATCH (wr)-[:BASED_ON_REPOSITORY]->(repo:Repository)
+      OPTIONAL MATCH (wr)-[:BASED_ON_ISSUE]->(issue:Issue)
+      OPTIONAL MATCH (wr)-[:BASED_ON_COMMIT]->(commit:Commit)
+      OPTIONAL MATCH (wr)-[:INITIATED_BY]->(actor)
+
+      // Only delete repositories/issues/commits/actors if they're ONLY connected to these test workflow runs
+      // First, detach delete the workflow run
       DETACH DELETE wr
+
+      // Then check and delete orphaned nodes
+      WITH repo, issue, commit, actor
+      WHERE repo IS NOT NULL
+      WITH repo, issue, commit, actor
+      OPTIONAL MATCH (repo)<-[:BASED_ON_REPOSITORY]-(otherWr:WorkflowRun)
+      WITH repo, issue, commit, actor, count(otherWr) AS repoConnections
+      WHERE repoConnections = 0
+      DETACH DELETE repo
+
+      WITH issue, commit, actor
+      WHERE issue IS NOT NULL
+      WITH issue, commit, actor
+      OPTIONAL MATCH (issue)<-[:BASED_ON_ISSUE]-(otherWr2:WorkflowRun)
+      WITH issue, commit, actor, count(otherWr2) AS issueConnections
+      WHERE issueConnections = 0
+      DETACH DELETE issue
+
+      WITH commit, actor
+      WHERE commit IS NOT NULL
+      WITH commit, actor
+      OPTIONAL MATCH (commit)<-[:BASED_ON_COMMIT]-(otherWr3:WorkflowRun)
+      WITH commit, actor, count(otherWr3) AS commitConnections
+      WHERE commitConnections = 0
+      DETACH DELETE commit
+
+      WITH actor
+      WHERE actor IS NOT NULL
+      OPTIONAL MATCH (actor)<-[:INITIATED_BY]-(otherWr4:WorkflowRun)
+      WITH actor, count(otherWr4) AS actorConnections
+      WHERE actorConnections = 0
+      DETACH DELETE actor
     `,
       { runIds: testRunIds }
     )
