@@ -95,17 +95,29 @@ export const autoResolveIssue = async (
   // Step 2: Initialize workflow
   // =================================================
 
+  // TODO: This should come before API queries to Github using our new port.
+  // Later, after getting the repo and issue details, we can attach them to the workflow run.
   try {
     await storage.workflow.run.create({
       id: workflowId,
-      type: "autoResolveIssue",
-      issueNumber,
-      repository: {
-        id: Number(repository.data.id),
-        fullName: repository.data.full_name,
+      type: "resolveIssue",
+      target: {
+        issue: {
+          id: issue.id.toString(),
+          repoFullName: repoFullName,
+          number: issue.number,
+        },
+        repository: {
+          id: repository.data.id,
+          nodeId: repository.data.node_id,
+          owner: repository.data.owner?.login ?? owner,
+          name: repository.data.name ?? repo,
+        },
       },
-      postToGithub: true,
       actor: { type: "user", userId: login },
+      config: {
+        postToGithub: true,
+      },
     })
 
     await createWorkflowStateEvent({ workflowId, state: "running" })
