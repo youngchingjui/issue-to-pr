@@ -1,5 +1,5 @@
 /**
- * Integration tests for Progressive Metadata Attachment in Neo4j
+ * Integration tests for Workflow Runs in Neo4j
  *
  * These tests verify that workflow runs can be created with minimal data
  * and metadata can be attached progressively using handle methods:
@@ -29,11 +29,11 @@ import { createTestDataSource, verifyConnection } from "./testUtils"
 // Hardcoded test data IDs for idempotent testing
 const TEST_DATA = {
   workflowRuns: [
-    "test-progressive-minimal",
-    "test-progressive-full",
-    "test-progressive-events",
-    "test-progressive-step-by-step",
-    "test-backward-compat",
+    "test-workflow-run-minimal",
+    "test-workflow-run-full",
+    "test-workflow-run-events",
+    "test-workflow-run-step-by-step",
+    "test-workflow-run-backward-compat",
   ],
   repositories: ["test-prog-repo-1", "test-prog-repo-2"],
   users: ["test-prog-user-1"],
@@ -45,7 +45,7 @@ const TEST_DATA = {
   ],
 }
 
-describe("Progressive Metadata Attachment Tests", () => {
+describe("Workflow Runs Tests", () => {
   let dataSource: ReturnType<typeof createTestDataSource>
   let adapter: StorageAdapter
 
