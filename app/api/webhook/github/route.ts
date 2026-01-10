@@ -7,12 +7,11 @@ import { NextRequest } from "next/server"
 // - Route events to modular handlers in a clear, tree-like series of switch statements
 // - Pass along the installation ID and any needed data directly to handlers
 // - Handlers are responsible for doing any authenticated GitHub actions or enqueuing jobs
-import { runWithInstallationId } from "@/lib/utils/utils-server"
 import { revalidateUserInstallationReposCache } from "@/lib/webhook/github/handlers/installation/revalidateRepositoriesCache.handler"
 import { handleIssueLabelAutoResolve } from "@/lib/webhook/github/handlers/issue/label.autoResolveIssue.handler"
 import { handleIssueLabelResolve } from "@/lib/webhook/github/handlers/issue/label.resolve.handler"
 import { handlePullRequestClosedRemoveContainer } from "@/lib/webhook/github/handlers/pullRequest/closed.removeContainer.handler"
-import { handlePullRequestCommentAuthorize } from "@/lib/webhook/github/handlers/pullRequest/comment.authorizeWorkflow.handler"
+import { handlePullRequestComment } from "@/lib/webhook/github/handlers/pullRequest/comment.authorizeWorkflow.handler"
 import { handlePullRequestLabelCreateDependentPR } from "@/lib/webhook/github/handlers/pullRequest/label.createDependentPR.handler"
 import { handleRepositoryEditedRevalidate } from "@/lib/webhook/github/handlers/repository/edited.revalidateRepoCache.handler"
 import {
@@ -85,7 +84,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Safe to parse after signature verification
-    const payload = JSON.parse(rawBody.toString("utf8")) as object
+    const payload = JSON.parse(rawBody.toString("utf8"))
 
     // Validate and narrow event type
     const eventParse = GithubEventSchema.safeParse(eventHeader)
@@ -251,26 +250,29 @@ export async function POST(req: NextRequest) {
           return new Response("Invalid payload", { status: 400 })
         }
         const parsedPayload = r.data
-        const installationId = String(parsedPayload.installation?.id ?? "")
-        if (!installationId) {
-          console.error("[ERROR] No installation ID found in webhook payload")
-          return new Response("No installation ID found", { status: 400 })
-        }
 
-        // Gate privileged actions for PR comment commands using author_association
-        // We intentionally fire-and-forget to keep webhook fast.
-        runWithInstallationId(installationId, async () => {
+        // Only process "created" actions for PR comment workflow authorization
+        if (parsedPayload.action === "created") {
+          // Gate privileged actions for PR comment commands using author_association
+          // We intentionally fire-and-forget to keep webhook fast.
           try {
-            await handlePullRequestCommentAuthorize({
-              payload: parsedPayload,
-              installationId,
+            await handlePullRequestComment({
+              installationId: parsedPayload.installation.id,
+              commentId: parsedPayload.comment?.id ?? 0,
+              commentBody: parsedPayload.comment?.body ?? "",
+              authorAssociation:
+                parsedPayload.comment?.author_association ??
+                parsedPayload.issue.author_association,
+              issueNumber: parsedPayload.issue.number,
+              repoFullName: parsedPayload.repository.full_name,
+              isPullRequest: parsedPayload.issue.pull_request !== undefined,
             })
           } catch (e) {
             console.error("[ERROR] Failed handling PR comment auth:", e)
           }
-        })
+        }
 
-        // Explicitly accept created/edited as no-ops otherwise
+        // Explicitly accept created/edited/deleted as no-ops otherwise
         break
       }
 
@@ -381,4 +383,3 @@ export async function POST(req: NextRequest) {
     return new Response("Error", { status: 500 })
   }
 }
-
