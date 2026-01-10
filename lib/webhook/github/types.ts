@@ -96,9 +96,29 @@ export const StatusPayloadSchema = z.object({
 export type StatusPayload = z.infer<typeof StatusPayloadSchema>
 
 export const IssueCommentPayloadSchema = z.object({
-  action: z.string(),
-  issue: z.object({ number: z.number() }).optional(),
-  comment: z.object({ id: z.number() }).optional(),
+  action: z.enum(["created", "edited", "deleted"]),
+  issue: z.object({
+    number: z.number(),
+    // When the comment is on a PR, GitHub includes a pull_request field on the issue
+    pull_request: z.any().optional(),
+    author_association: z.enum([
+      "COLLABORATOR",
+      "FIRST_TIMER",
+      "FIRST_TIME_CONTRIBUTOR",
+      "MANNEQUIN",
+      "OWNER",
+      "MEMBER",
+      "CONTRIBUTOR",
+      "NONE",
+    ]),
+  }),
+  comment: z
+    .object({
+      id: z.number(),
+      body: z.string().optional(),
+      author_association: z.string().optional(),
+    })
+    .optional(),
   repository: z.object({ full_name: z.string() }),
   installation: InstallationSchema,
 })

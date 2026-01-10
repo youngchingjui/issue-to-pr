@@ -20,6 +20,10 @@ import { getCloneUrlWithAccessToken } from "@/lib/utils/utils-common"
 // For storing Github App installation ID in async context
 const asyncLocalStorage = new AsyncLocalStorage<{ installationId: string }>()
 
+/**
+ *
+ * @deprecated Do not use asyncLocalStorage. It introduces bugs that I don't understand.
+ */
 export function runWithInstallationId(
   installationId: string,
   fn: () => Promise<void>
