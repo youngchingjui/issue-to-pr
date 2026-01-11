@@ -263,6 +263,7 @@ export async function POST(req: NextRequest) {
             issueNumber: parsedPayload.issue.number,
             repoFullName: parsedPayload.repository.full_name,
             isPullRequest: parsedPayload.issue.pull_request !== undefined,
+            commenterLogin: parsedPayload.comment?.user?.login,
           })
             .then((response) => {
               console.log("response", response)
@@ -383,3 +384,4 @@ export async function POST(req: NextRequest) {
     return new Response("Error", { status: 500 })
   }
 }
+
