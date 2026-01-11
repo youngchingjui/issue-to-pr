@@ -1,4 +1,4 @@
-import { Webhooks } from "@octokit/webhooks"
+import crypto from "crypto"
 import { NextRequest } from "next/server"
 
 // Responsibilities of this API route
@@ -32,38 +32,59 @@ import {
   WorkflowRunPayloadSchema,
 } from "@/lib/webhook/github/types"
 
-const secret = process.env.GITHUB_WEBHOOK_SECRET
-
-if (!secret) {
-  throw new Error("GITHUB_WEBHOOK_SECRET not configured")
-}
-
-const webhooks = new Webhooks({
+function verifySignature({
+  signature,
+  rawBody,
   secret,
-})
+}: {
+  signature: string | null
+  rawBody: Uint8Array | Buffer
+  secret: string
+}): boolean {
+  if (!signature || !signature.startsWith("sha256=")) return false
+  const hmac = crypto.createHmac("sha256", secret)
+  hmac.update(rawBody)
+  let provided: Buffer
+  try {
+    provided = Buffer.from(signature.slice("sha256=".length), "hex")
+  } catch {
+    return false
+  }
+  const expected = Buffer.from(hmac.digest("hex"), "hex")
+  if (provided.length !== expected.length) return false
+  try {
+    return crypto.timingSafeEqual(provided, expected)
+  } catch {
+    return false
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
     const signature = req.headers.get("x-hub-signature-256")
-    const id = req.headers.get("x-github-delivery")
     const eventHeader = req.headers.get("x-github-event")
+    const secret = process.env.GITHUB_WEBHOOK_SECRET
 
-    if (!eventHeader || !signature || !id) {
-      console.error("[ERROR] Missing x-github-event header or signature or id")
-      return new Response("Missing event header or signature or id", {
-        status: 400,
-      })
+    if (!secret) {
+      console.error("[ERROR] GITHUB_WEBHOOK_SECRET not configured")
+      return new Response("Webhook secret not configured", { status: 500 })
     }
 
-    const payloadText = await req.text()
-    await webhooks.verifyAndReceive({
-      id,
-      name: eventHeader,
-      payload: payloadText,
-      signature,
-    })
+    if (!eventHeader) {
+      console.error("[ERROR] Missing x-github-event header")
+      return new Response("Missing event header", { status: 400 })
+    }
 
-    const payload = JSON.parse(payloadText)
+    // Read raw bytes for signature verification first
+    const rawBody = Buffer.from(await req.arrayBuffer())
+
+    if (!verifySignature({ signature, rawBody, secret })) {
+      console.error("[ERROR] Invalid webhook signature")
+      return new Response("Invalid signature", { status: 401 })
+    }
+
+    // Safe to parse after signature verification
+    const payload = JSON.parse(rawBody.toString("utf8")) as object
 
     // Validate and narrow event type
     const eventParse = GithubEventSchema.safeParse(eventHeader)
@@ -222,10 +243,7 @@ export async function POST(req: NextRequest) {
       case "issue_comment": {
         const r = IssueCommentPayloadSchema.safeParse(payload)
         if (!r.success) {
-          console.error(
-            "[ERROR] Invalid issue_comment payload",
-            r.error.flatten()
-          )
+          console.error("[ERROR] Invalid issue_comment payload", r.error)
           return new Response("Invalid payload", { status: 400 })
         }
         const parsedPayload = r.data
