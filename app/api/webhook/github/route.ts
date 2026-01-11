@@ -11,6 +11,7 @@ import { revalidateUserInstallationReposCache } from "@/lib/webhook/github/handl
 import { handleIssueLabelAutoResolve } from "@/lib/webhook/github/handlers/issue/label.autoResolveIssue.handler"
 import { handleIssueLabelResolve } from "@/lib/webhook/github/handlers/issue/label.resolve.handler"
 import { handlePullRequestClosedRemoveContainer } from "@/lib/webhook/github/handlers/pullRequest/closed.removeContainer.handler"
+import { handlePullRequestComment } from "@/lib/webhook/github/handlers/pullRequest/comment.authorizeWorkflow.handler"
 import { handlePullRequestLabelCreateDependentPR } from "@/lib/webhook/github/handlers/pullRequest/label.createDependentPR.handler"
 import { handleRepositoryEditedRevalidate } from "@/lib/webhook/github/handlers/repository/edited.revalidateRepoCache.handler"
 import {
@@ -242,13 +243,36 @@ export async function POST(req: NextRequest) {
       case "issue_comment": {
         const r = IssueCommentPayloadSchema.safeParse(payload)
         if (!r.success) {
-          console.error(
-            "[ERROR] Invalid issue_comment payload",
-            r.error.flatten()
-          )
+          console.error("[ERROR] Invalid issue_comment payload", r.error)
           return new Response("Invalid payload", { status: 400 })
         }
-        // Explicitly accept created/edited as no-ops for now
+        const parsedPayload = r.data
+
+        // Only process "created" actions for PR comment workflow authorization
+        if (parsedPayload.action === "created") {
+          // Gate privileged actions for PR comment commands using author_association
+          // We intentionally fire-and-forget to keep webhook fast.
+          handlePullRequestComment({
+            installationId: parsedPayload.installation.id,
+            commentId: parsedPayload.comment?.id ?? 0,
+            commentBody: parsedPayload.comment?.body ?? "",
+            commentUserType: parsedPayload.comment?.user.type ?? "User",
+            authorAssociation:
+              parsedPayload.comment?.author_association ??
+              parsedPayload.issue.author_association,
+            issueNumber: parsedPayload.issue.number,
+            repoFullName: parsedPayload.repository.full_name,
+            isPullRequest: parsedPayload.issue.pull_request !== undefined,
+          })
+            .then((response) => {
+              console.log("response", response)
+            })
+            .catch((error) => {
+              console.error("[ERROR] Failed handling PR comment auth:", error)
+            })
+        }
+
+        // Explicitly accept created/edited/deleted as no-ops otherwise
         break
       }
 

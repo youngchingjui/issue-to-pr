@@ -4,6 +4,23 @@
 import crypto from "crypto"
 import { NextRequest } from "next/server"
 
+// Mock next-auth and GitHub modules to avoid ES module issues
+jest.mock("@/auth", () => ({
+  auth: jest.fn(),
+  signIn: jest.fn(),
+  signOut: jest.fn(),
+  handlers: {},
+}))
+
+jest.mock("@/lib/github", () => ({
+  __esModule: true,
+  default: jest.fn(),
+  getOctokit: jest.fn(),
+  getUserOctokit: jest.fn(),
+  getInstallationOctokit: jest.fn(),
+  getAppOctokit: jest.fn(),
+}))
+
 jest.mock(
   "@/lib/webhook/github/handlers/installation/revalidateRepositoriesCache.handler",
   () => ({
@@ -625,8 +642,13 @@ describe("POST /api/webhook/github", () => {
     it("accepts issue_comment events without calling handlers", async () => {
       const payload = {
         action: "created",
-        comment: { id: 123 },
-        issue: { number: 1 },
+        comment: {
+          id: 123,
+          body: "test",
+          author_association: "OWNER",
+          user: { login: "octocat", type: "User" },
+        },
+        issue: { number: 1, author_association: "OWNER" },
         repository: { full_name: "owner/repo" },
         installation: { id: 9999 },
       }
