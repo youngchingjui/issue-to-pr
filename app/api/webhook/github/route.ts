@@ -1,4 +1,4 @@
-import crypto from "crypto"
+import { Webhooks } from "@octokit/webhooks"
 import { NextRequest } from "next/server"
 
 // Responsibilities of this API route
@@ -32,59 +32,37 @@ import {
   WorkflowRunPayloadSchema,
 } from "@/lib/webhook/github/types"
 
-function verifySignature({
-  signature,
-  rawBody,
-  secret,
-}: {
-  signature: string | null
-  rawBody: Uint8Array | Buffer
-  secret: string
-}): boolean {
-  if (!signature || !signature.startsWith("sha256=")) return false
-  const hmac = crypto.createHmac("sha256", secret)
-  hmac.update(rawBody)
-  let provided: Buffer
-  try {
-    provided = Buffer.from(signature.slice("sha256=".length), "hex")
-  } catch {
-    return false
-  }
-  const expected = Buffer.from(hmac.digest("hex"), "hex")
-  if (provided.length !== expected.length) return false
-  try {
-    return crypto.timingSafeEqual(provided, expected)
-  } catch {
-    return false
-  }
+const secret = process.env.GITHUB_WEBHOOK_SECRET
+
+if (!secret) {
+  throw new Error("GITHUB_WEBHOOK_SECRET not configured")
 }
+
+const webhooks = new Webhooks({
+  secret,
+})
 
 export async function POST(req: NextRequest) {
   try {
     const signature = req.headers.get("x-hub-signature-256")
+    const id = req.headers.get("x-github-delivery")
     const eventHeader = req.headers.get("x-github-event")
-    const secret = process.env.GITHUB_WEBHOOK_SECRET
 
-    if (!secret) {
-      console.error("[ERROR] GITHUB_WEBHOOK_SECRET not configured")
-      return new Response("Webhook secret not configured", { status: 500 })
+    if (!eventHeader || !signature || !id) {
+      console.error("[ERROR] Missing x-github-event header or signature or id")
+      return new Response("Missing event header or signature or id", {
+        status: 400,
+      })
     }
 
-    if (!eventHeader) {
-      console.error("[ERROR] Missing x-github-event header")
-      return new Response("Missing event header", { status: 400 })
-    }
+    const payload = await req.text()
 
-    // Read raw bytes for signature verification first
-    const rawBody = Buffer.from(await req.arrayBuffer())
-
-    if (!verifySignature({ signature, rawBody, secret })) {
-      console.error("[ERROR] Invalid webhook signature")
-      return new Response("Invalid signature", { status: 401 })
-    }
-
-    // Safe to parse after signature verification
-    const payload = JSON.parse(rawBody.toString("utf8"))
+    await webhooks.verifyAndReceive({
+      id,
+      name: eventHeader,
+      payload,
+      signature,
+    })
 
     // Validate and narrow event type
     const eventParse = GithubEventSchema.safeParse(eventHeader)
