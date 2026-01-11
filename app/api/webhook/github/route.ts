@@ -234,21 +234,24 @@ export async function POST(req: NextRequest) {
         if (parsedPayload.action === "created") {
           // Gate privileged actions for PR comment commands using author_association
           // We intentionally fire-and-forget to keep webhook fast.
-          try {
-            await handlePullRequestComment({
-              installationId: parsedPayload.installation.id,
-              commentId: parsedPayload.comment?.id ?? 0,
-              commentBody: parsedPayload.comment?.body ?? "",
-              authorAssociation:
-                parsedPayload.comment?.author_association ??
-                parsedPayload.issue.author_association,
-              issueNumber: parsedPayload.issue.number,
-              repoFullName: parsedPayload.repository.full_name,
-              isPullRequest: parsedPayload.issue.pull_request !== undefined,
+          handlePullRequestComment({
+            installationId: parsedPayload.installation.id,
+            commentId: parsedPayload.comment?.id ?? 0,
+            commentBody: parsedPayload.comment?.body ?? "",
+            commentUserType: parsedPayload.comment?.user.type ?? "User",
+            authorAssociation:
+              parsedPayload.comment?.author_association ??
+              parsedPayload.issue.author_association,
+            issueNumber: parsedPayload.issue.number,
+            repoFullName: parsedPayload.repository.full_name,
+            isPullRequest: parsedPayload.issue.pull_request !== undefined,
+          })
+            .then((response) => {
+              console.log("response", response)
             })
-          } catch (e) {
-            console.error("[ERROR] Failed handling PR comment auth:", e)
-          }
+            .catch((error) => {
+              console.error("[ERROR] Failed handling PR comment auth:", error)
+            })
         }
 
         // Explicitly accept created/edited/deleted as no-ops otherwise

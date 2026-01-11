@@ -1,9 +1,13 @@
 import { getInstallationOctokit } from "@/lib/github"
 
+// Trigger keyword to activate the workflow
+const TRIGGER_KEYWORD = "@issuetopr"
+
 interface HandlePullRequestCommentProps {
   installationId: number
   commentId: number
   commentBody: string
+  commentUserType: "User" | "Bot" | "Organization"
   authorAssociation: string
   issueNumber: number
   repoFullName: string
@@ -26,6 +30,7 @@ export async function handlePullRequestComment({
   installationId,
   commentId,
   commentBody,
+  commentUserType,
   authorAssociation,
   issueNumber,
   repoFullName,
@@ -36,10 +41,15 @@ export async function handlePullRequestComment({
     return { status: "ignored", reason: "not_pr_comment" as const }
   }
 
+  // Only respond to human users to prevent bot loops
+  if (commentUserType === "Bot") {
+    return { status: "ignored", reason: "not_human_user" as const }
+  }
+
   const trimmedBody = commentBody.trim()
 
   // Only react to explicit commands to avoid noisy replies.
-  const looksLikeCommand = /^(?:\/?i2pr\b|i2pr:\b)/i.test(trimmedBody)
+  const looksLikeCommand = trimmedBody.toLowerCase().includes(TRIGGER_KEYWORD)
   if (!looksLikeCommand) {
     return { status: "ignored", reason: "no_command" as const }
   }

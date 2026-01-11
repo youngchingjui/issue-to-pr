@@ -117,7 +117,10 @@ export const IssueCommentPayloadSchema = z.object({
   comment: z.object({
     id: z.number(),
     body: z.string(),
-    user: z.string(),
+    user: z.object({
+      login: z.string(),
+      type: z.enum(["User", "Bot", "Organization"]),
+    }),
     author_association: AuthorAssociationSchema,
   }),
   repository: z.object({ full_name: z.string() }),
