@@ -55,14 +55,15 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    const payload = await req.text()
-
+    const payloadText = await req.text()
     await webhooks.verifyAndReceive({
       id,
       name: eventHeader,
-      payload,
+      payload: payloadText,
       signature,
     })
+
+    const payload = JSON.parse(payloadText)
 
     // Validate and narrow event type
     const eventParse = GithubEventSchema.safeParse(eventHeader)
