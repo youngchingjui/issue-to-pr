@@ -642,8 +642,13 @@ describe("POST /api/webhook/github", () => {
     it("accepts issue_comment events without calling handlers", async () => {
       const payload = {
         action: "created",
-        comment: { id: 123 },
-        issue: { number: 1 },
+        comment: {
+          id: 123,
+          body: "test",
+          author_association: "OWNER",
+          user: { login: "octocat", type: "User" },
+        },
+        issue: { number: 1, author_association: "OWNER" },
         repository: { full_name: "owner/repo" },
         installation: { id: 9999 },
       }
