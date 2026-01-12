@@ -21,6 +21,19 @@ export interface Neo4jDeps {
 }
 
 /**
+ * @deprecated Use DatabaseStorage port instead via StorageAdapter.settings
+ *
+ * This adapter is deprecated. Settings access is now available through the
+ * DatabaseStorage port interface implemented by StorageAdapter.
+ *
+ * Migration guide:
+ * - Replace `makeSettingsReaderAdapter({ getSession, userRepo })` with `new StorageAdapter(neo4jDs)`
+ * - Replace `settingsAdapter.getOpenAIKey(userId)` with `storage.settings.user.getOpenAIKey(userId)`
+ *
+ * This function will be removed in a future version.
+ *
+ * ---
+ *
  * Adapter to read user settings from Neo4j.
  * - Accepts a session factory and user repository.
  * - Manages session lifecycle internally for each call.

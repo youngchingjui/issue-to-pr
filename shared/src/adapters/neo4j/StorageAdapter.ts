@@ -1,4 +1,5 @@
 import type { AllEvents } from "@/shared/entities"
+import { err, ok, type Result } from "@/shared/entities/result"
 import {
   type WorkflowRun,
   type WorkflowRunActor,
@@ -16,6 +17,7 @@ import type {
 } from "@/shared/ports/db/index"
 
 import type { Neo4jDataSource } from "./dataSource"
+import { getUserSettings } from "./queries/users/getUserSettings"
 import {
   addEvent,
   attachActor,
@@ -410,6 +412,30 @@ export class StorageAdapter implements DatabaseStorage {
     events: {
       list: (runId: string): Promise<AllEvents[]> =>
         this.listWorkflowRunEvents(runId),
+    },
+  }
+
+  public settings = {
+    user: {
+      getOpenAIKey: async (
+        userId: string
+      ): Promise<Result<string | null, "Unknown">> => {
+        if (!userId) return ok(null)
+
+        const session = this.ds.getSession("READ")
+        try {
+          const settings = await session.executeRead((tx) =>
+            getUserSettings(tx, userId)
+          )
+          const key = settings?.openAIApiKey?.trim()
+          return ok(key && key.length > 0 ? key : null)
+        } catch (e) {
+          console.error("[StorageAdapter] Error fetching OpenAI key:", e)
+          return err("Unknown")
+        } finally {
+          await session.close()
+        }
+      },
     },
   }
 
