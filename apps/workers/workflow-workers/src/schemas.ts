@@ -11,6 +11,8 @@ export const envSchema = z.object({
   NEO4J_PASSWORD: z.string(),
   GITHUB_APP_ID: z.string(),
   GITHUB_APP_PRIVATE_KEY_PATH: z.string(),
+  WEB_APP_URL: z.string().optional(),
+  ENVIRONMENT_NAME: z.string().optional(),
 })
 
 export type EnvVariables = z.infer<typeof envSchema>

@@ -145,6 +145,86 @@ describe("StorageAdapter - Read Operations", () => {
     })
   })
 
+  describe("settings.user", () => {
+    describe("getOpenAIKey", () => {
+      it("should return ok(null) for empty userId", async () => {
+        const result = await adapter.settings.user.getOpenAIKey("")
+        expect(result.ok).toBe(true)
+        if (result.ok) {
+          expect(result.value).toBeNull()
+        }
+      })
+
+      it("should return ok(null) for non-existent user", async () => {
+        const result = await adapter.settings.user.getOpenAIKey(
+          "non-existent-user-12345"
+        )
+        expect(result.ok).toBe(true)
+        if (result.ok) {
+          expect(result.value).toBeNull()
+        }
+      })
+
+      it("should retrieve API key if it exists in database", async () => {
+        // First, check if any users with settings exist
+        const session = dataSource.getSession("READ")
+        try {
+          const queryResult = await session.run(`
+            MATCH (u:User)-[:HAS_SETTINGS]->(s:Settings)
+            WHERE s.openAIApiKey IS NOT NULL AND s.openAIApiKey <> ''
+            RETURN u.username AS username
+            LIMIT 1
+          `)
+
+          if (queryResult.records.length === 0) {
+            console.log(
+              "⚠️  No users with API keys found in database. Skipping test."
+            )
+            return
+          }
+
+          const existingUsername = queryResult.records[0].get(
+            "username"
+          ) as string
+
+          // Now test retrieval
+          const result =
+            await adapter.settings.user.getOpenAIKey(existingUsername)
+
+          expect(result.ok).toBe(true)
+          if (result.ok) {
+            expect(result.value).toBeTruthy()
+            expect(typeof result.value).toBe("string")
+            expect(result.value!.length).toBeGreaterThan(0)
+          }
+
+          console.log(
+            "✓ Successfully retrieved API key for user:",
+            existingUsername
+          )
+        } finally {
+          await session.close()
+        }
+      })
+
+      it("should handle database errors gracefully", async () => {
+        // Create a new adapter with a closed driver to simulate error
+        const tempDataSource = createTestDataSource()
+        const tempAdapter = new StorageAdapter(tempDataSource)
+
+        // Close the driver to simulate a connection error
+        await tempDataSource.getDriver().close()
+
+        const result = await tempAdapter.settings.user.getOpenAIKey("any-user")
+
+        expect(result.ok).toBe(false)
+        if (!result.ok) {
+          expect(result.error).toBe("Unknown")
+        }
+      })
+    })
+  })
+
   describe("Database Connectivity", () => {
     it("should successfully read from database using READ session", async () => {
       const session = dataSource.getSession("READ")

@@ -1,15 +1,14 @@
 import { v4 as uuidv4 } from "uuid"
 
+import {
+  getPullRequestDiscussionGraphQL,
+  getPullRequestMetaAndLinkedIssue,
+} from "@/shared/adapters/github/octokit/graphql/pullRequest.reader"
 import { DependentPRAgent } from "@/shared/lib/agents/DependentPRAgent"
 import { execInContainerWithDockerode } from "@/shared/lib/docker"
+import { getInstallationTokenFromRepo } from "@/shared/lib/github/installation"
 import { checkRepoPermissions } from "@/shared/lib/github/users"
 import { langfuse } from "@/shared/lib/langfuse"
-import {
-  createErrorEvent,
-  createStatusEvent,
-  createWorkflowStateEvent,
-} from "@/shared/lib/neo4j/services/event"
-import { initializeWorkflowRun } from "@/shared/lib/neo4j/services/workflow"
 import type { RepoEnvironment } from "@/shared/lib/types"
 import type { RepoPermissions } from "@/shared/lib/types/github"
 import {
@@ -17,19 +16,16 @@ import {
   createContainerizedWorkspace,
 } from "@/shared/lib/utils/container"
 import { setupLocalRepository } from "@/shared/lib/utils/utils-server"
-import {
-  getPullRequestDiscussionGraphQL,
-  getPullRequestMetaAndLinkedIssue,
-} from "@/shared/adapters/github/octokit/graphql/pullRequest.reader"
+import type { DatabaseStorage, WorkflowRunHandle } from "@/shared/ports/db"
 import type { GitHubAuthProvider } from "@/shared/ports/github/auth"
-import { getInstallationTokenFromRepo } from "@/shared/lib/github/installation"
 
 import { generatePRDataMessage } from "./createDependentPR.formatMessage"
 
 interface CreateDependentPRParams {
   repoFullName: string
   pullNumber: number
-  apiKey: string
+  storage: DatabaseStorage
+  userId: string
   jobId?: string
   initiator?: {
     type: "ui_button" | "webhook_label" | "api"
@@ -37,33 +33,61 @@ interface CreateDependentPRParams {
     label?: string
   }
   authProvider: GitHubAuthProvider
+  webAppUrl?: string | null
+  environmentName?: string | null
 }
 
 export async function createDependentPRWorkflow({
   repoFullName,
   pullNumber,
-  apiKey,
+  storage,
+  userId,
   jobId,
   initiator,
   authProvider,
+  webAppUrl,
+  environmentName,
 }: CreateDependentPRParams) {
   const workflowId = jobId || uuidv4()
   let containerCleanup: (() => Promise<void>) | null = null
+  let runHandle: WorkflowRunHandle | null = null
 
   try {
-    // Initialize workflow run
-    await initializeWorkflowRun({
+    // Initialize workflow run using storage port
+    runHandle = await storage.workflow.run.create({
       id: workflowId,
       type: "createDependentPR",
-      repoFullName,
-      postToGithub: true,
+      target: {
+        repository: {
+          // Will be populated after fetching PR metadata
+        },
+      },
+      config: { postToGithub: true },
     })
 
-    await createWorkflowStateEvent({ workflowId, state: "running" })
+    // Fetch API key from settings via storage port
+    const apiKeyResult = await storage.settings.user.getOpenAIKey(userId)
+    if (!apiKeyResult.ok || !apiKeyResult.value) {
+      const error =
+        "User missing API key; cannot run createDependentPR workflow"
+      await runHandle.add.event({
+        type: "workflow.error",
+        payload: { message: error },
+      })
+      throw new Error(error)
+    }
+    const apiKey = apiKeyResult.value
 
-    await createStatusEvent({
-      workflowId,
-      content: `Starting dependent PR workflow for ${repoFullName}#${pullNumber}`,
+    await runHandle.add.event({
+      type: "workflow.started",
+      payload: { state: "running" },
+    })
+
+    await runHandle.add.event({
+      type: "status",
+      payload: {
+        content: `Starting dependent PR workflow for ${repoFullName}#${pullNumber}`,
+      },
     })
 
     // Fetch PR meta and discussion using injected auth provider
@@ -75,9 +99,9 @@ export async function createDependentPRWorkflow({
     const headRef = prMetaAndLinkedIssue.headRefName
     const baseRef = prMetaAndLinkedIssue.baseRefName
 
-    await createStatusEvent({
-      workflowId,
-      content: `PR #${pullNumber}: ${baseRef} <- ${headRef}`,
+    await runHandle.add.event({
+      type: "status",
+      payload: { content: `PR #${pullNumber}: ${baseRef} <- ${headRef}` },
     })
 
     const linkedIssue = prMetaAndLinkedIssue.linkedIssue
@@ -106,9 +130,11 @@ export async function createDependentPRWorkflow({
     const permissions: RepoPermissions | null =
       await checkRepoPermissions(repoFullName)
     if (!permissions?.canPush || !permissions?.canCreatePR) {
-      await createStatusEvent({
-        workflowId,
-        content: `Warning: Insufficient permissions to push or create PRs (${permissions?.reason || "unknown"}). Will still attempt local changes and report back.`,
+      await runHandle.add.event({
+        type: "status",
+        payload: {
+          content: `Warning: Insufficient permissions to push or create PRs (${permissions?.reason || "unknown"}). Will still attempt local changes and report back.`,
+        },
       })
     }
 
@@ -121,9 +147,9 @@ export async function createDependentPRWorkflow({
     }
 
     // Fetch and checkout the PR head branch
-    await createStatusEvent({
-      workflowId,
-      content: `Checking out head branch ${headRef}`,
+    await runHandle.add.event({
+      type: "status",
+      payload: { content: `Checking out head branch ${headRef}` },
     })
     await execInContainerWithDockerode({
       name: containerName,
@@ -189,16 +215,21 @@ export async function createDependentPRWorkflow({
     agent.addSpan({ span, generationName: "updatePullRequest" })
 
     // Add PR data to agent as a message
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || ""
-    const workflowUrl = baseUrl
-      ? `${baseUrl.replace(/\/$/, "")}/workflow-runs/${workflowId}`
+    // Generate workflow reference based on environment
+    const workflowUrl = webAppUrl
+      ? `${webAppUrl.replace(/\/$/, "")}/workflow-runs/${workflowId}`
       : null
+
+    const workflowReference = workflowUrl
+      ? `View workflow: ${workflowUrl}`
+      : `Workflow ID: ${workflowId}${environmentName ? ` (ran on ${environmentName})` : ""}`
 
     const dataMessage = generatePRDataMessage({
       repoFullName,
       pullNumber,
       workflowId,
       workflowUrl,
+      workflowReference,
       initiator,
       prMetaAndLinkedIssue,
       prDiscussion,
@@ -213,14 +244,17 @@ export async function createDependentPRWorkflow({
       content: dataMessage,
     })
 
-    await createStatusEvent({ workflowId, content: "Starting PR update agent" })
+    await runHandle.add.event({
+      type: "status",
+      payload: { content: "Starting PR update agent" },
+    })
 
     await agent.runWithFunctions()
 
     // Best-effort: ensure branch is pushed (idempotent if already pushed)
-    await createStatusEvent({
-      workflowId,
-      content: `Ensuring branch ${headRef} is pushed`,
+    await runHandle.add.event({
+      type: "status",
+      payload: { content: `Ensuring branch ${headRef} is pushed` },
     })
     if (sessionToken) {
       await execInContainerWithDockerode({
@@ -229,20 +263,22 @@ export async function createDependentPRWorkflow({
       })
     }
 
-    await createWorkflowStateEvent({ workflowId, state: "completed" })
+    await runHandle.add.event({
+      type: "workflow.completed",
+      payload: { state: "completed" },
+    })
     return {
       branch: headRef,
     }
   } catch (error) {
-    await createErrorEvent({ workflowId, content: String(error) })
-    await createWorkflowStateEvent({
-      workflowId,
-      state: "error",
-      content: String(error),
-    })
+    if (runHandle) {
+      await runHandle.add.event({
+        type: "workflow.error",
+        payload: { message: String(error) },
+      })
+    }
     throw error
   } finally {
     if (containerCleanup) await containerCleanup()
   }
 }
-

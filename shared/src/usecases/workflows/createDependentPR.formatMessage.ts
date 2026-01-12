@@ -13,6 +13,7 @@ export function generatePRDataMessage(params: {
   pullNumber: number
   workflowId: string
   workflowUrl: string | null
+  workflowReference: string
   initiator?: {
     type: "ui_button" | "webhook_label" | "api"
     actorLogin?: string
@@ -27,8 +28,7 @@ export function generatePRDataMessage(params: {
   const {
     repoFullName,
     pullNumber,
-    workflowId,
-    workflowUrl,
+    workflowReference,
     initiator,
     prMetaAndLinkedIssue,
     prDiscussion,
@@ -174,8 +174,7 @@ export function generatePRDataMessage(params: {
     `head_sha: ${headSha || ""}`,
     `head_sha_url: ${headShaUrl || ""}`,
     ``,
-    `workflow_id: ${workflowId}`,
-    `workflow_url: ${workflowUrl || ""}`,
+    `workflow_reference: ${workflowReference}`,
     initiatorLine,
     ``,
     `## LINKED_ISSUE`,
@@ -214,4 +213,3 @@ export function generatePRDataMessage(params: {
     ``,
   ].join("\n")
 }
-
