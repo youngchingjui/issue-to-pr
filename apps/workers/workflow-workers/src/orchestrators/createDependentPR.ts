@@ -1,9 +1,7 @@
 import { createAppAuth } from "@octokit/auth-app"
 import { Octokit } from "@octokit/rest"
-import type { ManagedTransaction } from "neo4j-driver"
 
-import { makeSettingsReaderAdapter } from "@/shared/adapters/neo4j/repositories/SettingsReaderAdapter"
-import { getUserSettings as getUserSettingsQuery } from "@/shared/adapters/neo4j/queries/users"
+import { StorageAdapter } from "@/shared/adapters/neo4j/StorageAdapter"
 import { runWithInstallationId } from "@/shared/lib/utils/utils-server"
 import { getPrivateKeyFromFile } from "@/shared/services/fs"
 import { makeInstallationAuthProvider } from "@/shared/services/github/authProvider"
@@ -12,13 +10,6 @@ import { createDependentPRWorkflow } from "@/shared/usecases/workflows/createDep
 import { getEnvVar, publishJobStatus } from "../helper"
 import { neo4jDs } from "../neo4j"
 
-// Narrow user repository backed by shared Neo4j query
-const userRepo = {
-  async getUserSettings(tx: ManagedTransaction, username: string) {
-    return getUserSettingsQuery(tx, username)
-  },
-}
-
 export type CreateDependentPRJobData = {
   repoFullName: string
   pullNumber: number
@@ -26,11 +17,6 @@ export type CreateDependentPRJobData = {
   githubInstallationId: string
 }
 
-/**
- * @deprecated Orchestrator wrapper retained temporarily while the shared workflow
- *             gains full port-based settings access. Prefer calling the shared
- *             usecase directly with injected providers from app context.
- */
 export async function createDependentPR(
   jobId: string,
   {
@@ -46,13 +32,15 @@ export async function createDependentPR(
   )
 
   // Load environment
-  const { GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_PATH } = getEnvVar()
+  const {
+    GITHUB_APP_ID,
+    GITHUB_APP_PRIVATE_KEY_PATH,
+    WEB_APP_URL,
+    ENVIRONMENT_NAME,
+  } = getEnvVar()
 
-  // Settings adapter (loads OpenAI API key from Neo4j)
-  const settingsAdapter = makeSettingsReaderAdapter({
-    getSession: () => neo4jDs.getSession("READ"),
-    userRepo,
-  })
+  // Create storage adapter
+  const storage = new StorageAdapter(neo4jDs)
 
   const privateKey = await getPrivateKeyFromFile(GITHUB_APP_PRIVATE_KEY_PATH)
 
@@ -75,16 +63,6 @@ export async function createDependentPR(
     throw new Error("Failed to get installation token")
   }
 
-  // Resolve API key for the commenter
-  const apiKeyResult = await settingsAdapter.getOpenAIKey(githubLogin)
-  if (!apiKeyResult.ok || !apiKeyResult.value) {
-    await publishJobStatus(
-      jobId,
-      "User missing API key; cannot run createDependentPR workflow"
-    )
-    throw new Error("Missing API key for user")
-  }
-
   const authProvider = makeInstallationAuthProvider({
     installationId: Number(githubInstallationId),
     appId: GITHUB_APP_ID,
@@ -100,10 +78,13 @@ export async function createDependentPR(
         const result = await createDependentPRWorkflow({
           repoFullName,
           pullNumber,
-          apiKey: apiKeyResult.value,
+          storage,
+          userId: githubLogin,
           jobId,
           initiator: { type: "api", actorLogin: githubLogin, label: "webhook" },
           authProvider,
+          webAppUrl: WEB_APP_URL || null,
+          environmentName: ENVIRONMENT_NAME || null,
         })
         branch = result.branch
         resolve()
@@ -117,4 +98,3 @@ export async function createDependentPR(
 
   return `Branch pushed: ${branch}`
 }
-
