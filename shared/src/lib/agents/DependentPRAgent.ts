@@ -7,10 +7,13 @@ import { createGetFileContentTool } from "@/shared/lib/tools/GetFileContent"
 import { createRipgrepSearchTool } from "@/shared/lib/tools/RipgrepSearchTool"
 import { createSetupRepoTool } from "@/shared/lib/tools/SetupRepoTool"
 import { createSyncBranchTool } from "@/shared/lib/tools/SyncBranchTool"
-import { createWriteFileContentTool } from "@/shared/lib/tools/WriteFileContent"
-import { AgentConstructorParams, RepoEnvironment } from "@/shared/lib/types"
 import { createUpdatePullRequestBodyTool } from "@/shared/lib/tools/UpdatePRTool"
-import { GitHubAuthProvider } from "@/shared/ports/github/auth"
+import { createWriteFileContentTool } from "@/shared/lib/tools/WriteFileContent"
+import type {
+  AgentConstructorParams,
+  RepoEnvironment,
+} from "@/shared/lib/types"
+import type { GitHubAuthProvider } from "@/shared/ports/github/auth"
 
 const DEVELOPER_PROMPT = `
 You are a senior software engineer focused on follow-up changes for an existing pull request.
@@ -120,4 +123,3 @@ export class DependentPRAgent extends ResponsesAPIAgent {
 }
 
 export default DependentPRAgent
-
