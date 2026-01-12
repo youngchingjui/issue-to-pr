@@ -1,35 +1,28 @@
-/**
- * @deprecated Moved to shared: use `@/shared/usecases/workflows/createDependentPR` instead.
- * This legacy Next.js-specific implementation remains for backward compatibility
- * and will be removed after consumers migrate to the shared use-case.
- */
 import { v4 as uuidv4 } from "uuid"
 
-import { DependentPRAgent } from "@/lib/agents/DependentPRAgent"
-import { execInContainerWithDockerode } from "@/lib/docker"
-import { getRepoFromString } from "@/lib/github/content"
-import { getInstallationTokenFromRepo } from "@/lib/github/installation"
-import { getPullRequestDiff } from "@/lib/github/pullRequests"
-import { checkRepoPermissions } from "@/lib/github/users"
-import { langfuse } from "@/lib/langfuse"
+import { DependentPRAgent } from "@/shared/lib/agents/DependentPRAgent"
+import { execInContainerWithDockerode } from "@/shared/lib/docker"
+import { checkRepoPermissions } from "@/shared/lib/github/users"
+import { langfuse } from "@/shared/lib/langfuse"
 import {
   createErrorEvent,
   createStatusEvent,
   createWorkflowStateEvent,
-} from "@/lib/neo4j/services/event"
-import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
-import { RepoEnvironment } from "@/lib/types"
-import { RepoPermissions } from "@/lib/types/github"
+} from "@/shared/lib/neo4j/services/event"
+import { initializeWorkflowRun } from "@/shared/lib/neo4j/services/workflow"
+import type { RepoEnvironment } from "@/shared/lib/types"
+import type { RepoPermissions } from "@/shared/lib/types/github"
 import {
   createContainerizedDirectoryTree,
   createContainerizedWorkspace,
-} from "@/lib/utils/container"
-import { setupLocalRepository } from "@/lib/utils/utils-server"
+} from "@/shared/lib/utils/container"
+import { setupLocalRepository } from "@/shared/lib/utils/utils-server"
 import {
   getPullRequestDiscussionGraphQL,
   getPullRequestMetaAndLinkedIssue,
 } from "@/shared/adapters/github/octokit/graphql/pullRequest.reader"
-import { GitHubAuthProvider } from "@/shared/ports/github/auth"
+import type { GitHubAuthProvider } from "@/shared/ports/github/auth"
+import { getInstallationTokenFromRepo } from "@/shared/lib/github/installation"
 
 import { generatePRDataMessage } from "./createDependentPR.formatMessage"
 
@@ -73,9 +66,8 @@ export async function createDependentPRWorkflow({
       content: `Starting dependent PR workflow for ${repoFullName}#${pullNumber}`,
     })
 
-    // Fetch PR meta, diff, and discussion in parallel
-    const [diff, prMetaAndLinkedIssue, prDiscussion] = await Promise.all([
-      getPullRequestDiff({ repoFullName, pullNumber }),
+    // Fetch PR meta and discussion using injected auth provider
+    const [prMetaAndLinkedIssue, prDiscussion] = await Promise.all([
       getPullRequestMetaAndLinkedIssue(repoFullName, pullNumber, authProvider),
       getPullRequestDiscussionGraphQL(repoFullName, pullNumber, authProvider),
     ])
@@ -90,29 +82,25 @@ export async function createDependentPRWorkflow({
 
     const linkedIssue = prMetaAndLinkedIssue.linkedIssue
 
-    // Ensure local repository exists and is up-to-date
-    const repo = await getRepoFromString(repoFullName)
+    // Ensure local repository exists and is up-to-date (use baseRef as working branch)
     const hostRepoPath = await setupLocalRepository({
       repoFullName,
-      workingBranch: repo.default_branch,
+      workingBranch: baseRef,
     })
 
     // Setup containerized workspace using the local copy
     const { containerName, cleanup } = await createContainerizedWorkspace({
       repoFullName,
-      branch: repo.default_branch,
+      branch: baseRef,
       workflowId,
       hostRepoPath,
     })
     const env: RepoEnvironment = { kind: "container", name: containerName }
     containerCleanup = cleanup
 
-    // Authenticate remote for fetch/push
-    const [owner, repoName] = repoFullName.split("/")
-    const sessionToken = await getInstallationTokenFromRepo({
-      owner,
-      repo: repoName,
-    })
+    // Authenticate remote for fetch/push via installation token
+    const [owner, repo] = repoFullName.split("/")
+    const sessionToken = await getInstallationTokenFromRepo({ owner, repo })
 
     // Check permissions
     const permissions: RepoPermissions | null =
@@ -165,13 +153,27 @@ export async function createDependentPRWorkflow({
     // Create directory tree for context
     const tree = await createContainerizedDirectoryTree(containerName)
 
+    // Fetch diff via installation client
+    const { rest } = await authProvider.getInstallationClient()
+    const [owner2, repo2] = repoFullName.split("/")
+    const diffResp = await rest.pulls.get({
+      owner: owner2,
+      repo: repo2,
+      pull_number: pullNumber,
+      mediaType: { format: "diff" },
+    })
+    if (typeof diffResp.data !== "string") {
+      throw new Error("Unexpected diff response type")
+    }
+    const diff = diffResp.data
+
     // Initialize the dependent PR agent (reasoning-enabled)
     const agent = new DependentPRAgent({
       apiKey,
       env,
-      defaultBranch: repo.default_branch,
+      defaultBranch: baseRef,
       owner,
-      repo: repoName,
+      repo,
       sessionToken: sessionToken || undefined,
       jobId: workflowId,
       pullNumber,

@@ -2,11 +2,10 @@ import { createAppAuth } from "@octokit/auth-app"
 import { Octokit } from "@octokit/rest"
 import type { Transaction } from "neo4j-driver"
 
-import { createDependentPRWorkflow } from "@/lib/workflows/createDependentPR"
-import { EventBusAdapter } from "@/shared/adapters/ioredis/EventBusAdapter"
+import { createDependentPRWorkflow } from "@/shared/usecases/workflows/createDependentPR"
 import { makeSettingsReaderAdapter } from "@/shared/adapters/neo4j/repositories/SettingsReaderAdapter"
-import { setAccessToken } from "@/shared/auth"
-import type { GitHubAuthProvider } from "@/shared/ports/github/auth"
+import { runWithInstallationId } from "@/shared/lib/utils/utils-server"
+import { makeInstallationAuthProvider } from "@/shared/services/github/authProvider"
 import { getPrivateKeyFromFile } from "@/shared/services/fs"
 
 import { getEnvVar, publishJobStatus } from "../helper"
@@ -38,26 +37,6 @@ export type CreateDependentPRJobData = {
   githubInstallationId: string
 }
 
-function makeWorkerGitHubAuthProvider(
-  installationId: number,
-  appId: string,
-  privateKey: string
-): GitHubAuthProvider {
-  return {
-    async getInstallationClient() {
-      const client = new Octokit({
-        authStrategy: createAppAuth,
-        auth: { appId, privateKey, installationId },
-      })
-      return { kind: "installation", rest: client, graphql: client.graphql }
-    },
-    // Not used by this workflow in worker context
-    async getUserClient() {
-      throw new Error("User auth not available in worker context")
-    },
-  }
-}
-
 export async function createDependentPR(
   jobId: string,
   {
@@ -73,7 +52,7 @@ export async function createDependentPR(
   )
 
   // Load environment
-  const { GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_PATH, REDIS_URL } = getEnvVar()
+  const { GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_PATH } = getEnvVar()
 
   // Settings adapter (loads OpenAI API key from Neo4j)
   const settingsAdapter = makeSettingsReaderAdapter({
@@ -83,10 +62,7 @@ export async function createDependentPR(
 
   const privateKey = await getPrivateKeyFromFile(GITHUB_APP_PRIVATE_KEY_PATH)
 
-  // Setup event bus for workflow run events
-  const eventBusAdapter = new EventBusAdapter(REDIS_URL)
-
-  // Get an installation access token
+  // Get an installation access token (also validates installation exists)
   const octokit = new Octokit({
     authStrategy: createAppAuth,
     auth: {
@@ -105,9 +81,6 @@ export async function createDependentPR(
     throw new Error("Failed to get installation token")
   }
 
-  // Provide token to any legacy consumers
-  setAccessToken(auth.token)
-
   // Resolve API key for the commenter
   const apiKeyResult = await settingsAdapter.getOpenAIKey(githubLogin)
   if (!apiKeyResult.ok || !apiKeyResult.value) {
@@ -118,27 +91,39 @@ export async function createDependentPR(
     throw new Error("Missing API key for user")
   }
 
-  const authProvider = makeWorkerGitHubAuthProvider(
-    Number(githubInstallationId),
-    GITHUB_APP_ID,
-    privateKey
-  )
+  const authProvider = makeInstallationAuthProvider({
+    installationId: Number(githubInstallationId),
+    appId: GITHUB_APP_ID,
+    privateKey,
+  })
 
   await publishJobStatus(jobId, "Starting createDependentPR workflow")
 
-  const result = await createDependentPRWorkflow({
-    repoFullName,
-    pullNumber,
-    apiKey: apiKeyResult.value,
-    jobId,
-    initiator: { type: "api", actorLogin: githubLogin, label: "webhook" },
-    authProvider,
+  let branch = ""
+  await new Promise<void>((resolve, reject) => {
+    runWithInstallationId(String(githubInstallationId), async () => {
+      try {
+        const result = await createDependentPRWorkflow({
+          repoFullName,
+          pullNumber,
+          apiKey: apiKeyResult.value,
+          jobId,
+          initiator: { type: "api", actorLogin: githubLogin, label: "webhook" },
+          authProvider,
+        })
+        branch = result.branch
+        resolve()
+      } catch (e) {
+        reject(e)
+      }
+    })
   })
 
   await publishJobStatus(
     jobId,
-    `Completed: Ensured branch ${result.branch} is pushed`
+    `Completed: Ensured branch ${branch} is pushed`
   )
 
-  return `Branch pushed: ${result.branch}`
+  return `Branch pushed: ${branch}`
 }
+
