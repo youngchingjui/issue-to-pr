@@ -254,16 +254,14 @@ export async function POST(req: NextRequest) {
           // We intentionally fire-and-forget to keep webhook fast.
           handlePullRequestComment({
             installationId: parsedPayload.installation.id,
-            commentId: parsedPayload.comment?.id ?? 0,
-            commentBody: parsedPayload.comment?.body ?? "",
-            commentUserType: parsedPayload.comment?.user.type ?? "User",
-            authorAssociation:
-              parsedPayload.comment?.author_association ??
-              parsedPayload.issue.author_association,
+            commentId: parsedPayload.comment.id,
+            commentBody: parsedPayload.comment.body,
+            commentUserType: parsedPayload.comment.user.type,
+            authorAssociation: parsedPayload.comment.author_association,
             issueNumber: parsedPayload.issue.number,
             repoFullName: parsedPayload.repository.full_name,
             isPullRequest: parsedPayload.issue.pull_request !== undefined,
-            commenterLogin: parsedPayload.comment?.user?.login,
+            commenterLogin: parsedPayload.comment.user.login,
           })
             .then((response) => {
               console.log("response", response)
