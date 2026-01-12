@@ -1,8 +1,9 @@
 import { createAppAuth } from "@octokit/auth-app"
 import { Octokit } from "@octokit/rest"
-import type { Transaction } from "neo4j-driver"
+import type { ManagedTransaction } from "neo4j-driver"
 
 import { makeSettingsReaderAdapter } from "@/shared/adapters/neo4j/repositories/SettingsReaderAdapter"
+import { getUserSettings as getUserSettingsQuery } from "@/shared/adapters/neo4j/queries/users"
 import { runWithInstallationId } from "@/shared/lib/utils/utils-server"
 import { getPrivateKeyFromFile } from "@/shared/services/fs"
 import { makeInstallationAuthProvider } from "@/shared/services/github/authProvider"
@@ -11,22 +12,10 @@ import { createDependentPRWorkflow } from "@/shared/usecases/workflows/createDep
 import { getEnvVar, publishJobStatus } from "../helper"
 import { neo4jDs } from "../neo4j"
 
-// Minimal user repository implementation for SettingsReaderAdapter
-// TODO: This should not be here. Find another place to implement this.
+// Narrow user repository backed by shared Neo4j query
 const userRepo = {
-  async getUserSettings(tx: Transaction, username: string) {
-    const res = await tx.run(
-      `
-      MATCH (u:User {username: $username})-[:HAS_SETTINGS]->(s:Settings)
-      RETURN s LIMIT 1
-      `,
-      { username }
-    )
-    const settings = res.records?.[0]?.get?.("s")?.properties ?? null
-    if (!settings) return null
-    return {
-      openAIApiKey: settings.openAIApiKey ?? null,
-    }
+  async getUserSettings(tx: ManagedTransaction, username: string) {
+    return getUserSettingsQuery(tx, username)
   },
 }
 
@@ -37,6 +26,11 @@ export type CreateDependentPRJobData = {
   githubInstallationId: string
 }
 
+/**
+ * @deprecated Orchestrator wrapper retained temporarily while the shared workflow
+ *             gains full port-based settings access. Prefer calling the shared
+ *             usecase directly with injected providers from app context.
+ */
 export async function createDependentPR(
   jobId: string,
   {
@@ -123,3 +117,4 @@ export async function createDependentPR(
 
   return `Branch pushed: ${branch}`
 }
+
