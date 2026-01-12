@@ -2,11 +2,11 @@ import { createAppAuth } from "@octokit/auth-app"
 import { Octokit } from "@octokit/rest"
 import type { Transaction } from "neo4j-driver"
 
-import { createDependentPRWorkflow } from "@/shared/usecases/workflows/createDependentPR"
 import { makeSettingsReaderAdapter } from "@/shared/adapters/neo4j/repositories/SettingsReaderAdapter"
 import { runWithInstallationId } from "@/shared/lib/utils/utils-server"
-import { makeInstallationAuthProvider } from "@/shared/services/github/authProvider"
 import { getPrivateKeyFromFile } from "@/shared/services/fs"
+import { makeInstallationAuthProvider } from "@/shared/services/github/authProvider"
+import { createDependentPRWorkflow } from "@/shared/usecases/workflows/createDependentPR"
 
 import { getEnvVar, publishJobStatus } from "../helper"
 import { neo4jDs } from "../neo4j"
@@ -119,11 +119,7 @@ export async function createDependentPR(
     })
   })
 
-  await publishJobStatus(
-    jobId,
-    `Completed: Ensured branch ${branch} is pushed`
-  )
+  await publishJobStatus(jobId, `Completed: Ensured branch ${branch} is pushed`)
 
   return `Branch pushed: ${branch}`
 }
-
