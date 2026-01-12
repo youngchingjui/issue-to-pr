@@ -1,5 +1,8 @@
 import { err, ok, type Result } from "@/shared/entities/result"
-import type { SettingsReaderPort } from "@/shared/ports/repositories/settings.reader"
+import type {
+  GetOpenAIKeyErrors,
+  SettingsReaderPort,
+} from "@/shared/ports/repositories/settings.reader"
 
 // Minimal session surface used by this adapter
 export interface Neo4jSessionLike {
@@ -44,14 +47,21 @@ export function makeSettingsReaderAdapter({
 }: Neo4jDeps): SettingsReaderPort {
   async function getOpenAIKey(
     userId: string
-  ): Promise<Result<string | null, "Unknown">> {
+  ): Promise<Result<string | null, GetOpenAIKeyErrors>> {
     if (!userId) return ok(null)
     const session = getSession()
     try {
       const settings = await session.executeRead((tx: unknown) =>
         userRepo.getUserSettings(tx as never, userId)
       )
-      const key = settings?.openAIApiKey?.trim()
+
+      // User not found - this is an error condition
+      if (settings === null) {
+        return err("UserNotFound")
+      }
+
+      // User exists - check if they have a key configured
+      const key = settings.openAIApiKey?.trim()
       return ok(key && key.length > 0 ? key : null)
     } catch (e) {
       console.error(e)

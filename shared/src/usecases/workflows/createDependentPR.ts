@@ -67,15 +67,30 @@ export async function createDependentPRWorkflow({
 
     // Fetch API key from settings via storage port
     const apiKeyResult = await storage.settings.user.getOpenAIKey(userId)
-    if (!apiKeyResult.ok || !apiKeyResult.value) {
+
+    // Handle errors (user not found, database issues)
+    if (!apiKeyResult.ok) {
       const error =
-        "User missing API key; cannot run createDependentPR workflow"
+        apiKeyResult.error === "UserNotFound"
+          ? `User '${userId}' not found in database; cannot run createDependentPR workflow`
+          : `Database error fetching API key for user '${userId}'; cannot run createDependentPR workflow`
       await runHandle.add.event({
         type: "workflow.error",
         payload: { message: error },
       })
       throw new Error(error)
     }
+
+    // Handle missing API key (user exists but hasn't configured it)
+    if (!apiKeyResult.value) {
+      const error = `User '${userId}' has not configured an OpenAI API key; cannot run createDependentPR workflow. Please add your API key in settings.`
+      await runHandle.add.event({
+        type: "workflow.error",
+        payload: { message: error },
+      })
+      throw new Error(error)
+    }
+
     const apiKey = apiKeyResult.value
 
     await runHandle.add.event({

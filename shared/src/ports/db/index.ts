@@ -80,6 +80,8 @@ export interface WorkflowRunFilter {
   issueNumber?: number
 }
 
+export type SettingsError = "UserNotFound" | "Unknown"
+
 export interface DatabaseStorage {
   workflow: {
     run: {
@@ -93,7 +95,9 @@ export interface DatabaseStorage {
   }
   settings: {
     user: {
-      getOpenAIKey(userId: string): Promise<Result<string | null, "Unknown">>
+      getOpenAIKey(
+        userId: string
+      ): Promise<Result<string | null, SettingsError>>
     }
   }
 }

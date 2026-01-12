@@ -10,6 +10,7 @@ import type {
   DatabaseStorage,
   IssueAttachment,
   RepositoryAttachment,
+  SettingsError,
   Target,
   WorkflowEventInput,
   WorkflowRunFilter,
@@ -419,7 +420,7 @@ export class StorageAdapter implements DatabaseStorage {
     user: {
       getOpenAIKey: async (
         userId: string
-      ): Promise<Result<string | null, "Unknown">> => {
+      ): Promise<Result<string | null, SettingsError>> => {
         if (!userId) return ok(null)
 
         const session = this.ds.getSession("READ")
@@ -427,7 +428,14 @@ export class StorageAdapter implements DatabaseStorage {
           const settings = await session.executeRead((tx) =>
             getUserSettings(tx, userId)
           )
-          const key = settings?.openAIApiKey?.trim()
+
+          // User not found - this is an error condition
+          if (settings === null) {
+            return err("UserNotFound")
+          }
+
+          // User exists - check if they have a key configured
+          const key = settings.openAIApiKey?.trim()
           return ok(key && key.length > 0 ? key : null)
         } catch (e) {
           console.error("[StorageAdapter] Error fetching OpenAI key:", e)
