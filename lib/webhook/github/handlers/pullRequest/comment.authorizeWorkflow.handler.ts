@@ -1,8 +1,8 @@
 import { getInstallationOctokit } from "@/lib/github"
 import { neo4jDs } from "@/lib/neo4j"
 import * as userRepo from "@/lib/neo4j/repositories/user"
-import { QueueEnum, WORKFLOW_JOBS_QUEUE } from "@/shared/entities/Queue"
 import { makeSettingsReaderAdapter } from "@/shared/adapters/neo4j/repositories/SettingsReaderAdapter"
+import { QueueEnum, WORKFLOW_JOBS_QUEUE } from "@/shared/entities/Queue"
 import { addJob } from "@/shared/services/job"
 
 // Trigger keyword to activate the workflow
@@ -110,9 +110,7 @@ export async function handlePullRequestComment({
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || ""
-    settingsUrl = baseUrl
-      ? `${baseUrl.replace(/\/$/, "")}/settings`
-      : null
+    settingsUrl = baseUrl ? `${baseUrl.replace(/\/$/, "")}/settings` : null
   } catch (e) {
     console.error("[Webhook] Settings lookup failed:", e)
   }
@@ -162,9 +160,10 @@ export async function handlePullRequestComment({
 
     // Post confirmation with tracking link
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || ""
-    const workflowUrl = baseUrl && jobId
-      ? `${baseUrl.replace(/\/$/, "")}/workflow-runs/${jobId}`
-      : null
+    const workflowUrl =
+      baseUrl && jobId
+        ? `${baseUrl.replace(/\/$/, "")}/workflow-runs/${jobId}`
+        : null
 
     const reply =
       `Authorized. Queued dependent PR update for ${repoFullName}#${issueNumber}.` +
@@ -198,4 +197,3 @@ export async function handlePullRequestComment({
     return { status: "error", reason: "enqueue_failed" as const }
   }
 }
-

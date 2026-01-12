@@ -18,9 +18,9 @@ import { JobEventSchema } from "@/shared/entities/events/Job"
 
 import { publishJobStatus } from "./helper"
 import { autoResolveIssue } from "./orchestrators/autoResolveIssue"
+import { createDependentPR } from "./orchestrators/createDependentPR"
 import { simulateLongRunningWorkflow } from "./orchestrators/simulateLongRunningWorkflow"
 import { summarizeIssue } from "./orchestrators/summarizeIssue"
-import { createDependentPR } from "./orchestrators/createDependentPR"
 
 export async function handler(job: Job): Promise<string> {
   console.log(`Received job ${job.id}: ${job.name}`)
@@ -85,4 +85,3 @@ export async function handler(job: Job): Promise<string> {
     throw error instanceof Error ? error : new Error(msg)
   }
 }
-

@@ -6,8 +6,8 @@ import { createDependentPRWorkflow } from "@/lib/workflows/createDependentPR"
 import { EventBusAdapter } from "@/shared/adapters/ioredis/EventBusAdapter"
 import { makeSettingsReaderAdapter } from "@/shared/adapters/neo4j/repositories/SettingsReaderAdapter"
 import { setAccessToken } from "@/shared/auth"
-import { getPrivateKeyFromFile } from "@/shared/services/fs"
 import type { GitHubAuthProvider } from "@/shared/ports/github/auth"
+import { getPrivateKeyFromFile } from "@/shared/services/fs"
 
 import { getEnvVar, publishJobStatus } from "../helper"
 import { neo4jDs } from "../neo4j"
@@ -60,7 +60,12 @@ function makeWorkerGitHubAuthProvider(
 
 export async function createDependentPR(
   jobId: string,
-  { repoFullName, pullNumber, githubLogin, githubInstallationId }: CreateDependentPRJobData
+  {
+    repoFullName,
+    pullNumber,
+    githubLogin,
+    githubInstallationId,
+  }: CreateDependentPRJobData
 ) {
   await publishJobStatus(
     jobId,
@@ -137,4 +142,3 @@ export async function createDependentPR(
 
   return `Branch pushed: ${result.branch}`
 }
-
