@@ -1,7 +1,6 @@
 import { getInstallationOctokit } from "@/lib/github"
 import { neo4jDs } from "@/lib/neo4j"
-import * as userRepo from "@/lib/neo4j/repositories/user"
-import { makeSettingsReaderAdapter } from "@/shared/adapters/neo4j/repositories/SettingsReaderAdapter"
+import { StorageAdapter } from "@/shared/adapters/neo4j/StorageAdapter"
 import { QueueEnum, WORKFLOW_JOBS_QUEUE } from "@/shared/entities/Queue"
 import { addJob } from "@/shared/services/job"
 
@@ -100,12 +99,9 @@ export async function handlePullRequestComment({
   let hasApiKey = false
   let settingsUrl: string | null = null
   try {
-    const settingsReader = makeSettingsReaderAdapter({
-      getSession: () => neo4jDs.getSession("READ"),
-      userRepo,
-    })
+    const storage = new StorageAdapter(neo4jDs)
     if (githubLogin) {
-      const apiKeyRes = await settingsReader.getOpenAIKey(githubLogin)
+      const apiKeyRes = await storage.settings.user.getOpenAIKey(githubLogin)
       hasApiKey = !!(apiKeyRes.ok && apiKeyRes.value)
     }
 
