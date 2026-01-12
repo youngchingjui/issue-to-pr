@@ -43,6 +43,12 @@ jest.mock(
   })
 )
 jest.mock(
+  "@/lib/webhook/github/handlers/pullRequest/comment.authorizeWorkflow.handler",
+  () => ({
+    handlePullRequestComment: jest.fn(),
+  })
+)
+jest.mock(
   "@/lib/webhook/github/handlers/repository/edited.revalidateRepoCache.handler",
   () => ({
     handleRepositoryEditedRevalidate: jest.fn(),
@@ -60,6 +66,7 @@ import { revalidateUserInstallationReposCache } from "@/lib/webhook/github/handl
 import { handleIssueLabelAutoResolve } from "@/lib/webhook/github/handlers/issue/label.autoResolveIssue.handler"
 import { handleIssueLabelResolve } from "@/lib/webhook/github/handlers/issue/label.resolve.handler"
 import { handlePullRequestClosedRemoveContainer } from "@/lib/webhook/github/handlers/pullRequest/closed.removeContainer.handler"
+import { handlePullRequestComment } from "@/lib/webhook/github/handlers/pullRequest/comment.authorizeWorkflow.handler"
 import { handlePullRequestLabelCreateDependentPR } from "@/lib/webhook/github/handlers/pullRequest/label.createDependentPR.handler"
 import { handleRepositoryEditedRevalidate } from "@/lib/webhook/github/handlers/repository/edited.revalidateRepoCache.handler"
 
@@ -70,6 +77,10 @@ describe("POST /api/webhook/github", () => {
   beforeEach(() => {
     jest.resetAllMocks()
     process.env.GITHUB_WEBHOOK_SECRET = secret
+    // Configure handlePullRequestComment to return a resolved Promise
+    jest
+      .mocked(handlePullRequestComment)
+      .mockResolvedValue({ status: "ignored", reason: "no_command" })
   })
 
   afterAll(() => {
@@ -657,6 +668,8 @@ describe("POST /api/webhook/github", () => {
       const response = await POST(mockRequest)
 
       expect(response.status).toBe(200)
+      // The handler should have been called since action is "created"
+      expect(handlePullRequestComment).toHaveBeenCalledTimes(1)
     })
   })
 })
