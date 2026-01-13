@@ -1,0 +1,40 @@
+---
+description: 
+globs: docs/*
+alwaysApply: false
+---
+ # Documentation Management
+
+## File Organization
+- All documentation should be organized within the `/docs` directory
+- Documentation should be broken down into logical, focused files
+- Each documentation file should cover a single topic or component
+- Large documentation files should be split into smaller, more manageable pieces
+- Use meaningful file names that clearly indicate the content
+
+## Structure Guidelines
+- Maximum recommended file size: 500 lines
+- Use clear headings and subheadings (H1, H2, H3)
+- Cross-reference related documentation files when appropriate
+
+## Content Requirements
+- Each major feature or component should have its own documentation file
+- Do NOT include code examples.
+- Document API endpoints, parameters, and responses
+- Keep documentation up-to-date with code changes
+- Include setup and installation instructions in the root README.md
+
+## File Types
+- Use Markdown (.md) for documentation files
+- Place diagrams and images in a `/docs/assets` subdirectory
+- Maintain a consistent style across all documentation files
+
+## Organization Pattern
+```
+/docs
+  /api          # API documentation
+  /components   # Component documentation
+  /guides      # User and developer guides
+  /assets      # Images and diagrams
+  /setup       # Installation and configuration
+```

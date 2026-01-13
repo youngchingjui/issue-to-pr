@@ -1,33 +1,45 @@
 {
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
+    /* Modules */
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    /* Emit */
+    "noEmit": true,
+    /* Interop */
+    "esModuleInterop": true,
+    /* Language & Environment */
+    "target": "ES2022",
+    "lib": ["DOM", "DOM.iterable", "ES2022"],
+    "jsx": "preserve",
+    /* Paths */
     "baseUrl": ".",
     "paths": {
-      "@/styles/*": ["styles/*"],
+      "@/app/*": ["app/*"],
+      "@/tailwind.config": ["tailwind.config"],
+      "@/auth": ["auth"],
+      "@/lib/*": ["lib/*"],
       "@/components/*": ["components/*"],
-      "@/*": ["./*"]
+      "@/styles/*": ["styles/*"],
+      "@/shared/*": ["shared/src/*"]
     },
-    "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": false,
-    "noImplicitAny": false,
-    "noEmit": true,
-    "incremental": true,
-    "module": "esnext",
-    "esModuleInterop": true,
-    "moduleResolution": "node",
+
+    /* TO SORT */
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
     "plugins": [
       {
         "name": "next"
       }
     ]
   },
-  "include": ["**/*", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "app/**/*",
+    "components/**/*",
+    "styles/**/*",
+    "lib/**/*",
+    ".next/types/**/*.ts",
+    "shared/dist/**/*.d.ts"
+  ],
+  "exclude": ["node_modules", "apps/**"]
 }

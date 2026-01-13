@@ -2,6 +2,9 @@
 
 # dependencies
 /node_modules
+/apps/**/node_modules
+/apps/workers/**/node_modules
+/shared/**/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -15,14 +18,21 @@
 
 # next.js
 /.next/
+*.next/
 /out/
+
+# local backups
+backups
 
 # production
 /build
+/apps/workers/**/dist
+/shared/dist
 
 # misc
 .DS_Store
 *.pem
+dump.rdb
 
 # debug
 npm-debug.log*
@@ -31,6 +41,10 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+!__tests__/.env.example
+!docker/env/.env.neo4j.example
+!docker/env/.env.worker.example
 
 # vercel
 .vercel
@@ -42,3 +56,15 @@ next-env.d.ts
 # vscode
 .vscode
 .env*.local
+
+# Ignore large mock message fixtures
+# Mainly so ripgrep search stops searching these files
+/__tests__/mocks/messages*.json
+
+# /apps/storybook
+*storybook.log
+storybook-static
+
+# /apps/openai-realtime-agents
+apps/openai-realtime-agents/.env*
+!apps/openai-realtime-agents/.env.example

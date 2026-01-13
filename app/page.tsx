@@ -1,59 +1,40 @@
-import { redirect } from "next/navigation"
-
 import { auth } from "@/auth"
-import RepositoryList from "@/components/RepositoryList"
+import IssueDashboard from "@/components/home/IssueDashboard"
+import Benefits from "@/components/landing-page/Benefits"
+import Footer from "@/components/landing-page/Footer"
+import GetStarted from "@/components/landing-page/GetStarted"
+import Hero from "@/components/landing-page/Hero"
+import NonDeveloperBenefits from "@/components/landing-page/NonDeveloperBenefits"
+import GridBackground from "@/components/ui/grid-background"
 
-async function getRepositories(accessToken: string, page = 1, perPage = 30) {
-  const res = await fetch(
-    `https://api.github.com/user/repos?page=${page}&per_page=${perPage}`,
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    }
-  )
+import OpenAIApiKeyCard from "./OpenAIApiKeyCard"
 
-  const linkHeader = res.headers.get("link")
-  const lastPageMatch = linkHeader?.match(
-    /<[^>]*[?&]page=(\d+)[^>]*>;\s*rel="last"/
-  )
-  const maxPage = lastPageMatch ? Number(lastPageMatch[1]) : page
-  const repositories = await res.json()
-  return { repositories, currentPage: page, maxPage }
-}
-
-export default async function Home({
-  searchParams,
-}: {
-  searchParams: { page: string }
-}) {
+export default async function LandingPage() {
   const session = await auth()
 
-  if (!session?.user) {
-    redirect("/api/auth/signin")
+  if (session?.user) {
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-4">
+          <OpenAIApiKeyCard />
+          <IssueDashboard />
+        </main>
+      </div>
+    )
   }
-
-  const accessToken = session.user.accessToken
-  if (!accessToken) {
-    redirect("/api/auth/signin")
-  }
-
-  const page = Number(searchParams.page) || 1
-  const { repositories, currentPage, maxPage } = await getRepositories(
-    accessToken,
-    page
-  )
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm">
-        <h1 className="text-4xl font-bold mb-8">Select a Repository</h1>
-        <RepositoryList
-          repositories={repositories}
-          currentPage={currentPage}
-          maxPage={maxPage}
-        />
-      </div>
-    </main>
+    <div className="min-h-screen bg-background text-foreground">
+      <main>
+        <GridBackground>
+          <Hero />
+          <NonDeveloperBenefits />
+          <Benefits />
+          <GetStarted />
+        </GridBackground>
+      </main>
+      <Footer />
+    </div>
   )
 }
+

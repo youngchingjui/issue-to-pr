@@ -1,36 +1,114 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Issue To PR
 
-## Getting Started
+## Compute & Server Requirements
 
-First, run the development server:
+This application performs complex codebase modifications and AI-powered workflows, which require the following infrastructure considerations:
+
+- **Local file access:** Workflows need direct, persistent access to the entire codebase's file system.
+- **Long-running processes:** Many operations (e.g., LLM agent analysis, recursive code modification) can take several minutes to complete.
+- **Server/Container environment:** These processes must run on a persistent server or within a dedicated Docker container. In upcoming versions, each workflow may be isolated in its own Docker container for reliability and scalability.
+- **Not serverless-compatible:** Serverless hosting platforms such as Vercel, Netlify, or AWS Lambda are **unsupported** and incompatible, due to their short execution timeouts and lack of persistent storage.
+
+**Deployment guidance:**  
+You must run this application on a VM, dedicated server, or persistent cloud instance with sufficient CPU, memory, and disk storage to support long-running AI workloads and file system access.
+
+For more information about running with Docker, see [docker/README.md](./docker/README.md).
+
+## Documentation
+
+For detailed documentation, please visit:
+
+- [Getting Started Guide](docs/setup/getting-started.md)
+- [Architecture Overview](docs/guides/architecture.md)
+- [API Documentation](docs/api/README.md)
+- [Component Documentation](docs/components/README.md)
+
+## Quick Start
+
+### Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+- Node.js (version 14 or later)
+- pnpm (required) - We use pnpm for its significant advantages:
+  - Much faster installation than npm
+  - Efficient disk space usage through content-addressable storage
+  - Strict dependency management preventing phantom dependencies
+  - Dramatically improved CI/CD build times
+- Redis server
+
+For detailed setup instructions, see our [Getting Started Guide](docs/setup/getting-started.md).
+
+### Environment Variables
+
+Create a `.env.local` file in the root of your project. See [Configuration Guide](docs/setup/getting-started.md#configuration) for all available options.
+
+Basic configuration:
+
+```env
+AUTH_GITHUB_ID=your_github_client_id
+AUTH_GITHUB_SECRET=your_github_client_secret
+```
+
+### Development Quick Start
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+# Install dependencies
+pnpm install
+
+# Start development server
 pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Features
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- GitHub Authentication (Github App)
+- Repository & Issue Management
+- AI-Powered Code Generation
+- Automated PR Creation
+- Pull Request Review
+- Context-based patch application via createApplyPatchTool ([docs/components/README.md#patch-format-and-createapplypatchtool](docs/components/README.md#patch-format-and-createapplypatchtool))
 
-## Learn More
+For detailed feature documentation, see our [User Guide](docs/guides/user-guide.md).
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Setting your OpenAI API key
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Some features require your own OpenAI API key. You can set it on the app's Settings page. This key is stored only in your browser, not on our servers. For instructions, go to **Settings → OpenAI API Key** after logging in.
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Continuous Integration
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Jest tests are now automatically run on every PR and push via GitHub Actions. PRs will show a 'Checks' status based on test results.
+
+## Testing
+
+The project includes several types of tests:
+
+```bash
+# Run all standard tests (unit + integration)
+pnpm test
+
+# Run only component tests
+pnpm test:components
+
+# Run only node tests
+pnpm test:node
+
+# Run agent/LLM tests (requires .env.local)
+pnpm test:agent
+```
+
+For more detailed testing information, see [**tests**/README.md](./__tests__/README.md).
+
+## Contributing
+
+Please read our [Contributing Guide](docs/guides/contributing.md) for details on our code of conduct and development process.
+
+## Server Actions
+
+We keep server functions alongside other helpers under `lib/`. Any file can become a server action simply by including the `"use server"` directive at the top. There is no separate `actions` directory—functions defined in `lib` can be imported directly in client components and invoked as server actions. Workflow buttons should call these helpers and handle their own loading state; since workflows are long‑running, they execute in the background without additional context providers.

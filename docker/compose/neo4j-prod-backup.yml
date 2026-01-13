@@ -1,0 +1,25 @@
+services:
+  neo4j-prod-backup:
+    image: neo4j:5.26.3
+    ports:
+      - "7476:7474" # HTTP (prod-backup)
+      - "7689:7687" # Bolt (prod-backup)
+    environment:
+      - NEO4J_AUTH=${NEO4J_USER}/${NEO4J_PASSWORD}
+      - NEO4J_ACCEPT_LICENSE_AGREEMENT=yes
+      - NEO4J_apoc_import_file_enabled=true
+      - NEO4J_apoc_export_file_enabled=true
+      - NEO4J_apoc_import_file_use__neo4j__config=true
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.*,gds.*
+      - NEO4J_PLUGINS=["apoc"]
+    volumes:
+      - neo4j_prod_backup_data:/data
+      - neo4j_prod_backup_logs:/logs
+      - neo4j_prod_backup_import:/var/lib/neo4j/import
+      - neo4j_prod_backup_plugins:/plugins
+
+volumes:
+  neo4j_prod_backup_data:
+  neo4j_prod_backup_logs:
+  neo4j_prod_backup_import:
+  neo4j_prod_backup_plugins:

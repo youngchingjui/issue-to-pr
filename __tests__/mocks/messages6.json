@@ -1,0 +1,10 @@
+[
+  {
+    "content": "This is a test prompt, you can respond however you like.",
+    "type": "systemPrompt"
+  },
+  {
+    "content": "Hello",
+    "type": "userMessage"
+  }
+]

@@ -1,0 +1,13 @@
+---
+description: 
+globs: .env
+alwaysApply: false
+---
+## Environment Variables Management
+- All environment variables are managed through Vercel
+- Use `vercel env pull` to sync environment variables locally
+- Add new variables using `vercel env add [name] [environment]`
+- Remove variables using `vercel env rm [name] [environment]`
+- Never commit sensitive environment variables to the repository
+- Always use environment-specific variables (development, preview, production)
+

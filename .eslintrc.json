@@ -1,17 +1,59 @@
 {
   "plugins": ["simple-import-sort"],
-  "extends": ["next/core-web-vitals", "next/typescript", "prettier"],
+  "extends": [
+    "next/core-web-vitals",
+    "next/typescript",
+    "prettier",
+    "plugin:react-hooks/recommended-legacy",
+    "plugin:storybook/recommended"
+  ],
   "rules": {
     "@typescript-eslint/no-unused-vars": [
       "warn",
       {
-        "argsIgnorePattern": "^_"
+        "argsIgnorePattern": "^.*$",
+        "varsIgnorePattern": "^_"
       }
     ],
     "no-unused-vars": "off",
-    "simple-import-sort/imports": "error",
-    "simple-import-sort/exports": "error"
+    "simple-import-sort/imports": "warn",
+    "simple-import-sort/exports": "warn",
+    "no-restricted-imports": [
+      "warn",
+      {
+        "paths": [
+          {
+            "name": "@/shared/src",
+            "message": "Import from explicit subpaths (entities, ports, adapters, services)."
+          }
+        ]
+      }
+    ]
   },
+  "overrides": [
+    {
+      "files": [
+        "shared/src/**/*.{ts,tsx,js,jsx}",
+        "shared/**/*.{ts,tsx,js,jsx}"
+      ],
+      "plugins": ["import"],
+      "settings": {
+        "import/resolver": {
+          "typescript": { "project": ["./shared/tsconfig.json"] }
+        }
+      },
+      "rules": {
+        "no-restricted-properties": [
+          "warn", // Change to error after full migration
+          {
+            "object": "process",
+            "property": "env",
+            "message": "Do not access process.env from shared code. Pass required values from the app layer via function params or configuration."
+          }
+        ]
+      }
+    }
+  ],
   "parserOptions": {
     "sourceType": "module",
     "ecmaVersion": "latest"

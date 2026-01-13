@@ -1,0 +1,21 @@
+---
+description: Rules for Git operations in this project
+globs: 
+alwaysApply: false
+---
+## Git Management Rules
+
+### File Operations
+- Always use `git mv` instead of regular `mv` when moving or renaming files
+- This ensures Git properly tracks file history
+- Example: `git mv old_file.txt new_file.txt`
+
+### Commits
+- Do not make commits directly through the AI assistant
+- Let the user handle all git operations (commits, pushes, etc.)
+- Only suggest git commands if explicitly requested by the user
+
+### Pull Requests
+- Can create and update pull requests through GitHub API when requested
+- Do not automatically merge pull requests
+- Let the user handle the actual code review process 

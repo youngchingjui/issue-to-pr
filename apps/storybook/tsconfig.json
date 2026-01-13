@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "moduleResolution": "bundler",
+    "paths": {
+      "@/shared/*": ["../../shared/src/*"],
+      "@/components/*": ["../../components/*"],
+      "@/lib/*": ["../../lib/*"],
+      "@/styles/*": ["../../styles/*"],
+      "@workers/*": ["../workers/src/*"]
+    }
+  },
+  "include": [".storybook", "src", "vitest.shims.d.ts"]
+}

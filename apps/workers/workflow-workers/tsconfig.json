@@ -1,0 +1,21 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    /* Emit */
+    "outDir": "./dist",
+    "noEmit": false,
+
+    /* Modules */
+    "target": "ES2020",
+    "module": "ES2020",
+    "moduleResolution": "bundler",
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": false,
+
+    "paths": {
+      "@/shared/*": ["shared/src/*"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

@@ -1,0 +1,26 @@
+services:
+  neo4j:
+    image: neo4j:5.26.3
+    ports:
+      - "7474:7474" # HTTP
+      - "7687:7687" # Bolt
+    env_file:
+      - ../env/.env.neo4j
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - neo4j_import:/var/lib/neo4j/import
+      - neo4j_plugins:/plugins
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:7474"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - issue-to-pr-network
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
+  neo4j_import:
+  neo4j_plugins:
