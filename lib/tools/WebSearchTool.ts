@@ -50,43 +50,42 @@ export const createWebSearchTool = ({
       contextSize,
       allowedDomains,
     }: WebSearchParameters) => {
-      const openai = new OpenAI({ apiKey })
+      // Add an explicit timeout to avoid long hangs
+      const openai = new OpenAI({ apiKey, timeout: 30_000 })
       try {
-        const response = await openai.responses.create({
-          model,
-          tools: [
-            {
-              type: "web_search",
-              search_context_size: contextSize,
-              filters:
-                allowedDomains && allowedDomains.length > 0
-                  ? { allowed_domains: allowedDomains }
-                  : undefined,
-            },
-          ],
-          tool_choice: { type: "web_search" },
-          include: ["web_search_call.action.sources"],
-          input: `Search the web for: ${query}. Provide a concise summary with key points and cite sources.`,
-        })
+        const response = await openai.responses.create(
+          {
+            model,
+            tools: [
+              {
+                type: "web_search",
+                search_context_size: contextSize,
+                filters:
+                  allowedDomains && allowedDomains.length > 0
+                    ? { allowed_domains: allowedDomains }
+                    : undefined,
+              },
+            ],
+            tool_choice: { type: "web_search" },
+            include: ["web_search_call.action.sources"],
+            input: `Search the web for: ${query}. Provide a concise summary with key points and cite sources.`,
+          },
+          { timeout: 30_000 }
+        )
 
-        if (response.error) {
-          return {
-            status: "error",
-            query,
-            message: response.error.message ?? "Unknown web search error.",
-          }
-        }
-
+        // Defensive extraction of sources due to SDK typing gaps
         const sources = new Set<string>()
         for (const item of response.output ?? []) {
-          if (item.type === "web_search_call") {
-            const action = (item as {
-              action?: { sources?: Array<{ url?: string | null }> }
-            }).action
-            if (action?.sources) {
-              for (const source of action.sources) {
-                if (source?.url) {
-                  sources.add(source.url)
+          if (item.type === "web_search_call" && "action" in item) {
+            const action = (item as Record<string, unknown>).action as
+              | Record<string, unknown>
+              | undefined
+            const sourcesArray = (action?.sources ?? []) as unknown
+            if (Array.isArray(sourcesArray)) {
+              for (const source of sourcesArray) {
+                const url = (source as Record<string, unknown> | undefined)?.url
+                if (typeof url === "string") {
+                  sources.add(url)
                 }
               }
             }
@@ -100,11 +99,13 @@ export const createWebSearchTool = ({
           sources: Array.from(sources),
         }
       } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
         return {
           status: "error",
           query,
-          message: String(error),
+          message,
         }
       }
     },
   })
+
