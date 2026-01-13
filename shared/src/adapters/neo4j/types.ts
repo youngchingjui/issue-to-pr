@@ -9,18 +9,37 @@ import { z } from "zod"
 const neo4jDateTime = z.instanceof(DateTime<Integer>)
 const neo4jInteger = z.instanceof(Integer)
 
+export const workflowRunStateSchema = z.enum([
+  "pending",
+  "running",
+  "completed",
+  "error",
+  "timedOut",
+])
+
+// Workflow run types - must match WorkflowRunTypes from domain
+const workflowRunTypeSchema = z.enum([
+  "summarizeIssue",
+  "generateIssueTitle",
+  "resolveIssue",
+  "createDependentPR",
+  "reviewPullRequest",
+  "commentOnIssue",
+])
+
 export const workflowRunSchema = z.object({
   id: z.string(),
-  type: z.string(),
+  type: workflowRunTypeSchema,
   createdAt: neo4jDateTime,
   postToGithub: z.boolean().optional(),
+  state: workflowRunStateSchema.optional(),
 })
 
 // User node (app user)
 export const userSchema = z.object({
   id: z.string(),
   username: z.string().optional(), // GitHub username used for auth
-  joinDate: neo4jDateTime,
+  joinDate: neo4jDateTime.optional(),
 })
 
 // GithubUser node (GitHub identity)
@@ -96,9 +115,9 @@ export const genericWebhookEventSchema = z.object({
 // Immutable identifiers: id, nodeId
 // Mutable properties: fullName, owner, name, defaultBranch, visibility, hasIssues
 export const repositorySchema = z.object({
-  id: z.string(), // GitHub numeric ID (stored as string in Neo4j)
-  nodeId: z.string(), // GitHub global node ID (immutable)
-  fullName: z.string(), // owner/repo format (mutable, can change via rename/transfer)
+  id: z.string().optional(), // GitHub numeric ID (stored as string in Neo4j)
+  nodeId: z.string().optional(), // GitHub global node ID (immutable)
+  fullName: z.string(), // Repository full name in "owner/name" format (mutable)
   owner: z.string(), // Repository owner (mutable)
   name: z.string(), // Repository name (mutable)
   defaultBranch: z.string().optional(), // Default branch name (mutable)
@@ -113,37 +132,30 @@ export const repositorySchema = z.object({
 // All fields are immutable - a commit's SHA is derived from its content,
 // so changing any field would result in a different SHA (a different commit)
 // Reference: https://docs.github.com/en/rest/git/commits
+// Note: Most fields are optional to support progressive attachment
 export const commitSchema = z.object({
   // Immutable identifiers
   sha: z.string(), // Primary key - Git SHA-1 hash (40 hex chars)
-  nodeId: z.string(), // GitHub GraphQL node ID
+  nodeId: z.string().optional(), // GitHub GraphQL node ID
 
   // Commit content (immutable)
-  message: z.string(), // Full commit message
-  treeSha: z.string(), // Git tree object SHA (represents file structure)
+  message: z.string().optional(), // Full commit message
+  treeSha: z.string().optional(), // Git tree object SHA (represents file structure)
 
   // Author (person who wrote the code)
-  authorName: z.string(),
-  authorEmail: z.string(),
-  authoredAt: neo4jDateTime,
+  authorName: z.string().optional(),
+  authorEmail: z.string().optional(),
+  authoredAt: neo4jDateTime.optional(),
 
   // Committer (person who applied the commit to the repository)
   // Often same as author, but differs in cases like rebasing, cherry-picking, or applying patches
-  committerName: z.string(),
-  committerEmail: z.string(),
-  committedAt: neo4jDateTime,
+  committerName: z.string().optional(),
+  committerEmail: z.string().optional(),
+  committedAt: neo4jDateTime.optional(),
 
   // Metadata about when we stored this in Neo4j
   createdAt: neo4jDateTime.optional(),
 })
-
-export const workflowRunStateSchema = z.enum([
-  "pending",
-  "running",
-  "completed",
-  "error",
-  "timedOut",
-])
 
 export const issueSchema = z.object({
   number: neo4jInteger,
@@ -159,6 +171,8 @@ export const issueSchema = z.object({
 
 //--------Event Types--------
 
+// TODO: It seems that we mix "messages" with "events", but I think these concepts should be separated.
+// TODO: We're not really using llmResponseWithPlan anymore, I think we can start to remove this feature.
 const eventTypes = z.enum([
   "error",
   "llmResponse",
