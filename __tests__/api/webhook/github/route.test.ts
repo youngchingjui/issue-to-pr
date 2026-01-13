@@ -73,6 +73,7 @@ import { handlePullRequestClosedRemoveContainer } from "@/lib/webhook/github/han
 import { handlePullRequestComment } from "@/lib/webhook/github/handlers/pullRequest/comment.authorizeWorkflow.handler"
 import { handlePullRequestLabelCreateDependentPR } from "@/lib/webhook/github/handlers/pullRequest/label.createDependentPR.handler"
 import { handleRepositoryEditedRevalidate } from "@/lib/webhook/github/handlers/repository/edited.revalidateRepoCache.handler"
+import { webhookFixtures } from "@/__tests__/fixtures/github/webhooks"
 
 describe("POST /api/webhook/github", () => {
   const secret = "test-secret"
@@ -618,6 +619,126 @@ describe("POST /api/webhook/github", () => {
 
       expect(response.status).toBe(200)
       expect(handlePullRequestComment).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe("Realistic Webhook Fixtures", () => {
+    it("handles realistic issues.labeled (resolve) webhook payload", async () => {
+      const payload = webhookFixtures.issues.labeled.resolve
+      const mockRequest = createSignedRequest(payload, "issues")
+
+      const response = await POST(mockRequest)
+
+      expect(response.status).toBe(200)
+      expect(handleIssueLabelResolve).toHaveBeenCalledTimes(1)
+      const callArgs = jest.mocked(handleIssueLabelResolve).mock.calls[0]?.[0]
+      expect(callArgs.payload.repository.full_name).toBe("test-owner/test-repo")
+      expect(callArgs.payload.issue.number).toBe(42)
+      expect(callArgs.installationId).toBe("12345678")
+    })
+
+    it("handles realistic issues.labeled (auto-resolve) webhook payload", async () => {
+      const payload = webhookFixtures.issues.labeled.autoResolve
+      const mockRequest = createSignedRequest(payload, "issues")
+
+      const response = await POST(mockRequest)
+
+      expect(response.status).toBe(200)
+      expect(handleIssueLabelAutoResolve).toHaveBeenCalledTimes(1)
+      const callArgs = jest.mocked(handleIssueLabelAutoResolve).mock
+        .calls[0]?.[0]
+      expect(callArgs.payload.repository.full_name).toBe("test-owner/test-repo")
+      expect(callArgs.payload.issue.number).toBe(43)
+      expect(callArgs.installationId).toBe("12345678")
+    })
+
+    it("handles realistic pull_request.labeled webhook payload", async () => {
+      const payload = webhookFixtures.pullRequest.labeled
+      const mockRequest = createSignedRequest(payload, "pull_request")
+
+      const response = await POST(mockRequest)
+
+      expect(response.status).toBe(200)
+      expect(handlePullRequestLabelCreateDependentPR).toHaveBeenCalledTimes(1)
+      const callArgs = jest.mocked(handlePullRequestLabelCreateDependentPR).mock
+        .calls[0]?.[0]
+      expect(callArgs.payload.repository.name).toBe("test-repo")
+      expect(callArgs.payload.repository.owner.login).toBe("test-owner")
+      expect(callArgs.payload.number).toBe(15)
+      expect(callArgs.installationId).toBe("12345678")
+    })
+
+    it("handles realistic pull_request.closed (merged) webhook payload", async () => {
+      const payload = webhookFixtures.pullRequest.closed.merged
+      const mockRequest = createSignedRequest(payload, "pull_request")
+
+      const response = await POST(mockRequest)
+
+      expect(response.status).toBe(200)
+      expect(handlePullRequestClosedRemoveContainer).toHaveBeenCalledTimes(1)
+      const callArgs = jest.mocked(handlePullRequestClosedRemoveContainer).mock
+        .calls[0]?.[0]
+      expect(callArgs.payload.pull_request?.merged).toBe(true)
+      expect(callArgs.payload.pull_request?.head.ref).toBe("feature/oauth")
+      expect(callArgs.payload.repository.name).toBe("test-repo")
+      expect(callArgs.payload.repository.owner.login).toBe("test-owner")
+    })
+
+    it("handles realistic issue_comment.created webhook payload", async () => {
+      const payload = webhookFixtures.issueComment.created.pr
+      const mockRequest = createSignedRequest(payload, "issue_comment")
+
+      const response = await POST(mockRequest)
+
+      expect(response.status).toBe(200)
+      expect(handlePullRequestComment).toHaveBeenCalledTimes(1)
+      const callArgs = jest.mocked(handlePullRequestComment).mock.calls[0]?.[0]
+      expect(callArgs.installationId).toBe(12345678)
+      expect(callArgs.commentId).toBe(1111111111)
+      expect(callArgs.authorAssociation).toBe("OWNER")
+      expect(callArgs.issueNumber).toBe(15)
+      expect(callArgs.repoFullName).toBe("test-owner/test-repo")
+      expect(callArgs.isPullRequest).toBe(true)
+      expect(callArgs.commenterLogin).toBe("reviewer-user")
+    })
+
+    it("handles realistic installation.created webhook payload", async () => {
+      const payload = webhookFixtures.installation.created
+      const mockRequest = createSignedRequest(payload, "installation")
+
+      const response = await POST(mockRequest)
+
+      expect(response.status).toBe(200)
+      expect(revalidateUserInstallationReposCache).toHaveBeenCalledTimes(1)
+      const callArgs = jest.mocked(revalidateUserInstallationReposCache).mock
+        .calls[0]?.[0]
+      expect(callArgs.installationId).toBe("12345678")
+    })
+
+    it("handles realistic installation_repositories.added webhook payload", async () => {
+      const payload = webhookFixtures.installationRepositories.added
+      const mockRequest = createSignedRequest(
+        payload,
+        "installation_repositories"
+      )
+
+      const response = await POST(mockRequest)
+
+      expect(response.status).toBe(200)
+      expect(revalidateUserInstallationReposCache).toHaveBeenCalledTimes(1)
+    })
+
+    it("handles realistic repository.edited webhook payload", async () => {
+      const payload = webhookFixtures.repository.edited
+      const mockRequest = createSignedRequest(payload, "repository")
+
+      const response = await POST(mockRequest)
+
+      expect(response.status).toBe(200)
+      expect(handleRepositoryEditedRevalidate).toHaveBeenCalledTimes(1)
+      const callArgs = jest.mocked(handleRepositoryEditedRevalidate).mock
+        .calls[0]?.[0]
+      expect(callArgs.payload.repository.full_name).toBe("test-owner/test-repo")
     })
   })
 })

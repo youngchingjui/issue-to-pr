@@ -1,0 +1,78 @@
+{
+  "action": "created",
+  "issue": {
+    "id": 9876543210,
+    "node_id": "PR_kwDOExample123",
+    "number": 15,
+    "title": "Fix: Resolve memory leak in data processing",
+    "user": {
+      "login": "pr-author",
+      "id": 666666,
+      "node_id": "MDQ6VXNlcjY2NjY2Ng==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/666666?v=4",
+      "type": "User"
+    },
+    "labels": [],
+    "state": "open",
+    "locked": false,
+    "assignee": null,
+    "assignees": [],
+    "comments": 5,
+    "created_at": "2025-01-12T10:00:00Z",
+    "updated_at": "2025-01-13T18:00:00Z",
+    "closed_at": null,
+    "author_association": "CONTRIBUTOR",
+    "body": "This PR fixes the memory leak identified in issue #42.",
+    "pull_request": {
+      "url": "https://api.github.com/repos/test-owner/test-repo/pulls/15",
+      "html_url": "https://github.com/test-owner/test-repo/pull/15",
+      "diff_url": "https://github.com/test-owner/test-repo/pull/15.diff",
+      "patch_url": "https://github.com/test-owner/test-repo/pull/15.patch"
+    }
+  },
+  "comment": {
+    "id": 1111111111,
+    "node_id": "IC_kwDOExample123",
+    "user": {
+      "login": "reviewer-user",
+      "id": 999999,
+      "node_id": "MDQ6VXNlcjk5OTk5OQ==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/999999?v=4",
+      "type": "User"
+    },
+    "created_at": "2025-01-13T18:00:00Z",
+    "updated_at": "2025-01-13T18:00:00Z",
+    "author_association": "OWNER",
+    "body": "@issuetopr can you update this PR with the latest changes from main?",
+    "html_url": "https://github.com/test-owner/test-repo/pull/15#issuecomment-1111111111"
+  },
+  "repository": {
+    "id": 555555555,
+    "node_id": "R_kwDOExample123",
+    "name": "test-repo",
+    "full_name": "test-owner/test-repo",
+    "private": false,
+    "owner": {
+      "login": "test-owner",
+      "id": 222222,
+      "node_id": "MDQ6VXNlcjIyMjIyMg==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/222222?v=4",
+      "type": "User"
+    },
+    "html_url": "https://github.com/test-owner/test-repo",
+    "description": "A test repository for webhook fixtures",
+    "fork": false,
+    "default_branch": "main"
+  },
+  "sender": {
+    "login": "reviewer-user",
+    "id": 999999,
+    "node_id": "MDQ6VXNlcjk5OTk5OQ==",
+    "avatar_url": "https://avatars.githubusercontent.com/u/999999?v=4",
+    "type": "User"
+  },
+  "installation": {
+    "id": 12345678,
+    "node_id": "MDIzOkluc3RhbGxhdGlvbjEyMzQ1Njc4"
+  }
+}

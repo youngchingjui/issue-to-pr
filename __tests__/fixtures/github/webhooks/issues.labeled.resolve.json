@@ -1,0 +1,88 @@
+{
+  "action": "labeled",
+  "issue": {
+    "id": 1234567890,
+    "node_id": "I_kwDOExample123",
+    "number": 42,
+    "title": "Bug: Application crashes on startup",
+    "user": {
+      "login": "issue-creator",
+      "id": 111111,
+      "node_id": "MDQ6VXNlcjExMTExMQ==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/111111?v=4",
+      "type": "User"
+    },
+    "labels": [
+      {
+        "id": 987654321,
+        "node_id": "LA_kwDOExample123",
+        "name": "resolve",
+        "color": "0075ca",
+        "default": false,
+        "description": "Trigger issue resolution workflow"
+      }
+    ],
+    "state": "open",
+    "locked": false,
+    "assignee": null,
+    "assignees": [],
+    "comments": 3,
+    "created_at": "2025-01-10T12:00:00Z",
+    "updated_at": "2025-01-13T14:30:00Z",
+    "closed_at": null,
+    "author_association": "CONTRIBUTOR",
+    "body": "The application crashes when starting with node v20.x\n\n## Steps to reproduce\n1. Install dependencies\n2. Run `npm start`\n3. Application crashes immediately\n\n## Expected\nApplication should start successfully",
+    "html_url": "https://github.com/test-owner/test-repo/issues/42"
+  },
+  "label": {
+    "id": 987654321,
+    "node_id": "LA_kwDOExample123",
+    "name": "resolve",
+    "color": "0075ca",
+    "default": false,
+    "description": "Trigger issue resolution workflow"
+  },
+  "repository": {
+    "id": 555555555,
+    "node_id": "R_kwDOExample123",
+    "name": "test-repo",
+    "full_name": "test-owner/test-repo",
+    "private": false,
+    "owner": {
+      "login": "test-owner",
+      "id": 222222,
+      "node_id": "MDQ6VXNlcjIyMjIyMg==",
+      "avatar_url": "https://avatars.githubusercontent.com/u/222222?v=4",
+      "type": "User"
+    },
+    "html_url": "https://github.com/test-owner/test-repo",
+    "description": "A test repository for webhook fixtures",
+    "fork": false,
+    "created_at": "2024-01-01T00:00:00Z",
+    "updated_at": "2025-01-13T14:30:00Z",
+    "pushed_at": "2025-01-13T14:00:00Z",
+    "size": 1024,
+    "stargazers_count": 10,
+    "watchers_count": 10,
+    "language": "TypeScript",
+    "has_issues": true,
+    "has_projects": true,
+    "has_downloads": true,
+    "has_wiki": true,
+    "has_pages": false,
+    "forks_count": 2,
+    "open_issues_count": 5,
+    "default_branch": "main"
+  },
+  "sender": {
+    "login": "label-adder",
+    "id": 333333,
+    "node_id": "MDQ6VXNlcjMzMzMzMw==",
+    "avatar_url": "https://avatars.githubusercontent.com/u/333333?v=4",
+    "type": "User"
+  },
+  "installation": {
+    "id": 12345678,
+    "node_id": "MDIzOkluc3RhbGxhdGlvbjEyMzQ1Njc4"
+  }
+}
