@@ -402,6 +402,7 @@ function toStandardFunctionCallOutput(
  */
 export class ResponsesAPIAgent extends Agent {
   inputQueue: ResponseInput = []
+  responseTools: NonNullable<ResponseCreateParamsNonStreaming["tools"]> = []
 
   constructor(params: AgentConstructorParams) {
     super(params)
@@ -415,6 +416,12 @@ export class ResponsesAPIAgent extends Agent {
       role: "developer",
       content: prompt,
     })
+  }
+
+  addResponseTool(
+    tool: NonNullable<ResponseCreateParamsNonStreaming["tools"]>[number]
+  ) {
+    this.responseTools.push(tool)
   }
 
   /**
@@ -547,6 +554,7 @@ export class ResponsesAPIAgent extends Agent {
 
     // Convert internal tools to OpenAI function-tool definition
     const functionTools = this.tools.map((t) => convertToolToFunctionTool(t))
+    const responseTools = [...functionTools, ...this.responseTools]
 
     let previousResponseId: string | undefined
 
@@ -555,8 +563,10 @@ export class ResponsesAPIAgent extends Agent {
         model: this.model,
         store: true,
         reasoning: { summary: "auto" },
-        tools: functionTools,
         input: this.inputQueue,
+      }
+      if (responseTools.length > 0) {
+        params.tools = responseTools
       }
 
       // Clear the input queue after using it
