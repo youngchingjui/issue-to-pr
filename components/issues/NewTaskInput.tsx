@@ -14,6 +14,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { useOptimisticIssues } from "@/components/issues/OptimisticIssuesProvider"
 import { createIssueAction } from "@/lib/actions/createIssue"
 import { useHasKeyboard } from "@/lib/hooks/use-has-keyboard"
 import { toast } from "@/lib/hooks/use-toast"
@@ -41,6 +42,7 @@ export default function NewTaskInput({ repoFullName }: Props) {
   const [isPending, startTransition] = useTransition()
 
   const router = useRouter()
+  const { addOptimisticIssue } = useOptimisticIssues()
   const formRef = useRef<HTMLFormElement>(null)
   const [isMac, setIsMac] = useState(false)
   const hasKeyboard = useHasKeyboard()
@@ -171,6 +173,18 @@ export default function NewTaskInput({ repoFullName }: Props) {
       })
 
       if (result.status === "success") {
+        addOptimisticIssue({
+          id: result.number,
+          number: result.number,
+          title: taskTitle,
+          state: "open",
+          updated_at: new Date().toISOString(),
+          user: null,
+          hasActiveWorkflow: false,
+          activeWorkflowId: null,
+          hasPlan: false,
+          planId: null,
+        })
         toast({
           title: "Task synced to GitHub",
           description: `Created: ${taskTitle}`,

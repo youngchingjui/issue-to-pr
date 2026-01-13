@@ -2,6 +2,7 @@ import { RepoBranchProvider } from "@/components/common/BranchContext"
 import BranchSelectorControl from "@/components/common/BranchSelectorControl"
 import IssueTable from "@/components/issues/IssueTable"
 import NewTaskInput from "@/components/issues/NewTaskInput"
+import { OptimisticIssuesProvider } from "@/components/issues/OptimisticIssuesProvider"
 import { getRepoFromString } from "@/lib/github/content"
 import { repoFullNameSchema } from "@/lib/types/github"
 
@@ -57,9 +58,11 @@ export default async function RepoPage({ params }: Props) {
           </div>
         ) : null}
 
-        <NewTaskInput repoFullName={repoFullName} />
+        <OptimisticIssuesProvider repoFullName={repoFullName.fullName}>
+          <NewTaskInput repoFullName={repoFullName} />
 
-        {issuesEnabled ? <IssueTable repoFullName={repoFullName} /> : null}
+          {issuesEnabled ? <IssueTable repoFullName={repoFullName} /> : null}
+        </OptimisticIssuesProvider>
       </main>
     </RepoBranchProvider>
   )

@@ -5,6 +5,8 @@ import { Suspense, useEffect, useState } from "react"
 import RepoSelector from "@/components/common/RepoSelector"
 import IssuesList from "@/components/issues/IssuesList"
 import NewTaskInput from "@/components/issues/NewTaskInput"
+import OptimisticIssueRows from "@/components/issues/OptimisticIssueRows"
+import { OptimisticIssuesProvider } from "@/components/issues/OptimisticIssuesProvider"
 import RowsSkeleton from "@/components/issues/RowsSkeleton"
 import { Table, TableBody } from "@/components/ui/table"
 import { listIssues } from "@/lib/actions/issues"
@@ -114,33 +116,39 @@ export default function IssueDashboardClient({
         </div>
       ) : null}
 
-      <div className="mb-6">
-        <NewTaskInput repoFullName={repoFullName} />
-      </div>
-
-      {issuesEnabled ? (
-        <div className="rounded-md border">
-          <Table className="table-fixed sm:table-auto">
-            <TableBody>
-              <Suspense fallback={<RowsSkeleton rows={5} columns={3} />}>
-                {initialLoading ? (
-                  <RowsSkeleton rows={5} columns={3} />
-                ) : (
-                  <IssuesList
-                    repoFullName={repoFullName.fullName}
-                    issues={issues}
-                    prMap={prMap}
-                    loading={loading}
-                    error={error}
-                    hasMore={hasMore}
-                    onLoadMore={onLoadMore}
-                  />
-                )}
-              </Suspense>
-            </TableBody>
-          </Table>
+      <OptimisticIssuesProvider repoFullName={repoFullName.fullName}>
+        <div className="mb-6">
+          <NewTaskInput repoFullName={repoFullName} />
         </div>
-      ) : null}
+
+        {issuesEnabled ? (
+          <div className="rounded-md border">
+            <Table className="table-fixed sm:table-auto">
+              <TableBody>
+                <OptimisticIssueRows
+                  repoFullName={repoFullName.fullName}
+                  existingIssueNumbers={issues.map((issue) => issue.number)}
+                />
+                <Suspense fallback={<RowsSkeleton rows={5} columns={3} />}>
+                  {initialLoading ? (
+                    <RowsSkeleton rows={5} columns={3} />
+                  ) : (
+                    <IssuesList
+                      repoFullName={repoFullName.fullName}
+                      issues={issues}
+                      prMap={prMap}
+                      loading={loading}
+                      error={error}
+                      hasMore={hasMore}
+                      onLoadMore={onLoadMore}
+                    />
+                  )}
+                </Suspense>
+              </TableBody>
+            </Table>
+          </div>
+        ) : null}
+      </OptimisticIssuesProvider>
     </main>
   )
 }
