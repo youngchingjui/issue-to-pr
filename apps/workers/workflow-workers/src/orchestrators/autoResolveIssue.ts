@@ -1,16 +1,19 @@
 import { createAppAuth } from "@octokit/auth-app"
 import { Octokit } from "@octokit/rest"
 import type { Transaction } from "neo4j-driver"
-import { EventBusAdapter } from "shared/adapters/ioredis/EventBusAdapter"
-import { createNeo4jDataSource } from "shared/adapters/neo4j/dataSource"
-import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
-import { setAccessToken } from "shared/auth"
-import { getPrivateKeyFromFile } from "shared/services/fs"
-import { autoResolveIssue as autoResolveIssueWorkflow } from "shared/usecases/workflows/autoResolveIssue"
+
+import { EventBusAdapter } from "@/shared/adapters/ioredis/EventBusAdapter"
+import { makeSettingsReaderAdapter } from "@/shared/adapters/neo4j/repositories/SettingsReaderAdapter"
+import { StorageAdapter } from "@/shared/adapters/neo4j/StorageAdapter"
+import { setAccessToken } from "@/shared/auth"
+import { getPrivateKeyFromFile } from "@/shared/services/fs"
+import { autoResolveIssue as autoResolveIssueWorkflow } from "@/shared/usecases/workflows/autoResolveIssue"
 
 import { getEnvVar, publishJobStatus } from "../helper"
+import { neo4jDs } from "../neo4j"
 
 // Minimal user repository implementation for SettingsReaderAdapter
+// TODO: This should not be here. Find another place to implement this.
 const userRepo = {
   async getUserSettings(tx: Transaction, username: string) {
     const res = await tx.run(
@@ -56,24 +59,12 @@ export async function autoResolveIssue(
   )
 
   // Load environment
-  const {
-    NEO4J_URI,
-    NEO4J_USER,
-    NEO4J_PASSWORD,
-    GITHUB_APP_ID,
-    GITHUB_APP_PRIVATE_KEY_PATH,
-    REDIS_URL,
-  } = getEnvVar()
+  const { GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_PATH, REDIS_URL } = getEnvVar()
 
   // Settings adapter (loads OpenAI API key from Neo4j)
-  const neo4jDs = createNeo4jDataSource({
-    uri: NEO4J_URI,
-    user: NEO4J_USER,
-    password: NEO4J_PASSWORD,
-  })
-
+  // TODO: We're making 2 adapters that just connect to neo4j. Find a way to combine.
   const settingsAdapter = makeSettingsReaderAdapter({
-    getSession: () => neo4jDs.getSession(),
+    getSession: () => neo4jDs.getSession("READ"),
     userRepo,
   })
 
@@ -103,7 +94,11 @@ export async function autoResolveIssue(
   ) {
     throw new Error("Failed to get installation token")
   }
+
+  // TODO: We gotta get rid of this.
   setAccessToken(auth.token)
+
+  const storage = new StorageAdapter(neo4jDs)
 
   await publishJobStatus(jobId, "Fetching issue and running LLM")
 
@@ -117,6 +112,7 @@ export async function autoResolveIssue(
     {
       settings: settingsAdapter,
       eventBus: eventBusAdapter,
+      storage: storage,
     }
   )
 

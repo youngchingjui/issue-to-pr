@@ -1,9 +1,83 @@
-import { AllEvents } from "@/shared/entities"
+import type { AllEvents } from "@/shared/entities"
 import {
-  UserActor,
-  WebhookActor,
-  WorkflowRun,
+  type WorkflowRun,
+  type WorkflowRunActor,
+  type WorkflowRunTypes,
 } from "@/shared/entities/WorkflowRun"
+
+export type Target = {
+  issue?: { id?: string; number: number; repoFullName: string }
+  ref?:
+    | { type: "commit"; sha: string }
+    | { type: "branch"; name: string }
+    | { type: "tag"; name: string }
+  repository?: {
+    id?: number
+    nodeId?: string
+    owner?: string
+    name?: string
+    githubInstallationId?: string
+  }
+}
+export type WorkflowRunConfig = {
+  postToGithub?: boolean
+}
+export type WorkflowRunTrigger = { type: "ui" | "webhook" }
+
+export interface CreateWorkflowRunInput {
+  id?: string
+  type: WorkflowRunTypes
+  trigger?: WorkflowRunTrigger
+  actor?: WorkflowRunActor
+  target?: Target
+  config?: WorkflowRunConfig
+}
+
+export interface WorkflowEventInput {
+  type: AllEvents["type"]
+  payload: unknown
+  createdAt?: string
+}
+
+export interface RepositoryAttachment {
+  id: number
+  nodeId?: string
+  fullName: string
+  owner: string
+  name: string
+  githubInstallationId?: string
+}
+
+export interface IssueAttachment {
+  number: number
+  repoFullName: string
+}
+
+export interface CommitAttachment {
+  sha: string
+  nodeId?: string
+  message?: string
+}
+
+export interface WorkflowRunHandle {
+  readonly run: WorkflowRun
+  add: {
+    event(event: WorkflowEventInput): Promise<AllEvents>
+  }
+  attach: {
+    target(target: Target): Promise<void>
+    actor(actor: WorkflowRunActor): Promise<void>
+    repository(repo: RepositoryAttachment): Promise<void>
+    issue(issue: IssueAttachment): Promise<void>
+    commit(commit: CommitAttachment): Promise<void>
+  }
+}
+
+export interface WorkflowRunFilter {
+  userId?: string
+  repositoryId?: string
+  issueNumber?: number
+}
 
 export interface DatabaseStorage {
   workflow: {
@@ -11,55 +85,9 @@ export interface DatabaseStorage {
       create(input: CreateWorkflowRunInput): Promise<WorkflowRunHandle>
       getById(id: string): Promise<WorkflowRun | null>
       list(filter: WorkflowRunFilter): Promise<WorkflowRun[]>
-      listEvents(runId: string): Promise<AllEvents[]>
+    }
+    events: {
+      list(runId: string): Promise<AllEvents[]>
     }
   }
-}
-
-export interface CreateWorkflowRunInput {
-  id: string
-  type: string
-  issueNumber: number
-  repository: {
-    id: number
-    nodeId: string
-    fullName: string
-    owner: string
-    name: string
-    defaultBranch?: string
-    visibility?: "PUBLIC" | "PRIVATE" | "INTERNAL"
-    hasIssues?: boolean
-  }
-  postToGithub: boolean
-  actor: UserActor | WebhookActor
-  // Optional: Commit information for the workflow run
-  // MIGRATION NOTE: Should be provided whenever possible
-  // Fetch from GitHub API: GET /repos/{owner}/{repo}/commits/{ref}
-  // where ref is the default branch or specific branch/tag
-  commit?: {
-    sha: string // Git commit SHA (40 hex chars)
-    nodeId: string // GitHub GraphQL node ID
-    message: string // Commit message
-    treeSha: string // Git tree SHA
-    author: {
-      name: string
-      email: string
-      date: string // ISO 8601 format
-    }
-    committer: {
-      name: string
-      email: string
-      date: string // ISO 8601 format
-    }
-  }
-}
-
-export interface WorkflowRunHandle {
-  id: string
-}
-
-export interface WorkflowRunFilter {
-  userId?: string
-  repositoryId?: string
-  issueNumber?: number
 }

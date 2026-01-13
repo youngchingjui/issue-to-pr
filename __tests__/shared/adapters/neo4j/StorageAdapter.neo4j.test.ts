@@ -5,12 +5,13 @@
  * They are designed to run against a local Neo4j instance with existing data.
  *
  * Setup:
- * 1. Ensure Neo4j is running locally
- * 2. Set environment variables in .env.local:
+ * 1. Ensure Neo4j test database is running
+ * 2. Copy __tests__/.env.example to __tests__/.env and configure:
  *    - NEO4J_URI (e.g., bolt://localhost:7687)
  *    - NEO4J_USER (e.g., neo4j)
  *    - NEO4J_PASSWORD
- * 3. Ensure your database has some workflow run data
+ *    IMPORTANT: Use a separate test database, not production!
+ * 3. Ensure your test database has some workflow run data
  *
  * Run with: pnpm test:neo4j
  */
@@ -130,16 +131,16 @@ describe("StorageAdapter - Read Operations", () => {
 
   describe("workflow.run.listEvents", () => {
     it("should return empty array (placeholder implementation)", async () => {
-      const result = await adapter.workflow.run.listEvents("any-run-id")
+      const result = await adapter.workflow.events.list("any-run-id")
       expect(result).toEqual([])
     })
 
     it("should accept any run id without error", async () => {
+      await expect(adapter.workflow.events.list("test-run-1")).resolves.toEqual(
+        []
+      )
       await expect(
-        adapter.workflow.run.listEvents("test-run-1")
-      ).resolves.toEqual([])
-      await expect(
-        adapter.workflow.run.listEvents("non-existent")
+        adapter.workflow.events.list("non-existent")
       ).resolves.toEqual([])
     })
   })

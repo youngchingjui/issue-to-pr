@@ -53,6 +53,10 @@ interface ResolveIssueParams {
   installCommand?: string // Legacy alias; treat as setupCommands when provided
 }
 
+/**
+ *
+ * @deprecated Use shared/src/usecases/workflows/autoResolveIssue.ts instead (also to be renamed to resolveIssue.ts in the future)
+ */
 export const resolveIssue = async ({
   issue,
   repository,

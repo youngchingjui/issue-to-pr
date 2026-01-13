@@ -1,12 +1,11 @@
-import { logEnd, logStart, withTiming } from "shared/utils/telemetry"
-
-import getOctokit, { getGraphQLClient } from "@/lib/github"
+import getOctokit, { getGraphQLClient } from "@/shared/lib/github"
 import {
-  IssueComment,
-  PullRequest,
-  PullRequestList,
-  PullRequestReview,
-} from "@/lib/types/github"
+  type IssueComment,
+  type PullRequest,
+  type PullRequestList,
+  type PullRequestReview,
+} from "@/shared/lib/types/github"
+import { logEnd, logStart, withTiming } from "@/shared/utils/telemetry"
 
 export async function getPullRequestOnBranch({
   repoFullName,

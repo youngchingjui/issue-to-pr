@@ -6,30 +6,30 @@
 import { Octokit } from "@octokit/rest"
 import { v4 as uuidv4 } from "uuid"
 
-import GitHubRefsAdapter from "@/adapters/github/GitHubRefsAdapter"
-import { OpenAIAdapter } from "@/adapters/llm/OpenAIAdapter"
-import { getAccessTokenOrThrow } from "@/auth"
-import PlanAndCodeAgent from "@/lib/agents/PlanAndCodeAgent"
-import { getInstallationTokenFromRepo } from "@/lib/github/installation"
-import { getIssue, getIssueComments } from "@/lib/github/issues"
-import { checkRepoPermissions } from "@/lib/github/users"
-import { langfuse } from "@/lib/langfuse"
+import GitHubRefsAdapter from "@/shared/adapters/github/GitHubRefsAdapter"
+import { OpenAIAdapter } from "@/shared/adapters/llm/OpenAIAdapter"
+import { getAccessTokenOrThrow } from "@/shared/auth"
+import PlanAndCodeAgent from "@/shared/lib/agents/PlanAndCodeAgent"
+import { getInstallationTokenFromRepo } from "@/shared/lib/github/installation"
+import { getIssue, getIssueComments } from "@/shared/lib/github/issues"
+import { checkRepoPermissions } from "@/shared/lib/github/users"
+import { langfuse } from "@/shared/lib/langfuse"
 import {
   createErrorEvent,
   createStatusEvent,
   createWorkflowStateEvent,
-} from "@/lib/neo4j/services/event"
-import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
-import { RepoEnvironment } from "@/lib/types"
+} from "@/shared/lib/neo4j/services/event"
+import { type RepoEnvironment } from "@/shared/lib/types"
 import {
   createContainerizedDirectoryTree,
   createContainerizedWorkspace,
-} from "@/lib/utils/container"
-import { setupLocalRepository } from "@/lib/utils/utils-server"
-import { EventBusPort } from "@/ports/events/eventBus"
-import { createWorkflowEventPublisher } from "@/ports/events/publisher"
-import { SettingsReaderPort } from "@/ports/repositories/settings.reader"
-import { generateNonConflictingBranchName } from "@/usecases/git/generateBranchName"
+} from "@/shared/lib/utils/container"
+import { setupLocalRepository } from "@/shared/lib/utils/utils-server"
+import { type DatabaseStorage } from "@/shared/ports/db"
+import { type EventBusPort } from "@/shared/ports/events/eventBus"
+import { createWorkflowEventPublisher } from "@/shared/ports/events/publisher"
+import { type SettingsReaderPort } from "@/shared/ports/repositories/settings.reader"
+import { generateNonConflictingBranchName } from "@/shared/usecases/git/generateBranchName"
 
 interface Params {
   issueNumber: number
@@ -43,6 +43,7 @@ interface Params {
 
 interface AutoResolveIssuePorts {
   settings: SettingsReaderPort
+  storage: DatabaseStorage
   eventBus?: EventBusPort
 }
 export const autoResolveIssue = async (
@@ -50,7 +51,7 @@ export const autoResolveIssue = async (
   ports: AutoResolveIssuePorts
 ) => {
   const { issueNumber, repoFullName, login, jobId, branch } = params
-  const { settings, eventBus } = ports
+  const { settings, eventBus, storage } = ports
 
   // =================================================
   // Step 0: Setup workflow publisher
@@ -86,19 +87,37 @@ export const autoResolveIssue = async (
   const issue = issueResult.issue
   const access_token = getAccessTokenOrThrow()
   const octokit = new Octokit({ auth: access_token })
+
+  // To consider: I would think that we should initialize the workflow run before we start any other operations, including data fetching.
   const repository = await octokit.rest.repos.get({ owner, repo })
 
   // =================================================
   // Step 2: Initialize workflow
   // =================================================
 
+  // TODO: This should come before API queries to Github using our new port.
+  // Later, after getting the repo and issue details, we can attach them to the workflow run.
   try {
-    await initializeWorkflowRun({
+    await storage.workflow.run.create({
       id: workflowId,
-      type: "autoResolveIssue",
-      issueNumber,
-      repoFullName,
-      postToGithub: true,
+      type: "resolveIssue",
+      target: {
+        issue: {
+          id: issue.id.toString(),
+          repoFullName: repoFullName,
+          number: issue.number,
+        },
+        repository: {
+          id: repository.data.id,
+          nodeId: repository.data.node_id,
+          owner: repository.data.owner?.login ?? owner,
+          name: repository.data.name ?? repo,
+        },
+      },
+      actor: { type: "user", userId: login },
+      config: {
+        postToGithub: true,
+      },
     })
 
     await createWorkflowStateEvent({ workflowId, state: "running" })

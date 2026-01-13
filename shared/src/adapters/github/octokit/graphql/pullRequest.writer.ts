@@ -1,4 +1,4 @@
-import { GitHubAuthProvider } from "@shared/ports/github/auth"
+import type { GitHubAuthProvider } from "@/shared/ports/github/auth"
 
 /**
  * Updates a pull request body using GitHub's GraphQL API.

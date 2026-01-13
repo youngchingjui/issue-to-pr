@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk"
 
-import { err, ok, type Result } from "@/entities/result"
-import type { LLMErrorCode, LLMMessage, LLMPort } from "@/ports/llm"
+import { err, ok, type Result } from "@/shared/entities/result"
+import type { LLMErrorCode, LLMMessage, LLMPort } from "@/shared/ports/llm"
 
 export class AnthropicAdapter implements LLMPort {
   private client: Anthropic

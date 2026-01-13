@@ -1,7 +1,7 @@
 import { z } from "zod"
 
-import { execInContainerWithDockerode } from "@/lib/docker"
-import { createTool } from "@/lib/tools/helper"
+import { execInContainerWithDockerode } from "@/shared/lib/docker"
+import { createTool } from "@/shared/lib/tools/helper"
 
 const execSchema = z.object({
   command: z
