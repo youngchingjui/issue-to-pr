@@ -639,6 +639,7 @@ describe("POST /api/webhook/github", () => {
       expect(response.status).toBe(200)
     })
 
+    // TODO: the test here doesn't seem to match what we're actually doing. Maybe we need to review this.
     it("accepts issue_comment events without calling handlers", async () => {
       const payload = {
         action: "created",
