@@ -1,3 +1,5 @@
+// Ideally, we wouldn't be adding new non-NextJS specific files to the /lib folder. We can keep this here for now, but we prefer to use the code from /shared folder instead.
+
 import OpenAI from "openai"
 import { z } from "zod"
 
