@@ -1,4 +1,4 @@
-import { QueryResult } from "neo4j-driver"
+import { type QueryResult } from "neo4j-driver"
 
 import {
   commitSchema,
@@ -8,9 +8,9 @@ import {
   workflowRunSchema,
   workflowRunStateSchema,
 } from "@/shared/adapters/neo4j/types"
-import { WorkflowRun } from "@/shared/entities/WorkflowRun"
+import { type WorkflowRun } from "@/shared/entities/WorkflowRun"
 
-import { ListByUserResult } from "./listByUser"
+import { type ListByUserResult } from "./listByUser"
 
 // Maps types from Neo4j to the domain types
 export function mapListByUser(

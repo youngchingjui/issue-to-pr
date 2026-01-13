@@ -1,5 +1,10 @@
 "use server"
 
+// TODO: Migrate this server action to enqueue a worker job instead of directly
+// invoking the workflow. This will match the webhook pattern and use the new
+// DatabaseStorage port via the worker orchestrator. See the webhook handler
+// implementation for reference.
+
 import { v4 as uuidv4 } from "uuid"
 
 import { auth } from "@/auth"

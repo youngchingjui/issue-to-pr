@@ -1,30 +1,34 @@
-import { Integer, ManagedTransaction, Node, QueryResult } from "neo4j-driver"
+import {
+  Integer,
+  ManagedTransaction,
+  Node,
+  type QueryResult,
+} from "neo4j-driver"
 
 import {
-  Commit,
-  GithubUser,
-  GithubWebhookEvent,
-  Issue,
-  Repository,
-  User,
-  WorkflowRun,
-  WorkflowRunState,
+  type Commit,
+  type GithubUser,
+  type GithubWebhookEvent,
+  type Issue,
+  type Repository,
+  type User,
+  type WorkflowRun,
+  type WorkflowRunState,
 } from "@/shared/adapters/neo4j/types"
 
 // Query workflow runs for a repository by traversing BASED_ON_REPOSITORY relationship
-// Also retrieves initiator information via INITIATED_BY relationship
+// Retrieves actor information via INITIATED_BY (for users) and TRIGGERED_BY (for webhooks)
 const QUERY = `
   MATCH (w:WorkflowRun)-[:BASED_ON_REPOSITORY]->(r:Repository {fullName: $repo.fullName})
-  OPTIONAL MATCH (w)-[:INITIATED_BY]->(actor)
-  OPTIONAL MATCH (actor:User)-[:LINKED_GITHUB_USER]->(userGh:GithubUser)
-  OPTIONAL MATCH (actor:GithubWebhookEvent)-[:SENDER]->(webhookGh:GithubUser)
+  OPTIONAL MATCH (w)-[:INITIATED_BY]->(userActor:User)
+  OPTIONAL MATCH (w)-[:TRIGGERED_BY]->(webhookEvent:GithubWebhookEvent)-[:SENDER]->(webhookSender:GithubUser)
   OPTIONAL MATCH (w)-[:BASED_ON_ISSUE]->(i:Issue)
   OPTIONAL MATCH (w)-[:BASED_ON_COMMIT]->(c:Commit)
   OPTIONAL MATCH (w)-[:STARTS_WITH|NEXT*]->(e:Event {type: 'workflowState'})
-  WITH w, actor, userGh, webhookGh, i, r, c, e
+  WITH w, userActor, webhookEvent, webhookSender, i, r, c, e
   ORDER BY e.createdAt DESC
-  WITH w, actor, userGh, webhookGh, i, r, c, collect(e)[0] as latestWorkflowState
-  RETURN w, actor, userGh, webhookGh, latestWorkflowState.state AS state, i, r, c
+  WITH w, userActor, webhookEvent, webhookSender, i, r, c, collect(e)[0] as latestWorkflowState
+  RETURN w, userActor, webhookEvent, webhookSender, latestWorkflowState.state AS state, i, r, c
 `
 
 export interface ListForRepoParams {
@@ -33,13 +37,9 @@ export interface ListForRepoParams {
 
 export interface ListForRepoResult {
   w: Node<Integer, WorkflowRun, "WorkflowRun">
-  actor: Node<
-    Integer,
-    User | GithubWebhookEvent,
-    "User" | "GithubWebhookEvent"
-  > | null
-  userGh: Node<Integer, GithubUser, "GithubUser"> | null
-  webhookGh: Node<Integer, GithubUser, "GithubUser"> | null
+  userActor: Node<Integer, User, "User"> | null
+  webhookEvent: Node<Integer, GithubWebhookEvent, "GithubWebhookEvent"> | null
+  webhookSender: Node<Integer, GithubUser, "GithubUser"> | null
   state: WorkflowRunState
   i: Node<Integer, Issue, "Issue"> | null
   r: Node<Integer, Repository, "Repository">
