@@ -32,6 +32,10 @@ type WebSearchResult = {
   message?: string
 }
 
+// TODO: You know, honestly this approach seems to be fine. As long as it works.
+// I was expecting more of an integrated, simpler approach to implement this tool.
+// Instead of calling yet another OpenAI Creation API endpoint within the tool itself.
+// I thought OpenAI SDK allows integrated embedding of the websearch tool.
 export const createWebSearchTool = ({
   apiKey,
   model = "gpt-4o-mini",
