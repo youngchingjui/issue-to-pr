@@ -1,6 +1,10 @@
 "use server"
 
-import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
+// TODO: Migrate this server action to enqueue a worker job instead of directly
+// invoking the workflow. This will match the webhook pattern and use the new
+// DatabaseStorage port via the worker orchestrator. See the webhook handler
+// implementation for reference.
+
 import { v4 as uuidv4 } from "uuid"
 
 import { auth } from "@/auth"
@@ -8,6 +12,7 @@ import { makeNextjsGitHubAuthProvider } from "@/lib/github/auth"
 import { neo4jDs } from "@/lib/neo4j"
 import * as userRepo from "@/lib/neo4j/repositories/user"
 import { createDependentPRWorkflow } from "@/lib/workflows/createDependentPR"
+import { makeSettingsReaderAdapter } from "@/shared/adapters/neo4j/repositories/SettingsReaderAdapter"
 
 import {
   type CreateDependentPRRequest,

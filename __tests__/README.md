@@ -31,9 +31,54 @@ pnpm test:agent
   npx jest __tests__/llm-lint.llm.test.ts -t "test name"
   ```
 
+## Neo4j Integration Tests
+
+Neo4j integration tests require a running Neo4j database. **IMPORTANT: Use a separate test database, not your production or development database!**
+
+### Setup
+
+1. **Create test environment file:**
+
+   ```bash
+   cp __tests__/.env.example __tests__/.env
+   ```
+
+2. **Configure test database credentials:**
+   Edit `__tests__/.env` and fill in your test Neo4j database credentials:
+
+   ```env
+   NEO4J_URI=bolt://localhost:7687
+   NEO4J_USER=neo4j
+   NEO4J_PASSWORD=your-test-password
+   ```
+
+3. **Ensure Neo4j is running:**
+   - If using Docker:
+     ```bash
+     docker run -d \
+       --name neo4j-test \
+       -p 7687:7687 -p 7474:7474 \
+       -e NEO4J_AUTH=neo4j/your-test-password \
+       neo4j:latest
+     ```
+   - Or use a local Neo4j installation pointing to a test database
+
+### Running Neo4j Tests
+
+```bash
+pnpm test:neo4j
+```
+
+### Test Database Isolation
+
+- Tests use hardcoded test data IDs (prefixed with `test-` or `test-prog-`)
+- Cleanup functions remove only these specific test nodes
+- Tests are designed to be idempotent and can be run multiple times
+
 ## Environment Variables
 
-Agent tests automatically load environment variables from `.env.local` during test setup. Make sure your `.env.local` file contains all required variables for agent tests.
+- **Agent tests**: Automatically load environment variables from `.env.local` (at project root) during test setup. Make sure your `.env.local` file contains all required variables for agent tests.
+- **Neo4j integration tests**: Load environment variables from `__tests__/.env` for database configuration. This allows tests to use a separate test database.
 
 ## Notes
 

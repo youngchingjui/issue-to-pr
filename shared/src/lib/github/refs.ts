@@ -1,7 +1,7 @@
 "use server"
 
-import { getInstallationFromRepo, getInstallationOctokit } from "@/lib/github"
-import { RepoFullName } from "@/lib/types/github"
+import { getInstallationFromRepo, getInstallationOctokit } from "@/shared/lib/github"
+import type { RepoFullName } from "@/shared/lib/types/github"
 
 interface BranchByCommitDate {
   name: string

@@ -17,7 +17,7 @@
     "paths": {
       "@/*": ["./*"],
       "@realtime/*": ["./*"],
-      "@shared/*": ["../../shared/src/*"],
+      "@/shared/*": ["../../shared/src/*"],
       "@workers/*": ["../workers/src/*"]
     },
     /* Next.js */

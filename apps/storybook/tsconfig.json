@@ -4,8 +4,10 @@
     "baseUrl": ".",
     "moduleResolution": "bundler",
     "paths": {
-      "@/*": ["../../*"],
-      "@shared/*": ["../../shared/src/*"],
+      "@/shared/*": ["../../shared/src/*"],
+      "@/components/*": ["../../components/*"],
+      "@/lib/*": ["../../lib/*"],
+      "@/styles/*": ["../../styles/*"],
       "@workers/*": ["../workers/src/*"]
     }
   },

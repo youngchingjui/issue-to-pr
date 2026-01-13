@@ -1,5 +1,4 @@
 import { int, ManagedTransaction } from "neo4j-driver"
-import { withTiming } from "shared/utils/telemetry"
 
 import { n4j } from "@/lib/neo4j/client"
 import { neo4jToJs } from "@/lib/neo4j/convert"
@@ -20,6 +19,7 @@ import {
   WorkflowRun,
   workflowRunSchema,
 } from "@/lib/types"
+import { withTiming } from "@/shared/utils/telemetry"
 
 export async function listPlansForIssue({
   repoFullName,

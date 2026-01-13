@@ -1,10 +1,10 @@
-import { err, type Result } from "@/entities/result"
+import { err, type Result } from "@/shared/entities/result"
 import type {
   GetIssueErrors,
   IssueDetails,
   IssueReaderPort,
   IssueRef,
-} from "@/ports/github/issue.reader"
+} from "@/shared/ports/github/issue.reader"
 
 export type GetIssueInput = IssueRef
 export type GetIssueOutput = Result<IssueDetails, GetIssueErrors>

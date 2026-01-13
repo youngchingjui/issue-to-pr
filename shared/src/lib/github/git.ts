@@ -1,4 +1,4 @@
-import getOctokit from "@/lib/github"
+import getOctokit from "@/shared/lib/github"
 
 export enum BranchCreationStatus {
   Success,

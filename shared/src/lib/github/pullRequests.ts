@@ -1,12 +1,12 @@
-import { logEnd, logStart, withTiming } from "shared/utils/telemetry"
+import { logEnd, logStart, withTiming } from "@/shared/utils/telemetry"
 
-import { getInstallationFromRepo, getInstallationOctokit } from "@/lib/github"
+import { getInstallationFromRepo, getInstallationOctokit } from "@/shared/lib/github"
 import {
-  IssueComment,
-  PullRequest,
-  PullRequestList,
-  PullRequestReview,
-} from "@/lib/types/github"
+  type IssueComment,
+  type PullRequest,
+  type PullRequestList,
+  type PullRequestReview,
+} from "@/shared/lib/types/github"
 
 async function getInstallationOctokitForRepo(repoFullName: string) {
   const [owner, repo] = repoFullName.split("/")

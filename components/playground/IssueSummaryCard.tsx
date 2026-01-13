@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { WORKFLOW_JOBS_QUEUE } from "shared/entities/Queue"
 
 // TODO: Move this to shared
 import {
@@ -14,6 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/lib/hooks/use-toast"
+import { WORKFLOW_JOBS_QUEUE } from "@/shared/entities/Queue"
 
 export default function IssueSummaryCard() {
   const { toast } = useToast()

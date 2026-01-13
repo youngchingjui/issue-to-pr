@@ -1,6 +1,6 @@
 /**
  * @deprecated
- * This file is deprecated. Please use the functions from "shared/src/lib/docker.ts" instead.
+ * This file is deprecated. Please use the functions from "@/shared/src/lib/docker.ts" instead.
  */
 "use server"
 
@@ -38,7 +38,7 @@ interface StartDetachedContainerOptions {
 }
 
 /**
- * @deprecated This function is deprecated. Use the equivalent function from "shared/src/lib/docker.ts" instead.
+ * @deprecated This function is deprecated. Use the equivalent function from "@/shared/src/lib/docker.ts" instead.
  *
  * Starts a detached Docker container (`docker run -d`) that simply tails
  * `/dev/null` so it stays alive and returns the new container's ID.
@@ -135,7 +135,7 @@ export async function startContainer({
 }
 
 /**
- * @deprecated This function is deprecated. Use the equivalent function from "shared/src/lib/docker.ts" instead.
+ * @deprecated This function is deprecated. Use the equivalent function from "@/shared/src/lib/docker.ts" instead.
  *
  * Executes a shell command in a running container using Dockerode.
  * @param name Container name or ID
@@ -233,7 +233,7 @@ export async function execInContainerWithDockerode({
 }
 
 /**
- * @deprecated This function is deprecated. Use the equivalent function from "shared/src/lib/docker.ts" instead.
+ * @deprecated This function is deprecated. Use the equivalent function from "@/shared/src/lib/docker.ts" instead.
  */
 export async function stopAndRemoveContainer(id: string): Promise<void> {
   try {
@@ -259,7 +259,7 @@ export async function stopAndRemoveContainer(id: string): Promise<void> {
 }
 
 /**
- * @deprecated This function is deprecated. Use the equivalent function from "shared/src/lib/docker.ts" instead.
+ * @deprecated This function is deprecated. Use the equivalent function from "@/shared/src/lib/docker.ts" instead.
  */
 export async function isContainerRunning(name: string): Promise<boolean> {
   try {
@@ -273,7 +273,7 @@ export async function isContainerRunning(name: string): Promise<boolean> {
 }
 
 /**
- * @deprecated This function is deprecated. Use the equivalent function from "shared/src/lib/docker.ts" instead.
+ * @deprecated This function is deprecated. Use the equivalent function from "@/shared/src/lib/docker.ts" instead.
  *
  * List currently running Docker containers.
  */
@@ -326,7 +326,7 @@ export async function listRunningContainers(): Promise<RunningContainer[]> {
 }
 
 /**
- * @deprecated This function is deprecated. Use the equivalent function from "shared/src/lib/docker.ts" instead.
+ * @deprecated This function is deprecated. Use the equivalent function from "@/shared/src/lib/docker.ts" instead.
  *
  * List container names matching a set of Docker label filters. Includes stopped containers.
  * SECURITY: Uses dockerode API instead of shell commands to prevent injection attacks.
@@ -359,7 +359,7 @@ export async function listContainersByLabels(
 }
 
 /**
- * @deprecated This function is deprecated. Use the equivalent function from "shared/src/lib/docker.ts" instead.
+ * @deprecated This function is deprecated. Use the equivalent function from "@/shared/src/lib/docker.ts" instead.
  *
  * Write file contents to a path inside a running container using Dockerode.
  *
@@ -428,7 +428,7 @@ export async function writeFileInContainer(
 }
 
 /**
- * @deprecated This function is deprecated. Use the equivalent function from "shared/src/lib/docker.ts" instead.
+ * @deprecated This function is deprecated. Use the equivalent function from "@/shared/src/lib/docker.ts" instead.
  *
  * Retrieve a Docker container's status string via `docker inspect`.
  *
@@ -458,7 +458,7 @@ interface ContainerGitInfo {
 }
 
 /**
- * @deprecated This function is deprecated. Use the equivalent function from "shared/src/lib/docker.ts" instead.
+ * @deprecated This function is deprecated. Use the equivalent function from "@/shared/src/lib/docker.ts" instead.
  *
  * Extract git information from a running container. Executes a series of git
  * commands inside the container and returns structured information useful for

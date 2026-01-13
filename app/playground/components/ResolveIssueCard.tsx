@@ -2,7 +2,6 @@
 
 import { CheckCircle, Loader2, XCircle } from "lucide-react"
 import { useState } from "react"
-import { Alert, AlertDescription } from "shared/ui/alert"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { resolveIssueAction } from "@/lib/actions/resolveIssue"
 import type { ResolveIssueResult } from "@/lib/actions/schemas"
+import { Alert, AlertDescription } from "@/shared/ui/alert"
 
 export function ResolveIssueCard() {
   const [repoFullName, setRepoFullName] = useState("")

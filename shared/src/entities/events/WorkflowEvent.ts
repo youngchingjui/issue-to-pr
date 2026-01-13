@@ -47,7 +47,7 @@ export type WorkflowCancelledEvent = z.infer<
 export const WorkflowStateEventSchema = BaseFields.extend({
   type: z.literal("workflow.state"),
   content: z.string().optional(),
-  state: z.enum(["running", "completed", "error", "timedOut"]),
+  state: z.enum(["pending", "running", "completed", "error", "timedOut"]),
 })
 export type WorkflowStateEvent = z.infer<typeof WorkflowStateEventSchema>
 

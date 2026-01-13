@@ -1,10 +1,10 @@
 import { type Redis as RedisClient } from "ioredis"
 import { NextRequest, NextResponse } from "next/server"
-import { createEphemeralSubscriber } from "shared/adapters/ioredis/client"
-import { JOB_STATUS_CHANNEL } from "shared/entities/Channels"
-import { JobStatusUpdateSchema } from "shared/entities/events/JobStatus"
 
 import { SSEUtils } from "@/lib/utils/utils-common"
+import { createEphemeralSubscriber } from "@/shared/adapters/ioredis/client"
+import { JOB_STATUS_CHANNEL } from "@/shared/entities/Channels"
+import { JobStatusUpdateSchema } from "@/shared/entities/events/JobStatus"
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
