@@ -1,7 +1,6 @@
-import { QueueEnum, WORKFLOW_JOBS_QUEUE } from "shared/entities/Queue"
-import { addJob } from "shared/services/job"
-
 import type { IssuesPayload } from "@/lib/webhook/github/types"
+import { QueueEnum, WORKFLOW_JOBS_QUEUE } from "@/shared/entities/Queue"
+import { addJob } from "@/shared/services/job"
 
 /**
  * Handler: Issue labeled with "I2PR: Resolve Issue"

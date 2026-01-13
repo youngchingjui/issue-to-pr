@@ -25,12 +25,26 @@ const config: StorybookConfig = {
   viteFinal: async (config) => {
     const rootDir = fileURLToPath(new URL("../../../", import.meta.url))
     config.resolve = config.resolve || {}
-    config.resolve.alias = {
-      ...(config.resolve.alias || {}),
-      "@": rootDir,
-      shared: path.resolve(rootDir, "shared/src"),
-      "@shared": path.resolve(rootDir, "shared/src"),
-    }
+
+    // Filter out any existing @ aliases and add our own at the beginning
+    const existingAliases = Array.isArray(config.resolve.alias)
+      ? config.resolve.alias.filter(
+          (a) =>
+            !(
+              (typeof a.find === "string" && a.find.startsWith("@")) ||
+              (a.find instanceof RegExp && a.find.source.includes("@"))
+            )
+        )
+      : Object.entries(config.resolve.alias || {})
+          .filter(([find]) => !find.startsWith("@"))
+          .map(([find, replacement]) => ({ find, replacement }))
+
+    config.resolve.alias = [
+      { find: /^@\/shared/, replacement: path.resolve(rootDir, "shared/src") },
+      { find: /^shared/, replacement: path.resolve(rootDir, "shared/src") },
+      { find: /^@\//, replacement: `${rootDir}/` },
+      ...existingAliases,
+    ]
     return config
   },
 }

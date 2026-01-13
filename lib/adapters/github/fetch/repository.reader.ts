@@ -1,12 +1,13 @@
 import type { Endpoints } from "@octokit/types"
-import { err, ok, type Result } from "shared/entities/result"
+import { z } from "zod"
+
+import { err, ok, type Result } from "@/shared/entities/result"
 import type {
   GetRepositoryErrors,
   Repo as RepositoryInput,
   RepoDetails,
   RepositoryReaderPort,
-} from "shared/ports/github/repository.reader"
-import { z } from "zod"
+} from "@/shared/ports/github/repository.reader"
 
 type GetRepoResponse =
   Endpoints["GET /repos/{owner}/{repo}"]["response"]["data"]

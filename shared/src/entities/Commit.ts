@@ -15,7 +15,7 @@ export interface Commit {
    * Commit message (first line or full message)
    * Used for display in UI and logs
    */
-  message: string
+  message?: string
 
   repository: {
     fullName: string

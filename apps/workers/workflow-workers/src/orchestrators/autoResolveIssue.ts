@@ -1,17 +1,19 @@
 import { createAppAuth } from "@octokit/auth-app"
 import { Octokit } from "@octokit/rest"
 import type { Transaction } from "neo4j-driver"
-import { EventBusAdapter } from "shared/adapters/ioredis/EventBusAdapter"
-import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
-import { StorageAdapter } from "shared/adapters/neo4j/StorageAdapter"
-import { setAccessToken } from "shared/auth"
-import { getPrivateKeyFromFile } from "shared/services/fs"
-import { autoResolveIssue as autoResolveIssueWorkflow } from "shared/usecases/workflows/autoResolveIssue"
+
+import { EventBusAdapter } from "@/shared/adapters/ioredis/EventBusAdapter"
+import { makeSettingsReaderAdapter } from "@/shared/adapters/neo4j/repositories/SettingsReaderAdapter"
+import { StorageAdapter } from "@/shared/adapters/neo4j/StorageAdapter"
+import { setAccessToken } from "@/shared/auth"
+import { getPrivateKeyFromFile } from "@/shared/services/fs"
+import { autoResolveIssue as autoResolveIssueWorkflow } from "@/shared/usecases/workflows/autoResolveIssue"
 
 import { getEnvVar, publishJobStatus } from "../helper"
 import { neo4jDs } from "../neo4j"
 
 // Minimal user repository implementation for SettingsReaderAdapter
+// TODO: This should not be here. Find another place to implement this.
 const userRepo = {
   async getUserSettings(tx: Transaction, username: string) {
     const res = await tx.run(
@@ -60,6 +62,7 @@ export async function autoResolveIssue(
   const { GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_PATH, REDIS_URL } = getEnvVar()
 
   // Settings adapter (loads OpenAI API key from Neo4j)
+  // TODO: We're making 2 adapters that just connect to neo4j. Find a way to combine.
   const settingsAdapter = makeSettingsReaderAdapter({
     getSession: () => neo4jDs.getSession("READ"),
     userRepo,
@@ -91,38 +94,11 @@ export async function autoResolveIssue(
   ) {
     throw new Error("Failed to get installation token")
   }
+
+  // TODO: We gotta get rid of this.
   setAccessToken(auth.token)
 
-  // Create WorkflowRun via StorageAdapter before emitting any events
-  const [owner, repo] = repoFullName.split("/")
-  const { data: repository } = await octokit.rest.repos.get({ owner, repo })
   const storage = new StorageAdapter(neo4jDs)
-  await storage.workflow.run.create({
-    id: jobId,
-    type: "autoResolveIssue",
-    issueNumber,
-    repository: {
-      id: Number(repository.id),
-      nodeId: repository.node_id,
-      fullName: repository.full_name,
-      owner:
-        ((repository.owner as unknown) &&
-        typeof repository.owner === "object" &&
-        "login" in (repository.owner as object)
-          ? (repository.owner as { login?: string }).login || ""
-          : repository.full_name.split("/")[0]) || "",
-      name: repository.name,
-      defaultBranch: repository.default_branch || undefined,
-      visibility: (repository.visibility
-        ? String(repository.visibility).toUpperCase()
-        : undefined) as "PUBLIC" | "PRIVATE" | "INTERNAL" | undefined,
-      hasIssues:
-        (repository as unknown as { has_issues?: boolean }).has_issues ??
-        undefined,
-    },
-    postToGithub: true,
-    actor: { type: "user", userId: "system" },
-  })
 
   await publishJobStatus(jobId, "Fetching issue and running LLM")
 
@@ -136,6 +112,7 @@ export async function autoResolveIssue(
     {
       settings: settingsAdapter,
       eventBus: eventBusAdapter,
+      storage: storage,
     }
   )
 

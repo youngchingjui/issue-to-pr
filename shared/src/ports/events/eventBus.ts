@@ -1,4 +1,4 @@
-import type { AllEvents } from "@/entities/events"
+import type { AllEvents } from "@/shared/entities/events"
 
 /**
  * Port for emitting workflow events to an event bus.

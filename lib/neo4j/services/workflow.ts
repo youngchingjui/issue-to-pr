@@ -1,5 +1,4 @@
 import { int } from "neo4j-driver"
-import { withTiming } from "shared/utils/telemetry"
 
 import { n4j } from "@/lib/neo4j/client"
 import { neo4jToJs, toAppEvent, toAppMessageEvent } from "@/lib/neo4j/convert"
@@ -25,6 +24,7 @@ import {
   WorkflowRunState,
   WorkflowType,
 } from "@/lib/types"
+import { withTiming } from "@/shared/utils/telemetry"
 
 /**
  * Merges (matches or creates) a WorkflowRun node and the corresponding Issue node in the database, linking the two.

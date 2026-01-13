@@ -1,10 +1,10 @@
 "use server"
 
 import { revalidateTag } from "next/cache"
-import { makeIssueWriterAdapter } from "shared/adapters/github/octokit/rest/issue.writer"
-import { createIssueForRepo } from "shared/services/github/issues"
 
 import { auth } from "@/auth"
+import { makeIssueWriterAdapter } from "@/shared/adapters/github/octokit/rest/issue.writer"
+import { createIssueForRepo } from "@/shared/services/github/issues"
 
 import {
   CreateIssueActionParams,
@@ -65,4 +65,3 @@ export async function createIssueAction(
   // Return only machine-readable code and optional details; UI will map to copy
   return { status: "error", code: res.error, message: res.error }
 }
-
