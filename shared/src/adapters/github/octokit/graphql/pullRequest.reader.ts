@@ -1,7 +1,7 @@
 import { graphql } from "@octokit/graphql"
 
 import { err, ok, type Result } from "@/shared/entities/result"
-import { GitHubAuthProvider } from "@/shared/ports/github/auth"
+import type { GitHubAuthProvider } from "@/shared/ports/github/auth"
 import {
   type PRFileChange,
   type PRIssueComment,
