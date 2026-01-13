@@ -1,6 +1,6 @@
 "use server"
 
-import { getGraphQLClient } from "@/shared/lib/github"
+import { getInstallationFromRepo, getInstallationOctokit } from "@/shared/lib/github"
 import type { RepoFullName } from "@/shared/lib/types/github"
 
 interface BranchByCommitDate {
@@ -37,10 +37,10 @@ export async function listBranchesSortedByCommitDate(
 ): Promise<BranchByCommitDate[]> {
   const { owner, repo } = repoFullName
 
-  const graphql = await getGraphQLClient()
-  if (!graphql) {
-    throw new Error("No authenticated GraphQL client available")
-  }
+  // Use installation-scoped Octokit for this repository (no global token)
+  const installation = await getInstallationFromRepo({ owner, repo })
+  const installationOctokit = await getInstallationOctokit(installation.data.id)
+  const graphql = installationOctokit.graphql
 
   const query = `
     query ($owner: String!, $repo: String!, $pageSize: Int!, $after: String) {
@@ -109,3 +109,4 @@ export async function listBranchesSortedByCommitDate(
   }
   return allBranches
 }
+

@@ -1,11 +1,9 @@
 import { createAppAuth } from "@octokit/auth-app"
 import { Octokit } from "@octokit/rest"
 import type { Transaction } from "neo4j-driver"
-
 import { EventBusAdapter } from "@/shared/adapters/ioredis/EventBusAdapter"
 import { makeSettingsReaderAdapter } from "@/shared/adapters/neo4j/repositories/SettingsReaderAdapter"
 import { StorageAdapter } from "@/shared/adapters/neo4j/StorageAdapter"
-import { setAccessToken } from "@/shared/auth"
 import { getPrivateKeyFromFile } from "@/shared/services/fs"
 import { autoResolveIssue as autoResolveIssueWorkflow } from "@/shared/usecases/workflows/autoResolveIssue"
 
@@ -48,9 +46,9 @@ export async function autoResolveIssue(
   {
     repoFullName,
     issueNumber,
+    branch,
     githubLogin,
     githubInstallationId,
-    branch,
   }: AutoResolveJobData
 ) {
   await publishJobStatus(
@@ -73,7 +71,7 @@ export async function autoResolveIssue(
   const privateKey = await getPrivateKeyFromFile(GITHUB_APP_PRIVATE_KEY_PATH)
   // GitHub API via App Installation
 
-  // Temporary: set the access token for the workflow
+  // Installation-scoped Octokit (if needed locally)
   const octokit = new Octokit({
     authStrategy: createAppAuth,
     auth: {
@@ -85,18 +83,6 @@ export async function autoResolveIssue(
 
   // Setup adapters for event bus
   const eventBusAdapter = new EventBusAdapter(REDIS_URL)
-  const auth = await octokit.auth({ type: "installation" })
-  if (
-    !auth ||
-    typeof auth !== "object" ||
-    !("token" in auth) ||
-    typeof auth.token !== "string"
-  ) {
-    throw new Error("Failed to get installation token")
-  }
-
-  // TODO: We gotta get rid of this.
-  setAccessToken(auth.token)
 
   const storage = new StorageAdapter(neo4jDs)
 

@@ -8,7 +8,6 @@ import { v4 as uuidv4 } from "uuid"
 
 import GitHubRefsAdapter from "@/shared/adapters/github/GitHubRefsAdapter"
 import { OpenAIAdapter } from "@/shared/adapters/llm/OpenAIAdapter"
-import { getAccessTokenOrThrow } from "@/shared/auth"
 import PlanAndCodeAgent from "@/shared/lib/agents/PlanAndCodeAgent"
 import { getInstallationTokenFromRepo } from "@/shared/lib/github/installation"
 import { getIssue, getIssueComments } from "@/shared/lib/github/issues"
@@ -85,10 +84,10 @@ export const autoResolveIssue = async (
     throw new Error(`Failed to fetch issue #${issueNumber}, ${repoFullName}`)
   }
   const issue = issueResult.issue
-  const access_token = getAccessTokenOrThrow()
-  const octokit = new Octokit({ auth: access_token })
 
-  // To consider: I would think that we should initialize the workflow run before we start any other operations, including data fetching.
+  // Use installation token tied to the repository (avoids any global token state)
+  const sessionToken = await getInstallationTokenFromRepo({ owner, repo })
+  const octokit = new Octokit({ auth: sessionToken })
   const repository = await octokit.rest.repos.get({ owner, repo })
 
   // =================================================
@@ -187,11 +186,6 @@ export const autoResolveIssue = async (
 
     const env: RepoEnvironment = { kind: "container", name: containerName }
 
-    const sessionToken = await getInstallationTokenFromRepo({
-      owner,
-      repo,
-    })
-
     const trace = langfuse.trace({ name: "autoResolve" })
     const span = trace.span({ name: "PlanAndCodeAgent" })
 
@@ -258,3 +252,4 @@ export const autoResolveIssue = async (
     throw error
   }
 }
+

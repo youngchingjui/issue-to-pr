@@ -2,7 +2,6 @@
 
 import { AsyncLocalStorage } from "node:async_hooks"
 
-import { getAccessToken } from "@/shared/auth"
 import { getLocalRepoDir } from "@/shared/lib/fs"
 import {
   cleanCheckout,
@@ -11,7 +10,7 @@ import {
   ensureValidRepo,
   setRemoteOrigin,
 } from "@/shared/lib/git"
-import getOctokit from "@/shared/lib/github"
+import { getInstallationTokenFromRepo } from "@/shared/lib/github/installation"
 import { getCloneUrlWithAccessToken } from "@/shared/lib/utils/utils-common"
 
 // For storing Github App installation ID in async context
@@ -24,11 +23,9 @@ export function runWithInstallationId(
   asyncLocalStorage.run({ installationId }, fn)
 }
 
-// TODO: We currently depend on webhooks to provide installation IDs.
-// BUT, we should also save installation IDs to neo4j database on the first time we retrieve them.
-// They are unique to:
-//   - Our Github App (dev-issue-to-pr (local testing) or issuetopr-dev (production)) (confusing, I know)
-//   - user / org
+// TODO: I think we should follow prescribed protocol for using the installation ID from Github.
+// Usually they are provided via webhooks, or you can retrieve via their API.
+// We should get rid of this function and follow the recommended approach from Github API.
 export function getInstallationId(): string | null {
   const store = asyncLocalStorage.getStore()
   if (!store) {
@@ -44,9 +41,7 @@ export function getInstallationId(): string | null {
  * available in a local working directory that the server can freely mutate.
  * The steps performed are:
  * 1. Resolve (and lazily create) the base directory via `getLocalRepoDir`.
- * 2. Build an authenticated clone URL using either the user's
- *    GitHub App token (OAuth or installation token) exposed
- *    through `runWithInstallationId` / `getInstallationId`.
+ * 2. Build an authenticated clone URL using the repository's GitHub App installation token.
  * 3. Verify that the local repository is healthy via `ensureValidRepo`; if it
  *    is corrupt or missing, attempt a fresh clone.
  * 4. Ensure the local repo's "origin" remote uses the authenticated URL so
@@ -77,36 +72,13 @@ export async function setupLocalRepository({
   const baseDir = await getLocalRepoDir(repoFullName)
 
   try {
-    let cloneUrl: string
-
-    // 1. Determine an authenticated clone URL
-    const token = getAccessToken()
-    if (token) {
-      cloneUrl = getCloneUrlWithAccessToken(repoFullName, token)
-    } else {
-      // Fallback to GitHub App authentication
-      const octokit = await getOctokit()
-      if (!octokit) {
-        throw new Error("Failed to get authenticated Octokit instance")
-      }
-
-      const [owner, repo] = repoFullName.split("/")
-      const { data: repoData } = await octokit.rest.repos.get({
-        owner,
-        repo,
-      })
-
-      cloneUrl = repoData.clone_url as string
-
-      const installationId = getInstallationId()
-      if (installationId) {
-        const token = (await octokit.auth({
-          type: "installation",
-          installationId: Number(installationId),
-        })) as { token: string }
-        cloneUrl = getCloneUrlWithAccessToken(repoFullName, token.token)
-      }
-    }
+    // 1. Determine an authenticated clone URL using the installation token
+    const [owner, repo] = repoFullName.split("/")
+    const installationToken = await getInstallationTokenFromRepo({
+      owner,
+      repo,
+    })
+    const cloneUrl = getCloneUrlWithAccessToken(repoFullName, installationToken)
 
     // 2. Ensure repository exists and is healthy
     await ensureValidRepo(baseDir, cloneUrl)
