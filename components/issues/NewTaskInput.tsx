@@ -17,11 +17,14 @@ import {
 import { createIssueAction } from "@/lib/actions/createIssue"
 import { useHasKeyboard } from "@/lib/hooks/use-has-keyboard"
 import { toast } from "@/lib/hooks/use-toast"
+import type { IssueWithStatus } from "@/lib/github/issues"
 import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
 import { GetRepoResponse } from "@/lib/types/api/github"
 import { IssueTitleResponseSchema } from "@/lib/types/api/schemas"
 import type { RepoFullName } from "@/lib/types/github"
 import { mapGithubErrorToCopy } from "@/lib/ui/errorMessages"
+
+import { useOptimisticIssues } from "./OptimisticIssueProvider"
 
 interface Props {
   repoFullName: RepoFullName
@@ -44,6 +47,7 @@ export default function NewTaskInput({ repoFullName }: Props) {
   const formRef = useRef<HTMLFormElement>(null)
   const [isMac, setIsMac] = useState(false)
   const hasKeyboard = useHasKeyboard()
+  const optimisticIssues = useOptimisticIssues()
 
   // Detect OS to adjust keyboard shortcut hint and behavior
   useEffect(() => {
@@ -171,6 +175,27 @@ export default function NewTaskInput({ repoFullName }: Props) {
       })
 
       if (result.status === "success") {
+        if (optimisticIssues) {
+          const now = new Date().toISOString()
+          const optimisticIssue = {
+            id: result.number,
+            number: result.number,
+            title: taskTitle,
+            state: "open",
+            html_url: result.issueUrl,
+            created_at: now,
+            updated_at: now,
+            closed_at: null,
+            user: null,
+            hasPlan: false,
+            hasPR: false,
+            hasActiveWorkflow: false,
+            activeWorkflowId: null,
+            planId: null,
+            prNumber: null,
+          } as IssueWithStatus
+          optimisticIssues.addOptimisticIssue(optimisticIssue)
+        }
         toast({
           title: "Task synced to GitHub",
           description: `Created: ${taskTitle}`,

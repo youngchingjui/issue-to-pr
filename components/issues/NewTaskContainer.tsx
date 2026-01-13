@@ -2,8 +2,9 @@ import { Suspense } from "react"
 
 import IssuesNotEnabled from "@/components/common/IssuesNotEnabled"
 import RepoSelector from "@/components/common/RepoSelector"
-import IssueTable from "@/components/issues/IssueTable"
 import NewTaskInput from "@/components/issues/NewTaskInput"
+import { OptimisticIssueProvider } from "@/components/issues/OptimisticIssueProvider"
+import IssueTableClient from "@/components/issues/IssueTableClient"
 import Skeleton from "@/components/ui/skeleton"
 import { RepoFullName } from "@/lib/types/github"
 
@@ -18,27 +19,29 @@ interface Props {
  */
 export default async function NewTaskContainer({ repoFullName }: Props) {
   return (
-    <main className="mx-auto max-w-4xl w-full py-10 px-4 sm:px-6">
-      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <h1 className="text-2xl font-bold">Your Issues &amp; Workflows</h1>
-        <div className="flex items-center gap-3">
-          <Suspense fallback={<Skeleton className="h-4 w-24" />}>
-            <RepoSelector selectedRepo={repoFullName.fullName} />
-          </Suspense>
+    <OptimisticIssueProvider>
+      <main className="mx-auto max-w-4xl w-full py-10 px-4 sm:px-6">
+        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <h1 className="text-2xl font-bold">Your Issues &amp; Workflows</h1>
+          <div className="flex items-center gap-3">
+            <Suspense fallback={<Skeleton className="h-4 w-24" />}>
+              <RepoSelector selectedRepo={repoFullName.fullName} />
+            </Suspense>
+          </div>
         </div>
-      </div>
 
-      <Suspense>
-        <IssuesNotEnabled repoFullName={repoFullName} />
-      </Suspense>
+        <Suspense>
+          <IssuesNotEnabled repoFullName={repoFullName} />
+        </Suspense>
 
-      <div className="mb-6">
-        <NewTaskInput repoFullName={repoFullName} />
-      </div>
+        <div className="mb-6">
+          <NewTaskInput repoFullName={repoFullName} />
+        </div>
 
-      <Suspense fallback={<Skeleton className="h-9 w-60" />}>
-        <IssueTable repoFullName={repoFullName} />
-      </Suspense>
-    </main>
+        <Suspense fallback={<Skeleton className="h-9 w-60" />}>
+          <IssueTableClient repoFullName={repoFullName} />
+        </Suspense>
+      </main>
+    </OptimisticIssueProvider>
   )
 }

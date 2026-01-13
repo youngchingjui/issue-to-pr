@@ -65,7 +65,9 @@ export function makeFetchIssueReaderAdapter(params: {
     try {
       const res = await fetch(url.toString(), {
         headers: baseHeaders,
-        cache: "no-store",
+        next: {
+          tags: ["issues-list", `issues-list:${repoFullName}`],
+        },
       })
 
       if (!res.ok) {
