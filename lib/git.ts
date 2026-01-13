@@ -1,7 +1,7 @@
 // Convenience methods for running git commands in node
 // Returns promises for exec operations
 
-import { exec } from "child_process"
+import { exec, type ExecException, type ExecOptions } from "child_process"
 import { promises as fs } from "fs"
 import path from "path"
 
@@ -25,7 +25,11 @@ export async function updateToLatest(dir: string): Promise<string> {
     try {
       await execPromise(resetCommand, { cwd: dir })
     } catch (resetError) {
-      throw new Error(`Unable to stash or reset changes: ${stashError.message}, ${resetError.message}`)
+      const stashMsg = stashError instanceof Error ? stashError.message : String(stashError)
+      const resetMsg = resetError instanceof Error ? resetError.message : String(resetError)
+      throw new Error(
+        `Unable to stash or reset changes: ${stashMsg}, ${resetMsg}`
+      )
     }
   }
 
@@ -49,7 +53,7 @@ export async function checkIfLocalBranchExists(
     exec(command, { cwd }, (error, stdout, stderr) => {
       // grep returns exit code 1 when no matches are found
       // but other error codes indicate real errors
-      if (error && error.code !== 1) {
+      if (error && (error as ExecException).code !== 1) {
         return reject(new Error(error.message))
       }
       if (stderr) {
@@ -113,40 +117,43 @@ export async function cloneRepo(
   cloneUrl: string,
   dir: string = null
 ): Promise<string> {
-  const command = `git clone ${cloneUrl}${dir ? ` ${dir}` : ""}`;
+  const command = `git clone ${cloneUrl}${dir ? ` ${dir}` : ""}`
   return new Promise((resolve, reject) => {
-    exec(command, { cwd: dir }, async (error, stdout, stderr) => {
+    exec(command, { cwd: dir }, async (error, stdout, _stderr) => {
       if (error) {
-        return reject(new Error(error.message));
+        return reject(new Error(error.message))
       }
 
       try {
-        // Switch to the newly cloned repository directory for future commands
-        const targetDir = dir ? path.join(dir, path.basename(cloneUrl, '.git')) : path.basename(cloneUrl, '.git');
-        
+        // Determine the directory of the newly cloned repository
+        const targetDir = dir ?? path.basename(cloneUrl, ".git")
+
         // Handle potential uncommitted changes before updating
-        await execPromise('git stash', { cwd: targetDir });
+        await execPromise("git stash", { cwd: targetDir })
 
         // Update to latest after cloning
-        const updateMessage = await updateToLatest(targetDir);
-        return resolve(stdout + updateMessage);
+        const updateMessage = await updateToLatest(targetDir)
+        return resolve(stdout + updateMessage)
       } catch (err) {
-        return reject(new Error(`Unable to update to the latest version: ${err.message}`));
+        const message = err instanceof Error ? err.message : String(err)
+        return reject(
+          new Error(`Unable to update to the latest version: ${message}`)
+        )
       }
-    });
-  });
+    })
+  })
 }
 
 // Helper function for promisified exec with options
-function execPromise(command: string, options: object): Promise<string> {
+function execPromise(command: string, options: ExecOptions): Promise<string> {
   return new Promise((resolve, reject) => {
     exec(command, options, (error, stdout, stderr) => {
       if (error) {
-        return reject(new Error(stderr || stdout));
+        return reject(new Error(stderr || stdout))
       }
-      return resolve(stdout);
-    });
-  });
+      return resolve(stdout)
+    })
+  })
 }
 
 export async function getLocalFileContent(filePath: string): Promise<string> {
@@ -155,3 +162,4 @@ export async function getLocalFileContent(filePath: string): Promise<string> {
   const fileContent = await fs.readFile(filePath, "utf8")
   return fileContent
 }
+
