@@ -1,3 +1,8 @@
+// Mock Neo4j data source to avoid env requirements during import time
+jest.mock("@/lib/neo4j", () => ({
+  neo4jDs: { getSession: () => ({}) },
+}))
+
 import { handlePullRequestComment } from "@/lib/webhook/github/handlers/pullRequest/comment.authorizeWorkflow.handler"
 
 // Mocks
@@ -18,9 +23,9 @@ jest.mock("@/lib/github", () => ({
 const storageMockFactory = (value: string | null, ok = true) => ({
   settings: {
     user: {
-      getOpenAIKey: jest.fn().mockResolvedValue(
-        ok ? { ok: true as const, value } : { ok: false as const, error: "Unknown" as const }
-      ),
+      getOpenAIKey: jest
+        .fn()
+        .mockResolvedValue(ok ? { ok: true as const, value } : { ok: false as const, error: "Unknown" as const }),
     },
   },
 })
@@ -66,13 +71,13 @@ describe("handlePullRequestComment", () => {
 
   it("ignores non-PR comments", async () => {
     const res = await handlePullRequestComment({ ...baseParams, isPullRequest: false })
-    expect(res).toEqual({ status: "ignored", reason: "not_pr" })
+    expect(res).toEqual({ status: "ignored", reason: "not_pr_comment" })
     expect(asMock(getInstallationOctokit)).not.toHaveBeenCalled()
   })
 
   it("ignores bot comments", async () => {
     const res = await handlePullRequestComment({ ...baseParams, commentUserType: "Bot" })
-    expect(res).toEqual({ status: "ignored", reason: "bot_comment" })
+    expect(res).toEqual({ status: "ignored", reason: "not_human_user" })
   })
 
   it("ignores comments without the trigger keyword", async () => {
