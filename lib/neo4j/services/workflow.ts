@@ -1,5 +1,4 @@
 import { int } from "neo4j-driver"
-import { withTiming } from "shared/utils/telemetry"
 
 import { n4j } from "@/lib/neo4j/client"
 import { neo4jToJs, toAppEvent, toAppMessageEvent } from "@/lib/neo4j/convert"
@@ -25,6 +24,7 @@ import {
   WorkflowRunState,
   WorkflowType,
 } from "@/lib/types"
+import { withTiming } from "@/shared/utils/telemetry"
 
 /**
  * Merges (matches or creates) a WorkflowRun node and the corresponding Issue node in the database, linking the two.
@@ -37,6 +37,8 @@ import {
  * The function then links the WorkflowRun to the Issue with the following pattern:
  * (w:WorkflowRun)-[:BASED_ON_ISSUE]->(i:Issue)
  * and returns the application representations of both.
+ *
+ * @deprecated Use StorageAdapter.workflow.run.create instead. This legacy function does not create Repository/User attribution.
  */
 export async function initializeWorkflowRun({
   id,
@@ -115,6 +117,7 @@ function deriveState(
 
 /**
  * Returns workflows with run state and connected issue (if any)
+ * @deprecated Use StorageAdapter.workflow.run.list instead
  */
 export async function listWorkflowRuns(issue?: {
   repoFullName: string
@@ -313,4 +316,3 @@ export async function getWorkflowRunEvents(
     await session.close()
   }
 }
-

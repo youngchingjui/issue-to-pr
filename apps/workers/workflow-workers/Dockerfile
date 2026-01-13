@@ -54,5 +54,5 @@ ENV NODE_ENV=production
 # Send SIGTERM and allow time to shutdown gracefully
 STOPSIGNAL SIGTERM
 # Start directly with node; no pnpm needed at runtime
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/apps/workers/workflow-workers/src/index.js"]
 

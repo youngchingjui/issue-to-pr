@@ -2,7 +2,6 @@ import { exec as hostExec } from "child_process"
 import Docker from "dockerode"
 import os from "os"
 import path from "path"
-import { buildPreviewSubdomainSlug } from "shared/entities/previewSlug"
 import util from "util"
 import { v4 as uuidv4 } from "uuid"
 
@@ -16,6 +15,7 @@ import { getInstallationTokenFromRepo } from "@/lib/github/installation"
 import { AGENT_BASE_IMAGE } from "@/lib/types/docker"
 import { containerNameForTrace } from "@/lib/utils/utils-common"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
+import { buildPreviewSubdomainSlug } from "@/shared/entities/previewSlug"
 
 // Promisified exec for host-side commands (e.g., docker cp)
 const execHost = util.promisify(hostExec)

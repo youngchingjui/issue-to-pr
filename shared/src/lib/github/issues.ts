@@ -1,17 +1,17 @@
-import { withTiming } from "shared/utils/telemetry"
+import { withTiming } from "@/shared/utils/telemetry"
 
-import { getInstallationFromRepo, getInstallationOctokit } from "@/lib/github"
+import { getInstallationFromRepo, getInstallationOctokit } from "@/shared/lib/github"
 import {
   getLatestPlanIdsForIssues,
   getPlanStatusForIssues,
-} from "@/lib/neo4j/services/plan"
-import { listWorkflowRuns } from "@/lib/neo4j/services/workflow"
+} from "@/shared/lib/neo4j/services/plan"
+import { listWorkflowRuns } from "@/shared/lib/neo4j/services/workflow"
 import {
-  GetIssueResult,
-  GitHubIssue,
-  GitHubIssueComment,
-  ListForRepoParams,
-} from "@/lib/types/github"
+  type GetIssueResult,
+  type GitHubIssue,
+  type GitHubIssueComment,
+  type ListForRepoParams,
+} from "@/shared/lib/types/github"
 
 // Helper: installation-scoped Octokit for a repoFullName
 async function getInstallationOctokitForRepo(repoFullName: string) {

@@ -2,16 +2,16 @@
 
 import { AsyncLocalStorage } from "node:async_hooks"
 
-import { getLocalRepoDir } from "@/lib/fs"
+import { getLocalRepoDir } from "@/shared/lib/fs"
 import {
   cleanCheckout,
   cleanupRepo,
   cloneRepo,
   ensureValidRepo,
   setRemoteOrigin,
-} from "@/lib/git"
-import { getInstallationTokenFromRepo } from "@/lib/github/installation"
-import { getCloneUrlWithAccessToken } from "@/lib/utils/utils-common"
+} from "@/shared/lib/git"
+import { getInstallationTokenFromRepo } from "@/shared/lib/github/installation"
+import { getCloneUrlWithAccessToken } from "@/shared/lib/utils/utils-common"
 
 // For storing Github App installation ID in async context
 const asyncLocalStorage = new AsyncLocalStorage<{ installationId: string }>()

@@ -25,9 +25,21 @@ const InstallationSchema = z.object({ id: z.number() })
 export const IssuesPayloadSchema = z.object({
   action: z.string(),
   label: z.object({ name: z.string() }).optional(),
-  repository: z.object({ full_name: z.string() }),
+  repository: z.object({
+    id: z.number(),
+    node_id: z.string(),
+    full_name: z.string(),
+    name: z.string(),
+    owner: z.object({ login: z.string() }),
+    default_branch: z.string().optional(),
+    visibility: z.enum(["public", "private", "internal"]).optional(),
+    has_issues: z.boolean().optional(),
+  }),
   issue: z.object({ number: z.number() }),
-  sender: z.object({ login: z.string() }),
+  sender: z.object({
+    id: z.number(),
+    login: z.string(),
+  }),
   installation: InstallationSchema,
 })
 export type IssuesPayload = z.infer<typeof IssuesPayloadSchema>
@@ -83,10 +95,34 @@ export const StatusPayloadSchema = z.object({
 })
 export type StatusPayload = z.infer<typeof StatusPayloadSchema>
 
+const AuthorAssociationSchema = z.enum([
+  "COLLABORATOR",
+  "CONTRIBUTOR",
+  "FIRST_TIME_CONTRIBUTOR",
+  "FIRST_TIMER",
+  "MANNEQUIN",
+  "MEMBER",
+  "NONE",
+  "OWNER",
+])
+
 export const IssueCommentPayloadSchema = z.object({
-  action: z.string(),
-  issue: z.object({ number: z.number() }).optional(),
-  comment: z.object({ id: z.number() }).optional(),
+  action: z.enum(["created", "edited", "deleted"]),
+  issue: z.object({
+    number: z.number(),
+    // When the comment is on a PR, GitHub includes a pull_request field on the issue
+    pull_request: z.any().optional(),
+    author_association: AuthorAssociationSchema,
+  }),
+  comment: z.object({
+    id: z.number(),
+    body: z.string(),
+    user: z.object({
+      login: z.string(),
+      type: z.enum(["User", "Bot", "Organization"]),
+    }),
+    author_association: AuthorAssociationSchema,
+  }),
   repository: z.object({ full_name: z.string() }),
   installation: InstallationSchema,
 })

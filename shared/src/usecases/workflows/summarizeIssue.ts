@@ -1,4 +1,4 @@
-import type { LLMPort } from "@/ports/llm"
+import type { LLMPort } from "@/shared/ports/llm"
 
 const SYSTEM_PROMPT =
   "You are an expert GitHub assistant. Given an issue title and body, produce a concise, actionable summary (2-4 sentences) highlighting the problem, scope, and desired outcome. Return only the summary text."

@@ -1,8 +1,8 @@
 // Jest tests for generateNonConflictingBranchName use case
 
-import type { GitHubRefsPort } from "@shared/ports/github/branch.reader"
-import type { LLMPort } from "@shared/ports/llm"
-import { generateNonConflictingBranchName } from "@shared/usecases/git/generateBranchName"
+import type { GitHubRefsPort } from "@/shared/ports/github/branch.reader"
+import type { LLMPort } from "@/shared/ports/llm"
+import { generateNonConflictingBranchName } from "@/shared/usecases/git/generateBranchName"
 
 function mockPorts(overrides?: { llmText?: string; branches?: string[] }): {
   llm: LLMPort
