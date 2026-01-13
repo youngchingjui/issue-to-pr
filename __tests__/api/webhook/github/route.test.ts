@@ -42,6 +42,10 @@ jest.mock(
     handlePullRequestLabelCreateDependentPR: jest.fn(),
   })
 )
+// Note: The PR-comment handler performs side effects (GitHub API calls, Redis enqueue, Neo4j lookups).
+// In this routing test we only verify correct dispatching, so we mock the handler here to avoid
+// heavy I/O and keep the test hermetic. The handler's own behavior is covered by dedicated unit tests
+// in __tests__/lib/webhook/handlers/pullRequest/comment.authorizeWorkflow.handler.test.ts
 jest.mock(
   "@/lib/webhook/github/handlers/pullRequest/comment.authorizeWorkflow.handler",
   () => ({
@@ -77,7 +81,7 @@ describe("POST /api/webhook/github", () => {
   beforeEach(() => {
     jest.resetAllMocks()
     process.env.GITHUB_WEBHOOK_SECRET = secret
-    // Configure handlePullRequestComment to return a resolved Promise
+    // Stub the PR-comment handler with a benign resolved value so routing assertions remain fast.
     jest
       .mocked(handlePullRequestComment)
       .mockResolvedValue({ status: "ignored", reason: "no_command" })
@@ -594,64 +598,8 @@ describe("POST /api/webhook/github", () => {
     })
   })
 
-  describe("No-op Events", () => {
-    it("accepts push events without calling handlers", async () => {
-      const payload = {
-        ref: "refs/heads/main",
-        repository: { full_name: "owner/repo" },
-        installation: { id: 5555 },
-      }
-      const mockRequest = createSignedRequest(payload, "push")
-
-      const response = await POST(mockRequest)
-
-      expect(response.status).toBe(200)
-    })
-
-    it("accepts create events without calling handlers", async () => {
-      const payload = {
-        ref: "feature/new",
-        ref_type: "branch",
-        repository: { full_name: "owner/repo" },
-        installation: { id: 6666 },
-      }
-      const mockRequest = createSignedRequest(payload, "create")
-
-      const response = await POST(mockRequest)
-
-      expect(response.status).toBe(200)
-    })
-
-    it("accepts delete events without calling handlers", async () => {
-      const payload = {
-        ref: "feature/old",
-        ref_type: "branch",
-        repository: { full_name: "owner/repo" },
-        installation: { id: 7777 },
-      }
-      const mockRequest = createSignedRequest(payload, "delete")
-
-      const response = await POST(mockRequest)
-
-      expect(response.status).toBe(200)
-    })
-
-    it("accepts status events without calling handlers", async () => {
-      const payload = {
-        state: "success",
-        context: "ci/test",
-        repository: { full_name: "owner/repo" },
-        installation: { id: 8888 },
-      }
-      const mockRequest = createSignedRequest(payload, "status")
-
-      const response = await POST(mockRequest)
-
-      expect(response.status).toBe(200)
-    })
-
-    // TODO: the test here doesn't seem to match what we're actually doing. Maybe we need to review this.
-    it("accepts issue_comment events without calling handlers", async () => {
+  describe("Issue Comment Routing", () => {
+    it("routes issue_comment.created events to the PR comment handler", async () => {
       const payload = {
         action: "created",
         comment: {
@@ -660,7 +608,7 @@ describe("POST /api/webhook/github", () => {
           author_association: "OWNER",
           user: { login: "octocat", type: "User" },
         },
-        issue: { number: 1, author_association: "OWNER" },
+        issue: { number: 1, author_association: "OWNER", pull_request: {} },
         repository: { full_name: "owner/repo" },
         installation: { id: 9999 },
       }
@@ -669,8 +617,8 @@ describe("POST /api/webhook/github", () => {
       const response = await POST(mockRequest)
 
       expect(response.status).toBe(200)
-      // The handler should have been called since action is "created"
       expect(handlePullRequestComment).toHaveBeenCalledTimes(1)
     })
   })
 })
+

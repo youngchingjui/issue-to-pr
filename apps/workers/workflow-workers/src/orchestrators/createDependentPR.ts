@@ -18,6 +18,12 @@ export type CreateDependentPRJobData = {
   githubInstallationId: string
 }
 
+/**
+ * Orchestrator entrypoint for the createDependentPR job.
+ * @deprecated Prefer invoking the shared use-case `createDependentPRWorkflow` directly with
+ * dependency-injected providers (auth, storage). This thin wrapper exists to preserve
+ * current worker routing and will be removed after consumers migrate.
+ */
 export async function createDependentPR(
   jobId: string,
   {
@@ -60,7 +66,7 @@ export async function createDependentPR(
     !auth ||
     typeof auth !== "object" ||
     !("token" in auth) ||
-    typeof auth.token !== "string"
+    typeof (auth as any).token !== "string"
   ) {
     throw new Error("Failed to get installation token")
   }
@@ -100,3 +106,4 @@ export async function createDependentPR(
 
   return `Branch pushed: ${branch}`
 }
+
