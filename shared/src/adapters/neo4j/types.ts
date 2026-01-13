@@ -171,6 +171,8 @@ export const issueSchema = z.object({
 
 //--------Event Types--------
 
+// TODO: It seems that we mix "messages" with "events", but I think these concepts should be separated.
+// TODO: We're not really using llmResponseWithPlan anymore, I think we can start to remove this feature.
 const eventTypes = z.enum([
   "error",
   "llmResponse",

@@ -140,6 +140,7 @@ export const messageEventSchema = z.union([
   ]),
 ])
 
+// TODO: We're mixing messages and events here. we should separate them into different concepts.
 export const anyEventSchema = z.discriminatedUnion("type", [
   errorEventSchema,
   llmResponseSchema,
