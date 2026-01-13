@@ -32,12 +32,8 @@ export async function handler(job: Job): Promise<string> {
 
   await publishJobStatus(job.id, "Parsing job")
 
-  const { success, data, error } = JobEventSchema.safeParse({
-    name: job.name,
-    data: job.data,
-  })
+  const { success, data, error } = JobEventSchema.safeParse(job)
   if (!success) {
-    console.error("error", error)
     await publishJobStatus(job.id, `Failed: Invalid job data: ${error.message}`)
     throw new Error("Invalid job data")
   }
