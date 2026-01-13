@@ -27,6 +27,7 @@ import { createGetFileContentTool } from "@/lib/tools/GetFileContent"
 import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
 import { createSetupRepoTool } from "@/lib/tools/SetupRepoTool"
 import { createSyncBranchTool } from "@/lib/tools/SyncBranchTool"
+import { createWebSearchTool } from "@/lib/tools/WebSearchTool"
 import { createWriteFileContentTool } from "@/lib/tools/WriteFileContent"
 import { Plan, RepoEnvironment, RepoSettings } from "@/lib/types"
 import {
@@ -202,6 +203,7 @@ export const resolveIssue = async ({
     const branchTool = createBranchTool(env)
     const commitTool = createCommitTool(env, repository.default_branch)
     const fileCheckTool = createFileCheckTool(env)
+    const webSearchTool = createWebSearchTool({ apiKey })
 
     // Add base tools to persistent coder
     coder.addTool(setupRepoTool)
@@ -211,6 +213,7 @@ export const resolveIssue = async ({
     coder.addTool(branchTool)
     coder.addTool(commitTool)
     coder.addTool(fileCheckTool)
+    coder.addTool(webSearchTool)
 
     // Add sync and PR tools only if createPR is true AND permissions are sufficient
     let syncBranchTool: ReturnType<typeof createSyncBranchTool> | undefined

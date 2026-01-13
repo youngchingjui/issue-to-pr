@@ -8,6 +8,7 @@ import { createGetFileContentTool } from "@/shared/lib/tools/GetFileContent"
 import { createRipgrepSearchTool } from "@/shared/lib/tools/RipgrepSearchTool"
 import { createSetupRepoTool } from "@/shared/lib/tools/SetupRepoTool"
 import { createSyncBranchTool } from "@/shared/lib/tools/SyncBranchTool"
+import { createWebSearchTool } from "@/shared/lib/tools/WebSearchTool"
 import { createWriteFileContentTool } from "@/shared/lib/tools/WriteFileContent"
 import {
   type AgentConstructorParams,
@@ -84,11 +85,12 @@ export class PlanAndCodeAgent extends ResponsesAPIAgent {
       issueNumber,
       sessionToken,
       jobId,
+      apiKey,
       ...base
     } = params
 
     // Initialise base Agent (model defaults to "gpt-5" if not overridden)
-    super({ model: "gpt-5", ...base })
+    super({ model: "gpt-5", apiKey, ...base })
 
     if (jobId) {
       this.jobId = jobId
@@ -110,6 +112,9 @@ export class PlanAndCodeAgent extends ResponsesAPIAgent {
     this.addTool(createBranchTool(env))
     this.addTool(createCommitTool(env, defaultBranch))
     this.addTool(createFileCheckTool(env))
+    if (apiKey) {
+      this.addTool(createWebSearchTool({ apiKey }))
+    }
 
     // Container-specific utility
     if (env.kind === "container") {
