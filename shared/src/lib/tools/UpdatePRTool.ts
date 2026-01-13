@@ -2,7 +2,7 @@ import { z } from "zod"
 
 import { updatePullRequestBody } from "@/shared/adapters/github/octokit/graphql/pullRequest.writer"
 import { createTool } from "@/shared/lib/tools/helper"
-import { GitHubAuthProvider } from "@/shared/ports/github/auth"
+import type { GitHubAuthProvider } from "@/shared/ports/github/auth"
 
 const updatePullRequestBodyParameters = z.object({
   appendedBody: z
