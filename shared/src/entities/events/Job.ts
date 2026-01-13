@@ -37,6 +37,7 @@ export type AutoResolveIssueJob = z.infer<typeof AutoResolveIssueJobSchema>
 export const CreateDependentPRJobSchema = z.object({
   name: z.literal("createDependentPR"),
   data: z.object({
+    workflowId: z.string(),
     repoFullName: z.string(),
     pullNumber: z.number().int().positive(),
     githubLogin: z.string(),

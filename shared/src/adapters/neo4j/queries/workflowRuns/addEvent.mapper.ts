@@ -145,9 +145,111 @@ function mapNeo4jEventToDomain(neo4jEvent: AnyEvent): AllEvents {
         },
       }
 
+    case "workflowStarted":
+      // Neo4j "workflowStarted" → WorkflowEvent "workflow.started"
+      return {
+        id: neo4jEvent.id,
+        timestamp: workflowTimestamp,
+        type: "workflow.started",
+        content: neo4jEvent.content,
+      }
+
+    case "workflowCompleted":
+      // Neo4j "workflowCompleted" → WorkflowEvent "workflow.completed"
+      return {
+        id: neo4jEvent.id,
+        timestamp: workflowTimestamp,
+        type: "workflow.completed",
+        content: neo4jEvent.content,
+      }
+
+    case "workflowCancelled":
+      // Neo4j "workflowCancelled" → WorkflowEvent "workflow.cancelled"
+      return {
+        id: neo4jEvent.id,
+        timestamp: workflowTimestamp,
+        type: "workflow.cancelled",
+        content: neo4jEvent.content,
+      }
+
+    case "workflowCheckpointSaved":
+      // Neo4j "workflowCheckpointSaved" → WorkflowEvent "workflow.checkpoint.saved"
+      return {
+        id: neo4jEvent.id,
+        timestamp: workflowTimestamp,
+        type: "workflow.checkpoint.saved",
+        content: neo4jEvent.content,
+      }
+
+    case "workflowCheckpointRestored":
+      // Neo4j "workflowCheckpointRestored" → WorkflowEvent "workflow.checkpoint.restored"
+      return {
+        id: neo4jEvent.id,
+        timestamp: workflowTimestamp,
+        type: "workflow.checkpoint.restored",
+        content: neo4jEvent.content,
+      }
+
     default:
       // TypeScript will ensure this is exhaustive
       const _exhaustive: never = neo4jEvent
       throw new Error(`Unknown event type: ${(_exhaustive as AnyEvent).type}`)
+  }
+}
+
+/**
+ * Maps domain event type to Neo4j event type
+ * This is the inverse of the mapping done in mapNeo4jEventToDomain
+ */
+export function mapDomainEventTypeToNeo4j(
+  domainEventType: AllEvents["type"]
+): string {
+  switch (domainEventType) {
+    // WorkflowEvent types
+    case "workflow.error":
+      return "error"
+    case "workflow.state":
+      return "workflowState"
+    case "status":
+      return "status"
+    case "workflow.started":
+      return "workflowStarted"
+    case "workflow.completed":
+      return "workflowCompleted"
+    case "workflow.cancelled":
+      return "workflowCancelled"
+    case "workflow.checkpoint.saved":
+      return "workflowCheckpointSaved"
+    case "workflow.checkpoint.restored":
+      return "workflowCheckpointRestored"
+
+    // MessageEvent types
+    case "system_prompt":
+      return "systemPrompt"
+    case "user_message":
+      return "userMessage"
+    case "assistant_message":
+      return "llmResponse"
+    case "tool.call":
+      return "toolCall"
+    case "tool.result":
+      return "toolCallResult"
+    case "reasoning":
+      return "reasoning"
+
+    // LLMEvent types (not currently stored in Neo4j, but mapping for future use)
+    case "llm.started":
+      return "llmStarted"
+    case "llm.completed":
+      return "llmCompleted"
+
+    // GithubEvent types (deprecated)
+    case "issue.fetched":
+      return "issueFetched"
+
+    default:
+      // If we get here, TypeScript has caught an unmapped type
+      const _exhaustive: never = domainEventType
+      throw new Error(`Unknown domain event type: ${_exhaustive}`)
   }
 }

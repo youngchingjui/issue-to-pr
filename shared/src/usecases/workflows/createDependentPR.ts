@@ -4,6 +4,7 @@ import {
   getPullRequestDiscussionGraphQL,
   getPullRequestMetaAndLinkedIssue,
 } from "@/shared/adapters/github/octokit/graphql/pullRequest.reader"
+import { clearAccessToken, setAccessToken } from "@/shared/auth"
 import { DependentPRAgent } from "@/shared/lib/agents/DependentPRAgent"
 import { execInContainerWithDockerode } from "@/shared/lib/docker"
 import { getInstallationTokenFromRepo } from "@/shared/lib/github/installation"
@@ -121,6 +122,16 @@ export async function createDependentPRWorkflow({
 
     const linkedIssue = prMetaAndLinkedIssue.linkedIssue
 
+    // Get installation token first (needed for setupLocalRepository)
+    const [owner, repo] = repoFullName.split("/")
+    const sessionToken = await getInstallationTokenFromRepo({ owner, repo })
+
+    // TEMPORARY FIX: Set token in deprecated global store for setupLocalRepository
+    // TODO: Remove this after refactoring setupLocalRepository to accept token as parameter (see #1474)
+    if (sessionToken) {
+      setAccessToken(sessionToken)
+    }
+
     // Ensure local repository exists and is up-to-date (use baseRef as working branch)
     const hostRepoPath = await setupLocalRepository({
       repoFullName,
@@ -136,10 +147,6 @@ export async function createDependentPRWorkflow({
     })
     const env: RepoEnvironment = { kind: "container", name: containerName }
     containerCleanup = cleanup
-
-    // Authenticate remote for fetch/push via installation token
-    const [owner, repo] = repoFullName.split("/")
-    const sessionToken = await getInstallationTokenFromRepo({ owner, repo })
 
     // Check permissions
     const permissions: RepoPermissions | null =
@@ -294,6 +301,10 @@ export async function createDependentPRWorkflow({
     }
     throw error
   } finally {
+    // Cleanup container
     if (containerCleanup) await containerCleanup()
+    // TEMPORARY FIX: Clear the access token from global store
+    // TODO: Remove this after refactoring setupLocalRepository (see #1474)
+    clearAccessToken()
   }
 }

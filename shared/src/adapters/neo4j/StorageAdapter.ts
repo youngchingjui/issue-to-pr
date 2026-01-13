@@ -30,6 +30,7 @@ import {
   getWorkflowRunById,
   listEventsForWorkflowRun,
   mapAddEventResult,
+  mapDomainEventTypeToNeo4j,
   mapGetWorkflowRunById,
   mapListEvents,
 } from "./queries/workflowRuns"
@@ -141,11 +142,14 @@ async function addEventToRun(
     const eventId = crypto.randomUUID()
     const createdAt = event.createdAt ?? new Date().toISOString()
 
+    // Map domain event type to Neo4j event type
+    const neo4jEventType = mapDomainEventTypeToNeo4j(event.type)
+
     const result = await session.executeWrite((tx) =>
       addEvent(tx, {
         runId,
         eventId,
-        eventType: event.type,
+        eventType: neo4jEventType,
         content: JSON.stringify(event.payload),
         createdAt,
       })

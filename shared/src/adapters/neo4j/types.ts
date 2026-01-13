@@ -171,6 +171,8 @@ export const issueSchema = z.object({
 
 //--------Event Types--------
 
+// TODO: It seems that we mix "messages" with "events", but I think these concepts should be separated.
+// TODO: We're not really using llmResponseWithPlan anymore, I think we can start to remove this feature.
 const eventTypes = z.enum([
   "error",
   "llmResponse",
@@ -184,6 +186,11 @@ const eventTypes = z.enum([
   "toolCallResult",
   "userMessage",
   "workflowState",
+  "workflowStarted",
+  "workflowCompleted",
+  "workflowCancelled",
+  "workflowCheckpointSaved",
+  "workflowCheckpointRestored",
 ])
 
 export const baseEventSchema = z.object({
@@ -269,6 +276,31 @@ export const reviewCommentSchema = baseEventSchema.extend({
   content: z.string(),
 })
 
+export const workflowStartedEventSchema = baseEventSchema.extend({
+  type: z.literal("workflowStarted"),
+  content: z.string().optional(),
+})
+
+export const workflowCompletedEventSchema = baseEventSchema.extend({
+  type: z.literal("workflowCompleted"),
+  content: z.string().optional(),
+})
+
+export const workflowCancelledEventSchema = baseEventSchema.extend({
+  type: z.literal("workflowCancelled"),
+  content: z.string().optional(),
+})
+
+export const workflowCheckpointSavedEventSchema = baseEventSchema.extend({
+  type: z.literal("workflowCheckpointSaved"),
+  content: z.string().optional(),
+})
+
+export const workflowCheckpointRestoredEventSchema = baseEventSchema.extend({
+  type: z.literal("workflowCheckpointRestored"),
+  content: z.string().optional(),
+})
+
 export const messageEventSchema = z.union([
   llmResponseWithPlanSchema,
   reasoningEventSchema,
@@ -292,6 +324,11 @@ export const anyEventSchema = z.discriminatedUnion("type", [
   toolCallSchema,
   userMessageSchema,
   workflowStateEventSchema,
+  workflowStartedEventSchema,
+  workflowCompletedEventSchema,
+  workflowCancelledEventSchema,
+  workflowCheckpointSavedEventSchema,
+  workflowCheckpointRestoredEventSchema,
 ])
 
 //--------Export all types--------

@@ -11,6 +11,7 @@ import { getEnvVar, publishJobStatus } from "../helper"
 import { neo4jDs } from "../neo4j"
 
 export type CreateDependentPRJobData = {
+  workflowId: string
   repoFullName: string
   pullNumber: number
   githubLogin: string
@@ -20,6 +21,7 @@ export type CreateDependentPRJobData = {
 export async function createDependentPR(
   jobId: string,
   {
+    workflowId,
     repoFullName,
     pullNumber,
     githubLogin,
@@ -80,7 +82,7 @@ export async function createDependentPR(
           pullNumber,
           storage,
           userId: githubLogin,
-          jobId,
+          jobId: workflowId,
           initiator: { type: "api", actorLogin: githubLogin, label: "webhook" },
           authProvider,
           webAppUrl: WEB_APP_URL || null,
