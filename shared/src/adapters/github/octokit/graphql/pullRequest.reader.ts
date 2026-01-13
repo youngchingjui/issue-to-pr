@@ -276,6 +276,15 @@ export function makeGitHubPRGraphQLAdapter(params: {
 export const makeGithubPRGraphQLAdapter = (token: string) =>
   makeGitHubPRGraphQLAdapter({ token })
 
+// TODO: I don't like how we inject the authProvider directly into this feature function.
+// To me, I would imagine that we have 1 object that handles the authentication, so that should receive the
+// auth provider on construction. Then, we use that object to call these specific functions.
+
+// TODO: I think we're mixing a lot of concerns here. We have the graphql query, the type shape, and also seemingly some data transformations.
+// I think it maybe makes sense to keep the query and the type shape together.
+// But perhaps we should wrap those queries in a method where we define the input and output shapes clearly with typescript.
+// And we have a separate portion that maps the raw data to our desired shapes.
+// This way, the wrapped queries can also define the shape of the variables too.
 export const getPullRequestMetaAndLinkedIssue = async (
   repoFullName: string,
   pullNumber: number,
