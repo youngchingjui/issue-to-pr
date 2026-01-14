@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 
 import RepoSelector from "@/components/common/RepoSelector"
 import IssuesList from "@/components/issues/IssuesList"
@@ -129,21 +129,19 @@ export default function IssueDashboardClient({
                   repoFullName={repoFullName.fullName}
                   existingIssueNumbers={issues.map((issue) => issue.number)}
                 />
-                <Suspense fallback={<RowsSkeleton rows={5} columns={3} />}>
-                  {initialLoading ? (
-                    <RowsSkeleton rows={5} columns={3} />
-                  ) : (
-                    <IssuesList
-                      repoFullName={repoFullName.fullName}
-                      issues={issues}
-                      prMap={prMap}
-                      loading={loading}
-                      error={error}
-                      hasMore={hasMore}
-                      onLoadMore={onLoadMore}
-                    />
-                  )}
-                </Suspense>
+                {initialLoading ? (
+                  <RowsSkeleton rows={5} columns={3} />
+                ) : (
+                  <IssuesList
+                    repoFullName={repoFullName.fullName}
+                    issues={issues}
+                    prMap={prMap}
+                    loading={loading}
+                    error={error}
+                    hasMore={hasMore}
+                    onLoadMore={onLoadMore}
+                  />
+                )}
               </TableBody>
             </Table>
           </div>
