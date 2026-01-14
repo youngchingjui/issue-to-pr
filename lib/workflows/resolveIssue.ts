@@ -40,6 +40,7 @@ import {
   createContainerizedDirectoryTree,
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
+import { extractImageUrlsFromMarkdown } from "@/lib/utils/markdown"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 
 interface ResolveIssueParams {
@@ -253,6 +254,15 @@ export const resolveIssue = async ({
       content: `Github issue title: ${issue.title}\nGithub issue description: ${issue.body}`,
     })
 
+    // Extract image URLs from the issue body and provide them to the agent if any are found
+    const imageUrls = extractImageUrlsFromMarkdown(issue.body ?? "")
+    if (imageUrls.length > 0) {
+      await coder.addMessage({
+        role: "user",
+        content: `Github issue images:\n${imageUrls.join("\n")}`,
+      })
+    }
+
     // Add comments if they exist
     if (comments && comments.length > 0) {
       await coder.addMessage({
@@ -347,3 +357,4 @@ export const resolveIssue = async ({
     }
   }
 }
+
