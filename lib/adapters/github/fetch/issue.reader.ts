@@ -61,12 +61,11 @@ export function makeFetchIssueReaderAdapter(params: {
     url.searchParams.set("page", String(page))
     url.searchParams.set("per_page", String(per_page))
     url.searchParams.set("state", state)
-    const tags = ["issues-list", `issues-list:${repoFullName}`]
 
     try {
       const res = await fetch(url.toString(), {
         headers: baseHeaders,
-        next: { tags },
+        cache: "no-store",
       })
 
       if (!res.ok) {
