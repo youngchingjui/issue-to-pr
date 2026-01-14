@@ -19,7 +19,6 @@ import {
   WorkflowRun,
   workflowRunSchema,
 } from "@/lib/types"
-import { withTiming } from "@/shared/utils/telemetry"
 
 export async function listPlansForIssue({
   repoFullName,
@@ -31,16 +30,12 @@ export async function listPlansForIssue({
   const session = await n4j.getSession()
 
   try {
-    const result = await withTiming(
-      `Neo4j READ: listPlansForIssue ${repoFullName}#${issueNumber}`,
-      async () =>
-        session.executeRead(async (tx: ManagedTransaction) => {
-          return await dbListPlansForIssue(tx, {
-            repoFullName,
-            issueNumber,
-          })
-        })
-    )
+    const result = await session.executeRead(async (tx: ManagedTransaction) => {
+      return await dbListPlansForIssue(tx, {
+        repoFullName,
+        issueNumber,
+      })
+    })
 
     return result.map(neo4jToJs).map((plan) => planSchema.parse(plan))
   } finally {
@@ -65,26 +60,24 @@ export async function tagMessageAsPlan({
 }): Promise<LLMResponseWithPlan> {
   const session = await n4j.getSession()
   try {
-    const result = await withTiming(
-      `Neo4j WRITE: tagMessageAsPlan ${repoFullName}#${issueNumber}`,
-      async () =>
-        session.executeWrite(async (tx: ManagedTransaction) => {
-          // Label as Plan
-          const planNode = await labelEventAsPlan(tx, {
-            eventId,
-            status: "draft",
-            version: int(1),
-          })
-
-          // Create relationship
-          await createPlanImplementsIssue(tx, {
-            eventId,
-            issueNumber: int(issueNumber),
-            repoFullName,
-          })
-
-          return planNode
+    const result = await session.executeWrite(
+      async (tx: ManagedTransaction) => {
+        // Label as Plan
+        const planNode = await labelEventAsPlan(tx, {
+          eventId,
+          status: "draft",
+          version: int(1),
         })
+
+        // Create relationship
+        await createPlanImplementsIssue(tx, {
+          eventId,
+          issueNumber: int(issueNumber),
+          repoFullName,
+        })
+
+        return planNode
+      }
     )
 
     return {
@@ -110,13 +103,9 @@ export async function getPlanWithDetails(
 ): Promise<{ plan: Plan; workflow: WorkflowRun; issue: Issue }> {
   const session = await n4j.getSession()
   try {
-    const result = await withTiming(
-      `Neo4j READ: getPlanWithDetails ${planId}`,
-      async () =>
-        session.executeRead(async (tx: ManagedTransaction) => {
-          return await dbGetPlanWithDetails(tx, { planId })
-        })
-    )
+    const result = await session.executeRead(async (tx: ManagedTransaction) => {
+      return await dbGetPlanWithDetails(tx, { planId })
+    })
 
     return {
       plan: planSchema.parse(neo4jToJs(result.plan)),
@@ -139,17 +128,12 @@ export async function getPlanStatusForIssues({
   if (!issueNumbers.length) return {}
   const session = await n4j.getSession()
   try {
-    return await withTiming(
-      `Neo4j READ: listPlanStatusForIssues ${repoFullName}`,
-      async () =>
-        session.executeRead(async (tx: ManagedTransaction) => {
-          return await dbListPlanStatusForIssues(tx, {
-            repoFullName,
-            issueNumbers,
-          })
-        }),
-      { count: issueNumbers.length }
-    )
+    return await session.executeRead(async (tx: ManagedTransaction) => {
+      return await dbListPlanStatusForIssues(tx, {
+        repoFullName,
+        issueNumbers,
+      })
+    })
   } finally {
     await session.close()
   }
@@ -166,17 +150,12 @@ export async function getLatestPlanIdsForIssues({
   if (!issueNumbers.length) return {}
   const session = await n4j.getSession()
   try {
-    return await withTiming(
-      `Neo4j READ: listLatestPlanIdsForIssues ${repoFullName}`,
-      async () =>
-        session.executeRead(async (tx: ManagedTransaction) => {
-          return await dbListLatestPlanIdsForIssues(tx, {
-            repoFullName,
-            issueNumbers,
-          })
-        }),
-      { count: issueNumbers.length }
-    )
+    return await session.executeRead(async (tx: ManagedTransaction) => {
+      return await dbListLatestPlanIdsForIssues(tx, {
+        repoFullName,
+        issueNumbers,
+      })
+    })
   } finally {
     await session.close()
   }
