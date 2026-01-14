@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState, useTransition } from "react"
 
 import VoiceDictationButton from "@/components/common/VoiceDictationButton"
+import { useOptimisticIssues } from "@/components/issues/OptimisticIssuesProvider"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { ToastAction } from "@/components/ui/toast"
@@ -14,7 +15,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { useOptimisticIssues } from "@/components/issues/OptimisticIssuesProvider"
 import { createIssueAction } from "@/lib/actions/createIssue"
 import { useHasKeyboard } from "@/lib/hooks/use-has-keyboard"
 import { toast } from "@/lib/hooks/use-toast"
