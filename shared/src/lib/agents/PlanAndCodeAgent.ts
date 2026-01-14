@@ -8,6 +8,7 @@ import { createGetFileContentTool } from "@/shared/lib/tools/GetFileContent"
 import { createRipgrepSearchTool } from "@/shared/lib/tools/RipgrepSearchTool"
 import { createSetupRepoTool } from "@/shared/lib/tools/SetupRepoTool"
 import { createSyncBranchTool } from "@/shared/lib/tools/SyncBranchTool"
+import { createWebSearchTool } from "@/shared/lib/tools/WebSearchTool"
 import { createWriteFileContentTool } from "@/shared/lib/tools/WriteFileContent"
 import {
   type AgentConstructorParams,
@@ -110,6 +111,7 @@ export class PlanAndCodeAgent extends ResponsesAPIAgent {
     this.addTool(createBranchTool(env))
     this.addTool(createCommitTool(env, defaultBranch))
     this.addTool(createFileCheckTool(env))
+    this.addResponseTool(createWebSearchTool())
 
     // Container-specific utility
     if (env.kind === "container") {
