@@ -641,3 +641,40 @@ export async function getLinkedIssuesForPR({
     response.repository?.pullRequest?.closingIssuesReferences?.nodes || []
   return nodes.map((n) => n.number)
 }
+
+export async function trackMergedPRs({
+  repo,
+  tagPrefix,
+  interval = 60000, // Default to check every 60 seconds
+}: {
+  repo: string
+  tagPrefix: string
+  interval?: number
+}) {
+  const octokit = await getOctokit()
+  const user = await getGithubUser()
+
+  const checkMergedPRs = async () => {
+    try {
+      const pullRequests = await octokit.pulls.list({
+        owner: user.login,
+        repo,
+        state: 'closed',
+      })
+
+      pullRequests.data.forEach(pr => {
+        if (pr.merged_at && pr.title.startsWith(tagPrefix)) {
+          console.log(`Merged PR: ${pr.title} at ${pr.merged_at}`);
+        }
+      });
+    } catch (error) {
+      console.error('Error checking merged PRs:', error);
+    }
+  }
+
+  // Run the check initially
+  await checkMergedPRs();
+
+  // Set up an interval to periodically check for merged PRs
+  setInterval(checkMergedPRs, interval);
+}
