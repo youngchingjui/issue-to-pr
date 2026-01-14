@@ -85,3 +85,8 @@ pnpm test:neo4j
 - LLM/manual tests are skipped by default to avoid unnecessary cost and latency.
 - Place new manual/LLM tests in this folder with the `.llm.test.ts` suffix.
 - See `test-utils/mocks/README.md` for info on test fixtures.
+
+## LLM Agent Tool Call Regression Test
+
+- The file `__tests__/lib/agents/lint.llm.test.ts` includes a test that instantiates a TestAgent, seeds it with a real message mock including a tool call, and runs one agent iteration. This verifies that, **with TypeScript strict mode enabled**, LLM agents can successfully call tools with OpenAI-compatible function schemas.
+- This serves as the regression test for LLM agent + tool integration and structured tool call compatibility (see GitHub issue: "consider turning on strict mode").
