@@ -21,7 +21,6 @@ import {
   makeAccessTokenProviderFrom,
   makeSessionProvider,
 } from "@/shared/providers/auth"
-import { withTiming } from "@/shared/utils/telemetry"
 
 type CreateIssueParams = {
   repo: string
@@ -157,15 +156,11 @@ export async function getIssueList({
       throw new Error("No octokit found")
     }
 
-    const issuesResponse = await withTiming(
-      `GitHub REST: issues.listForRepo ${repoFullName}`,
-      async () =>
-        await octokit.rest.issues.listForRepo({
-          owner,
-          repo,
-          ...rest,
-        })
-    )
+    const issuesResponse = await octokit.rest.issues.listForRepo({
+      owner,
+      repo,
+      ...rest,
+    })
     return issuesResponse.data.filter((issue) => !issue.pull_request)
   }
 
@@ -256,9 +251,7 @@ export async function getIssueListWithStatus({
   repoFullName: string
 } & Omit<ListForRepoParams, "owner" | "repo">): Promise<IssueWithStatus[]> {
   // 1. Get issues from GitHub
-  const issues = await withTiming(`GitHub: getIssueList ${repoFullName}`, () =>
-    getIssueList({ repoFullName, ...rest })
-  )
+  const issues = await getIssueList({ repoFullName, ...rest })
 
   // 2. Query Neo4j for plans using the service layer
   const issueNumbers = issues.map((issue) => issue.number)
@@ -268,19 +261,10 @@ export async function getIssueListWithStatus({
     activeWorkflowMap,
     activeWorkflowIdMap,
   ] = await Promise.all([
-    withTiming(`Neo4j: getPlanStatusForIssues ${repoFullName}`, () =>
-      getPlanStatusForIssues({ repoFullName, issueNumbers })
-    ),
-    withTiming(`Neo4j: getLatestPlanIdsForIssues ${repoFullName}`, () =>
-      getLatestPlanIdsForIssues({ repoFullName, issueNumbers })
-    ),
-    withTiming(`Neo4j: getIssuesActiveWorkflowMap ${repoFullName}`, () =>
-      getIssuesActiveWorkflowMap({ repoFullName, issueNumbers })
-    ),
-    withTiming(
-      `Neo4j: getIssuesLatestRunningWorkflowIdMap ${repoFullName}`,
-      () => getIssuesLatestRunningWorkflowIdMap({ repoFullName, issueNumbers })
-    ),
+    getPlanStatusForIssues({ repoFullName, issueNumbers }),
+    getLatestPlanIdsForIssues({ repoFullName, issueNumbers }),
+    getIssuesActiveWorkflowMap({ repoFullName, issueNumbers }),
+    getIssuesLatestRunningWorkflowIdMap({ repoFullName, issueNumbers }),
   ])
 
   // 3. Build response combining data
@@ -367,10 +351,7 @@ export async function getLinkedPRNumberForIssue({
   }
 
   const variables = { owner, repo, issueNumber }
-  const resp = (await withTiming(
-    `GitHub GraphQL: getLinkedPRNumberForIssue ${repoFullName}#${issueNumber}`,
-    () => graphqlWithAuth<Resp>(query, variables)
-  )) as Resp
+  const resp = (await graphqlWithAuth<Resp>(query, variables)) as Resp
 
   const nodes = resp.repository?.issue?.timelineItems?.nodes || []
 
@@ -485,10 +466,7 @@ export async function getLinkedPRNumbersForIssues({
   }
 
   const variables = { owner, repo }
-  const resp = (await withTiming(
-    `GitHub GraphQL: getLinkedPRNumbersForIssues ${repoFullName} [${issueNumbers.join(",")} ]`,
-    () => graphqlWithAuth<Resp>(query, variables)
-  )) as Resp
+  const resp = (await graphqlWithAuth<Resp>(query, variables)) as Resp
 
   const repository = resp.repository || {}
   const result: Record<number, number | null> = {}

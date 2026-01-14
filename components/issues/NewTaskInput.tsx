@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState, useTransition } from "react"
 
 import VoiceDictationButton from "@/components/common/VoiceDictationButton"
+import { useOptimisticIssues } from "@/components/issues/OptimisticIssuesProvider"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { ToastAction } from "@/components/ui/toast"
@@ -41,6 +42,7 @@ export default function NewTaskInput({ repoFullName }: Props) {
   const [isPending, startTransition] = useTransition()
 
   const router = useRouter()
+  const { addOptimisticIssue } = useOptimisticIssues()
   const formRef = useRef<HTMLFormElement>(null)
   const [isMac, setIsMac] = useState(false)
   const hasKeyboard = useHasKeyboard()
@@ -171,6 +173,18 @@ export default function NewTaskInput({ repoFullName }: Props) {
       })
 
       if (result.status === "success") {
+        addOptimisticIssue({
+          id: result.number,
+          number: result.number,
+          title: taskTitle,
+          state: "open",
+          updated_at: new Date().toISOString(),
+          user: null,
+          hasActiveWorkflow: false,
+          activeWorkflowId: null,
+          hasPlan: false,
+          planId: null,
+        })
         toast({
           title: "Task synced to GitHub",
           description: `Created: ${taskTitle}`,
