@@ -66,7 +66,7 @@ export async function createDependentPR(
     !auth ||
     typeof auth !== "object" ||
     !("token" in auth) ||
-    typeof (auth as any).token !== "string"
+    typeof auth.token !== "string"
   ) {
     throw new Error("Failed to get installation token")
   }
@@ -106,4 +106,3 @@ export async function createDependentPR(
 
   return `Branch pushed: ${branch}`
 }
-
