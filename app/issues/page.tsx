@@ -6,6 +6,7 @@ import NewTaskContainer from "@/components/issues/NewTaskContainer"
 import { listUserAppRepositories } from "@/lib/github/repos"
 import { repoFullNameSchema } from "@/lib/types/github"
 
+// TODO: I want to move away from this page. We should just use the main / page. No need to have repos in searchParams. We actually already save last repo in a cookie.
 /**
  * In this page, we just need to redirect to an appropriate repo page
  */

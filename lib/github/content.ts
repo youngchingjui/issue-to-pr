@@ -3,7 +3,6 @@ import {
   AuthenticatedUserRepository,
   GitHubRepository,
 } from "@/lib/types/github"
-import { withTiming } from "@/shared/utils/telemetry"
 
 export class GitHubError extends Error {
   constructor(
@@ -37,16 +36,13 @@ export async function getFileContent({
     if (!owner || !repo) {
       throw new Error("Invalid repository format. Expected 'owner/repo'")
     }
-    const file = await withTiming(
-      `GitHub REST: repos.getContent ${repoFullName}:${branch}:${path}`,
-      () =>
-        octokit.rest.repos.getContent({
-          owner,
-          repo,
-          path,
-          ref: branch,
-        })
-    )
+    const file = await octokit.rest.repos.getContent({
+      owner,
+      repo,
+      path,
+      ref: branch,
+    })
+
     return file.data
   } catch (error: unknown) {
     const http = error as HttpLikeError | undefined
@@ -94,19 +90,15 @@ export async function updateFileContent({
   const [owner, repo] = repoFullName.split("/")
   const sha = await getFileSha({ repoFullName, path, branch })
 
-  await withTiming(
-    `GitHub REST: repos.createOrUpdateFileContents ${repoFullName}:${branch}:${path}`,
-    () =>
-      octokit.rest.repos.createOrUpdateFileContents({
-        owner,
-        repo,
-        path,
-        message: commitMessage,
-        content: Buffer.from(content).toString("base64"),
-        branch,
-        ...(sha && { sha }),
-      })
-  )
+  await octokit.rest.repos.createOrUpdateFileContents({
+    owner,
+    repo,
+    path,
+    message: commitMessage,
+    content: Buffer.from(content).toString("base64"),
+    branch,
+    ...(sha && { sha }),
+  })
 }
 
 export async function getFileSha({
@@ -124,16 +116,13 @@ export async function getFileSha({
     throw new Error("No octokit found")
   }
   try {
-    const response = await withTiming(
-      `GitHub REST: repos.getContent (sha) ${repoFullName}:${branch}:${path}`,
-      () =>
-        octokit.rest.repos.getContent({
-          owner,
-          repo,
-          path,
-          ref: branch,
-        })
-    )
+    const response = await octokit.rest.repos.getContent({
+      owner,
+      repo,
+      path,
+      ref: branch,
+    })
+
     if (Array.isArray(response.data)) {
       throw new Error("Path points to a directory, not a file")
     }
@@ -176,15 +165,12 @@ export async function checkBranchExists(
   }
 
   try {
-    await withTiming(
-      `GitHub REST: repos.getBranch ${repoFullName}:${branch}`,
-      () =>
-        octokit.rest.repos.getBranch({
-          owner,
-          repo,
-          branch,
-        })
-    )
+    await octokit.rest.repos.getBranch({
+      owner,
+      repo,
+      branch,
+    })
+
     return true
   } catch (error: unknown) {
     const http = error as HttpLikeError | undefined
@@ -214,10 +200,8 @@ export async function getRepoFromString(
   if (!octokit) {
     throw new Error("No octokit found")
   }
-  const { data: repoData } = await withTiming(
-    `GitHub REST: repos.get ${fullName}`,
-    () => octokit.rest.repos.get({ owner, repo })
-  )
+  const { data: repoData } = await octokit.rest.repos.get({ owner, repo })
+
   return repoData
 }
 
@@ -239,14 +223,10 @@ export async function getUserRepositories(
     throw new Error("No octokit found")
   }
   try {
-    const response = await withTiming(
-      `GitHub REST: repos.listForUser ${username}`,
-      () =>
-        octokit.rest.repos.listForUser({
-          username,
-          ...options,
-        })
-    )
+    const response = await octokit.rest.repos.listForUser({
+      username,
+      ...options,
+    })
 
     const linkHeader = response.headers.link
     const lastPageMatch = linkHeader?.match(
@@ -304,10 +284,9 @@ export async function getAuthenticatedUserRepositories(
     throw new Error("No octokit found")
   }
   try {
-    const response = await withTiming(
-      `GitHub REST: repos.listForAuthenticatedUser`,
-      () => octokit.rest.repos.listForAuthenticatedUser({ ...options })
-    )
+    const response = await octokit.rest.repos.listForAuthenticatedUser({
+      ...options,
+    })
 
     const linkHeader = response.headers.link
     const lastPageMatch = linkHeader?.match(
