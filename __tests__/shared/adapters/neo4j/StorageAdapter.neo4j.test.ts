@@ -145,6 +145,107 @@ describe("StorageAdapter - Read Operations", () => {
     })
   })
 
+  describe("settings.user", () => {
+    describe("getOpenAIKey", () => {
+      it("should return ok(null) for empty userId", async () => {
+        const result = await adapter.settings.user.getOpenAIKey("")
+        expect(result.ok).toBe(true)
+        if (result.ok) {
+          expect(result.value).toBeNull()
+        }
+      })
+
+      it("should return err(UserNotFound) for non-existent user", async () => {
+        const result = await adapter.settings.user.getOpenAIKey(
+          "non-existent-user-12345"
+        )
+        expect(result.ok).toBe(false)
+        if (!result.ok) {
+          expect(result.error).toBe("UserNotFound")
+        }
+      })
+
+      it("should return ok(null) when user exists but has no API key configured", async () => {
+        // First, find a user with settings but no API key
+        const session = dataSource.getSession("READ")
+        try {
+          const queryResult = await session.run(`
+            MATCH (u:User)-[:HAS_SETTINGS]->(s:Settings)
+            WHERE s.openAIApiKey IS NULL OR s.openAIApiKey = ''
+            RETURN u.username AS username
+            LIMIT 1
+          `)
+
+          if (queryResult.records.length === 0) {
+            console.log("⚠️  No users without API keys found. Skipping test.")
+            return
+          }
+
+          const username = queryResult.records[0].get("username") as string
+
+          // Test that we get ok(null) - not an error, but no key configured
+          const result = await adapter.settings.user.getOpenAIKey(username)
+
+          expect(result.ok).toBe(true)
+          if (result.ok) {
+            expect(result.value).toBeNull()
+          }
+
+          console.log(
+            "✓ User exists without API key, correctly returned ok(null):",
+            username
+          )
+        } finally {
+          await session.close()
+        }
+      })
+
+      it("should retrieve API key if it exists in database", async () => {
+        // First, check if any users with settings exist
+        const session = dataSource.getSession("READ")
+        try {
+          const queryResult = await session.run(`
+            MATCH (u:User)-[:HAS_SETTINGS]->(s:Settings)
+            WHERE s.openAIApiKey IS NOT NULL AND s.openAIApiKey <> ''
+            RETURN u.username AS username
+            LIMIT 1
+          `)
+
+          if (queryResult.records.length === 0) {
+            console.log(
+              "⚠️  No users with API keys found in database. Skipping test."
+            )
+            return
+          }
+
+          const existingUsername = queryResult.records[0].get(
+            "username"
+          ) as string
+
+          // Now test retrieval
+          const result =
+            await adapter.settings.user.getOpenAIKey(existingUsername)
+
+          expect(result.ok).toBe(true)
+          if (result.ok) {
+            expect(result.value).toBeTruthy()
+            expect(typeof result.value).toBe("string")
+            expect(result.value!.length).toBeGreaterThan(0)
+          }
+
+          console.log(
+            "✓ Successfully retrieved API key for user:",
+            existingUsername
+          )
+        } finally {
+          await session.close()
+        }
+      })
+
+      // TODO: Probably need some additional tests for error cases.
+    })
+  })
+
   describe("Database Connectivity", () => {
     it("should successfully read from database using READ session", async () => {
       const session = dataSource.getSession("READ")

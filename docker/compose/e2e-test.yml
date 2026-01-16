@@ -1,0 +1,49 @@
+# E2E Test Services
+# Run with: docker compose -f docker/docker-compose.e2e-test.yml up -d
+# Stop with: docker compose -f docker/docker-compose.e2e-test.yml down -v
+
+services:
+  neo4j-e2e:
+    image: neo4j:5.26.3
+    container_name: neo4j-e2e-test
+    ports:
+      - "17474:7474" # HTTP (offset by 10000 to avoid conflicts)
+      - "17687:7687" # Bolt
+    environment:
+      - NEO4J_AUTH=neo4j/e2e-test-password
+      - NEO4J_PLUGINS=["apoc"]
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.*
+    volumes:
+      - neo4j_e2e_data:/data
+      - neo4j_e2e_logs:/logs
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:7474"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - e2e-test-network
+
+  redis-e2e:
+    image: redis:7-alpine
+    container_name: redis-e2e-test
+    ports:
+      - "16379:6379" # Offset by 10000 to avoid conflicts
+    volumes:
+      - redis_e2e_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - e2e-test-network
+
+networks:
+  e2e-test-network:
+    driver: bridge
+
+volumes:
+  neo4j_e2e_data:
+  neo4j_e2e_logs:
+  redis_e2e_data:

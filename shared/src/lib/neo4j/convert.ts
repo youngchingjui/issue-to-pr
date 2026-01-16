@@ -81,6 +81,19 @@ export async function toAppEvent(
       timestamp: dbEvent.createdAt.toStandardDate(),
       id: workflowId,
     }
+  } else if (
+    dbEvent.type === "workflow.started" ||
+    dbEvent.type === "workflow.completed" ||
+    dbEvent.type === "workflow.cancelled" ||
+    dbEvent.type === "workflow.checkpoint.saved" ||
+    dbEvent.type === "workflow.checkpoint.restored"
+  ) {
+    return {
+      id: workflowId,
+      type: dbEvent.type,
+      timestamp: dbEvent.createdAt.toStandardDate(),
+      content: dbEvent.content,
+    }
   }
   return {
     ...dbEvent,

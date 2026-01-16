@@ -41,6 +41,46 @@ function neo4jEventToDomainEvent(neo4jEvent: AnyEvent): AllEvents {
         message: neo4jEvent.content,
       }
 
+    case "workflowStarted":
+      return {
+        id,
+        timestamp,
+        type: "workflow.started",
+        content: neo4jEvent.content,
+      }
+
+    case "workflowCompleted":
+      return {
+        id,
+        timestamp,
+        type: "workflow.completed",
+        content: neo4jEvent.content,
+      }
+
+    case "workflowCancelled":
+      return {
+        id,
+        timestamp,
+        type: "workflow.cancelled",
+        content: neo4jEvent.content,
+      }
+
+    case "workflowCheckpointSaved":
+      return {
+        id,
+        timestamp,
+        type: "workflow.checkpoint.saved",
+        content: neo4jEvent.content,
+      }
+
+    case "workflowCheckpointRestored":
+      return {
+        id,
+        timestamp,
+        type: "workflow.checkpoint.restored",
+        content: neo4jEvent.content,
+      }
+
     // ===== Message Events =====
     case "systemPrompt":
       return {

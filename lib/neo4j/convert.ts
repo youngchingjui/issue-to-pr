@@ -22,11 +22,11 @@ export function neo4jToJs<T>(value: T) {
     return value.map((v) => neo4jToJs(v))
   }
   if (typeof value === "object") {
-    const result = {}
-    for (const [k, v] of Object.entries(value)) {
+    const result: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
       result[k] = neo4jToJs(v)
     }
-    return result
+    return result as T
   }
   return value
 }
@@ -37,11 +37,11 @@ export function jsToNeo4j<T>(value: T) {
   if (value instanceof Date) return neo4j.types.DateTime.fromStandardDate(value)
   if (Array.isArray(value)) return value.map((v) => jsToNeo4j(v))
   if (typeof value === "object") {
-    const result = {}
-    for (const [k, v] of Object.entries(value)) {
+    const result: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
       result[k] = jsToNeo4j(v)
     }
-    return result
+    return result as T
   }
   return value
 }
@@ -81,12 +81,33 @@ export async function toAppEvent(
       timestamp: dbEvent.createdAt.toStandardDate(),
       id: workflowId,
     }
+  } else if (
+    dbEvent.type === "workflowStarted" ||
+    dbEvent.type === "workflowCompleted" ||
+    dbEvent.type === "workflowCancelled" ||
+    dbEvent.type === "workflowCheckpointSaved" ||
+    dbEvent.type === "workflowCheckpointRestored"
+  ) {
+    // Map new workflow lifecycle events to a generic status event for the app layer
+    const labelMap: Record<string, string> = {
+      workflowStarted: "Workflow started",
+      workflowCompleted: "Workflow completed",
+      workflowCancelled: "Workflow cancelled",
+      workflowCheckpointSaved: "Workflow checkpoint saved",
+      workflowCheckpointRestored: "Workflow checkpoint restored",
+    }
+    return {
+      type: "status",
+      content: dbEvent.content ?? labelMap[dbEvent.type] ?? "",
+      timestamp: dbEvent.createdAt.toStandardDate(),
+      id: workflowId,
+    }
   }
   return {
     ...dbEvent,
     createdAt: dbEvent.createdAt.toStandardDate(),
     workflowId,
-  }
+  } as unknown as appAnyEvent
 }
 
 export async function toAppMessageEvent(
@@ -111,5 +132,6 @@ export async function toAppMessageEvent(
     ...dbEvent,
     createdAt: dbEvent.createdAt.toStandardDate(),
     workflowId,
-  }
+  } as unknown as appMessageEvent
 }
+

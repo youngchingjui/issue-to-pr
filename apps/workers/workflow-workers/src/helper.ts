@@ -62,6 +62,8 @@ export async function publishJobStatus(jobId: string, status: string) {
 
   const redis = getRedisConnection(REDIS_URL, "general")
   const jobStatusUpdate = JobStatusUpdateSchema.parse({ jobId, status })
+  // Note: this uses Redis Pub/Sub. Messages are ephemeral and will not be visible as keys.
+  // To observe them locally, use `SUBSCRIBE ${JOB_STATUS_CHANNEL}` on a Redis client.
   await redis.publish(JOB_STATUS_CHANNEL, JSON.stringify(jobStatusUpdate))
 }
 
@@ -126,3 +128,4 @@ export function registerGracefulShutdown(opts: {
     void gracefulShutdown("SIGTERM")
   })
 }
+

@@ -34,10 +34,24 @@ export const AutoResolveIssueJobSchema = z.object({
 
 export type AutoResolveIssueJob = z.infer<typeof AutoResolveIssueJobSchema>
 
+export const CreateDependentPRJobSchema = z.object({
+  name: z.literal("createDependentPR"),
+  data: z.object({
+    workflowId: z.string(),
+    repoFullName: z.string(),
+    pullNumber: z.number().int().positive(),
+    githubLogin: z.string(),
+    githubInstallationId: z.string(),
+  }),
+})
+
+export type CreateDependentPRJob = z.infer<typeof CreateDependentPRJobSchema>
+
 export const JobEventSchema = z.discriminatedUnion("name", [
   SummarizeIssueJobSchema,
   SimulateLongRunningWorkflowJobSchema,
   AutoResolveIssueJobSchema,
+  CreateDependentPRJobSchema,
 ])
 
 export type JobEvent = z.infer<typeof JobEventSchema>

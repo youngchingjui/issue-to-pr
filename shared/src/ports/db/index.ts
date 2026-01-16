@@ -1,4 +1,5 @@
 import type { AllEvents } from "@/shared/entities"
+import type { Result } from "@/shared/entities/result"
 import {
   type WorkflowRun,
   type WorkflowRunActor,
@@ -79,6 +80,8 @@ export interface WorkflowRunFilter {
   issueNumber?: number
 }
 
+export type SettingsError = "UserNotFound" | "Unknown"
+
 export interface DatabaseStorage {
   workflow: {
     run: {
@@ -88,6 +91,13 @@ export interface DatabaseStorage {
     }
     events: {
       list(runId: string): Promise<AllEvents[]>
+    }
+  }
+  settings: {
+    user: {
+      getOpenAIKey(
+        userId: string
+      ): Promise<Result<string | null, SettingsError>>
     }
   }
 }
