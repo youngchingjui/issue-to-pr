@@ -2,6 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Package Manager
+
+**Always use `pnpm` for running commands, not `npm` or `npx`.**
+
+- Run scripts: `pnpm <script-name>` (e.g., `pnpm test`, `pnpm lint`)
+- Execute packages: `pnpm exec <package>` or `pnpm dlx <package>` (not `npx`)
+- Install dependencies: `pnpm install`
+
+## Code Guidelines
+
 - Look for commands in package.json to understand how to run testing and linting.
 - For typescript, avoid typecasting. If you're resorting to typecasting, it's usually a sign you haven't thought carefully enough about the inferred type. We want this codebase to be as strongly typed as possible.
 

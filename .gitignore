@@ -68,3 +68,6 @@ storybook-static
 # /apps/openai-realtime-agents
 apps/openai-realtime-agents/.env*
 !apps/openai-realtime-agents/.env.example
+
+# E2E test environment
+__tests__/.env.e2e

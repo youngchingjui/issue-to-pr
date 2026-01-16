@@ -84,6 +84,53 @@ Filesystem tests run actual CLI commands and interact with the filesystem. These
 pnpm test:fs
 ```
 
+## End-to-End Tests
+
+E2E tests verify full integration flows from webhook receipt through queue processing to worker execution. These require multiple services to be running.
+
+### Setup
+
+1. **Create e2e environment file:**
+
+   ```bash
+   cp __tests__/.env.e2e.example __tests__/.env.e2e
+   ```
+
+2. **Configure test services:**
+   Edit `__tests__/.env.e2e` with your test environment:
+
+   ```env
+   REDIS_URL=redis://localhost:6379
+   NEO4J_URI=bolt://localhost:7687
+   NEO4J_USER=neo4j
+   NEO4J_PASSWORD=your-test-password
+   GITHUB_WEBHOOK_SECRET=test-secret-for-e2e
+   ```
+
+3. **Start required services:**
+
+   ```bash
+   # Start Redis and Neo4j (if using docker-compose)
+   pnpm docker:up
+   ```
+
+### Running E2E Tests
+
+```bash
+pnpm test:e2e
+```
+
+### What E2E Tests Cover
+
+- **Webhook Handler Flow**: Validates authorization, user settings lookup, and job enqueueing
+- **Queue Integration**: Verifies jobs are correctly added to BullMQ
+- **Worker Processing**: Tests that workers pick up and process jobs correctly
+- **Full Flow**: Traces a job from enqueueing through worker completion
+
+**Note:** E2E tests use real Redis/Neo4j but mock external APIs (GitHub, OpenAI) to prevent side effects.
+
+---
+
 **Note:** This is currently focused on filesystem/CLI tests. Eventually, we plan to have a unified `pnpm test:integration` command that runs all integration tests (LLM, Neo4j, filesystem, etc.) together.
 
 ## Environment Variables

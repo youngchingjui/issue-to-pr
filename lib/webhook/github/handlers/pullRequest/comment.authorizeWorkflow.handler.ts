@@ -18,7 +18,8 @@ interface HandlePullRequestCommentProps {
   issueNumber: number
   repoFullName: string
   isPullRequest: boolean
-  commenterLogin?: string
+  /** GitHub login of the commenter. Required for API key lookup. */
+  commenterLogin: string
 }
 
 /**
@@ -95,25 +96,51 @@ export async function handlePullRequestComment({
     return { status: "rejected", reason: "not_owner" as const }
   }
 
-  const githubLogin = commenterLogin || undefined
-
-  // Verify the user has connected account and API key
-  let hasApiKey = false
-  let settingsUrl: string | null = null
-  try {
-    const storage = new StorageAdapter(neo4jDs)
-    if (githubLogin) {
-      const apiKeyRes = await storage.settings.user.getOpenAIKey(githubLogin)
-      hasApiKey = !!(apiKeyRes.ok && apiKeyRes.value)
-    }
-
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || ""
-    settingsUrl = baseUrl ? `${baseUrl.replace(/\/$/, "")}/settings` : null
-  } catch (e) {
-    console.error("[Webhook] Settings lookup failed:", e)
+  // Validate commenterLogin is present (should always be from webhook payload)
+  const githubLogin = commenterLogin.trim()
+  if (!githubLogin) {
+    console.error(
+      "[Webhook] commenterLogin is empty; cannot look up user settings"
+    )
+    return { status: "error", reason: "missing_commenter_login" as const }
   }
 
-  if (!hasApiKey) {
+  // Verify the user has connected account and API key
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || ""
+  const settingsUrl = baseUrl ? `${baseUrl.replace(/\/$/, "")}/settings` : null
+
+  let apiKeyResult: { ok: true; value: string | null } | { ok: false; error: string }
+  try {
+    const storage = new StorageAdapter(neo4jDs)
+    apiKeyResult = await storage.settings.user.getOpenAIKey(githubLogin)
+  } catch (e) {
+    console.error("[Webhook] Settings lookup failed:", e)
+    return { status: "error", reason: "settings_lookup_failed" as const }
+  }
+
+  // Handle user not found in database
+  if (!apiKeyResult.ok) {
+    const body =
+      `Thanks for the request! It looks like you don't have an IssueToPR account yet. ` +
+      `Please sign in to IssueToPR first to connect your GitHub account and add your LLM API key.` +
+      (settingsUrl ? `\n\nGet started here: ${settingsUrl}` : "")
+
+    try {
+      await octokit.rest.issues.createComment({
+        owner,
+        repo,
+        issue_number: issueNumber,
+        body,
+      })
+    } catch (e) {
+      console.error("[Webhook] Failed to post account setup guidance:", e)
+    }
+
+    return { status: "rejected", reason: "user_not_found" as const }
+  }
+
+  // Handle missing API key (user exists but hasn't configured it)
+  if (!apiKeyResult.value) {
     const body =
       `Thanks for the request! To use IssueToPR from GitHub comments, please add your LLM API key in settings.` +
       (settingsUrl ? `\n\nAdd your key here: ${settingsUrl}` : "")
@@ -154,7 +181,7 @@ export async function handlePullRequestComment({
           workflowId,
           repoFullName,
           pullNumber: issueNumber,
-          githubLogin: githubLogin || "",
+          githubLogin,
           githubInstallationId: String(installationId),
         },
       },
@@ -189,7 +216,10 @@ export async function handlePullRequestComment({
           comment_id: commentId,
           content: "rocket",
         })
-      } catch {}
+      } catch (e) {
+        // Non-critical: reaction is just visual feedback, don't fail the job
+        console.warn("[Webhook] Failed to add rocket reaction:", e)
+      }
     }
 
     console.log(
