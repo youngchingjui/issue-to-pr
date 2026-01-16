@@ -4,8 +4,9 @@ This directory contains automated and manual tests for the project.
 
 ## Structure
 
-- `*.test.ts` / `*.spec.ts`: Fast, automated unit and integration tests. These are run by default in CI and local `npx jest` runs.
-- `*.llm.test.ts`: Manual or expensive tests that interact with real LLMs or external APIs. These are **excluded** from regular test runs and CI by default (see `jest.config.ts`).
+- `*.test.ts` / `*.spec.ts`: Fast, automated unit tests. These are run by default in CI and local `pnpm test` runs.
+- `*.llm.test.ts`: Manual or expensive tests that interact with real LLMs or external APIs. These are **excluded** from regular test runs and CI by default.
+- `*.integration.test.ts`: Integration tests that interact with the filesystem, run CLI commands, or have other external dependencies. These are **excluded** from regular test runs and CI by default.
 
 ## Running Manual/LLM Tests
 
@@ -75,6 +76,16 @@ pnpm test:neo4j
 - Cleanup functions remove only these specific test nodes
 - Tests are designed to be idempotent and can be run multiple times
 
+## Filesystem Tests
+
+Filesystem tests run actual CLI commands and interact with the filesystem. These are excluded from regular test runs to avoid side effects in CI/CD environments.
+
+```bash
+pnpm test:fs
+```
+
+**Note:** This is currently focused on filesystem/CLI tests. Eventually, we plan to have a unified `pnpm test:integration` command that runs all integration tests (LLM, Neo4j, filesystem, etc.) together.
+
 ## Environment Variables
 
 - **Agent tests**: Automatically load environment variables from `.env.local` (at project root) during test setup. Make sure your `.env.local` file contains all required variables for agent tests.
@@ -83,5 +94,9 @@ pnpm test:neo4j
 ## Notes
 
 - LLM/manual tests are skipped by default to avoid unnecessary cost and latency.
+- Integration tests are skipped by default to avoid filesystem side effects in CI/CD.
 - Place new manual/LLM tests in this folder with the `.llm.test.ts` suffix.
+- Place new filesystem/CLI integration tests with the `.integration.test.ts` suffix.
 - See `test-utils/mocks/README.md` for info on test fixtures.
+- When mocking, I'm only concerend about mocking external dependencies or API calls that might incur costs or affect databases state or cause side effects.
+- Not sure if we need to mock other internal dependencies like other modules within our codebase.
