@@ -20,12 +20,14 @@ jest.mock("@/lib/github", () => ({
 }))
 
 // StorageAdapter is instantiated in the handler. Replace its implementation with a controllable stub
-const storageMockFactory = (value: string | null, ok = true) => ({
+type StorageMockResult =
+  | { ok: true; value: string | null }
+  | { ok: false; error: "UserNotFound" | "Unknown" }
+
+const storageMockFactory = (result: StorageMockResult) => ({
   settings: {
     user: {
-      getOpenAIKey: jest
-        .fn()
-        .mockResolvedValue(ok ? { ok: true as const, value } : { ok: false as const, error: "Unknown" as const }),
+      getOpenAIKey: jest.fn().mockResolvedValue(result),
     },
   },
 })
@@ -48,7 +50,7 @@ import { getInstallationOctokit } from "@/lib/github"
 import { StorageAdapter } from "@/shared/adapters/neo4j/StorageAdapter"
 import { addJob } from "@/shared/services/job"
 
-const asMock = <T extends (...args: any[]) => any>(fn: T) => jest.mocked(fn)
+const asMock = <T extends object>(fn: T) => jest.mocked(fn)
 
 describe("handlePullRequestComment", () => {
   const baseParams = {
@@ -88,32 +90,62 @@ describe("handlePullRequestComment", () => {
   it("rejects non-OWNER commenters and posts an explanation", async () => {
     const res = await handlePullRequestComment({ ...baseParams, authorAssociation: "CONTRIBUTOR" })
     expect(res).toEqual({ status: "rejected", reason: "not_owner" })
-    const { rest } = await getInstallationOctokit(0 as any)
+    const { rest } = await getInstallationOctokit(0 as never)
     expect(rest.issues.createComment).toHaveBeenCalled()
   })
 
+  it("returns error when commenterLogin is empty", async () => {
+    const res = await handlePullRequestComment({ ...baseParams, commenterLogin: "" })
+    expect(res).toEqual({ status: "error", reason: "missing_commenter_login" })
+    expect(asMock(addJob)).not.toHaveBeenCalled()
+  })
+
+  it("returns error when commenterLogin is whitespace only", async () => {
+    const res = await handlePullRequestComment({ ...baseParams, commenterLogin: "   " })
+    expect(res).toEqual({ status: "error", reason: "missing_commenter_login" })
+    expect(asMock(addJob)).not.toHaveBeenCalled()
+  })
+
+  it("posts account setup guidance when user not found in database", async () => {
+    // Make StorageAdapter return err("UserNotFound")
+    asMock(StorageAdapter as unknown as jest.Mock).mockImplementation(() =>
+      storageMockFactory({ ok: false, error: "UserNotFound" })
+    )
+
+    const res = await handlePullRequestComment(baseParams)
+
+    expect(res).toEqual({ status: "rejected", reason: "user_not_found" })
+    const { rest } = await getInstallationOctokit(0 as never)
+    expect(rest.issues.createComment).toHaveBeenCalled()
+    expect(asMock(addJob)).not.toHaveBeenCalled()
+  })
+
   it("posts guidance when API key is missing and does not enqueue a job", async () => {
-    // Make StorageAdapter return ok(null)
-    asMock(StorageAdapter as any).mockImplementation(() => storageMockFactory(null))
+    // Make StorageAdapter return ok(null) - user exists but no key
+    asMock(StorageAdapter as unknown as jest.Mock).mockImplementation(() =>
+      storageMockFactory({ ok: true, value: null })
+    )
 
     const res = await handlePullRequestComment(baseParams)
 
     expect(res).toEqual({ status: "rejected", reason: "missing_api_key" })
-    const { rest } = await getInstallationOctokit(0 as any)
+    const { rest } = await getInstallationOctokit(0 as never)
     expect(rest.issues.createComment).toHaveBeenCalled()
     expect(asMock(addJob)).not.toHaveBeenCalled()
   })
 
   it("enqueues a createDependentPR job when authorized and API key exists", async () => {
     // Make StorageAdapter return ok("key")
-    asMock(StorageAdapter as any).mockImplementation(() => storageMockFactory("sk-abc"))
+    asMock(StorageAdapter as unknown as jest.Mock).mockImplementation(() =>
+      storageMockFactory({ ok: true, value: "sk-abc" })
+    )
 
     const res = await handlePullRequestComment(baseParams)
 
     expect(res?.status).toBe("enqueued")
     expect(asMock(addJob)).toHaveBeenCalledTimes(1)
 
-    const { rest } = await getInstallationOctokit(0 as any)
+    const { rest } = await getInstallationOctokit(0 as never)
     // A confirmation comment with a tracking link should be posted
     expect(rest.issues.createComment).toHaveBeenCalled()
     // Reactions on the comment should be created (eyes + rocket)
