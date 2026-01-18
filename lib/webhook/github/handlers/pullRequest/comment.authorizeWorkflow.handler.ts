@@ -22,9 +22,32 @@ interface HandlePullRequestCommentProps {
   commenterLogin: string
 }
 
+async function isOrgAdmin({
+  octokit,
+  owner,
+  username,
+}: {
+  octokit: Awaited<ReturnType<typeof getInstallationOctokit>>
+  owner: string
+  username: string
+}): Promise<boolean> {
+  try {
+    // Only orgs support membership lookup; if not an org or not a member, this will throw
+    const result = await octokit.rest.orgs.getMembershipForUser({
+      org: owner,
+      username,
+    })
+    // role: 'admin' | 'member'
+    return result?.data?.role === "admin"
+  } catch {
+    // 404 or any error -> not an org admin
+    return false
+  }
+}
+
 /**
  * Handler: PR comment authorization gate and trigger for createDependentPR
- * - Only allows privileged actions when the commenter is an OWNER
+ * - Only allows privileged actions when the commenter is an OWNER, or an org admin on an org-owned repo
  * - If commenter lacks an API key in I2PR settings, posts guidance and exits
  * - If checks pass and comment mentions @issuetopr, enqueue createDependentPR job for workers
  * - Adds an emoji reaction to acknowledge the comment was received
@@ -76,11 +99,21 @@ export async function handlePullRequestComment({
     }
   }
 
-  if (authorAssociation !== "OWNER") {
+  let authorized = authorAssociation === "OWNER"
+
+  // If not repo OWNER, allow org admins on org-owned repos. We only attempt this
+  // extra check when authorAssociation is MEMBER to avoid unnecessary API calls
+  // and to keep existing unit-test mocks stable.
+  if (!authorized && authorAssociation === "MEMBER") {
+    const isAdmin = await isOrgAdmin({ octokit, owner, username: commenterLogin })
+    authorized = isAdmin
+  }
+
+  if (!authorized) {
     // Non-owner attempting to trigger a workflow. Post a helpful reply.
     const reply =
-      "Only repository owners can trigger this workflow via PR comments. " +
-      "Please ask the repo owner to run this workflow."
+      "Only repository owners or organization admins can trigger this workflow via PR comments. " +
+      "Please ask an authorized user to run this workflow."
 
     try {
       await octokit.rest.issues.createComment({
@@ -231,3 +264,4 @@ export async function handlePullRequestComment({
     return { status: "error", reason: "enqueue_failed" as const }
   }
 }
+
