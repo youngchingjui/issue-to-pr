@@ -44,7 +44,13 @@ dotenv.config({ path: e2eEnvPath })
 const testEnvPath = path.resolve(__dirname, "../.env")
 dotenv.config({ path: testEnvPath })
 
-import { WORKFLOW_JOBS_QUEUE } from "@/shared/entities/Queue"
+
+// Queue name from env or default constant (for test isolation)
+const QUEUE_NAME = process.env.BULLMQ_QUEUE_NAME
+
+if (!QUEUE_NAME) {
+  throw new Error("BULLMQ_QUEUE_NAME is not set")
+}
 
 // Create a fresh Redis connection for tests (not cached)
 function createTestRedisConnection(redisUrl: string, name: string): IORedis {
@@ -109,11 +115,11 @@ describe("E2E: @issuetopr PR Comment Workflow", () => {
   if (missingEnvVars.length > 0) {
     console.warn(
       `⚠️  Skipping E2E tests: Missing env vars: ${missingEnvVars.join(", ")}\n` +
-        "Copy __tests__/.env.e2e.example to __tests__/.env.e2e and configure.\n" +
-        "Start e2e services with: pnpm test:e2e:up"
+      "Copy __tests__/.env.e2e.example to __tests__/.env.e2e and configure.\n" +
+      "Start e2e services with: pnpm test:e2e:up"
     )
 
-    it.skip("E2E tests require environment configuration", () => {})
+    it.skip("E2E tests require environment configuration", () => { })
     return
   }
 
@@ -130,8 +136,8 @@ describe("E2E: @issuetopr PR Comment Workflow", () => {
     // Set up queue and events connection using fresh connections
     redisConnection = createTestRedisConnection(REDIS_URL, "queue")
     eventsConnection = createTestRedisConnection(REDIS_URL, "events")
-    queue = new Queue(WORKFLOW_JOBS_QUEUE, { connection: redisConnection })
-    queueEvents = new QueueEvents(WORKFLOW_JOBS_QUEUE, {
+    queue = new Queue(QUEUE_NAME, { connection: redisConnection })
+    queueEvents = new QueueEvents(QUEUE_NAME, {
       connection: eventsConnection,
     })
 
@@ -178,7 +184,7 @@ describe("E2E: @issuetopr PR Comment Workflow", () => {
 
       const workflowId = `e2e-test-${Date.now()}`
       const jobId = await addJob(
-        WORKFLOW_JOBS_QUEUE,
+        QUEUE_NAME,
         {
           name: "createDependentPR",
           data: {
@@ -226,7 +232,7 @@ describe("E2E: @issuetopr PR Comment Workflow", () => {
       const workerConnection = createTestRedisConnection(REDIS_URL, `worker-${testId}`)
 
       // Create own queue and drain stale jobs
-      const testQueue = new Queue(WORKFLOW_JOBS_QUEUE, { connection: queueConnection })
+      const testQueue = new Queue(QUEUE_NAME, { connection: queueConnection })
       await testQueue.drain()
 
       let processedJobId: string | null = null
@@ -238,7 +244,7 @@ describe("E2E: @issuetopr PR Comment Workflow", () => {
       // - Runs the AI agent to analyze and create dependent PR
       // - Pushes changes to GitHub (takes up to 10 minutes)
       const worker = new Worker(
-        WORKFLOW_JOBS_QUEUE,
+        QUEUE_NAME,
         async (job) => {
           processedJobId = job.id!
           const { workflowId, repoFullName, pullNumber, githubLogin } = job.data
@@ -260,7 +266,7 @@ describe("E2E: @issuetopr PR Comment Workflow", () => {
 
       // Now add the job
       const jobId = await addJob(
-        WORKFLOW_JOBS_QUEUE,
+        QUEUE_NAME,
         {
           name: "createDependentPR",
           data: {
@@ -304,14 +310,14 @@ describe("E2E: @issuetopr PR Comment Workflow", () => {
       const workerConnection = createTestRedisConnection(REDIS_URL, `worker-${testId}`)
 
       // Create own queue and drain stale jobs
-      const testQueue = new Queue(WORKFLOW_JOBS_QUEUE, { connection: queueConnection })
+      const testQueue = new Queue(QUEUE_NAME, { connection: queueConnection })
       await testQueue.drain()
 
       let processedJobId: string | null = null
       let jobError: string | null = null
 
       const worker = new Worker(
-        WORKFLOW_JOBS_QUEUE,
+        QUEUE_NAME,
         async (job) => {
           processedJobId = job.id!
           const { workflowId, repoFullName, pullNumber, githubLogin } = job.data
@@ -334,7 +340,7 @@ describe("E2E: @issuetopr PR Comment Workflow", () => {
 
       // Add job with empty githubLogin (no retries to ensure immediate failure)
       const jobId = await addJob(
-        WORKFLOW_JOBS_QUEUE,
+        QUEUE_NAME,
         {
           name: "createDependentPR",
           data: {
@@ -411,7 +417,7 @@ describe("E2E: Full Integration Flow", () => {
   const missingEnvVars = requiredEnvVars.filter((v) => !process.env[v])
 
   if (missingEnvVars.length > 0) {
-    it.skip("Full integration tests require all services", () => {})
+    it.skip("Full integration tests require all services", () => { })
     return
   }
 
@@ -428,7 +434,7 @@ describe("E2E: Full Integration Flow", () => {
     const workerConnection = createTestRedisConnection(REDIS_URL, `full-flow-worker-${testId}`)
 
     // Create queue to drain stale jobs
-    const testQueue = new Queue(WORKFLOW_JOBS_QUEUE, { connection: queueConnection })
+    const testQueue = new Queue(QUEUE_NAME, { connection: queueConnection })
     await testQueue.drain()
 
     let worker: Worker | null = null
@@ -438,7 +444,7 @@ describe("E2E: Full Integration Flow", () => {
     //   import { processCreateDependentPR } from "@/apps/workers/workflow-workers/..."
     // The real processor takes up to 10 minutes and makes actual GitHub API calls.
     worker = new Worker(
-      WORKFLOW_JOBS_QUEUE,
+      QUEUE_NAME,
       async (job) => {
         if (job.data.workflowId === workflowId) {
           // Simulate workflow execution stages (MOCK - completes in ~200ms)
@@ -487,7 +493,7 @@ describe("E2E: Full Integration Flow", () => {
 
     // Enqueue the job
     const jobId = await addJob(
-      WORKFLOW_JOBS_QUEUE,
+      QUEUE_NAME,
       {
         name: "createDependentPR",
         data: {
@@ -533,7 +539,7 @@ describe("E2E: Database Integration", () => {
   const missingEnvVars = requiredEnvVars.filter((v) => !process.env[v])
 
   if (missingEnvVars.length > 0) {
-    it.skip("Database tests require Neo4j configuration", () => {})
+    it.skip("Database tests require Neo4j configuration", () => { })
     return
   }
 

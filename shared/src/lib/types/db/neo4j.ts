@@ -131,35 +131,35 @@ export const reviewCommentSchema = appReviewCommentSchema
 export const workflowStartedEventSchema = z.object({
   id: z.string(),
   createdAt: Neo4jDateTime,
-  type: z.literal("workflow.started"),
+  type: z.literal("workflowStarted"),
   content: z.string().optional(),
 })
 
 export const workflowCompletedEventSchema = z.object({
   id: z.string(),
   createdAt: Neo4jDateTime,
-  type: z.literal("workflow.completed"),
+  type: z.literal("workflowCompleted"),
   content: z.string().optional(),
 })
 
 export const workflowCancelledEventSchema = z.object({
   id: z.string(),
   createdAt: Neo4jDateTime,
-  type: z.literal("workflow.cancelled"),
+  type: z.literal("workflowCancelled"),
   content: z.string().optional(),
 })
 
 export const workflowCheckpointSavedEventSchema = z.object({
   id: z.string(),
   createdAt: Neo4jDateTime,
-  type: z.literal("workflow.checkpoint.saved"),
+  type: z.literal("workflowCheckpointSaved"),
   content: z.string().optional(),
 })
 
 export const workflowCheckpointRestoredEventSchema = z.object({
   id: z.string(),
   createdAt: Neo4jDateTime,
-  type: z.literal("workflow.checkpoint.restored"),
+  type: z.literal("workflowCheckpointRestored"),
   content: z.string().optional(),
 })
 

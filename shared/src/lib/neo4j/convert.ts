@@ -82,15 +82,28 @@ export async function toAppEvent(
       id: workflowId,
     }
   } else if (
-    dbEvent.type === "workflow.started" ||
-    dbEvent.type === "workflow.completed" ||
-    dbEvent.type === "workflow.cancelled" ||
-    dbEvent.type === "workflow.checkpoint.saved" ||
-    dbEvent.type === "workflow.checkpoint.restored"
+    dbEvent.type === "workflowStarted" ||
+    dbEvent.type === "workflowCompleted" ||
+    dbEvent.type === "workflowCancelled" ||
+    dbEvent.type === "workflowCheckpointSaved" ||
+    dbEvent.type === "workflowCheckpointRestored"
   ) {
+    // Map camelCase DB types to dot notation app types
+    const typeMap: Record<string, string> = {
+      workflowStarted: "workflow.started",
+      workflowCompleted: "workflow.completed",
+      workflowCancelled: "workflow.cancelled",
+      workflowCheckpointSaved: "workflow.checkpoint.saved",
+      workflowCheckpointRestored: "workflow.checkpoint.restored",
+    }
     return {
       id: workflowId,
-      type: dbEvent.type,
+      type: typeMap[dbEvent.type] as
+        | "workflow.started"
+        | "workflow.completed"
+        | "workflow.cancelled"
+        | "workflow.checkpoint.saved"
+        | "workflow.checkpoint.restored",
       timestamp: dbEvent.createdAt.toStandardDate(),
       content: dbEvent.content,
     }

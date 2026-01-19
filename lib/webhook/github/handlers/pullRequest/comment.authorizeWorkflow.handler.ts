@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from "uuid"
 import { getInstallationOctokit } from "@/lib/github"
 import { neo4jDs } from "@/lib/neo4j"
 import { StorageAdapter } from "@/shared/adapters/neo4j/StorageAdapter"
-import { QueueEnum, WORKFLOW_JOBS_QUEUE } from "@/shared/entities/Queue"
+import { WORKFLOW_JOBS_QUEUE } from "@/shared/entities/Queue"
 import { addJob } from "@/shared/services/job"
 
 // Trigger keyword to activate the workflow
@@ -205,9 +205,10 @@ export async function handlePullRequestComment({
 
     // Generate UUID for workflow tracking
     const workflowId = uuidv4()
-    const queue: QueueEnum = WORKFLOW_JOBS_QUEUE
+    // Allow queue name override via env var for test isolation
+    const queueName = process.env.BULLMQ_QUEUE_NAME || WORKFLOW_JOBS_QUEUE
     const jobId = await addJob(
-      queue,
+      queueName,
       {
         name: "createDependentPR",
         data: {

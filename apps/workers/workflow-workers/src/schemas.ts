@@ -1,5 +1,7 @@
 import { z } from "zod"
 
+import { WORKFLOW_JOBS_QUEUE } from "@/shared/entities/Queue"
+
 // Should match .env.example
 export const envSchema = z.object({
   REDIS_URL: z.string(),
@@ -13,6 +15,7 @@ export const envSchema = z.object({
   GITHUB_APP_PRIVATE_KEY_PATH: z.string(),
   WEB_APP_URL: z.string().optional(),
   ENVIRONMENT_NAME: z.string().optional(),
+  BULLMQ_QUEUE_NAME: z.string().optional().default(WORKFLOW_JOBS_QUEUE),
 })
 
 export type EnvVariables = z.infer<typeof envSchema>
