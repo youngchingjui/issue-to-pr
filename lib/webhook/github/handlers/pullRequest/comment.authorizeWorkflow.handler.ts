@@ -24,7 +24,7 @@ interface HandlePullRequestCommentProps {
 
 /**
  * Handler: PR comment authorization gate and trigger for createDependentPR
- * - Only allows privileged actions when the commenter is an OWNER, or an org admin on an org-owned repo
+ * - Only allows privileged actions when the commenter is an OWNER, MEMBER, or COLLABORATOR
  * - If commenter lacks an API key in I2PR settings, posts guidance and exits
  * - If checks pass and comment mentions @issuetopr, enqueue createDependentPR job for workers
  * - Adds an emoji reaction to acknowledge the comment was received
@@ -65,27 +65,26 @@ export async function handlePullRequestComment({
   // Add an emoji reaction to acknowledge we've seen the comment
   let eyesReactionId: number | null = null
   try {
-    const reaction = await octokit.rest.reactions.createForIssueComment({
+    const eyesReaction = await octokit.rest.reactions.createForIssueComment({
       owner,
       repo,
       comment_id: commentId,
       content: "eyes",
     })
-    eyesReactionId = reaction.data.id
+    eyesReactionId = eyesReaction.data.id
   } catch (e) {
     console.error("[Webhook] Failed to add reaction to comment:", e)
   }
 
-  // First, check if user has some level of permission to operate on the repo.
+  // Check if user has sufficient permission to trigger workflows
   // TODO: This should go through a matrix that's clear to developers to track what permissions are required for what actions.
   const authorized =
     authorAssociation === "OWNER" ||
     authorAssociation === "MEMBER" ||
     authorAssociation === "COLLABORATOR"
 
-  // If not authorized, post a helpful reply.
   if (!authorized) {
-    // Non-owner attempting to trigger a workflow. Post a helpful reply.
+    // Unauthorized user attempting to trigger a workflow. Post a helpful reply.
     const reply =
       "Only repository owners, members, or collaborators can trigger this workflow via PR comments. " +
       "Please ask an authorized user to run this workflow."
@@ -176,9 +175,9 @@ export async function handlePullRequestComment({
     // Generate UUID for workflow tracking
     const workflowId = uuidv4()
     // Allow queue name override via env var for test isolation
-    const queueName = process.env.BULLMQ_QUEUE_NAME || WORKFLOW_JOBS_QUEUE
+    const queue = process.env.BULLMQ_QUEUE_NAME || WORKFLOW_JOBS_QUEUE
     const jobId = await addJob(
-      queueName,
+      queue,
       {
         name: "createDependentPR",
         data: {
@@ -211,7 +210,7 @@ export async function handlePullRequestComment({
       body: reply,
     })
 
-    // Replace the eyes reaction with a rocket reaction
+    // Replace eyes reaction with rocket reaction
     if (eyesReactionId) {
       try {
         await octokit.rest.reactions.deleteForIssueComment({

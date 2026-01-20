@@ -88,7 +88,7 @@ export async function toAppEvent(
     dbEvent.type === "workflowCheckpointSaved" ||
     dbEvent.type === "workflowCheckpointRestored"
   ) {
-    // Map camelCase DB types to dot notation app types
+    // Map camelCase DB types to dot-notation app types
     const typeMap: Record<string, string> = {
       workflowStarted: "workflow.started",
       workflowCompleted: "workflow.completed",
@@ -106,6 +106,32 @@ export async function toAppEvent(
         | "workflow.checkpoint.restored",
       timestamp: dbEvent.createdAt.toStandardDate(),
       content: dbEvent.content,
+    }
+  } else if (dbEvent.type === "workflowError") {
+    // Convert workflowError to app error event
+    return {
+      id: dbEvent.id,
+      type: "error" as const,
+      content: dbEvent.message || dbEvent.content || "Unknown error",
+      createdAt: dbEvent.createdAt.toStandardDate(),
+      workflowId,
+    }
+  } else if (dbEvent.type === "workflow.started") {
+    // Legacy dot-notation type conversion
+    return {
+      id: workflowId,
+      type: "workflow.started" as const,
+      timestamp: dbEvent.createdAt.toStandardDate(),
+      content: dbEvent.content,
+    }
+  } else if (dbEvent.type === "workflow.error") {
+    // Legacy dot-notation error type conversion
+    return {
+      id: dbEvent.id,
+      type: "error" as const,
+      content: dbEvent.message || dbEvent.content || "Unknown error",
+      createdAt: dbEvent.createdAt.toStandardDate(),
+      workflowId,
     }
   }
   return {

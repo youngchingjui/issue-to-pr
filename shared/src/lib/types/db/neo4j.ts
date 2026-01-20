@@ -128,6 +128,7 @@ export const reviewCommentSchema = appReviewCommentSchema
   .omit({ workflowId: true })
   .merge(z.object({ createdAt: Neo4jDateTime }))
 
+// Primary workflow event schemas (camelCase - standard format)
 export const workflowStartedEventSchema = z.object({
   id: z.string(),
   createdAt: Neo4jDateTime,
@@ -149,6 +150,14 @@ export const workflowCancelledEventSchema = z.object({
   content: z.string().optional(),
 })
 
+export const workflowErrorEventSchema = z.object({
+  id: z.string(),
+  createdAt: Neo4jDateTime,
+  type: z.literal("workflowError"),
+  message: z.string().optional(),
+  content: z.string().optional(),
+})
+
 export const workflowCheckpointSavedEventSchema = z.object({
   id: z.string(),
   createdAt: Neo4jDateTime,
@@ -160,6 +169,22 @@ export const workflowCheckpointRestoredEventSchema = z.object({
   id: z.string(),
   createdAt: Neo4jDateTime,
   type: z.literal("workflowCheckpointRestored"),
+  content: z.string().optional(),
+})
+
+// Legacy schemas for backwards compatibility with dot-notation data in database
+export const workflowStartedDotEventSchema = z.object({
+  id: z.string(),
+  createdAt: Neo4jDateTime,
+  type: z.literal("workflow.started"),
+  content: z.string().optional(),
+})
+
+export const workflowErrorDotEventSchema = z.object({
+  id: z.string(),
+  createdAt: Neo4jDateTime,
+  type: z.literal("workflow.error"),
+  message: z.string().optional(),
   content: z.string().optional(),
 })
 
@@ -187,11 +212,16 @@ export const anyEventSchema = z.discriminatedUnion("type", [
   toolCallSchema,
   userMessageSchema,
   workflowStateEventSchema,
+  // Primary camelCase workflow events
   workflowStartedEventSchema,
   workflowCompletedEventSchema,
   workflowCancelledEventSchema,
+  workflowErrorEventSchema,
   workflowCheckpointSavedEventSchema,
   workflowCheckpointRestoredEventSchema,
+  // Legacy dot-notation events (for backwards compatibility)
+  workflowStartedDotEventSchema,
+  workflowErrorDotEventSchema,
 ])
 
 export type AnyEvent = z.infer<typeof anyEventSchema>
