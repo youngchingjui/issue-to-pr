@@ -94,6 +94,31 @@ export async function toAppEvent(
       timestamp: dbEvent.createdAt.toStandardDate(),
       content: dbEvent.content,
     }
+  } else if (dbEvent.type === "workflowStarted") {
+    // Legacy type conversion
+    return {
+      id: workflowId,
+      type: "workflow.started" as const,
+      timestamp: dbEvent.createdAt.toStandardDate(),
+      content: dbEvent.content,
+    }
+  } else if (dbEvent.type === "workflowCompleted") {
+    // Legacy type conversion
+    return {
+      id: workflowId,
+      type: "workflow.completed" as const,
+      timestamp: dbEvent.createdAt.toStandardDate(),
+      content: dbEvent.content,
+    }
+  } else if (dbEvent.type === "workflow.error") {
+    // Convert workflow.error to error event
+    return {
+      id: dbEvent.id,
+      type: "error" as const,
+      content: dbEvent.message || dbEvent.content || "Unknown error",
+      createdAt: dbEvent.createdAt.toStandardDate(),
+      workflowId,
+    }
   }
   return {
     ...dbEvent,

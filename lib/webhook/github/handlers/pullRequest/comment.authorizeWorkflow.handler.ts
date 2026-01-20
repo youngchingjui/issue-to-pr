@@ -24,7 +24,7 @@ interface HandlePullRequestCommentProps {
 
 /**
  * Handler: PR comment authorization gate and trigger for createDependentPR
- * - Only allows privileged actions when the commenter is an OWNER
+ * - Only allows privileged actions when the commenter is an OWNER, MEMBER, or COLLABORATOR
  * - If commenter lacks an API key in I2PR settings, posts guidance and exits
  * - If checks pass and comment mentions @issuetopr, enqueue createDependentPR job for workers
  * - Adds an emoji reaction to acknowledge the comment was received
@@ -63,24 +63,31 @@ export async function handlePullRequestComment({
   const [owner, repo] = repoFullName.split("/")
 
   // Add an emoji reaction to acknowledge we've seen the comment
-  if (commentId) {
-    try {
-      await octokit.rest.reactions.createForIssueComment({
-        owner,
-        repo,
-        comment_id: commentId,
-        content: "eyes",
-      })
-    } catch (e) {
-      console.error("[Webhook] Failed to add reaction to comment:", e)
-    }
+
+  let eyesReactionId: number | null = null
+  try {
+    const eyesReaction = await octokit.rest.reactions.createForIssueComment({
+      owner,
+      repo,
+      comment_id: commentId,
+      content: "eyes",
+    })
+    eyesReactionId = eyesReaction.data.id
+  } catch (e) {
+    console.error("[Webhook] Failed to add reaction to comment:", e)
   }
 
-  if (authorAssociation !== "OWNER") {
-    // Non-owner attempting to trigger a workflow. Post a helpful reply.
+  // Check if user has sufficient permission to trigger workflows
+  const authorized =
+    authorAssociation === "OWNER" ||
+    authorAssociation === "MEMBER" ||
+    authorAssociation === "COLLABORATOR"
+
+  if (!authorized) {
+    // Unauthorized user attempting to trigger a workflow. Post a helpful reply.
     const reply =
-      "Only repository owners can trigger this workflow via PR comments. " +
-      "Please ask the repo owner to run this workflow."
+      "Only repository owners, members, or collaborators can trigger this workflow via PR comments. " +
+      "Please ask an authorized user to run this workflow."
 
     try {
       await octokit.rest.issues.createComment({
@@ -109,7 +116,9 @@ export async function handlePullRequestComment({
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || ""
   const settingsUrl = baseUrl ? `${baseUrl.replace(/\/$/, "")}/settings` : null
 
-  let apiKeyResult: { ok: true; value: string | null } | { ok: false; error: string }
+  let apiKeyResult:
+    | { ok: true; value: string | null }
+    | { ok: false; error: string }
   try {
     const storage = new StorageAdapter(neo4jDs)
     apiKeyResult = await storage.settings.user.getOpenAIKey(githubLogin)
@@ -207,19 +216,30 @@ export async function handlePullRequestComment({
       body: reply,
     })
 
-    // Optional: add a rocket reaction to the original comment
-    if (commentId) {
+    // Replace eyes reaction with rocket reaction
+    if (eyesReactionId) {
       try {
-        await octokit.rest.reactions.createForIssueComment({
+        await octokit.rest.reactions.deleteForIssueComment({
           owner,
           repo,
           comment_id: commentId,
-          content: "rocket",
+          reaction_id: eyesReactionId,
         })
       } catch (e) {
-        // Non-critical: reaction is just visual feedback, don't fail the job
-        console.warn("[Webhook] Failed to add rocket reaction:", e)
+        console.error("[Webhook] Failed to remove eyes reaction:", e)
       }
+    }
+
+    try {
+      await octokit.rest.reactions.createForIssueComment({
+        owner,
+        repo,
+        comment_id: commentId,
+        content: "rocket",
+      })
+    } catch (e) {
+      // Non-critical: reaction is just visual feedback, don't fail the job
+      console.warn("[Webhook] Failed to add rocket reaction:", e)
     }
 
     console.log(
