@@ -28,12 +28,12 @@ import {
   createGitHubComment,
   deleteGitHubComment,
   type NextServerHandle,
+  type SmeeClientHandle,
   startNextServer,
   startSmee,
-  type SmeeClientHandle,
   startWorker,
-  type WorkerProcessHandle,
   waitForPRCondition,
+  type WorkerProcessHandle,
 } from "./helpers"
 
 // Load e2e-specific environment first
