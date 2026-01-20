@@ -135,6 +135,14 @@ export const workflowStartedEventSchema = z.object({
   content: z.string().optional(),
 })
 
+// Legacy schema for backwards compatibility with existing data
+export const workflowStartedLegacyEventSchema = z.object({
+  id: z.string(),
+  createdAt: Neo4jDateTime,
+  type: z.literal("workflowStarted"),
+  content: z.string().optional(),
+})
+
 export const workflowCompletedEventSchema = z.object({
   id: z.string(),
   createdAt: Neo4jDateTime,
@@ -142,10 +150,26 @@ export const workflowCompletedEventSchema = z.object({
   content: z.string().optional(),
 })
 
+// Legacy schema for backwards compatibility with existing data
+export const workflowCompletedLegacyEventSchema = z.object({
+  id: z.string(),
+  createdAt: Neo4jDateTime,
+  type: z.literal("workflowCompleted"),
+  content: z.string().optional(),
+})
+
 export const workflowCancelledEventSchema = z.object({
   id: z.string(),
   createdAt: Neo4jDateTime,
   type: z.literal("workflow.cancelled"),
+  content: z.string().optional(),
+})
+
+export const workflowErrorEventSchema = z.object({
+  id: z.string(),
+  createdAt: Neo4jDateTime,
+  type: z.literal("workflow.error"),
+  message: z.string().optional(),
   content: z.string().optional(),
 })
 
@@ -188,8 +212,11 @@ export const anyEventSchema = z.discriminatedUnion("type", [
   userMessageSchema,
   workflowStateEventSchema,
   workflowStartedEventSchema,
+  workflowStartedLegacyEventSchema,
   workflowCompletedEventSchema,
+  workflowCompletedLegacyEventSchema,
   workflowCancelledEventSchema,
+  workflowErrorEventSchema,
   workflowCheckpointSavedEventSchema,
   workflowCheckpointRestoredEventSchema,
 ])
