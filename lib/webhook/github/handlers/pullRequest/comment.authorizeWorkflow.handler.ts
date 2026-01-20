@@ -22,29 +22,6 @@ interface HandlePullRequestCommentProps {
   commenterLogin: string
 }
 
-async function isOrgAdmin({
-  octokit,
-  owner,
-  username,
-}: {
-  octokit: Awaited<ReturnType<typeof getInstallationOctokit>>
-  owner: string
-  username: string
-}): Promise<boolean> {
-  try {
-    // Only orgs support membership lookup; if not an org or not a member, this will throw
-    const result = await octokit.rest.orgs.getMembershipForUser({
-      org: owner,
-      username,
-    })
-    // role: 'admin' | 'member'
-    return result?.data?.role === "admin"
-  } catch {
-    // 404 or any error -> not an org admin
-    return false
-  }
-}
-
 /**
  * Handler: PR comment authorization gate and trigger for createDependentPR
  * - Only allows privileged actions when the commenter is an OWNER, or an org admin on an org-owned repo
@@ -101,7 +78,10 @@ export async function handlePullRequestComment({
 
   // First, check if user has some level of permission to operate on the repo.
   // TODO: This should go through a matrix that's clear to developers to track what permissions are required for what actions.
-  const authorized = authorAssociation === "OWNER" || authorAssociation === "MEMBER" || authorAssociation === "COLLABORATOR"
+  const authorized =
+    authorAssociation === "OWNER" ||
+    authorAssociation === "MEMBER" ||
+    authorAssociation === "COLLABORATOR"
 
   // If not authorized, post a helpful reply.
   if (!authorized) {
@@ -128,7 +108,9 @@ export async function handlePullRequestComment({
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || ""
   const settingsUrl = baseUrl ? `${baseUrl.replace(/\/$/, "")}/settings` : null
 
-  let apiKeyResult: { ok: true; value: string | null } | { ok: false; error: string }
+  let apiKeyResult:
+    | { ok: true; value: string | null }
+    | { ok: false; error: string }
   try {
     const storage = new StorageAdapter(neo4jDs)
     apiKeyResult = await storage.settings.user.getOpenAIKey(commenterLogin)
@@ -251,4 +233,3 @@ export async function handlePullRequestComment({
     return { status: "error", reason: "enqueue_failed" as const }
   }
 }
-
