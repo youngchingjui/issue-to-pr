@@ -1,6 +1,6 @@
-# Auth System – Desired Behavior
+# Auth System
 
-This document outlines the desired behavior and developer ergonomics for our authentication system used in the Next.js app. The goal is a simple, predictable API that automatically keeps access tokens fresh, avoids redundant network calls, and behaves correctly under concurrency.
+We need an auth library that can be used in the Next.js app to get auth info. It should be able to return authenticated user info and access tokens, handle token refresh, and be concurrency-safe.
 
 ## Goals
 
@@ -13,7 +13,7 @@ This document outlines the desired behavior and developer ergonomics for our aut
 ## Simple API Shape (what we want)
 
 - Server (recommended):
-  - auth(): Promise<Session> – returns a session object with:
+  - `auth(): Promise<Session>` – returns a session object with:
     - isAuthenticated: boolean
     - token: { access_token?: string; expires_at?: number }
     - profile: { login?: string }
@@ -21,30 +21,36 @@ This document outlines the desired behavior and developer ergonomics for our aut
 - Client: useSession() or fetch to server actions/APIs that call auth() on the server.
 
 Notes:
+
 - Only the server should handle refresh_token and token refresh logic. The client never sees refresh tokens.
 - An AccessTokenProvider helper can give callers just the access token when that’s all they need.
 
 ## Desired Behaviors
 
 1) Always-valid token on success
+
 - If the existing token is still valid (with a small leeway window), return it immediately.
 - If expired or within leeway, perform a refresh automatically before returning to the caller.
 
-2) Single-flight refresh per user
+1) Single-flight refresh per user
+
 - At most one token refresh runs per user at a time.
 - All parallel calls share the same in-flight refresh and receive the updated token once it completes.
 
-3) Short-lived caching and deduplication
+1) Short-lived caching and deduplication
+
 - Reuse the most recent session result for a short TTL within the process/request scope to avoid duplicate network calls.
 - When running across many instances, optionally use Redis for:
   - a short-lived token cache (so instances can pick up newly refreshed tokens quickly), and
   - a best-effort refresh lock to prevent duplicate refreshes across instances.
 
-4) Minimal surface area for callers
+1) Minimal surface area for callers
+
 - Callers should not worry about expiry checks, refresh flows, or locks.
 - They can assume auth() returns a session whose token is either valid or will throw a consistent auth error.
 
-5) Clear failure/edge cases
+1) Clear failure/edge cases
+
 - If refresh fails (e.g., bad refresh token), clear cached token and surface a “reauth required” signal.
 - On the server, return a NextAuth-compatible redirect or throw a known error type so routes can handle it.
 - Never fall back to a stale/invalid token.
@@ -60,6 +66,7 @@ In-memory (per process) single-flight with optional Redis coordination for multi
 - On failure, clear refreshInFlight, invalidate any cached token, and surface a consistent error.
 
 Optional cross-instance enhancement:
+
 - Acquire a short Redis lock before performing the refresh; if the lock exists, wait briefly and check the Redis token cache again (assume another instance is refreshing).
 
 ## Pseudocode sketch
@@ -131,4 +138,3 @@ async function getAccessToken(session: Session): Promise<Token> {
 - [ ] Minimal extra network requests during high-concurrency paths.
 - [ ] No refresh tokens exposed to the client.
 - [ ] Predictable handling of failures (reauth required vs retryable errors).
-
