@@ -99,20 +99,15 @@ export async function handlePullRequestComment({
     }
   }
 
-  let authorized = authorAssociation === "OWNER"
+  // First, check if user has some level of permission to operate on the repo.
+  // TODO: This should go through a matrix that's clear to developers to track what permissions are required for what actions.
+  const authorized = authorAssociation === "OWNER" || authorAssociation === "MEMBER" || authorAssociation === "COLLABORATOR"
 
-  // If not repo OWNER, allow org admins on org-owned repos. We only attempt this
-  // extra check when authorAssociation is MEMBER to avoid unnecessary API calls
-  // and to keep existing unit-test mocks stable.
-  if (!authorized && authorAssociation === "MEMBER") {
-    const isAdmin = await isOrgAdmin({ octokit, owner, username: commenterLogin })
-    authorized = isAdmin
-  }
-
+  // If not authorized, post a helpful reply.
   if (!authorized) {
     // Non-owner attempting to trigger a workflow. Post a helpful reply.
     const reply =
-      "Only repository owners or organization admins can trigger this workflow via PR comments. " +
+      "Only repository owners, members, or collaborators can trigger this workflow via PR comments. " +
       "Please ask an authorized user to run this workflow."
 
     try {
@@ -129,15 +124,6 @@ export async function handlePullRequestComment({
     return { status: "rejected", reason: "not_owner" as const }
   }
 
-  // Validate commenterLogin is present (should always be from webhook payload)
-  const githubLogin = commenterLogin.trim()
-  if (!githubLogin) {
-    console.error(
-      "[Webhook] commenterLogin is empty; cannot look up user settings"
-    )
-    return { status: "error", reason: "missing_commenter_login" as const }
-  }
-
   // Verify the user has connected account and API key
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || ""
   const settingsUrl = baseUrl ? `${baseUrl.replace(/\/$/, "")}/settings` : null
@@ -145,7 +131,7 @@ export async function handlePullRequestComment({
   let apiKeyResult: { ok: true; value: string | null } | { ok: false; error: string }
   try {
     const storage = new StorageAdapter(neo4jDs)
-    apiKeyResult = await storage.settings.user.getOpenAIKey(githubLogin)
+    apiKeyResult = await storage.settings.user.getOpenAIKey(commenterLogin)
   } catch (e) {
     console.error("[Webhook] Settings lookup failed:", e)
     return { status: "error", reason: "settings_lookup_failed" as const }
@@ -215,7 +201,7 @@ export async function handlePullRequestComment({
           workflowId,
           repoFullName,
           pullNumber: issueNumber,
-          githubLogin,
+          githubLogin: commenterLogin,
           githubInstallationId: String(installationId),
         },
       },
@@ -257,7 +243,7 @@ export async function handlePullRequestComment({
     }
 
     console.log(
-      `[Webhook] PR comment authorized and job enqueued for ${repoFullName}#${issueNumber} by ${githubLogin} (workflow ID: ${workflowId})`
+      `[Webhook] PR comment authorized and job enqueued for ${repoFullName}#${issueNumber} by ${commenterLogin} (workflow ID: ${workflowId})`
     )
     return { status: "enqueued" as const, jobId, workflowId }
   } catch (e) {
