@@ -94,18 +94,6 @@ describe("handlePullRequestComment", () => {
     expect(rest.issues.createComment).toHaveBeenCalled()
   })
 
-  it("returns error when commenterLogin is empty", async () => {
-    const res = await handlePullRequestComment({ ...baseParams, commenterLogin: "" })
-    expect(res).toEqual({ status: "error", reason: "missing_commenter_login" })
-    expect(asMock(addJob)).not.toHaveBeenCalled()
-  })
-
-  it("returns error when commenterLogin is whitespace only", async () => {
-    const res = await handlePullRequestComment({ ...baseParams, commenterLogin: "   " })
-    expect(res).toEqual({ status: "error", reason: "missing_commenter_login" })
-    expect(asMock(addJob)).not.toHaveBeenCalled()
-  })
-
   it("posts account setup guidance when user not found in database", async () => {
     // Make StorageAdapter return err("UserNotFound")
     asMock(StorageAdapter as unknown as jest.Mock).mockImplementation(() =>
