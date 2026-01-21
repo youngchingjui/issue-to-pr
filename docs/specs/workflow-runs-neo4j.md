@@ -15,8 +15,14 @@ graph LR
     WR -->|BASED_ON_REPOSITORY| R[Repository]
     WR -->|STARTS_WITH| E1[Event]
     E1 -->|NEXT| E2[Event]
+    E1 -->|NEXT| E2b[Event]:::parallel
     E2 -->|NEXT| E3[Event]
 ```
+
+classDef parallel fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+
+- Event chains now support fan-out. Multiple `:NEXT` relationships may originate from the same parent event to represent parallel tool calls.
+- When adding an event, you can supply a `parentEventId` to attach the new event as a child of a specific parent rather than appending to the tail.
 
 ## Node Labels
 
@@ -76,11 +82,24 @@ A single node can have multiple labels:
 
 ## Event Chain
 
-Events form a linked list via `NEXT` relationships:
+Events form a linked structure via `NEXT` relationships. With the new fan-out support, an event may have 0..N `NEXT` edges.
 
 ```cypher
-(WorkflowRun)-[:STARTS_WITH]->(Event1)-[:NEXT]->(Event2)-[:NEXT]->(Event3)
+// Append sequentially (legacy behavior)
+CALL {
+  WITH $workflowRunId AS runId, $eventId AS id
+  // create event node then append using last event discovery
+}
+
+// Attach as a parallel child of a known parent
+MATCH (parent:Event {id: $parentEventId})
+MATCH (child:Event {id: $eventId})
+MERGE (parent)-[:NEXT]->(child)
 ```
+
+Storage helper changes:
+- `addEvent` query now accepts an optional `parentEventId`.
+- The StorageAdapter's `WorkflowEventInput` includes an optional `parentId` to leverage the fan-out model.
 
 ## Naming Conventions
 
@@ -109,3 +128,4 @@ Mappers in `shared/src/adapters/neo4j/queries/workflowRuns/` handle conversion b
 - **DB-layer types:** `shared/src/lib/types/db/neo4j.ts`
 - **Event mappers:** `shared/src/adapters/neo4j/queries/workflowRuns/*.mapper.ts`
 - **Type conversion:** `shared/src/lib/neo4j/convert.ts`
+

@@ -38,6 +38,12 @@ export interface WorkflowEventInput {
   type: AllEvents["type"]
   payload: unknown
   createdAt?: string
+  /**
+   * When provided, the event will be linked from this specific parent event
+   * using a NEXT relationship. This enables modeling fan-out/parallel events
+   * from a common ancestor, rather than always appending to the chain tail.
+   */
+  parentId?: string
 }
 
 export interface RepositoryAttachment {
@@ -101,3 +107,4 @@ export interface DatabaseStorage {
     }
   }
 }
+

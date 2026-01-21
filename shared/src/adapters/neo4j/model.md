@@ -44,7 +44,7 @@ graph TB
     %% Cross-Entity Relationships
     Commit -->|IN_REPOSITORY| Repo
 
-    %% Event Chain Relationships
+    %% Event Chain Relationships (fan-out supported)
     WR -->|STARTS_WITH| Event
     Event -->|NEXT| Event
 
@@ -72,6 +72,10 @@ graph TB
     class Event,Message,Plan eventNode
     class Task,Settings otherNode
 ```
+
+Notes:
+- Parallel events are modeled by allowing multiple `:NEXT` relationships to fan out from the same parent `Event` node.
+- When creating an event you may specify a `parentEventId`; if present, the new event is attached via `(parent)-[:NEXT]->(child)` instead of appending to the chain tail. If omitted, events continue to append sequentially.
 
 ## Ideal data model
 
@@ -145,3 +149,4 @@ graph TB
 ```
 
 - The types for these data models should be saved and referenced in the `shared/src/adapters/neo4j/types.ts` file.
+

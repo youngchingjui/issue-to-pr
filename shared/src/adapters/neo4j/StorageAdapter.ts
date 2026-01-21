@@ -152,6 +152,7 @@ async function addEventToRun(
         eventType: neo4jEventType,
         content: JSON.stringify(event.payload),
         createdAt,
+        parentEventId: event.parentId ?? null,
       })
     )
 
@@ -472,3 +473,4 @@ export class StorageAdapter implements DatabaseStorage {
     }
   }
 }
+
