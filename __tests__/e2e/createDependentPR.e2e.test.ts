@@ -32,18 +32,7 @@
 
 import { Queue, QueueEvents, Worker } from "bullmq"
 import * as crypto from "crypto"
-import * as dotenv from "dotenv"
 import IORedis from "ioredis"
-import * as path from "path"
-
-// Load e2e-specific environment first
-const e2eEnvPath = path.resolve(__dirname, "../.env.e2e")
-dotenv.config({ path: e2eEnvPath })
-
-// Now load fallback from __tests__/.env for Neo4j if not set
-const testEnvPath = path.resolve(__dirname, "../.env")
-dotenv.config({ path: testEnvPath })
-
 
 // Queue name from env or default constant (for test isolation)
 const QUEUE_NAME = process.env.BULLMQ_QUEUE_NAME
@@ -115,11 +104,11 @@ describe("E2E: @issuetopr PR Comment Workflow", () => {
   if (missingEnvVars.length > 0) {
     console.warn(
       `⚠️  Skipping E2E tests: Missing env vars: ${missingEnvVars.join(", ")}\n` +
-      "Copy __tests__/.env.e2e.example to __tests__/.env.e2e and configure.\n" +
-      "Start e2e services with: pnpm test:e2e:up"
+        "Copy __tests__/.env.e2e.example to __tests__/.env.e2e and configure.\n" +
+        "Start e2e services with: pnpm test:e2e:up"
     )
 
-    it.skip("E2E tests require environment configuration", () => { })
+    it.skip("E2E tests require environment configuration", () => {})
     return
   }
 
@@ -228,8 +217,14 @@ describe("E2E: @issuetopr PR Comment Workflow", () => {
       const workflowId = `e2e-${testId}`
 
       // Create own connections (like Full Integration Flow test)
-      const queueConnection = createTestRedisConnection(REDIS_URL, `queue-${testId}`)
-      const workerConnection = createTestRedisConnection(REDIS_URL, `worker-${testId}`)
+      const queueConnection = createTestRedisConnection(
+        REDIS_URL,
+        `queue-${testId}`
+      )
+      const workerConnection = createTestRedisConnection(
+        REDIS_URL,
+        `worker-${testId}`
+      )
 
       // Create own queue and drain stale jobs
       const testQueue = new Queue(QUEUE_NAME, { connection: queueConnection })
@@ -306,8 +301,14 @@ describe("E2E: @issuetopr PR Comment Workflow", () => {
       const workflowId = `e2e-${testId}`
 
       // Create own connections (like Full Integration Flow test)
-      const queueConnection = createTestRedisConnection(REDIS_URL, `queue-${testId}`)
-      const workerConnection = createTestRedisConnection(REDIS_URL, `worker-${testId}`)
+      const queueConnection = createTestRedisConnection(
+        REDIS_URL,
+        `queue-${testId}`
+      )
+      const workerConnection = createTestRedisConnection(
+        REDIS_URL,
+        `worker-${testId}`
+      )
 
       // Create own queue and drain stale jobs
       const testQueue = new Queue(QUEUE_NAME, { connection: queueConnection })
@@ -417,7 +418,7 @@ describe("E2E: Full Integration Flow", () => {
   const missingEnvVars = requiredEnvVars.filter((v) => !process.env[v])
 
   if (missingEnvVars.length > 0) {
-    it.skip("Full integration tests require all services", () => { })
+    it.skip("Full integration tests require all services", () => {})
     return
   }
 
@@ -430,8 +431,14 @@ describe("E2E: Full Integration Flow", () => {
     const workflowId = `workflow-${testId}`
 
     // Create connections for queue management and worker
-    const queueConnection = createTestRedisConnection(REDIS_URL, `full-flow-queue-${testId}`)
-    const workerConnection = createTestRedisConnection(REDIS_URL, `full-flow-worker-${testId}`)
+    const queueConnection = createTestRedisConnection(
+      REDIS_URL,
+      `full-flow-queue-${testId}`
+    )
+    const workerConnection = createTestRedisConnection(
+      REDIS_URL,
+      `full-flow-worker-${testId}`
+    )
 
     // Create queue to drain stale jobs
     const testQueue = new Queue(QUEUE_NAME, { connection: queueConnection })
@@ -539,7 +546,7 @@ describe("E2E: Database Integration", () => {
   const missingEnvVars = requiredEnvVars.filter((v) => !process.env[v])
 
   if (missingEnvVars.length > 0) {
-    it.skip("Database tests require Neo4j configuration", () => { })
+    it.skip("Database tests require Neo4j configuration", () => {})
     return
   }
 
@@ -550,12 +557,9 @@ describe("E2E: Database Integration", () => {
   let StorageAdapter: typeof import("@/shared/adapters/neo4j/StorageAdapter").StorageAdapter
 
   beforeAll(async () => {
-    const { createNeo4jDataSource } = await import(
-      "@/shared/adapters/neo4j/dataSource"
-    )
-    const storageModule = await import(
-      "@/shared/adapters/neo4j/StorageAdapter"
-    )
+    const { createNeo4jDataSource } =
+      await import("@/shared/adapters/neo4j/dataSource")
+    const storageModule = await import("@/shared/adapters/neo4j/StorageAdapter")
     StorageAdapter = storageModule.StorageAdapter
 
     dataSource = createNeo4jDataSource({
