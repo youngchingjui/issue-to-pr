@@ -13,6 +13,8 @@ import { handleIssueLabelResolve } from "@/lib/webhook/github/handlers/issue/lab
 import { handlePullRequestClosedRemoveContainer } from "@/lib/webhook/github/handlers/pullRequest/closed.removeContainer.handler"
 import { handlePullRequestComment } from "@/lib/webhook/github/handlers/pullRequest/comment.authorizeWorkflow.handler"
 import { handlePullRequestLabelCreateDependentPR } from "@/lib/webhook/github/handlers/pullRequest/label.createDependentPR.handler"
+import { handlePullRequestReview } from "@/lib/webhook/github/handlers/pullRequest/review.authorizeWorkflow.handler"
+import { handlePullRequestReviewComment } from "@/lib/webhook/github/handlers/pullRequest/reviewComment.authorizeWorkflow.handler"
 import { handleRepositoryEditedRevalidate } from "@/lib/webhook/github/handlers/repository/edited.revalidateRepoCache.handler"
 import {
   CreatePayloadSchema,
@@ -25,6 +27,8 @@ import {
   IssueCommentPayloadSchema,
   IssuesPayloadSchema,
   PullRequestPayloadSchema,
+  PullRequestReviewCommentPayloadSchema,
+  PullRequestReviewPayloadSchema,
   PushPayloadSchema,
   RepositoryPayloadSchema,
   StatusPayloadSchema,
@@ -196,6 +200,64 @@ export async function POST(req: NextRequest) {
           default:
             // Ignore other PR actions
             break
+        }
+        break
+      }
+
+      case "pull_request_review": {
+        const r = PullRequestReviewPayloadSchema.safeParse(payload)
+        if (!r.success) {
+          console.error(
+            "[ERROR] Invalid pull_request_review payload",
+            r.error.flatten()
+          )
+          return new Response("Invalid payload", { status: 400 })
+        }
+        const parsedPayload = r.data
+
+        if (parsedPayload.action === "submitted") {
+          handlePullRequestReview({
+            installationId: parsedPayload.installation.id,
+            reviewId: parsedPayload.review.id,
+            reviewBody: parsedPayload.review.body ?? "",
+            reviewUserType: parsedPayload.review.user.type,
+            authorAssociation: parsedPayload.review.author_association,
+            pullNumber: parsedPayload.pull_request.number,
+            repoFullName: parsedPayload.repository.full_name,
+            reviewerLogin: parsedPayload.review.user.login,
+          }).catch((error) => {
+            console.error("[ERROR] Failed handling PR review auth:", error)
+          })
+        }
+        break
+      }
+
+      case "pull_request_review_comment": {
+        const r = PullRequestReviewCommentPayloadSchema.safeParse(payload)
+        if (!r.success) {
+          console.error(
+            "[ERROR] Invalid pull_request_review_comment payload",
+            r.error.flatten()
+          )
+          return new Response("Invalid payload", { status: 400 })
+        }
+        const parsedPayload = r.data
+        if (parsedPayload.action === "created") {
+          handlePullRequestReviewComment({
+            installationId: parsedPayload.installation.id,
+            commentId: parsedPayload.comment.id,
+            commentBody: parsedPayload.comment.body,
+            commentUserType: parsedPayload.comment.user.type,
+            authorAssociation: parsedPayload.comment.author_association,
+            pullNumber: parsedPayload.pull_request.number,
+            repoFullName: parsedPayload.repository.full_name,
+            commenterLogin: parsedPayload.comment.user.login,
+          }).catch((error) => {
+            console.error(
+              "[ERROR] Failed handling PR review comment auth:",
+              error
+            )
+          })
         }
         break
       }
@@ -382,3 +444,4 @@ export async function POST(req: NextRequest) {
     return new Response("Error", { status: 500 })
   }
 }
+

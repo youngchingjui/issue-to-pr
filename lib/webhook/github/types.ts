@@ -4,6 +4,8 @@ import { z } from "zod"
 export const GithubEventSchema = z.enum([
   "issues",
   "pull_request",
+  "pull_request_review",
+  "pull_request_review_comment",
   "push",
   "create",
   "delete",
@@ -128,6 +130,42 @@ export const IssueCommentPayloadSchema = z.object({
 })
 export type IssueCommentPayload = z.infer<typeof IssueCommentPayloadSchema>
 
+// New: pull request review payload (top-level review submission)
+export const PullRequestReviewPayloadSchema = z.object({
+  action: z.string(), // e.g., "submitted", "edited", "dismissed"
+  pull_request: z.object({ number: z.number() }),
+  review: z.object({
+    id: z.number(),
+    body: z.string().nullable().optional(),
+    user: z.object({
+      login: z.string(),
+      type: z.enum(["User", "Bot", "Organization"]),
+    }),
+    author_association: AuthorAssociationSchema,
+  }),
+  repository: z.object({ full_name: z.string() }),
+  installation: InstallationSchema,
+})
+export type PullRequestReviewPayload = z.infer<typeof PullRequestReviewPayloadSchema>
+
+// New: pull request review comment payload (inline comments on code)
+export const PullRequestReviewCommentPayloadSchema = z.object({
+  action: z.enum(["created", "edited", "deleted"]),
+  pull_request: z.object({ number: z.number() }),
+  comment: z.object({
+    id: z.number(),
+    body: z.string(),
+    user: z.object({
+      login: z.string(),
+      type: z.enum(["User", "Bot", "Organization"]),
+    }),
+    author_association: AuthorAssociationSchema,
+  }),
+  repository: z.object({ full_name: z.string() }),
+  installation: InstallationSchema,
+})
+export type PullRequestReviewCommentPayload = z.infer<typeof PullRequestReviewCommentPayloadSchema>
+
 export const DeploymentPayloadSchema = z.object({
   action: z.string(),
   deployment: z
@@ -200,3 +238,4 @@ export const RepositoryPayloadSchema = z.discriminatedUnion("action", [
 ])
 
 export type RepositoryPayload = z.infer<typeof RepositoryPayloadSchema>
+
