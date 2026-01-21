@@ -1,4 +1,4 @@
-import { Github, Mail, Twitter } from "lucide-react"
+import { Github, LucideIcon, Mail, Twitter } from "lucide-react"
 import Link from "next/link"
 
 const SOCIAL_LINKS = [
@@ -19,7 +19,13 @@ const SOCIAL_LINKS = [
   },
 ]
 
-const SocialLink = ({ href, label, icon: Icon }) => (
+interface SocialLinkProps {
+  href: string
+  label: string
+  icon: LucideIcon
+}
+
+const SocialLink = ({ href, label, icon: Icon }: SocialLinkProps) => (
   <Link
     href={href}
     aria-label={label}
