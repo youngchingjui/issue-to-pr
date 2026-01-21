@@ -5,7 +5,7 @@
  * via smee.io to the local development server for E2E testing.
  *
  * Uses fetch instead of Octokit to avoid ESM compatibility issues with Jest.
- * 
+ *
  * TODO: If we can use ESM modules in our test suite, then we can use octokit directly instead of
  * fetching the installation token via HTTP.
  */
@@ -53,8 +53,12 @@ function generateAppJWT(appId: string, privateKey: string): string {
 
   // Create JWT header and payload
   const header = { alg: "RS256", typ: "JWT" }
-  const encodedHeader = Buffer.from(JSON.stringify(header)).toString("base64url")
-  const encodedPayload = Buffer.from(JSON.stringify(payload)).toString("base64url")
+  const encodedHeader = Buffer.from(JSON.stringify(header)).toString(
+    "base64url"
+  )
+  const encodedPayload = Buffer.from(JSON.stringify(payload)).toString(
+    "base64url"
+  )
 
   // Sign the JWT
   const signatureInput = `${encodedHeader}.${encodedPayload}`
@@ -89,7 +93,9 @@ async function getInstallationToken(
 
   if (!response.ok) {
     const error = await response.text()
-    throw new Error(`Failed to get installation token: ${response.status} ${error}`)
+    throw new Error(
+      `Failed to get installation token: ${response.status} ${error}`
+    )
   }
 
   const data = (await response.json()) as { token: string }
@@ -181,7 +187,8 @@ export async function deleteGitHubComment(options: {
   repoFullName: string
   commentId: number
 }): Promise<void> {
-  const { appId, privateKeyPath, installationId, repoFullName, commentId } = options
+  const { appId, privateKeyPath, installationId, repoFullName, commentId } =
+    options
 
   const privateKey = fs.readFileSync(privateKeyPath, "utf-8")
   const token = await getInstallationToken(appId, privateKey, installationId)
