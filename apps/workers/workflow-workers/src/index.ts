@@ -13,19 +13,18 @@
 import { QueueEvents, Worker } from "bullmq"
 
 import { getRedisConnection } from "@/shared/adapters/ioredis/client"
-import { WORKFLOW_JOBS_QUEUE } from "@/shared/entities/Queue"
 
 import { handler } from "./handler"
 import { getEnvVar, registerGracefulShutdown } from "./helper"
 
-const { REDIS_URL, WORKER_CONCURRENCY } = getEnvVar()
+const { REDIS_URL, WORKER_CONCURRENCY, BULLMQ_QUEUE_NAME } = getEnvVar()
 
 const workerConn = getRedisConnection(REDIS_URL, "bullmq:worker")
 const eventsConn = getRedisConnection(REDIS_URL, "bullmq:events")
 
 const concurrency = Math.max(1, WORKER_CONCURRENCY)
 
-const worker = new Worker(WORKFLOW_JOBS_QUEUE, handler, {
+const worker = new Worker(BULLMQ_QUEUE_NAME, handler, {
   connection: workerConn,
   concurrency,
 })
@@ -34,7 +33,7 @@ worker.on("active", (job) => {})
 
 worker.on("ready", () => {
   console.log(
-    `Worker is ready and listening for jobs on the '${WORKFLOW_JOBS_QUEUE}' queue… (concurrency=${concurrency})`
+    `Worker is ready and listening for jobs on the '${BULLMQ_QUEUE_NAME}' queue… (concurrency=${concurrency})`
   )
 })
 
@@ -64,7 +63,7 @@ worker.on("closed", () => {})
 
 // Events don't belong here, but putting in for debugging for now.
 
-const queueEvents = new QueueEvents(WORKFLOW_JOBS_QUEUE, {
+const queueEvents = new QueueEvents(BULLMQ_QUEUE_NAME, {
   connection: eventsConn,
 })
 

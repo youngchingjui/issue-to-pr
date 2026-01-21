@@ -2,6 +2,11 @@ import type { ChatModel } from "openai/resources"
 import { z, ZodType } from "zod"
 
 import {
+  WorkflowCancelledEventSchema,
+  WorkflowCheckpointRestoredEventSchema,
+  WorkflowCheckpointSavedEventSchema,
+  WorkflowCompletedEventSchema,
+  WorkflowStartedEventSchema,
   WorkflowStateEventSchema,
   WorkflowStatusEventSchema,
 } from "@/shared/entities/events/WorkflowEvent"
@@ -193,6 +198,11 @@ export const anyEventSchema = z.discriminatedUnion("type", [
   reviewCommentSchema,
   WorkflowStatusEventSchema,
   WorkflowStateEventSchema,
+  WorkflowStartedEventSchema,
+  WorkflowCompletedEventSchema,
+  WorkflowCancelledEventSchema,
+  WorkflowCheckpointSavedEventSchema,
+  WorkflowCheckpointRestoredEventSchema,
 ])
 
 // ---- Settings Schemas ----
@@ -317,3 +327,16 @@ export type UserMessage = z.infer<typeof userMessageSchema>
 export type WorkflowRun = z.infer<typeof workflowRunSchema>
 export type WorkflowRunState = z.infer<typeof workflowRunStateSchema>
 export type WorkflowType = z.infer<typeof workflowTypeEnum>
+export type WorkflowStartedEvent = z.infer<typeof WorkflowStartedEventSchema>
+export type WorkflowCompletedEvent = z.infer<
+  typeof WorkflowCompletedEventSchema
+>
+export type WorkflowCancelledEvent = z.infer<
+  typeof WorkflowCancelledEventSchema
+>
+export type WorkflowCheckpointSavedEvent = z.infer<
+  typeof WorkflowCheckpointSavedEventSchema
+>
+export type WorkflowCheckpointRestoredEvent = z.infer<
+  typeof WorkflowCheckpointRestoredEventSchema
+>

@@ -81,6 +81,41 @@ export async function toAppEvent(
       timestamp: dbEvent.createdAt.toStandardDate(),
       id: workflowId,
     }
+  } else if (
+    dbEvent.type === "workflowStarted" ||
+    dbEvent.type === "workflowCompleted" ||
+    dbEvent.type === "workflowCancelled" ||
+    dbEvent.type === "workflowCheckpointSaved" ||
+    dbEvent.type === "workflowCheckpointRestored"
+  ) {
+    // Map camelCase DB types to dot-notation app types
+    const typeMap: Record<string, string> = {
+      workflowStarted: "workflow.started",
+      workflowCompleted: "workflow.completed",
+      workflowCancelled: "workflow.cancelled",
+      workflowCheckpointSaved: "workflow.checkpoint.saved",
+      workflowCheckpointRestored: "workflow.checkpoint.restored",
+    }
+    return {
+      id: workflowId,
+      type: typeMap[dbEvent.type] as
+        | "workflow.started"
+        | "workflow.completed"
+        | "workflow.cancelled"
+        | "workflow.checkpoint.saved"
+        | "workflow.checkpoint.restored",
+      timestamp: dbEvent.createdAt.toStandardDate(),
+      content: dbEvent.content,
+    }
+  } else if (dbEvent.type === "workflowError") {
+    // Convert workflowError to app error event
+    return {
+      id: dbEvent.id,
+      type: "error" as const,
+      content: dbEvent.message || dbEvent.content || "Unknown error",
+      createdAt: dbEvent.createdAt.toStandardDate(),
+      workflowId,
+    }
   }
   return {
     ...dbEvent,

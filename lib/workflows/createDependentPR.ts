@@ -1,3 +1,8 @@
+/**
+ * @deprecated Moved to shared: use `@/shared/usecases/workflows/createDependentPR` instead.
+ * This legacy Next.js-specific implementation remains for backward compatibility
+ * and will be removed after consumers migrate to the shared use-case.
+ */
 import { v4 as uuidv4 } from "uuid"
 
 import { DependentPRAgent } from "@/lib/agents/DependentPRAgent"
@@ -238,3 +243,4 @@ export async function createDependentPRWorkflow({
     if (containerCleanup) await containerCleanup()
   }
 }
+

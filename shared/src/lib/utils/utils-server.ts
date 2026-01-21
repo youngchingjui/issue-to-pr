@@ -65,6 +65,7 @@ export function getInstallationId(): string | null {
  * @returns {Promise<string>} Absolute path to the prepared local repository
  *                            directory.
  * @throws {Error} If the repository cannot be prepared after all retries.
+ * @deprecated This needs to be refactored to their appropriate adapters and use cases that sets up a cached local repository.
  */
 export async function setupLocalRepository({
   repoFullName,

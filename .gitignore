@@ -42,6 +42,7 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
+!*/*.env.*.example
 !__tests__/.env.example
 !docker/env/.env.neo4j.example
 !docker/env/.env.worker.example
@@ -68,3 +69,6 @@ storybook-static
 # /apps/openai-realtime-agents
 apps/openai-realtime-agents/.env*
 !apps/openai-realtime-agents/.env.example
+
+# E2E test environment
+__tests__/.env.e2e

@@ -128,6 +128,50 @@ export const reviewCommentSchema = appReviewCommentSchema
   .omit({ workflowId: true })
   .merge(z.object({ createdAt: Neo4jDateTime }))
 
+// Primary workflow event schemas (camelCase - standard format)
+export const workflowStartedEventSchema = z.object({
+  id: z.string(),
+  createdAt: Neo4jDateTime,
+  type: z.literal("workflowStarted"),
+  content: z.string().optional(),
+})
+
+export const workflowCompletedEventSchema = z.object({
+  id: z.string(),
+  createdAt: Neo4jDateTime,
+  type: z.literal("workflowCompleted"),
+  content: z.string().optional(),
+})
+
+export const workflowCancelledEventSchema = z.object({
+  id: z.string(),
+  createdAt: Neo4jDateTime,
+  type: z.literal("workflowCancelled"),
+  content: z.string().optional(),
+})
+
+export const workflowErrorEventSchema = z.object({
+  id: z.string(),
+  createdAt: Neo4jDateTime,
+  type: z.literal("workflowError"),
+  message: z.string().optional(),
+  content: z.string().optional(),
+})
+
+export const workflowCheckpointSavedEventSchema = z.object({
+  id: z.string(),
+  createdAt: Neo4jDateTime,
+  type: z.literal("workflowCheckpointSaved"),
+  content: z.string().optional(),
+})
+
+export const workflowCheckpointRestoredEventSchema = z.object({
+  id: z.string(),
+  createdAt: Neo4jDateTime,
+  type: z.literal("workflowCheckpointRestored"),
+  content: z.string().optional(),
+})
+
 export const messageEventSchema = z.union([
   llmResponseWithPlanSchema,
   reasoningEventSchema,
@@ -152,6 +196,12 @@ export const anyEventSchema = z.discriminatedUnion("type", [
   toolCallSchema,
   userMessageSchema,
   workflowStateEventSchema,
+  workflowStartedEventSchema,
+  workflowCompletedEventSchema,
+  workflowCancelledEventSchema,
+  workflowErrorEventSchema,
+  workflowCheckpointSavedEventSchema,
+  workflowCheckpointRestoredEventSchema,
 ])
 
 export type AnyEvent = z.infer<typeof anyEventSchema>
@@ -171,6 +221,19 @@ export type ToolCallResult = z.infer<typeof toolCallResultSchema>
 export type UserMessage = z.infer<typeof userMessageSchema>
 export type WorkflowRun = z.infer<typeof workflowRunSchema>
 export type WorkflowStateEvent = z.infer<typeof workflowStateEventSchema>
+export type WorkflowStartedEvent = z.infer<typeof workflowStartedEventSchema>
+export type WorkflowCompletedEvent = z.infer<
+  typeof workflowCompletedEventSchema
+>
+export type WorkflowCancelledEvent = z.infer<
+  typeof workflowCancelledEventSchema
+>
+export type WorkflowCheckpointSavedEvent = z.infer<
+  typeof workflowCheckpointSavedEventSchema
+>
+export type WorkflowCheckpointRestoredEvent = z.infer<
+  typeof workflowCheckpointRestoredEventSchema
+>
 
 export function isLLMResponseWithPlan(
   event: LLMResponse
