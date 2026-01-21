@@ -1,7 +1,6 @@
 import type { Config } from "jest"
 
 const baseConfig: Config = {
-  setupFilesAfterEnv: ["<rootDir>/__tests__/jest.setup.ts"],
   preset: "ts-jest",
   moduleNameMapper: {
     "^@/components/(.*)$": "<rootDir>/components/$1",
@@ -22,4 +21,3 @@ const baseConfig: Config = {
 }
 
 export default baseConfig
-
