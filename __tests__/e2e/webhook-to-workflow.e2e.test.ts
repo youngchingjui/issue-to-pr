@@ -83,9 +83,10 @@ async function waitForWorkflowCompletion(
 
         const events = result.records.map((r) => r.get("eventType") as string)
 
-        // Check for completion or error
-        const hasCompleted = events.includes("workflow.completed")
-        const hasError = events.includes("workflow.error")
+        // Check for completion or error (Neo4j stores camelCase event types)
+        const hasCompleted = events.includes("workflowCompleted")
+        const hasError =
+          events.includes("workflowError") || events.includes("error")
 
         if (hasCompleted || hasError) {
           return { completed: hasCompleted, hasError, events }
