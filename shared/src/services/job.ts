@@ -1,14 +1,16 @@
 import { JobsOptions } from "bullmq"
 
 import { JobEvent } from "@/shared/entities/events/Job"
-import type { QueueEnum } from "@/shared/entities/Queue"
 import { getQueue } from "@/shared/services/queue"
 
 /**
  * Enqueue a job onto a specific queue with a specific job name.
+ *
+ * @param queueName - Queue name. Use WORKFLOW_JOBS_QUEUE constant as default,
+ *                    or override via env var (e.g., BULLMQ_QUEUE_NAME) for test isolation.
  */
 export async function addJob(
-  queueName: QueueEnum,
+  queueName: string,
   job: JobEvent,
   opts: JobsOptions = {},
   redisUrl: string

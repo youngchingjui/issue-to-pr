@@ -2,6 +2,9 @@
 # Run with: docker compose -f docker/docker-compose.e2e-test.yml up -d
 # Stop with: docker compose -f docker/docker-compose.e2e-test.yml down -v
 
+# TODO: Consider if this file and the docker-compose.e2e-test.yml file belong in this root-level docker directory,
+# or if they should be in the __tests__ directory.
+
 services:
   neo4j-e2e:
     image: neo4j:5.26.3

@@ -32,19 +32,14 @@
 
 import { Queue, QueueEvents, Worker } from "bullmq"
 import * as crypto from "crypto"
-import * as dotenv from "dotenv"
 import IORedis from "ioredis"
-import * as path from "path"
 
-// Load e2e-specific environment first
-const e2eEnvPath = path.resolve(__dirname, "../.env.e2e")
-dotenv.config({ path: e2eEnvPath })
+// Queue name from env or default constant (for test isolation)
+const QUEUE_NAME = process.env.BULLMQ_QUEUE_NAME
 
-// Now load fallback from __tests__/.env for Neo4j if not set
-const testEnvPath = path.resolve(__dirname, "../.env")
-dotenv.config({ path: testEnvPath })
-
-import { WORKFLOW_JOBS_QUEUE } from "@/shared/entities/Queue"
+if (!QUEUE_NAME) {
+  throw new Error("BULLMQ_QUEUE_NAME is not set")
+}
 
 // Create a fresh Redis connection for tests (not cached)
 function createTestRedisConnection(redisUrl: string, name: string): IORedis {
@@ -130,8 +125,8 @@ describe("E2E: @issuetopr PR Comment Workflow", () => {
     // Set up queue and events connection using fresh connections
     redisConnection = createTestRedisConnection(REDIS_URL, "queue")
     eventsConnection = createTestRedisConnection(REDIS_URL, "events")
-    queue = new Queue(WORKFLOW_JOBS_QUEUE, { connection: redisConnection })
-    queueEvents = new QueueEvents(WORKFLOW_JOBS_QUEUE, {
+    queue = new Queue(QUEUE_NAME, { connection: redisConnection })
+    queueEvents = new QueueEvents(QUEUE_NAME, {
       connection: eventsConnection,
     })
 
@@ -178,7 +173,7 @@ describe("E2E: @issuetopr PR Comment Workflow", () => {
 
       const workflowId = `e2e-test-${Date.now()}`
       const jobId = await addJob(
-        WORKFLOW_JOBS_QUEUE,
+        QUEUE_NAME,
         {
           name: "createDependentPR",
           data: {
@@ -222,11 +217,17 @@ describe("E2E: @issuetopr PR Comment Workflow", () => {
       const workflowId = `e2e-${testId}`
 
       // Create own connections (like Full Integration Flow test)
-      const queueConnection = createTestRedisConnection(REDIS_URL, `queue-${testId}`)
-      const workerConnection = createTestRedisConnection(REDIS_URL, `worker-${testId}`)
+      const queueConnection = createTestRedisConnection(
+        REDIS_URL,
+        `queue-${testId}`
+      )
+      const workerConnection = createTestRedisConnection(
+        REDIS_URL,
+        `worker-${testId}`
+      )
 
       // Create own queue and drain stale jobs
-      const testQueue = new Queue(WORKFLOW_JOBS_QUEUE, { connection: queueConnection })
+      const testQueue = new Queue(QUEUE_NAME, { connection: queueConnection })
       await testQueue.drain()
 
       let processedJobId: string | null = null
@@ -238,7 +239,7 @@ describe("E2E: @issuetopr PR Comment Workflow", () => {
       // - Runs the AI agent to analyze and create dependent PR
       // - Pushes changes to GitHub (takes up to 10 minutes)
       const worker = new Worker(
-        WORKFLOW_JOBS_QUEUE,
+        QUEUE_NAME,
         async (job) => {
           processedJobId = job.id!
           const { workflowId, repoFullName, pullNumber, githubLogin } = job.data
@@ -260,7 +261,7 @@ describe("E2E: @issuetopr PR Comment Workflow", () => {
 
       // Now add the job
       const jobId = await addJob(
-        WORKFLOW_JOBS_QUEUE,
+        QUEUE_NAME,
         {
           name: "createDependentPR",
           data: {
@@ -300,18 +301,24 @@ describe("E2E: @issuetopr PR Comment Workflow", () => {
       const workflowId = `e2e-${testId}`
 
       // Create own connections (like Full Integration Flow test)
-      const queueConnection = createTestRedisConnection(REDIS_URL, `queue-${testId}`)
-      const workerConnection = createTestRedisConnection(REDIS_URL, `worker-${testId}`)
+      const queueConnection = createTestRedisConnection(
+        REDIS_URL,
+        `queue-${testId}`
+      )
+      const workerConnection = createTestRedisConnection(
+        REDIS_URL,
+        `worker-${testId}`
+      )
 
       // Create own queue and drain stale jobs
-      const testQueue = new Queue(WORKFLOW_JOBS_QUEUE, { connection: queueConnection })
+      const testQueue = new Queue(QUEUE_NAME, { connection: queueConnection })
       await testQueue.drain()
 
       let processedJobId: string | null = null
       let jobError: string | null = null
 
       const worker = new Worker(
-        WORKFLOW_JOBS_QUEUE,
+        QUEUE_NAME,
         async (job) => {
           processedJobId = job.id!
           const { workflowId, repoFullName, pullNumber, githubLogin } = job.data
@@ -334,7 +341,7 @@ describe("E2E: @issuetopr PR Comment Workflow", () => {
 
       // Add job with empty githubLogin (no retries to ensure immediate failure)
       const jobId = await addJob(
-        WORKFLOW_JOBS_QUEUE,
+        QUEUE_NAME,
         {
           name: "createDependentPR",
           data: {
@@ -424,11 +431,17 @@ describe("E2E: Full Integration Flow", () => {
     const workflowId = `workflow-${testId}`
 
     // Create connections for queue management and worker
-    const queueConnection = createTestRedisConnection(REDIS_URL, `full-flow-queue-${testId}`)
-    const workerConnection = createTestRedisConnection(REDIS_URL, `full-flow-worker-${testId}`)
+    const queueConnection = createTestRedisConnection(
+      REDIS_URL,
+      `full-flow-queue-${testId}`
+    )
+    const workerConnection = createTestRedisConnection(
+      REDIS_URL,
+      `full-flow-worker-${testId}`
+    )
 
     // Create queue to drain stale jobs
-    const testQueue = new Queue(WORKFLOW_JOBS_QUEUE, { connection: queueConnection })
+    const testQueue = new Queue(QUEUE_NAME, { connection: queueConnection })
     await testQueue.drain()
 
     let worker: Worker | null = null
@@ -438,7 +451,7 @@ describe("E2E: Full Integration Flow", () => {
     //   import { processCreateDependentPR } from "@/apps/workers/workflow-workers/..."
     // The real processor takes up to 10 minutes and makes actual GitHub API calls.
     worker = new Worker(
-      WORKFLOW_JOBS_QUEUE,
+      QUEUE_NAME,
       async (job) => {
         if (job.data.workflowId === workflowId) {
           // Simulate workflow execution stages (MOCK - completes in ~200ms)
@@ -487,7 +500,7 @@ describe("E2E: Full Integration Flow", () => {
 
     // Enqueue the job
     const jobId = await addJob(
-      WORKFLOW_JOBS_QUEUE,
+      QUEUE_NAME,
       {
         name: "createDependentPR",
         data: {
@@ -544,12 +557,9 @@ describe("E2E: Database Integration", () => {
   let StorageAdapter: typeof import("@/shared/adapters/neo4j/StorageAdapter").StorageAdapter
 
   beforeAll(async () => {
-    const { createNeo4jDataSource } = await import(
-      "@/shared/adapters/neo4j/dataSource"
-    )
-    const storageModule = await import(
-      "@/shared/adapters/neo4j/StorageAdapter"
-    )
+    const { createNeo4jDataSource } =
+      await import("@/shared/adapters/neo4j/dataSource")
+    const storageModule = await import("@/shared/adapters/neo4j/StorageAdapter")
     StorageAdapter = storageModule.StorageAdapter
 
     dataSource = createNeo4jDataSource({

@@ -79,21 +79,49 @@ The root compose file uses the Compose `include:` feature to import service file
 - Requires Docker Compose v2.20+.
 - From the repo root, use `-f docker/docker-compose.yml` to run services.
 
-Common commands:
+### Profiles
+
+Services are organized using Docker Compose profiles for different environments:
+
+| Profile | Services Started | Use Case |
+|---------|-----------------|----------|
+| (none)  | Neo4j, Redis | Local dev - run workers locally with hot reload |
+| `prod`  | Neo4j, Redis, Workers | Production/staging - all services in Docker |
+
+### pnpm Scripts (Recommended)
 
 ```bash
-# Start Redis and Neo4j
-docker compose -f docker/docker-compose.yml up -d redis neo4j
+# Development: Start infra (Neo4j, Redis) + Next.js + local worker
+pnpm dev
+
+# Development with smee (for webhook testing)
+pnpm dev:all
+
+# Production-like: Start all services in Docker (including workers)
+pnpm docker:up:prod
+
+# Stop all services
+pnpm docker:down
+```
+
+### Direct Docker Compose Commands
+
+```bash
+# Start infrastructure only (Neo4j + Redis) - for local dev
+docker compose -f docker/docker-compose.yml up -d
+
+# Start all services including workers (production/staging)
+docker compose -f docker/docker-compose.yml --profile prod up -d
 
 # Start (or refresh) the workflow workers (requires .env.worker and GHCR access if the image is private)
 docker login ghcr.io
-docker compose -f docker/docker-compose.yml up -d workflow-workers
+docker compose -f docker/docker-compose.yml --profile prod up -d workflow-workers
 
 # Pull latest images referenced by docker-compose
 docker compose -f docker/docker-compose.yml pull
 
-# Stop all services included via docker/docker-compose.yml
-docker compose -f docker/docker-compose.yml down
+# Stop all services (including profiled ones)
+docker compose -f docker/docker-compose.yml --profile prod down
 ```
 
 If your Compose version does not support `include:`, you can compose with multiple `-f` flags:
@@ -193,6 +221,7 @@ Manual run (current practice):
 2. In GitHub → Actions → “Build and Push Worker Docker Image” → Run workflow.
 3. Wait for completion.
 4. On your host: pull and restart the service:
+
    ```bash
    docker compose -f docker/docker-compose.yml pull workflow-workers
    docker compose -f docker/docker-compose.yml up -d workflow-workers
@@ -226,10 +255,12 @@ docker login ghcr.io
 ```
 
 - Prerequisite: a Docker Buildx builder named `container-builder` with the `docker-container` driver.
+
   ```bash
   docker buildx version
   docker buildx create --name container-builder --driver docker-container --use
   ```
+
 - Script details:
   - Multi-arch: `linux/amd64, linux/arm64`
   - Default image: `ghcr.io/youngchingjui/agent-base` (override with `AGENT_BASE_IMAGE`)

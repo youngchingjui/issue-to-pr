@@ -12,7 +12,6 @@ const config: Config = {
   testEnvironment: "node",
   testMatch: ["**/__tests__/**/*.llm.test.ts"],
   displayName: "agent",
-  setupFilesAfterEnv: ["<rootDir>/__tests__/jest.setup.ts"],
 }
 
 export default createJestConfig(config)

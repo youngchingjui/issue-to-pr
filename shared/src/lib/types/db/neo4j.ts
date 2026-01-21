@@ -128,15 +128,8 @@ export const reviewCommentSchema = appReviewCommentSchema
   .omit({ workflowId: true })
   .merge(z.object({ createdAt: Neo4jDateTime }))
 
+// Primary workflow event schemas (camelCase - standard format)
 export const workflowStartedEventSchema = z.object({
-  id: z.string(),
-  createdAt: Neo4jDateTime,
-  type: z.literal("workflow.started"),
-  content: z.string().optional(),
-})
-
-// Legacy schema for backwards compatibility with existing data
-export const workflowStartedLegacyEventSchema = z.object({
   id: z.string(),
   createdAt: Neo4jDateTime,
   type: z.literal("workflowStarted"),
@@ -146,14 +139,6 @@ export const workflowStartedLegacyEventSchema = z.object({
 export const workflowCompletedEventSchema = z.object({
   id: z.string(),
   createdAt: Neo4jDateTime,
-  type: z.literal("workflow.completed"),
-  content: z.string().optional(),
-})
-
-// Legacy schema for backwards compatibility with existing data
-export const workflowCompletedLegacyEventSchema = z.object({
-  id: z.string(),
-  createdAt: Neo4jDateTime,
   type: z.literal("workflowCompleted"),
   content: z.string().optional(),
 })
@@ -161,14 +146,14 @@ export const workflowCompletedLegacyEventSchema = z.object({
 export const workflowCancelledEventSchema = z.object({
   id: z.string(),
   createdAt: Neo4jDateTime,
-  type: z.literal("workflow.cancelled"),
+  type: z.literal("workflowCancelled"),
   content: z.string().optional(),
 })
 
 export const workflowErrorEventSchema = z.object({
   id: z.string(),
   createdAt: Neo4jDateTime,
-  type: z.literal("workflow.error"),
+  type: z.literal("workflowError"),
   message: z.string().optional(),
   content: z.string().optional(),
 })
@@ -176,14 +161,14 @@ export const workflowErrorEventSchema = z.object({
 export const workflowCheckpointSavedEventSchema = z.object({
   id: z.string(),
   createdAt: Neo4jDateTime,
-  type: z.literal("workflow.checkpoint.saved"),
+  type: z.literal("workflowCheckpointSaved"),
   content: z.string().optional(),
 })
 
 export const workflowCheckpointRestoredEventSchema = z.object({
   id: z.string(),
   createdAt: Neo4jDateTime,
-  type: z.literal("workflow.checkpoint.restored"),
+  type: z.literal("workflowCheckpointRestored"),
   content: z.string().optional(),
 })
 
@@ -212,9 +197,7 @@ export const anyEventSchema = z.discriminatedUnion("type", [
   userMessageSchema,
   workflowStateEventSchema,
   workflowStartedEventSchema,
-  workflowStartedLegacyEventSchema,
   workflowCompletedEventSchema,
-  workflowCompletedLegacyEventSchema,
   workflowCancelledEventSchema,
   workflowErrorEventSchema,
   workflowCheckpointSavedEventSchema,
