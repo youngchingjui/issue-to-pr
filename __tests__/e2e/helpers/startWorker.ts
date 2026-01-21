@@ -77,8 +77,8 @@ export async function startWorker(
     workerProcess.kill("SIGTERM")
     throw new Error(
       `Worker failed to become ready within ${readyTimeout}ms.\n` +
-      `stdout: ${stdout}\n` +
-      `stderr: ${stderr}`
+        `stdout: ${stdout}\n` +
+        `stderr: ${stderr}`
     )
   }
 
@@ -133,6 +133,8 @@ async function waitForWorkerReady(
       if (stdout.includes(READY_MESSAGE)) {
         if (!resolved) {
           resolved = true
+          clearInterval(interval)
+          clearTimeout(timeout)
           resolve(true)
         }
       }
@@ -140,9 +142,6 @@ async function waitForWorkerReady(
 
     // Check periodically for the ready message
     const interval = setInterval(checkReady, 100)
-
-    // Also check on each stdout chunk
-    process.stdout?.on("data", checkReady)
 
     // Timeout
     const timeout = setTimeout(() => {
@@ -152,6 +151,9 @@ async function waitForWorkerReady(
         resolve(false)
       }
     }, timeoutMs)
+
+    // Also check on each stdout chunk
+    process.stdout?.on("data", checkReady)
 
     // Handle early exit
     process.once("exit", (code) => {
