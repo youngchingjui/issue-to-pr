@@ -1,7 +1,10 @@
-name: Run Jest Tests
+name: Checks
 
 on:
   push:
+    branches:
+      - "**"
+  pull_request:
     branches:
       - "**"
   workflow_dispatch:
@@ -30,5 +33,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run tests
+      - name: TypeScript checks
+        run: |
+          pnpm run lint:tsc
+          pnpm run lint:tsc:tests
+          pnpm --filter shared exec tsc --noEmit -p tsconfig.json
+          pnpm --filter workflow-workers exec tsc --noEmit -p tsconfig.json
+
+      - name: Run Jest tests
         run: pnpm test
+
