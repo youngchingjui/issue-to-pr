@@ -24,4 +24,3 @@ export class EventBus<E extends { type: string }> {
     await Promise.all(list.map((h) => h(event)))
   }
 }
-

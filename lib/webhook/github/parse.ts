@@ -1,40 +1,40 @@
 import type { ZodError } from "zod"
 
 import {
+  type CreatePayload,
+  CreatePayloadSchema,
+  type DeletePayload,
+  DeletePayloadSchema,
+  type DeploymentPayload,
+  DeploymentPayloadSchema,
+  type DeploymentStatusPayload,
+  DeploymentStatusPayloadSchema,
   type GithubEvent,
   GithubEventSchema,
-  CreatePayloadSchema,
-  DeletePayloadSchema,
-  DeploymentPayloadSchema,
-  DeploymentStatusPayloadSchema,
-  InstallationPayloadSchema,
-  InstallationRepositoriesPayloadSchema,
-  IssueCommentPayloadSchema,
-  IssuesPayloadSchema,
-  PullRequestPayloadSchema,
-  PullRequestReviewCommentPayloadSchema,
-  PullRequestReviewPayloadSchema,
-  PushPayloadSchema,
-  RepositoryPayloadSchema,
-  StatusPayloadSchema,
-  WorkflowJobPayloadSchema,
-  WorkflowRunPayloadSchema,
-  type CreatePayload,
-  type DeletePayload,
-  type DeploymentPayload,
-  type DeploymentStatusPayload,
   type InstallationPayload,
+  InstallationPayloadSchema,
   type InstallationRepositoriesPayload,
+  InstallationRepositoriesPayloadSchema,
   type IssueCommentPayload,
+  IssueCommentPayloadSchema,
   type IssuesPayload,
+  IssuesPayloadSchema,
   type PullRequestPayload,
+  PullRequestPayloadSchema,
   type PullRequestReviewCommentPayload,
+  PullRequestReviewCommentPayloadSchema,
   type PullRequestReviewPayload,
+  PullRequestReviewPayloadSchema,
   type PushPayload,
+  PushPayloadSchema,
   type RepositoryPayload,
+  RepositoryPayloadSchema,
   type StatusPayload,
+  StatusPayloadSchema,
   type WorkflowJobPayload,
+  WorkflowJobPayloadSchema,
   type WorkflowRunPayload,
+  WorkflowRunPayloadSchema,
 } from "@/lib/webhook/github/types"
 
 // Overloads provide strong typing per GitHub event
@@ -83,9 +83,7 @@ export function parseGithubWebhookPayload(
 export function parseGithubWebhookPayload(
   event: "deployment_status",
   payload: unknown
-):
-  | { ok: true; data: DeploymentStatusPayload }
-  | { ok: false; error: ZodError }
+): { ok: true; data: DeploymentStatusPayload } | { ok: false; error: ZodError }
 export function parseGithubWebhookPayload(
   event: "workflow_run",
   payload: unknown
@@ -121,67 +119,99 @@ export function parseGithubWebhookPayload(
   switch (event) {
     case "issue_comment": {
       const r = IssueCommentPayloadSchema.safeParse(payload)
-      return r.success ? { ok: true, data: r.data } : { ok: false, error: r.error }
+      return r.success
+        ? { ok: true, data: r.data }
+        : { ok: false, error: r.error }
     }
     case "issues": {
       const r = IssuesPayloadSchema.safeParse(payload)
-      return r.success ? { ok: true, data: r.data } : { ok: false, error: r.error }
+      return r.success
+        ? { ok: true, data: r.data }
+        : { ok: false, error: r.error }
     }
     case "pull_request": {
       const r = PullRequestPayloadSchema.safeParse(payload)
-      return r.success ? { ok: true, data: r.data } : { ok: false, error: r.error }
+      return r.success
+        ? { ok: true, data: r.data }
+        : { ok: false, error: r.error }
     }
     case "pull_request_review": {
       const r = PullRequestReviewPayloadSchema.safeParse(payload)
-      return r.success ? { ok: true, data: r.data } : { ok: false, error: r.error }
+      return r.success
+        ? { ok: true, data: r.data }
+        : { ok: false, error: r.error }
     }
     case "pull_request_review_comment": {
       const r = PullRequestReviewCommentPayloadSchema.safeParse(payload)
-      return r.success ? { ok: true, data: r.data } : { ok: false, error: r.error }
+      return r.success
+        ? { ok: true, data: r.data }
+        : { ok: false, error: r.error }
     }
     case "push": {
       const r = PushPayloadSchema.safeParse(payload)
-      return r.success ? { ok: true, data: r.data } : { ok: false, error: r.error }
+      return r.success
+        ? { ok: true, data: r.data }
+        : { ok: false, error: r.error }
     }
     case "create": {
       const r = CreatePayloadSchema.safeParse(payload)
-      return r.success ? { ok: true, data: r.data } : { ok: false, error: r.error }
+      return r.success
+        ? { ok: true, data: r.data }
+        : { ok: false, error: r.error }
     }
     case "delete": {
       const r = DeletePayloadSchema.safeParse(payload)
-      return r.success ? { ok: true, data: r.data } : { ok: false, error: r.error }
+      return r.success
+        ? { ok: true, data: r.data }
+        : { ok: false, error: r.error }
     }
     case "status": {
       const r = StatusPayloadSchema.safeParse(payload)
-      return r.success ? { ok: true, data: r.data } : { ok: false, error: r.error }
+      return r.success
+        ? { ok: true, data: r.data }
+        : { ok: false, error: r.error }
     }
     case "deployment": {
       const r = DeploymentPayloadSchema.safeParse(payload)
-      return r.success ? { ok: true, data: r.data } : { ok: false, error: r.error }
+      return r.success
+        ? { ok: true, data: r.data }
+        : { ok: false, error: r.error }
     }
     case "deployment_status": {
       const r = DeploymentStatusPayloadSchema.safeParse(payload)
-      return r.success ? { ok: true, data: r.data } : { ok: false, error: r.error }
+      return r.success
+        ? { ok: true, data: r.data }
+        : { ok: false, error: r.error }
     }
     case "workflow_run": {
       const r = WorkflowRunPayloadSchema.safeParse(payload)
-      return r.success ? { ok: true, data: r.data } : { ok: false, error: r.error }
+      return r.success
+        ? { ok: true, data: r.data }
+        : { ok: false, error: r.error }
     }
     case "workflow_job": {
       const r = WorkflowJobPayloadSchema.safeParse(payload)
-      return r.success ? { ok: true, data: r.data } : { ok: false, error: r.error }
+      return r.success
+        ? { ok: true, data: r.data }
+        : { ok: false, error: r.error }
     }
     case "installation": {
       const r = InstallationPayloadSchema.safeParse(payload)
-      return r.success ? { ok: true, data: r.data } : { ok: false, error: r.error }
+      return r.success
+        ? { ok: true, data: r.data }
+        : { ok: false, error: r.error }
     }
     case "installation_repositories": {
       const r = InstallationRepositoriesPayloadSchema.safeParse(payload)
-      return r.success ? { ok: true, data: r.data } : { ok: false, error: r.error }
+      return r.success
+        ? { ok: true, data: r.data }
+        : { ok: false, error: r.error }
     }
     case "repository": {
       const r = RepositoryPayloadSchema.safeParse(payload)
-      return r.success ? { ok: true, data: r.data } : { ok: false, error: r.error }
+      return r.success
+        ? { ok: true, data: r.data }
+        : { ok: false, error: r.error }
     }
     default: {
       // Exhaustiveness guard
@@ -190,4 +220,3 @@ export function parseGithubWebhookPayload(
     }
   }
 }
-

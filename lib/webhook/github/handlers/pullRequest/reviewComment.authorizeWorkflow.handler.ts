@@ -187,7 +187,10 @@ export async function handlePullRequestReviewComment({
         content: "rocket",
       })
     } catch (e) {
-      console.warn("[Webhook] Failed to add rocket reaction on review comment:", e)
+      console.warn(
+        "[Webhook] Failed to add rocket reaction on review comment:",
+        e
+      )
     }
 
     console.log(
@@ -199,4 +202,3 @@ export async function handlePullRequestReviewComment({
     return { status: "error", reason: "enqueue_failed" as const }
   }
 }
-

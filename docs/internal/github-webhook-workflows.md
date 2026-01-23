@@ -12,6 +12,7 @@ To reduce route complexity and allow a many-to-many mapping between GitHub webho
 4) One or more handlers subscribe to the event type and run in parallel.
 
 Notes
+
 - Scope: This bus is process-local to the web app. Cross-process/app pub/sub (e.g., workers) will use a different transport and likely live in /shared.
 - Location: Implementation lives under /lib (see lib/events/event-bus.ts) with GitHub parsing helpers in lib/webhook/github/parse.ts.
 - Migration: The existing route handlers remain in place. We will incrementally move logic behind bus subscribers to keep risk low.
@@ -241,4 +242,3 @@ Different workflows may have different:
 4. **Silent vs. vocal failures**: When should we respond to unauthorized triggers?
 5. **Webhook reliability**: How do we handle missed webhooks or duplicates?
 6. **Multi-trigger handling**: What if one comment contains multiple trigger keywords?
-

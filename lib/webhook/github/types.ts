@@ -146,7 +146,9 @@ export const PullRequestReviewPayloadSchema = z.object({
   repository: z.object({ full_name: z.string() }),
   installation: InstallationSchema,
 })
-export type PullRequestReviewPayload = z.infer<typeof PullRequestReviewPayloadSchema>
+export type PullRequestReviewPayload = z.infer<
+  typeof PullRequestReviewPayloadSchema
+>
 
 // New: pull request review comment payload (inline comments on code)
 export const PullRequestReviewCommentPayloadSchema = z.object({
@@ -164,7 +166,9 @@ export const PullRequestReviewCommentPayloadSchema = z.object({
   repository: z.object({ full_name: z.string() }),
   installation: InstallationSchema,
 })
-export type PullRequestReviewCommentPayload = z.infer<typeof PullRequestReviewCommentPayloadSchema>
+export type PullRequestReviewCommentPayload = z.infer<
+  typeof PullRequestReviewCommentPayloadSchema
+>
 
 export const DeploymentPayloadSchema = z.object({
   action: z.string(),
@@ -238,4 +242,3 @@ export const RepositoryPayloadSchema = z.discriminatedUnion("action", [
 ])
 
 export type RepositoryPayload = z.infer<typeof RepositoryPayloadSchema>
-
