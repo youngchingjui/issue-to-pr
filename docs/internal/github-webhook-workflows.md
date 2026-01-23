@@ -2,6 +2,52 @@
 
 Authorized users can trigger workflows from within GitHub Issues and Pull Requests. This document outlines the authorization model, billing considerations, and operational behavior for webhook-triggered workflows.
 
+## Architecture direction: internal event bus (web app only)
+
+To reduce route complexity and allow a many-to-many mapping between GitHub webhooks and internal behaviors, we are introducing a lightweight, in-process event bus in the Next.js app. The flow will be:
+
+1) Receive GitHub webhook and verify signature.
+2) Parse and validate the payload at the boundary using zod (see parseGithubWebhookPayload(event, payload)).
+3) Publish a typed domain event to the internal bus.
+4) One or more handlers subscribe to the event type and run in parallel.
+
+Notes
+- Scope: This bus is process-local to the web app. Cross-process/app pub/sub (e.g., workers) will use a different transport and likely live in /shared.
+- Location: Implementation lives under /lib (see lib/events/event-bus.ts) with GitHub parsing helpers in lib/webhook/github/parse.ts.
+- Migration: The existing route handlers remain in place. We will incrementally move logic behind bus subscribers to keep risk low.
+
+Example bus implementation
+
+```ts
+// lib/events/event-bus.ts
+export type Handler<T> = (event: T) => Promise<void> | void
+
+export class EventBus<E extends { type: string }> {
+  private handlers = new Map<E["type"], Handler<any>[]>()
+
+  on<T extends E["type"]>(type: T, handler: Handler<Extract<E, { type: T }>>) {
+    const list = this.handlers.get(type) ?? []
+    list.push(handler)
+    this.handlers.set(type, list)
+  }
+
+  async emit(event: E) {
+    const list = this.handlers.get(event.type) ?? []
+    await Promise.all(list.map((h) => h(event)))
+  }
+}
+```
+
+Parsing helper
+
+```ts
+// lib/webhook/github/parse.ts
+import { parseGithubWebhookPayload } from "@/lib/webhook/github/parse"
+// Usage: const r = parseGithubWebhookPayload(event, payload)
+```
+
+---
+
 ## Entry Points
 
 Workflows can be triggered from the following GitHub events:
@@ -195,3 +241,4 @@ Different workflows may have different:
 4. **Silent vs. vocal failures**: When should we respond to unauthorized triggers?
 5. **Webhook reliability**: How do we handle missed webhooks or duplicates?
 6. **Multi-trigger handling**: What if one comment contains multiple trigger keywords?
+
