@@ -95,7 +95,7 @@ Authorization requires passing multiple checks:
 Reasonable defaults for who can trigger (can be overridden by admins):
 
 | Repo type | Authorized users |
-|-----------|------------------|
+| --- | --- |
 | **Personal repo** | Owner, collaborators with write access |
 | **Org repo** | Org admins, repo admins, members with write access |
 | **Public repo (external contributors)** | TBD - probably require explicit allowlist or approval |
@@ -120,7 +120,7 @@ If a user does not have a billing account with Issue To PR, but they expected to
 ### Billing Scenarios to Handle
 
 | Scenario | Behavior |
-|----------|----------|
+| --- | --- |
 | User has account with credits | Charge user, execute workflow |
 | User has account, no credits | Prompt to add credits, don't execute |
 | User has no account, repo owner has credits | Require user signup |
@@ -133,7 +133,7 @@ If a user does not have a billing account with Issue To PR, but they expected to
 ### Dimensions to Limit
 
 | Dimension | Purpose |
-|-----------|---------|
+| --- | --- |
 | Per user | Prevent single user abuse |
 | Per repo | Prevent repo-level spam |
 | Per org | Budget control for organizations |
@@ -152,7 +152,7 @@ If a user does not have a billing account with Issue To PR, but they expected to
 ### Feedback Matrix
 
 | Trigger result | Response |
-|----------------|----------|
+| --- | --- |
 | **Success** | Add reaction emoji (e.g., 👀 or 🚀) to comment, optionally reply with status |
 | **Unauthorized (no GitHub perms)** | Silent ignore (don't reveal we're watching) |
 | **Unauthorized (no platform account)** | Reply with signup link |
@@ -229,7 +229,7 @@ Different workflows may have different:
 - Rate limits
 
 | Workflow | Description | Authorization level | Estimated cost |
-|----------|-------------|---------------------|----------------|
+| --- | --- | --- | --- |
 | (to be defined) | | | |
 
 ---
