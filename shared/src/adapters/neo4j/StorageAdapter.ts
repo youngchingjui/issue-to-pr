@@ -1,3 +1,7 @@
+// NOTE: Neo4j storage model overview and event-chain semantics live in
+// /docs/specs/workflow-runs-neo4j.md. Please reference that document when
+// making changes to storage behavior or relationships.
+
 import type { AllEvents } from "@/shared/entities"
 import { err, ok, type Result } from "@/shared/entities/result"
 import {

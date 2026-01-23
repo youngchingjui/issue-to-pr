@@ -53,16 +53,25 @@ Neo4j integration tests require a running Neo4j database. **IMPORTANT: Use a sep
    NEO4J_PASSWORD=your-test-password
    ```
 
-3. **Ensure Neo4j is running:**
-   - If using Docker:
-     ```bash
-     docker run -d \
-       --name neo4j-test \
-       -p 7687:7687 -p 7474:7474 \
-       -e NEO4J_AUTH=neo4j/your-test-password \
-       neo4j:latest
-     ```
-   - Or use a local Neo4j installation pointing to a test database
+3. **Start Neo4j with docker-compose (recommended):**
+
+   ```bash
+   # Bring up only Neo4j for tests
+   pnpm test:neo4j:up
+   # When done
+   pnpm test:neo4j:down
+   # Or run in one shot
+   pnpm test:neo4j:run
+   ```
+
+   Alternatively, you can run Neo4j manually:
+   ```bash
+   docker run -d \
+     --name neo4j-test \
+     -p 7687:7687 -p 7474:7474 \
+     -e NEO4J_AUTH=neo4j/your-test-password \
+     neo4j:latest
+   ```
 
 ### Running Neo4j Tests
 
@@ -147,3 +156,4 @@ pnpm test:e2e
 - See `test-utils/mocks/README.md` for info on test fixtures.
 - When mocking, I'm only concerend about mocking external dependencies or API calls that might incur costs or affect databases state or cause side effects.
 - Not sure if we need to mock other internal dependencies like other modules within our codebase.
+

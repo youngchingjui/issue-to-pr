@@ -101,6 +101,14 @@ Storage helper changes:
 - `addEvent` query now accepts an optional `parentEventId`.
 - The StorageAdapter's `WorkflowEventInput` includes an optional `parentId` to leverage the fan-out model.
 
+### Convergence (joins) of parallel branches
+
+- We do not yet model an explicit N→1 "join" edge. The recommended pattern for now is:
+  - Create a subsequent event (e.g., an LLM turn) that selects one of the parallel children as its parent via `NEXT`.
+  - Optionally include references (ids) to sibling tool call/results in the event payload to make the join semantics explicit to readers.
+  - Queries that list events in time-order still return a coherent timeline; sibling events that occurred around the same timestamp appear grouped together.
+- Future enhancement: introduce an explicit join event or allow attaching multiple parents to a single child when we add an "attach existing event" operation.
+
 ## Naming Conventions
 
 The codebase currently has two naming conventions for different layers:
@@ -121,6 +129,43 @@ Mappers in `shared/src/adapters/neo4j/queries/workflowRuns/` handle conversion b
 | `createdAt` | DateTime | Yes |
 | `state` | enum | No |
 | `postToGithub` | boolean | No |
+
+## Ideal data model (forward-looking)
+
+This forward-looking diagram shows the desired simplification of relationships and label usage while retaining fan-out support.
+
+```mermaid
+graph TB
+    %% Core entities (labels only for simplicity)
+    WR[WorkflowRun]
+    User[User]
+    GH[GithubWebhookEvent]
+    Repo[Repository]
+    Issue[Issue]
+    Commit[Commit]
+    Event[Event]
+    Message[Event:Message]
+
+    %% Initiation
+    WR -->|INITIATED_BY| User
+    WR -->|TRIGGERED_BY| GH
+
+    %% Target relationships (generic)
+    WR -->|BASED_ON| Repo
+    WR -->|BASED_ON| Issue
+    WR -->|BASED_ON| Commit
+
+    %% Event chain with fan-out
+    WR -->|STARTS_WITH| Event
+    Event -->|NEXT| Event
+
+    %% Message events are :Event nodes with :Message multi-label
+    Message -.->|same node, extra label| Event
+```
+
+Notes:
+- Use generic relationship names like `BASED_ON` to keep queries flexible; the end node type conveys the detail.
+- Keep the multi-label pattern `:Event:Message` so a single event stream remains queryable via `[:STARTS_WITH|NEXT*]`.
 
 ## Key Files
 

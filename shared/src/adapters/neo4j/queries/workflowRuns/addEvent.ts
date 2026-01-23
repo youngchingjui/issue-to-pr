@@ -5,6 +5,10 @@ import {
   type QueryResult,
 } from "neo4j-driver"
 
+// NOTE: The conditional branching here keeps the Cypher minimal for now.
+// Reviewer note: We plan to move more orchestration (parent/last-event lookup
+// and relationship linking) into TypeScript session logic for clarity and
+// better error handling. See StorageAdapter and docs/specs/workflow-runs-neo4j.md.
 const QUERY = `
   // Find the WorkflowRun
   MATCH (wr:WorkflowRun { id: $runId })
