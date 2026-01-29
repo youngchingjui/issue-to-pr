@@ -32,6 +32,10 @@
     "test:node": "jest --selectProjects node",
     "test:agent": "NODE_OPTIONS='--experimental-vm-modules' jest -c __tests__/config/jest.config.agent.ts",
     "test:neo4j": "jest -c __tests__/config/jest.config.neo4j.ts",
+    "test:neo4j:watch": "jest -c __tests__/config/jest.config.neo4j.ts --watch",
+    "test:neo4j:up": "docker compose -f docker/compose/neo4j.yml up -d --wait",
+    "test:neo4j:down": "docker compose -f docker/compose/neo4j.yml down -v",
+    "test:neo4j:run": "pnpm test:neo4j:up && pnpm test:neo4j; pnpm test:neo4j:down",
     "test:fs": "jest \"**/*.integration.test.ts\"",
     "test:e2e:up": "docker compose -f docker/docker-compose.e2e-test.yml up -d --wait",
     "test:e2e:down": "docker compose -f docker/docker-compose.e2e-test.yml down -v",
@@ -163,3 +167,4 @@
     "rootDir": "."
   }
 }
+

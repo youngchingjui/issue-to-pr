@@ -16,8 +16,15 @@ These tests verify that:
 ### Prerequisites
 
 1. **Neo4j Database**: You need a local Neo4j instance running
-   - Download from: https://neo4j.com/download/
-   - Or use Docker: `docker run -p 7474:7474 -p 7687:7687 -e NEO4J_AUTH=neo4j/password neo4j:latest`
+   - Recommended (docker-compose):
+     ```bash
+     pnpm test:neo4j:up     # starts only Neo4j container used by tests
+     pnpm test:neo4j:down   # stops and removes the container/volumes
+     ```
+   - Or use Docker directly:
+     ```bash
+     docker run -p 7474:7474 -p 7687:7687 -e NEO4J_AUTH=neo4j/password neo4j:latest
+     ```
 
 2. **Environment Variables**: Create or update `.env.local` in the project root:
 
@@ -45,6 +52,14 @@ pnpm test:neo4j
 
 ```bash
 pnpm test:neo4j:watch
+```
+
+### Start/stop Neo4j for tests via compose:
+
+```bash
+pnpm test:neo4j:up
+pnpm test:neo4j:down
+pnpm test:neo4j:run  # one-shot up -> test -> down
 ```
 
 ### Run a specific test file:
@@ -197,3 +212,4 @@ steps:
       NEO4J_PASSWORD: password
     run: pnpm test:neo4j
 ```
+

@@ -5,13 +5,21 @@ import {
   type QueryResult,
 } from "neo4j-driver"
 
+// NOTE: The conditional branching here keeps the Cypher minimal for now.
+// Reviewer note: We plan to move more orchestration (parent/last-event lookup
+// and relationship linking) into TypeScript session logic for clarity and
+// better error handling. See StorageAdapter and docs/specs/workflow-runs-neo4j.md.
 const QUERY = `
   // Find the WorkflowRun
   MATCH (wr:WorkflowRun { id: $runId })
 
-  // Find the last event (if any)
+  // Optionally find the explicit parent event when provided
+  OPTIONAL MATCH (parentEvent:Event { id: $parentEventId })
+
+  // Find the last event (if any) when no parentEventId is provided
+  WITH wr, parentEvent
   OPTIONAL MATCH (wr)-[:STARTS_WITH|NEXT*]->(lastEvent:Event)
-  WHERE NOT (lastEvent)-[:NEXT]->()
+  WHERE parentEvent IS NULL AND NOT (lastEvent)-[:NEXT]->()
 
   // Create new event node
   CREATE (newEvent:Event {
@@ -22,10 +30,16 @@ const QUERY = `
   })
 
   // Link to workflow run or previous event
-  FOREACH (_ IN CASE WHEN lastEvent IS NULL THEN [1] ELSE [] END |
+  // 1) If no events yet and no explicit parent provided -> STARTS_WITH
+  FOREACH (_ IN CASE WHEN parentEvent IS NULL AND lastEvent IS NULL THEN [1] ELSE [] END |
     MERGE (wr)-[:STARTS_WITH]->(newEvent)
   )
-  FOREACH (_ IN CASE WHEN lastEvent IS NOT NULL THEN [1] ELSE [] END |
+  // 2) If explicit parent provided -> create branch from that parent using NEXT
+  FOREACH (_ IN CASE WHEN parentEvent IS NOT NULL THEN [1] ELSE [] END |
+    MERGE (parentEvent)-[:NEXT]->(newEvent)
+  )
+  // 3) Otherwise append to the tail using NEXT (sequential)
+  FOREACH (_ IN CASE WHEN parentEvent IS NULL AND lastEvent IS NOT NULL THEN [1] ELSE [] END |
     MERGE (lastEvent)-[:NEXT]->(newEvent)
   )
 
@@ -38,6 +52,7 @@ export interface AddEventParams {
   eventType: string
   content: string
   createdAt: string
+  parentEventId?: string | null
 }
 
 export interface AddEventResult {
@@ -53,3 +68,4 @@ export async function addEvent(
 ): Promise<QueryResult<AddEventResult>> {
   return await tx.run<AddEventResult>(QUERY, params)
 }
+
