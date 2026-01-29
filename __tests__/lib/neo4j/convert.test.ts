@@ -7,7 +7,9 @@ describe("neo4j type converters", () => {
     const original = 42
     const intVal = jsToNeo4j(original)
     expect(neo4j.isInt(intVal)).toBe(true)
-    expect(intVal.toNumber()).toBe(original)
+    if (neo4j.isInt(intVal)) {
+      expect(intVal.toNumber()).toBe(original)
+    }
     const converted = neo4jToJs(intVal)
     expect(converted).toBe(original)
   })
@@ -18,6 +20,8 @@ describe("neo4j type converters", () => {
     expect(dt instanceof neo4j.types.DateTime).toBe(true)
     const back = neo4jToJs(dt)
     expect(back instanceof Date).toBe(true)
-    expect(back.toISOString()).toBe(date.toISOString())
+    if (back instanceof Date) {
+      expect(back.toISOString()).toBe(date.toISOString())
+    }
   })
 })

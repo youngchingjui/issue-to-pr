@@ -73,7 +73,7 @@ export async function listBranchesSortedByCommitDate(
   const pageSize = 100 // GitHub GraphQL max page size
 
   while (hasNextPage) {
-    const response = await graphql<GraphQLResponse>(query, {
+    const response: GraphQLResponse = await graphql<GraphQLResponse>(query, {
       owner,
       repo,
       pageSize,
