@@ -9,9 +9,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Run scripts: `pnpm <script-name>` (e.g., `pnpm test`, `pnpm lint`)
 - Execute packages: `pnpm exec <package>` or `pnpm dlx <package>` (not `npx`)
 - Install dependencies: `pnpm install`
+- For TypeScript type checks, run `pnpm tsc`.
 
 ## Code Guidelines
 
+- **Never run `git add`** - let the user handle staging
 - Look for commands in package.json to understand how to run testing and linting.
 - For typescript, avoid typecasting. If you're resorting to typecasting, it's usually a sign you haven't thought carefully enough about the inferred type. We want this codebase to be as strongly typed as possible.
 
