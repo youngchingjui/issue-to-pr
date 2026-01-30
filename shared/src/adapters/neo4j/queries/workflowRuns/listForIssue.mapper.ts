@@ -1,30 +1,56 @@
-import { QueryResult } from "neo4j-driver"
+import { type QueryResult } from "neo4j-driver"
 
 import {
+  commitSchema,
   issueSchema,
   workflowRunSchema,
   workflowRunStateSchema,
 } from "@/shared/adapters/neo4j/types"
-import { ListedWorkflowRun } from "@/shared/ports/db"
+import { type WorkflowRun } from "@/shared/entities/WorkflowRun"
 
-import { ListForIssueResult } from "./listForIssue"
+import { type ListForIssueResult } from "./listForIssue"
 
 // Maps types from Neo4j to the domain types
-export function mapListForIssueResult(
+export function mapListForIssue(
   result: QueryResult<ListForIssueResult>
-): ListedWorkflowRun[] {
+): WorkflowRun[] {
   const results = result.records.map((record) => {
-    const run = workflowRunSchema.parse(record.get("w").properties)
-    const issue = issueSchema.parse(record.get("i").properties)
-    const state = workflowRunStateSchema.safeParse(record.get("state"))
-    return {
+    // Get nodes
+    const w = record.get("w")
+    const issueNode = record.get("i")
+    const commitNode = record.get("c")
+    const stateNode = record.get("state")
+
+    // Parse schemas
+    const run = workflowRunSchema.parse(w?.properties)
+    const issue = issueSchema.parse(issueNode?.properties)
+    const commit = commitNode ? commitSchema.parse(commitNode.properties) : null
+    const state = workflowRunStateSchema.safeParse(stateNode)
+
+    const workflowRun: WorkflowRun = {
       id: run.id,
       type: run.type,
-      createdAt: run.createdAt.toISOString(),
-      postToGithub: run.postToGithub,
+      createdAt: run.createdAt.toStandardDate(),
+      postToGithub: run.postToGithub ?? false,
       state: state.success ? state.data : "completed",
-      issue: { repoFullName: issue.repoFullName, number: issue.number },
+      issue: {
+        repoFullName: issue.repoFullName,
+        number: issue.number.toNumber(),
+      },
+      // Actor is not queried in listForIssue - would need to update query to include it
+      actor: undefined,
+      commit: commit
+        ? {
+            sha: commit.sha,
+            message: commit.message,
+            repository: {
+              fullName: issue.repoFullName,
+            },
+          }
+        : undefined,
     }
+
+    return workflowRun
   })
 
   return results

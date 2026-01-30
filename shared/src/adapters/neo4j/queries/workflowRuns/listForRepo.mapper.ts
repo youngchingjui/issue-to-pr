@@ -1,94 +1,133 @@
-import { QueryResult } from "neo4j-driver"
+import { Node, type QueryResult } from "neo4j-driver"
 
 import {
+  commitSchema,
   githubUserSchema,
+  githubWebhookEventSchema,
   issueSchema,
+  repositorySchema,
   userSchema,
   workflowRunSchema,
   workflowRunStateSchema,
 } from "@/shared/adapters/neo4j/types"
-import { ListedWorkflowRun } from "@/shared/ports/db"
+import {
+  type WorkflowRun,
+  type WorkflowRunActor,
+} from "@/shared/entities/WorkflowRun"
 
-import { ListForRepoResult } from "./listForRepo"
+import { type ListForRepoResult } from "./listForRepo"
 
-// Maps types from Neo4j to the domain types
-export function mapListForRepoResult(
-  result: QueryResult<ListForRepoResult>
-): ListedWorkflowRun[] {
-  const results = result.records.map((record) => {
-    const run = workflowRunSchema.parse(record.get("w").properties)
-    const initiatorNode = record.get("initiator")
-    const githubUserNode = record.get("gh")
-    const webhookGhNode = record.get("webhookGh")
-    const issueNode = record.get("i")
-    const issue = issueNode ? issueSchema.parse(issueNode.properties) : null
-    const repoNode = record.get("r")
-    const repo = repoNode ? repoNode.properties : null
-    const state = workflowRunStateSchema.safeParse(record.get("state"))
+// ============================================================================
+// Actor Mapping Helpers
+// These functions compose validated Neo4j nodes into domain actor types
+// ============================================================================
 
-    // Map actor based on initiator type
-    let actor: ListedWorkflowRun["actor"]
-
-    if (initiatorNode) {
-      const labels = Array.from(initiatorNode.labels || []) as string[]
-
-      if (labels.includes("User")) {
-        // User-initiated run
-        const user = userSchema.parse(initiatorNode.properties)
-        const githubUser = githubUserNode
-          ? githubUserSchema.parse(githubUserNode.properties)
-          : null
-
-        actor = {
-          kind: "user",
-          userId: user.id,
-          github: githubUser
-            ? {
-                id: githubUser.id,
-                login: githubUser.login,
-              }
-            : undefined,
-        }
-      } else if (labels.includes("GithubWebhookEvent")) {
-        // Webhook-initiated run
-        const webhookGh = webhookGhNode
-          ? githubUserSchema.parse(webhookGhNode.properties)
-          : null
-
-        // Note: installationId would need to be retrieved via UNDER_INSTALLATION relationship
-        // For now, we don't include it in the listing (can be added if needed)
-        actor = {
-          kind: "webhook",
-          source: "github",
-          sender: webhookGh
-            ? {
-                id: webhookGh.id,
-                login: webhookGh.login,
-              }
-            : undefined,
-        }
-      } else {
-        // Unknown initiator type
-        actor = { kind: "system", reason: "unknown initiator type" }
-      }
-    } else {
-      // No initiator found
-      actor = { kind: "system", reason: "no initiator" }
-    }
+/**
+ * Maps actor nodes to a WorkflowRunActor domain type
+ * Handles two patterns:
+ * - User-initiated: userActor node present
+ * - Webhook-triggered: webhookEvent and webhookSender nodes present
+ */
+function mapActor(
+  userActorNode: Node | null,
+  webhookEventNode: Node | null,
+  webhookSenderNode: Node | null,
+  installationId: string
+): WorkflowRunActor | undefined {
+  // Webhook-triggered workflow
+  if (webhookEventNode && webhookSenderNode) {
+    const webhookEvent = githubWebhookEventSchema.parse(
+      webhookEventNode.properties
+    )
+    const sender = githubUserSchema.parse(webhookSenderNode.properties)
 
     return {
+      type: "webhook",
+      source: "github",
+      event: webhookEvent.event,
+      action: webhookEvent.action,
+      sender: {
+        id: sender.id,
+        login: sender.login,
+      },
+      installationId,
+    }
+  }
+
+  // User-initiated workflow
+  if (userActorNode) {
+    const user = userSchema.parse(userActorNode.properties)
+    return {
+      type: "user",
+      userId: user.id,
+    }
+  }
+
+  return undefined
+}
+
+// ============================================================================
+// Main Mapper
+// ============================================================================
+
+/**
+ * Maps Neo4j query results to WorkflowRun domain entities
+ * Uses Zod schemas to validate each node before mapping
+ */
+export function mapListForRepoResult(
+  result: QueryResult<ListForRepoResult>
+): WorkflowRun[] {
+  return result.records.map((record) => {
+    // Get the records
+    const w = record.get("w")
+    const userActorNode = record.get("userActor")
+    const webhookEventNode = record.get("webhookEvent")
+    const webhookSenderNode = record.get("webhookSender")
+    const stateNode = record.get("state")
+    const i = record.get("i")
+    const r = record.get("r")
+    const c = record.get("c")
+
+    // Validate all nodes with Zod
+    const run = workflowRunSchema.parse(w.properties)
+    const issue = i ? issueSchema.parse(i.properties) : null
+    const repo = repositorySchema.parse(r.properties)
+    const commit = c ? commitSchema.parse(c.properties) : null
+    const state = workflowRunStateSchema.safeParse(stateNode)
+
+    // Map actor using helper function with Zod validation
+    const actor = mapActor(
+      userActorNode,
+      webhookEventNode,
+      webhookSenderNode,
+      repo?.githubInstallationId ?? ""
+    )
+
+    const workflowRun: WorkflowRun = {
       id: run.id,
       type: run.type,
-      createdAt: run.createdAt.toISOString(),
-      postToGithub: run.postToGithub,
+      createdAt: run.createdAt.toStandardDate(),
+      postToGithub: run.postToGithub ?? false,
       state: state.success ? state.data : "completed",
       issue: issue
-        ? { repoFullName: issue.repoFullName, number: issue.number }
+        ? {
+            repoFullName: issue.repoFullName,
+            number: issue.number.toNumber(),
+          }
         : undefined,
-      repository: repo ? { fullName: repo.fullName, id: repo.id } : undefined,
+      repository: { fullName: repo.fullName },
       actor,
+      commit: commit
+        ? {
+            sha: commit.sha,
+            message: commit.message,
+            repository: {
+              fullName: repo.fullName,
+            },
+          }
+        : undefined,
     }
-  })
 
-  return results
+    return workflowRun
+  })
 }

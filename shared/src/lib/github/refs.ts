@@ -1,7 +1,7 @@
 "use server"
 
-import { getGraphQLClient } from "@/lib/github"
-import { RepoFullName } from "@/lib/types/github"
+import { getGraphQLClient } from "@/shared/lib/github"
+import type { RepoFullName } from "@/shared/lib/types/github"
 
 interface BranchByCommitDate {
   name: string
@@ -73,7 +73,7 @@ export async function listBranchesSortedByCommitDate(
   const pageSize = 100 // GitHub GraphQL max page size
 
   while (hasNextPage) {
-    const response = await graphql<GraphQLResponse>(query, {
+    const response: GraphQLResponse = await graphql<GraphQLResponse>(query, {
       owner,
       repo,
       pageSize,

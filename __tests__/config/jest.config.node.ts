@@ -20,9 +20,9 @@ const config: Config = {
     "/.next/",
     "/coverage/",
     "\\.llm\\.test\\.ts$", // Exclude LLM/manual tests by default
+    "\\.integration\\.test\\.ts$", // Exclude integration tests by default (run via test:fs, test:neo4j, etc.)
   ],
   displayName: "node",
-  setupFilesAfterEnv: ["<rootDir>/__tests__/jest.setup.ts"],
 }
 
 export default createJestConfig(config)

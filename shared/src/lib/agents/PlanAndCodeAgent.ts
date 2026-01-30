@@ -1,16 +1,23 @@
-import { ResponsesAPIAgent } from "@/lib/agents/base"
-import { createBranchTool } from "@/lib/tools/Branch"
-import { createCommitTool } from "@/lib/tools/Commit"
-import { createContainerExecTool } from "@/lib/tools/ContainerExecTool"
-import { createCreatePRTool } from "@/lib/tools/CreatePRTool"
-import { createFileCheckTool } from "@/lib/tools/FileCheckTool"
-import { createGetFileContentTool } from "@/lib/tools/GetFileContent"
-import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
-import { createSetupRepoTool } from "@/lib/tools/SetupRepoTool"
-import { createSyncBranchTool } from "@/lib/tools/SyncBranchTool"
-import { createWriteFileContentTool } from "@/lib/tools/WriteFileContent"
-import { AgentConstructorParams, RepoEnvironment } from "@/lib/types"
-import { GitHubRepository, repoFullNameSchema } from "@/lib/types/github"
+import { ResponsesAPIAgent } from "@/shared/lib/agents/base"
+import { createBranchTool } from "@/shared/lib/tools/Branch"
+import { createCommitTool } from "@/shared/lib/tools/Commit"
+import { createContainerExecTool } from "@/shared/lib/tools/ContainerExecTool"
+import { createCreatePRTool } from "@/shared/lib/tools/CreatePRTool"
+import { createFileCheckTool } from "@/shared/lib/tools/FileCheckTool"
+import { createGetFileContentTool } from "@/shared/lib/tools/GetFileContent"
+import { createRipgrepSearchTool } from "@/shared/lib/tools/RipgrepSearchTool"
+import { createSetupRepoTool } from "@/shared/lib/tools/SetupRepoTool"
+import { createSyncBranchTool } from "@/shared/lib/tools/SyncBranchTool"
+import { createWebSearchTool } from "@/shared/lib/tools/WebSearchTool"
+import { createWriteFileContentTool } from "@/shared/lib/tools/WriteFileContent"
+import {
+  type AgentConstructorParams,
+  type RepoEnvironment,
+} from "@/shared/lib/types"
+import {
+  type GitHubRepository,
+  repoFullNameSchema,
+} from "@/shared/lib/types/github"
 
 const DEVELOPER_PROMPT = `
 You are a senior software engineer tasked with fully resolving GitHub issues.
@@ -104,6 +111,7 @@ export class PlanAndCodeAgent extends ResponsesAPIAgent {
     this.addTool(createBranchTool(env))
     this.addTool(createCommitTool(env, defaultBranch))
     this.addTool(createFileCheckTool(env))
+    this.addResponseTool(createWebSearchTool())
 
     // Container-specific utility
     if (env.kind === "container") {

@@ -1,0 +1,13 @@
+# E2E Test Environment
+# This compose file provides isolated services for end-to-end testing.
+# Services use different ports to avoid conflicts with development environment.
+#
+# Usage:
+#   Start:  pnpm test:e2e:up
+#   Stop:   pnpm test:e2e:down
+#   Run:    pnpm test:e2e
+
+include:
+  - compose/e2e-test.yml
+
+name: issue-to-pr-e2e-test

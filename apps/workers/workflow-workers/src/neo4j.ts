@@ -1,7 +1,7 @@
 import {
   createNeo4jDataSource,
   type Neo4jDataSource,
-} from "@/shared/dist/adapters/neo4j/dataSource"
+} from "@/shared/adapters/neo4j/dataSource"
 
 import { getEnvVar } from "./helper"
 

@@ -1,246 +1,459 @@
-import { getWorkflowRunWithDetails } from "@/shared/lib/neo4j/services/workflow"
+import type { AllEvents } from "@/shared/entities"
+import { err, ok, type Result } from "@/shared/entities/result"
+import {
+  type WorkflowRun,
+  type WorkflowRunActor,
+} from "@/shared/entities/WorkflowRun"
 import type {
+  CommitAttachment,
   CreateWorkflowRunInput,
   DatabaseStorage,
+  IssueAttachment,
   ListedWorkflowRun,
   ListWorkflowRunsFilter,
+  RepositoryAttachment,
+  SettingsError,
+  Target,
   WorkflowEventInput,
-  WorkflowRunContext,
+  WorkflowRunFilter,
   WorkflowRunHandle,
-  WorkflowRunsRepository,
-} from "@/shared/ports/db"
+} from "@/shared/ports/db/index"
 
-import { Neo4jDataSource } from "./dataSource"
+import type { Neo4jDataSource } from "./dataSource"
+import { getUserSettings } from "./queries/users/getUserSettings"
+import {
+  addEvent,
+  attachActor,
+  attachCommit,
+  attachIssue,
+  attachRepository,
+  createWorkflowRun,
+  type CreateWorkflowRunParams,
+  getWorkflowRunById,
+  listEventsForWorkflowRun,
+  mapAddEventResult,
+  mapDomainEventTypeToNeo4j,
+  mapGetWorkflowRunById,
+  mapListEvents,
+} from "./queries/workflowRuns"
 import { listByInitiator } from "./queries/workflowRuns/listByInitiator"
 import { mapListByInitiatorResult } from "./queries/workflowRuns/listByInitiator.mapper"
-import { listEventsForWorkflowRun } from "./queries/workflowRuns/listEvents"
-import { mapListEventsResult } from "./queries/workflowRuns/listEvents.mapper"
 import { listForIssue } from "./queries/workflowRuns/listForIssue"
-import { mapListForIssueResult } from "./queries/workflowRuns/listForIssue.mapper"
 import { listForRepo } from "./queries/workflowRuns/listForRepo"
-import { mapListForRepoResult } from "./queries/workflowRuns/listForRepo.mapper"
 
-// Minimal, forward-compatible StorageAdapter. The goal is to provide the port
-// shapes for callers while delegating to existing read APIs for now.
-export class StorageAdapter implements DatabaseStorage {
-  private readonly dataSource: Neo4jDataSource
-  constructor(dataSource: Neo4jDataSource) {
-    this.dataSource = dataSource
+export type Neo4jCtx = {
+  ds: Neo4jDataSource
+}
+
+/**
+ * Transforms CreateWorkflowRunInput to CreateWorkflowRunParams
+ * Handles optional fields and progressive metadata attachment
+ */
+function transformCreateWorkflowRunInput(input: CreateWorkflowRunInput): {
+  core: CreateWorkflowRunParams
+  attach: {
+    repository?: {
+      id: string
+      nodeId?: string
+      owner: string
+      name: string
+      githubInstallationId?: string
+    }
+    issue?: { number: number; repoFullName: string }
+    actor?: Parameters<typeof attachActor>[1]["actor"]
+    commit?: { sha: string; nodeId?: string; message?: string }
+  }
+} {
+  // Generate ID if not provided
+  const runId = input.id ?? crypto.randomUUID()
+
+  const core: CreateWorkflowRunParams = {
+    runId,
+    type: input.type,
+    postToGithub: input.config?.postToGithub ?? false,
   }
 
-  workflow = {
+  const attach: {
+    repository?: {
+      id: string
+      nodeId?: string
+      owner: string
+      name: string
+      githubInstallationId?: string
+    }
+    issue?: { number: number; repoFullName: string }
+    actor?: Parameters<typeof attachActor>[1]["actor"]
+    commit?: { sha: string; nodeId?: string; message?: string }
+  } = {}
+
+  // Add repository if provided via target (only attach when we have enough data)
+  if (input.target?.repository) {
+    const repo = input.target.repository
+    if (repo.id != null && repo.owner && repo.name) {
+      attach.repository = {
+        id: String(repo.id),
+        nodeId: repo.nodeId,
+        owner: repo.owner,
+        name: repo.name,
+        githubInstallationId: repo.githubInstallationId,
+      }
+    }
+  }
+
+  // Add issue if provided via target
+  if (input.target?.issue) {
+    attach.issue = {
+      number: input.target.issue.number,
+      repoFullName: input.target.issue.repoFullName,
+    }
+  }
+
+  // Add actor if provided
+  if (input.actor) {
+    if (input.actor.type === "user") {
+      attach.actor = {
+        actorType: "user",
+        actorUserId: input.actor.userId,
+      }
+    } else if (input.actor.type === "webhook") {
+      attach.actor = {
+        actorType: "webhook",
+        actorGithubUserId: input.actor.sender.id,
+        actorGithubUserLogin: input.actor.sender.login,
+        webhookEventId: `webhook-${runId}`,
+        webhookEvent: input.actor.event,
+        webhookAction: input.actor.action,
+      }
+    }
+  }
+
+  // Add commit if provided via target
+  if (input.target?.ref?.type === "commit") {
+    attach.commit = {
+      sha: input.target.ref.sha,
+    }
+  }
+
+  return { core, attach }
+}
+
+// Helper functions for handle methods
+async function addEventToRun(
+  ctx: Neo4jCtx,
+  runId: string,
+  event: WorkflowEventInput
+): Promise<AllEvents> {
+  const session = ctx.ds.getSession("WRITE")
+  try {
+    const eventId = crypto.randomUUID()
+    const createdAt = event.createdAt ?? new Date().toISOString()
+
+    // Map domain event type to Neo4j event type
+    const neo4jEventType = mapDomainEventTypeToNeo4j(event.type)
+
+    const result = await session.executeWrite((tx) =>
+      addEvent(tx, {
+        runId,
+        eventId,
+        eventType: neo4jEventType,
+        content: JSON.stringify(event.payload),
+        createdAt,
+      })
+    )
+
+    return mapAddEventResult(result)
+  } finally {
+    await session.close()
+  }
+}
+
+async function attachTargetToRun(
+  ctx: Neo4jCtx,
+  runId: string,
+  target: Target
+): Promise<void> {
+  const session = ctx.ds.getSession("WRITE")
+  try {
+    await session.executeWrite(async (tx) => {
+      // Attach repository
+      if (target.repository) {
+        if (
+          target.repository.id == null ||
+          !target.repository.owner ||
+          !target.repository.name
+        ) {
+          // Can't attach without id - require caller to use handle.attach.repository()
+          throw new Error(
+            "Repository attachment via target requires repository.id + owner + name - use handle.attach.repository() instead"
+          )
+        }
+
+        await attachRepository(tx, {
+          runId,
+          repoId: String(target.repository.id),
+          repoNodeId: target.repository.nodeId,
+          repoOwner: target.repository.owner,
+          repoName: target.repository.name,
+          repoGithubInstallationId: target.repository.githubInstallationId,
+        })
+      }
+
+      // Attach issue
+      if (target.issue) {
+        await attachIssue(tx, {
+          runId,
+          issueNumber: target.issue.number,
+          repoFullName: target.issue.repoFullName,
+        })
+      }
+
+      // Attach commit
+      if (target.ref?.type === "commit") {
+        await attachCommit(tx, {
+          runId,
+          commitSha: target.ref.sha,
+        })
+      }
+    })
+  } finally {
+    await session.close()
+  }
+}
+
+async function attachActorToRun(
+  ctx: Neo4jCtx,
+  runId: string,
+  actor: WorkflowRunActor
+): Promise<void> {
+  const session = ctx.ds.getSession("WRITE")
+  try {
+    let actorParams: Parameters<typeof attachActor>[1]["actor"]
+
+    if (actor.type === "user") {
+      actorParams = {
+        actorType: "user",
+        actorUserId: actor.userId,
+      }
+    } else if (actor.type === "webhook") {
+      actorParams = {
+        actorType: "webhook",
+        actorGithubUserId: actor.sender.id,
+        actorGithubUserLogin: actor.sender.login,
+        webhookEventId: `webhook-${runId}`,
+        webhookEvent: actor.event,
+        webhookAction: actor.action,
+      }
+    } else {
+      // Exhaustive check - should never reach here with proper typing
+      const _exhaustive: never = actor
+      throw new Error(`Invalid actor type: ${JSON.stringify(_exhaustive)}`)
+    }
+
+    await session.executeWrite((tx) =>
+      attachActor(tx, { runId, actor: actorParams })
+    )
+  } finally {
+    await session.close()
+  }
+}
+
+async function attachRepositoryToRun(
+  ctx: Neo4jCtx,
+  runId: string,
+  repo: RepositoryAttachment
+): Promise<void> {
+  const session = ctx.ds.getSession("WRITE")
+  try {
+    await session.executeWrite((tx) =>
+      attachRepository(tx, {
+        runId,
+        repoId: String(repo.id),
+        repoNodeId: repo.nodeId,
+        repoOwner: repo.owner,
+        repoName: repo.name,
+        repoGithubInstallationId: repo.githubInstallationId,
+      })
+    )
+  } finally {
+    await session.close()
+  }
+}
+
+async function attachIssueToRun(
+  ctx: Neo4jCtx,
+  runId: string,
+  issue: IssueAttachment
+): Promise<void> {
+  const session = ctx.ds.getSession("WRITE")
+  try {
+    await session.executeWrite((tx) =>
+      attachIssue(tx, {
+        runId,
+        issueNumber: issue.number,
+        repoFullName: issue.repoFullName,
+      })
+    )
+  } finally {
+    await session.close()
+  }
+}
+
+async function attachCommitToRun(
+  ctx: Neo4jCtx,
+  runId: string,
+  commit: CommitAttachment
+): Promise<void> {
+  const session = ctx.ds.getSession("WRITE")
+  try {
+    await session.executeWrite((tx) =>
+      attachCommit(tx, {
+        runId,
+        commitSha: commit.sha,
+        commitNodeId: commit.nodeId,
+        commitMessage: commit.message,
+      })
+    )
+  } finally {
+    await session.close()
+  }
+}
+
+export async function runCreate(
+  ctx: Neo4jCtx,
+  input: CreateWorkflowRunInput
+): Promise<WorkflowRunHandle> {
+  const session = ctx.ds.getSession("WRITE")
+  try {
+    const { core, attach } = transformCreateWorkflowRunInput(input)
+
+    const run = await session.executeWrite(async (tx) => {
+      // 1) Create workflow run node
+      await createWorkflowRun(tx, core)
+
+      // 2) Attach metadata if provided (all in same transaction)
+      if (attach.repository) {
+        await attachRepository(tx, {
+          runId: core.runId,
+          repoId: attach.repository.id,
+          repoNodeId: attach.repository.nodeId,
+          repoOwner: attach.repository.owner,
+          repoName: attach.repository.name,
+          repoGithubInstallationId: attach.repository.githubInstallationId,
+        })
+      }
+
+      if (attach.issue) {
+        await attachIssue(tx, {
+          runId: core.runId,
+          issueNumber: attach.issue.number,
+          repoFullName: attach.issue.repoFullName,
+        })
+      }
+
+      if (attach.actor) {
+        await attachActor(tx, {
+          runId: core.runId,
+          actor: attach.actor,
+        })
+      }
+
+      if (attach.commit) {
+        await attachCommit(tx, {
+          runId: core.runId,
+          commitSha: attach.commit.sha,
+          commitNodeId: attach.commit.nodeId,
+          commitMessage: attach.commit.message,
+        })
+      }
+
+      // 3) Return the fully-populated WorkflowRun (including attachments)
+      const full = await getWorkflowRunById(tx, { id: core.runId })
+      const mapped = mapGetWorkflowRunById(full)
+      if (!mapped) {
+        throw new Error(`Failed to load created workflow run ${core.runId}`)
+      }
+      return mapped
+    })
+
+    return {
+      run,
+      add: {
+        event: (event) => addEventToRun(ctx, run.id, event),
+      },
+      attach: {
+        target: (target) => attachTargetToRun(ctx, run.id, target),
+        actor: (actor) => attachActorToRun(ctx, run.id, actor),
+        repository: (repo) => attachRepositoryToRun(ctx, run.id, repo),
+        issue: (issue) => attachIssueToRun(ctx, run.id, issue),
+        commit: (commit) => attachCommitToRun(ctx, run.id, commit),
+      },
+    }
+  } finally {
+    await session.close()
+  }
+}
+
+export class StorageAdapter implements DatabaseStorage {
+  private readonly ctx: Neo4jCtx
+
+  constructor(private readonly ds: Neo4jDataSource) {
+    this.ctx = {
+      ds,
+    }
+  }
+
+  public workflow = {
     run: {
-      create: async (
-        input: CreateWorkflowRunInput
-      ): Promise<WorkflowRunHandle> => {
-        const session = this.dataSource.getSession("WRITE")
-
+      create: async (input: CreateWorkflowRunInput) =>
+        runCreate(this.ctx, input),
+      getById: async (id: string): Promise<WorkflowRun | null> => {
+        const session = this.ds.getSession("READ")
         try {
-          // TODO: We should move all of these queries to a separate query file within the queries folder, similar to the pattern below.
-          await session.executeWrite(async (tx) => {
-            // MERGE Repository node if we have full repository data
-            if (input.repository) {
-              await tx.run(
-                `
-                MERGE (r:Repository {id: toString($repo.id)})
-                SET r.nodeId = $repo.nodeId,
-                    r.fullName = $repo.fullName,
-                    r.owner = $repo.owner,
-                    r.name = $repo.name,
-                    r.defaultBranch = coalesce($repo.defaultBranch, r.defaultBranch),
-                    r.visibility = coalesce($repo.visibility, r.visibility),
-                    r.hasIssues = coalesce($repo.hasIssues, r.hasIssues),
-                    r.lastUpdated = datetime()
-                ON CREATE SET r.createdAt = datetime()
-              `,
-                {
-                  repo: {
-                    id: input.repository.id,
-                    nodeId: input.repository.nodeId,
-                    fullName: input.repository.fullName,
-                    owner: input.repository.owner,
-                    name: input.repository.name,
-                    defaultBranch: input.repository.defaultBranch || null,
-                    visibility: input.repository.visibility || null,
-                    hasIssues: input.repository.hasIssues ?? null,
-                  },
-                }
-              )
-            } else if (input.repoFullName) {
-              // Fallback for backward compatibility: create Repository with only fullName
-              await tx.run(
-                `
-                MERGE (r:Repository {fullName: $repoFullName})
-                ON CREATE SET
-                  r.owner = split($repoFullName, '/')[0],
-                  r.name = split($repoFullName, '/')[1],
-                  r.createdAt = datetime()
-              `,
-                { repoFullName: input.repoFullName }
-              )
-            }
+          const result = await session.executeRead((tx) =>
+            getWorkflowRunById(tx, { id })
+          )
+          return mapGetWorkflowRunById(result)
+        } finally {
+          await session.close()
+        }
+      },
+      list: (filter: WorkflowRunFilter): Promise<WorkflowRun[]> =>
+        this.listWorkflowRuns(filter),
+      listByVisibility: (
+        filter: ListWorkflowRunsFilter
+      ): Promise<ListedWorkflowRun[]> =>
+        this.listWorkflowRunsByVisibility(filter),
+    },
+    events: {
+      list: (runId: string): Promise<AllEvents[]> =>
+        this.listWorkflowRunEvents(runId),
+    },
+  }
 
-            // Create WorkflowRun node
-            await tx.run(
-              `
-              CREATE (w:WorkflowRun {
-                id: $runId,
-                type: $type,
-                createdAt: datetime(),
-                postToGithub: coalesce($postToGithub, false)
-              })
-            `,
-              {
-                runId: input.id,
-                type: input.type,
-                postToGithub: input.postToGithub ?? false,
-              }
-            )
+  public settings = {
+    user: {
+      getOpenAIKey: async (
+        userId: string
+      ): Promise<Result<string | null, SettingsError>> => {
+        if (!userId) return ok(null)
 
-            // Create initiator attribution based on actor type
-            if (input.actor.kind === "user") {
-              // MERGE User node and create INITIATED_BY relationship
-              await tx.run(
-                `
-                MATCH (w:WorkflowRun {id: $runId})
-                MERGE (u:User {id: $userId})
-                MERGE (w)-[:INITIATED_BY]->(u)
-              `,
-                {
-                  runId: input.id,
-                  userId: input.actor.userId,
-                }
-              )
+        const session = this.ds.getSession("READ")
+        try {
+          const settings = await session.executeRead((tx) =>
+            getUserSettings(tx, userId)
+          )
 
-              // If GitHub info provided, MERGE GithubUser and link to User
-              if (input.actor.github?.id) {
-                await tx.run(
-                  `
-                  MATCH (u:User {id: $userId})
-                  MERGE (gh:GithubUser {id: $githubId})
-                  SET gh.login = $githubLogin
-                  MERGE (u)-[:LINKED_GITHUB_USER]->(gh)
-                `,
-                  {
-                    userId: input.actor.userId,
-                    githubId: input.actor.github.id,
-                    githubLogin: input.actor.github.login ?? null,
-                  }
-                )
-              }
-            } else if (input.actor.kind === "webhook") {
-              // Create GithubWebhookEvent node and INITIATED_BY relationship
-              // Follows GitHub webhook structure: event type (from header) + action (from payload)
-              const eventId = `${input.id}-webhook-event`
-              await tx.run(
-                `
-                MATCH (w:WorkflowRun {id: $runId})
-                CREATE (e:GithubWebhookEvent {
-                  id: $eventId,
-                  event: $event,
-                  action: $action,
-                  createdAt: datetime()
-                })
-                CREATE (w)-[:INITIATED_BY]->(e)
-              `,
-                {
-                  runId: input.id,
-                  eventId,
-                  event: input.actor.event ?? "unknown",
-                  action: input.actor.action ?? null,
-                }
-              )
-
-              // If webhook sender info provided, MERGE GithubUser and link to event
-              if (input.actor.sender?.id) {
-                await tx.run(
-                  `
-                  MATCH (e:GithubWebhookEvent {id: $eventId})
-                  MERGE (gh:GithubUser {id: $senderId})
-                  SET gh.login = $senderLogin
-                  MERGE (e)-[:SENDER]->(gh)
-                `,
-                  {
-                    eventId,
-                    senderId: input.actor.sender.id,
-                    senderLogin: input.actor.sender.login ?? null,
-                  }
-                )
-              }
-
-              // Create UNDER_INSTALLATION relationship if installationId provided
-              if (input.actor.installationId) {
-                await tx.run(
-                  `
-                  MATCH (w:WorkflowRun {id: $runId})
-                  MERGE (inst:Installation {githubInstallationId: $installationId})
-                  ON CREATE SET inst.id = $installationId
-                  MERGE (w)-[:UNDER_INSTALLATION]->(inst)
-                `,
-                  {
-                    runId: input.id,
-                    installationId: input.actor.installationId,
-                  }
-                )
-              }
-            }
-
-            // Link WorkflowRun to Repository
-            if (input.repository) {
-              await tx.run(
-                `
-                MATCH (w:WorkflowRun {id: $runId})
-                MATCH (r:Repository {id: toString($repoId)})
-                MERGE (w)-[:BASED_ON_REPOSITORY]->(r)
-              `,
-                { runId: input.id, repoId: input.repository.id }
-              )
-            } else if (input.repoFullName) {
-              await tx.run(
-                `
-                MATCH (w:WorkflowRun {id: $runId})
-                MATCH (r:Repository {fullName: $repoFullName})
-                MERGE (w)-[:BASED_ON_REPOSITORY]->(r)
-              `,
-                { runId: input.id, repoFullName: input.repoFullName }
-              )
-            }
-
-            // Link WorkflowRun to Issue if provided
-            if (input.issueNumber && (input.repoFullName || input.repository)) {
-              const repoFullName =
-                input.repository?.fullName || input.repoFullName
-              await tx.run(
-                `
-                MATCH (w:WorkflowRun {id: $runId})
-                MATCH (i:Issue {number: $issueNumber, repoFullName: $repoFullName})
-                MERGE (w)-[:BASED_ON_ISSUE]->(i)
-              `,
-                {
-                  runId: input.id,
-                  issueNumber: input.issueNumber,
-                  repoFullName,
-                }
-              )
-            }
-          })
-
-          const ctx: WorkflowRunContext = {
-            runId: input.id,
-            repoId: input.repository?.id.toString(),
-            installationId:
-              input.actor.kind === "webhook"
-                ? input.actor.installationId
-                : undefined,
+          // User not found - this is an error condition
+          if (settings === null) {
+            return err("UserNotFound")
           }
 
-          return {
-            ctx,
-            append: async (_event: WorkflowEventInput) => {
-              // No-op append in this scaffolding implementation.
-              return
-            },
-          }
+          // User exists - check if they have a key configured
+          const key = settings.openAIApiKey?.trim()
+          return ok(key && key.length > 0 ? key : null)
+        } catch (e) {
+          console.error("[StorageAdapter] Error fetching OpenAI key:", e)
+          return err("Unknown")
         } finally {
           await session.close()
         }
@@ -248,92 +461,117 @@ export class StorageAdapter implements DatabaseStorage {
     },
   }
 
-  runs: WorkflowRunsRepository = {
-    list: async (
-      filter: ListWorkflowRunsFilter
-    ): Promise<ListedWorkflowRun[]> => {
-      const session = this.dataSource.getSession("READ")
+  private async listWorkflowRuns(
+    _filter: WorkflowRunFilter
+  ): Promise<WorkflowRun[]> {
+    // Foundation PR: keep simple and return empty until wired by subsequent PRs.
+    // Implementers can build queries using helpers in queries/workflowRuns/*
+    return []
+  }
 
-      try {
-        switch (filter.by) {
-          case "issue": {
-            const result = await session.executeRead(async (tx) => {
-              return await listForIssue(tx, {
-                issue: {
-                  number: filter.issue.issueNumber,
-                  repoFullName: filter.issue.repoFullName,
-                },
-              })
+  /**
+   * Lists workflow runs based on visibility policy filters.
+   * Implements "initiator-or-owner" policy from the PRD.
+   */
+  private async listWorkflowRunsByVisibility(
+    filter: ListWorkflowRunsFilter
+  ): Promise<ListedWorkflowRun[]> {
+    const session = this.ds.getSession("READ")
+
+    try {
+      switch (filter.by) {
+        case "issue": {
+          const result = await session.executeRead(async (tx) => {
+            return await listForIssue(tx, {
+              issue: {
+                number: filter.issue.issueNumber,
+                repoFullName: filter.issue.repoFullName,
+              },
             })
-            return mapListForIssueResult(result)
-          }
-          case "initiator": {
-            const result = await session.executeRead(async (tx) => {
-              return await listByInitiator(tx, {
-                user: filter.user,
-              })
-            })
-            return mapListByInitiatorResult(result)
-          }
-          case "repository": {
-            const result = await session.executeRead(async (tx) => {
-              return await listForRepo(tx, {
-                repo: filter.repo,
-              })
-            })
-            return mapListForRepoResult(result)
-          }
-          default:
-            throw new Error(`Unsupported filter: ${JSON.stringify(filter)}`)
-        }
-      } catch (error) {
-        console.error(error)
-        throw error
-      } finally {
-        await session.close()
-      }
-    },
-
-    getById: async (id: string): Promise<ListedWorkflowRun | null> => {
-      const result = await getWorkflowRunWithDetails(id)
-
-      const wf = result.workflow
-      if (!wf) return null
-
-      return {
-        id: wf.id,
-        type: wf.type,
-        createdAt: wf.createdAt.toISOString(),
-        postToGithub: wf.postToGithub,
-        state: "completed", // derive state not provided by getWithDetails here
-        issue: result.issue
-          ? {
-              repoFullName: result.issue.repoFullName,
-              number: result.issue.number,
+          })
+          // Map to ListedWorkflowRun format
+          return result.records.map((record) => {
+            const w = record.get("w").properties
+            const i = record.get("i")?.properties
+            const state = record.get("state")
+            return {
+              id: w.id,
+              type: w.type,
+              createdAt: w.createdAt.toString(),
+              postToGithub: w.postToGithub,
+              state: state ?? "completed",
+              issue: i
+                ? {
+                    repoFullName: i.repoFullName,
+                    number:
+                      typeof i.number === "object"
+                        ? i.number.toNumber()
+                        : i.number,
+                  }
+                : undefined,
             }
-          : undefined,
-        actor: { kind: "system" },
-        repository: result.issue
-          ? { fullName: result.issue.repoFullName }
-          : undefined,
+          })
+        }
+        case "initiator": {
+          const result = await session.executeRead(async (tx) => {
+            return await listByInitiator(tx, {
+              user: filter.user,
+            })
+          })
+          return mapListByInitiatorResult(result)
+        }
+        case "repository": {
+          const result = await session.executeRead(async (tx) => {
+            return await listForRepo(tx, {
+              repo: filter.repo,
+            })
+          })
+          // Map to ListedWorkflowRun format
+          return result.records.map((record) => {
+            const w = record.get("w").properties
+            const i = record.get("i")?.properties
+            const r = record.get("r")?.properties
+            const state = record.get("state")
+            return {
+              id: w.id,
+              type: w.type,
+              createdAt: w.createdAt.toString(),
+              postToGithub: w.postToGithub,
+              state: state ?? "completed",
+              issue: i
+                ? {
+                    repoFullName: i.repoFullName,
+                    number:
+                      typeof i.number === "object"
+                        ? i.number.toNumber()
+                        : i.number,
+                  }
+                : undefined,
+              repository: r ? { fullName: r.fullName, id: r.id } : undefined,
+            }
+          })
+        }
+        default:
+          throw new Error(`Unsupported filter: ${JSON.stringify(filter)}`)
       }
-    },
+    } catch (error) {
+      console.error(error)
+      throw error
+    } finally {
+      await session.close()
+    }
+  }
 
-    listEvents: async (runId: string): Promise<WorkflowEventInput[]> => {
-      const session = this.dataSource.getSession("READ")
-      try {
-        const events = await session.executeRead(async (tx) => {
-          return await listEventsForWorkflowRun(tx, { workflowRunId: runId })
-        })
-        return mapListEventsResult(events)
-      } catch (error) {
-        console.error(error)
-        throw error
-      } finally {
-        await session.close()
-      }
-    },
+  private async listWorkflowRunEvents(runId: string): Promise<AllEvents[]> {
+    const session = this.ds.getSession("READ")
+    try {
+      const result = await session.executeRead((tx) =>
+        listEventsForWorkflowRun(tx, { workflowRunId: runId })
+      )
+
+      return mapListEvents(result)
+    } finally {
+      await session.close()
+    }
   }
 }
-
-export default StorageAdapter

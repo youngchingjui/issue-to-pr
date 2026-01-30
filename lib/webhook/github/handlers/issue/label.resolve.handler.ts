@@ -1,4 +1,3 @@
-import { makeSettingsReaderAdapter } from "shared/adapters/neo4j/repositories/SettingsReaderAdapter"
 import { v4 as uuidv4 } from "uuid"
 
 import { getRepoFromString } from "@/lib/github/content"
@@ -9,6 +8,7 @@ import { updateJobStatus } from "@/lib/redis-old"
 import { runWithInstallationId } from "@/lib/utils/utils-server"
 import type { IssuesPayload } from "@/lib/webhook/github/types"
 import { resolveIssue } from "@/lib/workflows/resolveIssue"
+import { makeSettingsReaderAdapter } from "@/shared/adapters/neo4j/repositories/SettingsReaderAdapter"
 
 const POST_TO_GITHUB_SETTING = true // TODO: Set setting in database
 const CREATE_PR_SETTING = true // TODO: Set setting in database
@@ -26,10 +26,10 @@ export async function handleIssueLabelResolve({
   payload: IssuesPayload
   installationId: string
 }) {
-  const repoFullName = payload.repository.full_name
-  const issueNumber = payload.issue.number
-  const labelerLogin = payload.sender.login
-  const labelerId = payload.sender.id
+  const repoFullName = payload.repository?.full_name
+  const issueNumber = payload.issue?.number
+  const labelerLogin = payload.sender?.login
+  const labelerId = payload.sender?.id
 
   const settingsReader = makeSettingsReaderAdapter({
     getSession: () => neo4jDs.getSession("READ"),

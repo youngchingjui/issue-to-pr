@@ -1,14 +1,14 @@
-import { LangfuseSpanClient, observeOpenAI } from "langfuse"
+import { type LangfuseSpanClient, observeOpenAI } from "langfuse"
 import OpenAI from "openai"
-import { ChatModel } from "openai/resources"
+import type { ChatModel } from "openai/resources"
 import {
-  ChatCompletionCreateParamsNonStreaming,
-  ChatCompletionMessageParam,
+  type ChatCompletionCreateParamsNonStreaming,
+  type ChatCompletionMessageParam,
 } from "openai/resources/chat/completions"
 import {
-  ResponseCreateParamsNonStreaming,
-  ResponseInput,
-  ResponseInputItem,
+  type ResponseCreateParamsNonStreaming,
+  type ResponseInput,
+  type ResponseInputItem,
 } from "openai/resources/responses/responses"
 import { ZodType } from "zod"
 
@@ -21,10 +21,14 @@ import {
   createToolCallResultEvent,
   createUserResponseEvent,
   deleteEvent,
-} from "@/lib/neo4j/services/event"
-import { AgentConstructorParams, AnyEvent, Tool } from "@/lib/types"
-import { EnhancedMessage } from "@/lib/types/chat"
-import { convertToolToFunctionTool } from "@/lib/utils/chat"
+} from "@/shared/lib/neo4j/services/event"
+import {
+  type AgentConstructorParams,
+  type AnyEvent,
+  type Tool,
+} from "@/shared/lib/types"
+import { type EnhancedMessage } from "@/shared/lib/types/chat"
+import { convertToolToFunctionTool } from "@/shared/lib/utils/chat"
 
 interface RunResponse {
   jobId?: string
@@ -398,6 +402,7 @@ function toStandardFunctionCallOutput(
  */
 export class ResponsesAPIAgent extends Agent {
   inputQueue: ResponseInput = []
+  responseTools: NonNullable<ResponseCreateParamsNonStreaming["tools"]> = []
 
   constructor(params: AgentConstructorParams) {
     super(params)
@@ -411,6 +416,12 @@ export class ResponsesAPIAgent extends Agent {
       role: "developer",
       content: prompt,
     })
+  }
+
+  addResponseTool(
+    tool: NonNullable<ResponseCreateParamsNonStreaming["tools"]>[number]
+  ) {
+    this.responseTools.push(tool)
   }
 
   /**
@@ -543,6 +554,7 @@ export class ResponsesAPIAgent extends Agent {
 
     // Convert internal tools to OpenAI function-tool definition
     const functionTools = this.tools.map((t) => convertToolToFunctionTool(t))
+    const responseTools = [...functionTools, ...this.responseTools]
 
     let previousResponseId: string | undefined
 
@@ -551,8 +563,10 @@ export class ResponsesAPIAgent extends Agent {
         model: this.model,
         store: true,
         reasoning: { summary: "auto" },
-        tools: functionTools,
         input: this.inputQueue,
+      }
+      if (responseTools.length > 0) {
+        params.tools = responseTools
       }
 
       // Clear the input queue after using it

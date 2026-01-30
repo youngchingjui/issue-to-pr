@@ -1,12 +1,11 @@
-// TODO: This belongs in @shared folder
+// TODO: This belongs in @/shared folder
 // And also we'll have to make a specific octokit REST/GraphQL implementation
 // of this functionality, basically similar to
 // listBranchesSortedByCommitDate
-// but separate the concerns and save it in @shared folder
+// but separate the concerns and save it in @/shared folder
 
-import type { GitHubRefsPort } from "shared/ports/github/branch.reader"
-
-import { listBranchesSortedByCommitDate } from "@/lib/github/refs"
+import { listBranchesSortedByCommitDate } from "@/shared/lib/github/refs"
+import type { GitHubRefsPort } from "@/shared/ports/github/branch.reader"
 
 /**
  * Adapter implementing the shared GitHubRefsPort using our app's GitHub client utilities.

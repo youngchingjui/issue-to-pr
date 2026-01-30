@@ -1,3 +1,5 @@
+import "@testing-library/jest-dom"
+
 import { act } from "@testing-library/react"
 
 import { render, screen, waitFor } from "@/__tests__/test-utils"

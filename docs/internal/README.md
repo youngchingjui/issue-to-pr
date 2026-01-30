@@ -1,6 +1,8 @@
 # Internal Documentation
 
-This directory contains internal documentation that is not intended for end-users. This includes implementation details, architectural decisions, planning documents, and internal roadmaps.
+This directory contains internal documentation that is not intended for end-users. This includes specifications, architectural decisions, and planning documents.
+
+> **Before writing or editing specs, read [SPEC_GUIDELINES.md](./SPEC_GUIDELINES.md).**
 
 ## Directory Structure
 

@@ -2,17 +2,17 @@
 
 import { AsyncLocalStorage } from "node:async_hooks"
 
-import { getAccessToken } from "@/auth"
-import { getLocalRepoDir } from "@/lib/fs"
+import { getAccessToken } from "@/shared/auth"
+import { getLocalRepoDir } from "@/shared/lib/fs"
 import {
   cleanCheckout,
   cleanupRepo,
   cloneRepo,
   ensureValidRepo,
   setRemoteOrigin,
-} from "@/lib/git"
-import getOctokit from "@/lib/github"
-import { getCloneUrlWithAccessToken } from "@/lib/utils/utils-common"
+} from "@/shared/lib/git"
+import getOctokit from "@/shared/lib/github"
+import { getCloneUrlWithAccessToken } from "@/shared/lib/utils/utils-common"
 
 // For storing Github App installation ID in async context
 const asyncLocalStorage = new AsyncLocalStorage<{ installationId: string }>()
@@ -65,6 +65,7 @@ export function getInstallationId(): string | null {
  * @returns {Promise<string>} Absolute path to the prepared local repository
  *                            directory.
  * @throws {Error} If the repository cannot be prepared after all retries.
+ * @deprecated This needs to be refactored to their appropriate adapters and use cases that sets up a cached local repository.
  */
 export async function setupLocalRepository({
   repoFullName,

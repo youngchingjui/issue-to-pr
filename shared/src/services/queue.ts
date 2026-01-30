@@ -1,10 +1,16 @@
 import { Queue } from "bullmq"
 
-import { getRedisConnection } from "@/adapters/ioredis/client"
-import { QueueEnum } from "@/entities/Queue"
+import { getRedisConnection } from "@/shared/adapters/ioredis/client"
 
 const queuesByKey = new Map<string, Queue>()
-export function getQueue(name: QueueEnum, redisUrl: string): Queue {
+
+/**
+ * Get or create a BullMQ queue by name.
+ *
+ * @param name - Queue name. Use WORKFLOW_JOBS_QUEUE constant as default,
+ *               or override via env var (e.g., BULLMQ_QUEUE_NAME) for test isolation.
+ */
+export function getQueue(name: string, redisUrl: string): Queue {
   const key = `${name}::${redisUrl}`
 
   const queue = queuesByKey.get(key)
@@ -12,7 +18,7 @@ export function getQueue(name: QueueEnum, redisUrl: string): Queue {
   if (queue) return queue
 
   // Create a new queue
-  const newQueue = new Queue(name.toString(), {
+  const newQueue = new Queue(name, {
     connection: getRedisConnection(redisUrl, "bullmq:queue"),
   })
   queuesByKey.set(key, newQueue)

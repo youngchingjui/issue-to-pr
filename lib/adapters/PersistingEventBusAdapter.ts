@@ -1,7 +1,3 @@
-import { EventBusAdapter } from "shared/adapters/ioredis/EventBusAdapter"
-import type { AllEvents } from "shared/entities/events/index"
-import type { EventBusPort } from "shared/ports/events/eventBus"
-
 import {
   createErrorEvent,
   createLLMResponseEvent,
@@ -13,6 +9,9 @@ import {
   createUserResponseEvent,
   createWorkflowStateEvent,
 } from "@/lib/neo4j/services/event"
+import { EventBusAdapter } from "@/shared/adapters/ioredis/EventBusAdapter"
+import type { AllEvents } from "@/shared/entities/events/index"
+import type { EventBusPort } from "@/shared/ports/events/eventBus"
 
 /**
  * EventBus adapter that both publishes to the transport (Redis Streams)
@@ -63,7 +62,7 @@ async function persistToNeo4j(
     case "workflow.state": {
       await createWorkflowStateEvent({
         workflowId,
-        state: event.state,
+        state: event.state === "pending" ? "running" : event.state, // Temp fix as we slowly migrate to using entities and types from shared folder
         content: event.content,
       })
       return

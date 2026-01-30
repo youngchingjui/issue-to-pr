@@ -1,29 +1,29 @@
 import { Integer, ManagedTransaction, Node } from "neo4j-driver"
 
 import {
-  AnyEvent,
+  type AnyEvent,
   anyEventSchema,
-  ErrorEvent,
+  type ErrorEvent,
   errorEventSchema,
-  LLMResponse,
+  type LLMResponse,
   llmResponseSchema,
-  MessageEvent,
+  type MessageEvent,
   messageEventSchema,
-  ReasoningEvent,
+  type ReasoningEvent,
   reasoningEventSchema,
-  StatusEvent,
+  type StatusEvent,
   statusEventSchema,
-  SystemPrompt,
+  type SystemPrompt,
   systemPromptSchema,
-  ToolCall,
-  ToolCallResult,
+  type ToolCall,
+  type ToolCallResult,
   toolCallResultSchema,
   toolCallSchema,
-  UserMessage,
+  type UserMessage,
   userMessageSchema,
-  WorkflowStateEvent,
+  type WorkflowStateEvent,
   workflowStateEventSchema,
-} from "@/lib/types/db/neo4j"
+} from "@/shared/lib/types/db/neo4j"
 
 export async function get(
   tx: ManagedTransaction,
@@ -31,14 +31,23 @@ export async function get(
 ): Promise<AnyEvent> {
   const result = await tx.run<{ e: Node<Integer, AnyEvent, "Event"> }>(
     `
-    MATCH (e:Event {id: $eventId}) 
-    RETURN e 
+    MATCH (e:Event {id: $eventId})
+    RETURN e
     LIMIT 1
     `,
     { eventId: workflowId }
   )
   const raw = result.records[0]?.get("e")?.properties
-  return anyEventSchema.parse(raw)
+
+  const parsed = anyEventSchema.safeParse(raw)
+  if (!parsed.success) {
+    console.error(
+      `[get] Failed to parse event ${workflowId}. Event type: "${raw?.type}", Event ID: "${raw?.id}". Error:`,
+      parsed.error.errors
+    )
+    throw parsed.error
+  }
+  return parsed.data
 }
 
 export async function createSystemPromptEvent(
@@ -187,7 +196,17 @@ export async function findFirst(
     { workflowId }
   )
   const raw = result.records[0]?.get("e")?.properties
-  return raw ? anyEventSchema.parse(raw) : null
+  if (!raw) return null
+
+  const parsed = anyEventSchema.safeParse(raw)
+  if (!parsed.success) {
+    console.error(
+      `[findFirst] Failed to parse event for workflow ${workflowId}. Event type: "${raw.type}", Event ID: "${raw.id}". Error:`,
+      parsed.error.errors
+    )
+    throw parsed.error
+  }
+  return parsed.data
 }
 
 export async function findLast(
@@ -199,7 +218,17 @@ export async function findLast(
     { workflowId }
   )
   const raw = result.records[0]?.get("e")?.properties
-  return raw ? anyEventSchema.parse(raw) : null
+  if (!raw) return null
+
+  const parsed = anyEventSchema.safeParse(raw)
+  if (!parsed.success) {
+    console.error(
+      `[findLast] Failed to parse event for workflow ${workflowId}. Event type: "${raw.type}", Event ID: "${raw.id}". Error:`,
+      parsed.error.errors
+    )
+    throw parsed.error
+  }
+  return parsed.data
 }
 
 export async function createStartsWith(
@@ -327,7 +356,16 @@ export async function getEventsForWorkflowRun(
     `,
     { workflowRunId }
   )
-  return result.records.map((record) =>
-    anyEventSchema.parse(record.get("e").properties)
-  )
+  return result.records.map((record) => {
+    const raw = record.get("e").properties
+    const parsed = anyEventSchema.safeParse(raw)
+    if (!parsed.success) {
+      console.error(
+        `[getEventsForWorkflowRun] Failed to parse event for workflow ${workflowRunId}. Event type: "${raw.type}", Event ID: "${raw.id}". Error:`,
+        parsed.error.errors
+      )
+      throw parsed.error
+    }
+    return parsed.data
+  })
 }

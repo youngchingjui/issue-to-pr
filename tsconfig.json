@@ -12,6 +12,7 @@
     "target": "ES2022",
     "lib": ["DOM", "DOM.iterable", "ES2022"],
     "jsx": "preserve",
+    "noImplicitAny": true,
     /* Paths */
     "baseUrl": ".",
     "paths": {
@@ -21,10 +22,8 @@
       "@/lib/*": ["lib/*"],
       "@/components/*": ["components/*"],
       "@/styles/*": ["styles/*"],
-      "@shared/*": ["shared/src/*"],
       "@/shared/*": ["shared/src/*"]
     },
-
     /* TO SORT */
     "resolveJsonModule": true,
     "isolatedModules": true,

@@ -27,7 +27,7 @@ if (!uri || !user || !password) {
   throw new Error("NEO4J_URI, NEO4J_USER, and NEO4J_PASSWORD must be set")
 }
 
-export const neo4jDs =
+export const neo4jDs: Neo4jDataSource =
   global.__neo4jDs__ ??
   (global.__neo4jDs__ = createNeo4jDataSource({
     uri,

@@ -92,7 +92,9 @@ export default function PlanEvalCard() {
     if (Array.isArray(msg.content)) {
       // OpenAI-style content (could be string[] or ContentPart[])
       return msg.content
-        .map((c) => (typeof c === "string" ? c : (c.text ?? "")))
+        .map((c) =>
+          typeof c === "string" ? c : "text" in c ? (c.text ?? "") : ""
+        )
         .join(" ")
     }
     return undefined

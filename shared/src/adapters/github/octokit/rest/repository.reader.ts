@@ -1,12 +1,12 @@
 import { Octokit } from "@octokit/rest"
 
-import { err, ok, type Result } from "@/entities/result"
+import { err, ok, type Result } from "@/shared/entities/result"
 import type {
   GetRepositoryErrors,
   Repo,
   RepoDetails,
   RepositoryReaderPort,
-} from "@/ports/github/repository.reader"
+} from "@/shared/ports/github/repository.reader"
 
 /**
  * Factory to create a REST-based GitHub adapter implementing RepositoryReaderPort.

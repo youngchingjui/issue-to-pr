@@ -1,39 +1,25 @@
 import IssueRow from "@/components/issues/IssueRow"
 import PRStatusIndicator from "@/components/issues/PRStatusIndicator"
-import {
-  getIssueListWithStatus,
-  getLinkedPRNumbersForIssues,
-} from "@/lib/github/issues"
-import { RepoFullName } from "@/lib/types/github"
+import type { IssueWithStatus } from "@/lib/github/issues"
 
 interface Props {
-  repoFullName: RepoFullName
+  repoFullName: string
+  issues: IssueWithStatus[]
+  prMap: Record<number, number | null>
 }
 
-export default async function IssueRows({ repoFullName }: Props) {
-  const issues = await getIssueListWithStatus({
-    repoFullName: repoFullName.fullName,
-    per_page: 25,
-  })
-
+export default function IssueRows({ repoFullName, issues, prMap }: Props) {
   if (issues.length === 0) return null
-
-  const issueNumbers = issues.map((i) => i.number)
-  const prMap = await getLinkedPRNumbersForIssues({
-    repoFullName: repoFullName.fullName,
-    issueNumbers,
-  })
-
   return (
     <>
       {issues.map((issue) => (
         <IssueRow
           key={`issue-${issue.id}`}
           issue={issue}
-          repoFullName={repoFullName.fullName}
+          repoFullName={repoFullName}
           prSlot={
             <PRStatusIndicator
-              repoFullName={repoFullName.fullName}
+              repoFullName={repoFullName}
               prNumber={prMap[issue.number]}
             />
           }

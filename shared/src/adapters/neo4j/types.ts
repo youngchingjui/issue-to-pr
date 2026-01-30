@@ -1,21 +1,45 @@
+// These schemas define the nodes on Neo4j
+// You'll have to separately map the relationships to a schema after retrieving the nodes
+
+// TODO: We haven't touched Settings schemas here yet. They'll need to be added.
+
 import { DateTime, Integer } from "neo4j-driver"
 import { z } from "zod"
 
 const neo4jDateTime = z.instanceof(DateTime<Integer>)
 const neo4jInteger = z.instanceof(Integer)
 
+export const workflowRunStateSchema = z.enum([
+  "pending",
+  "running",
+  "completed",
+  "error",
+  "timedOut",
+])
+
+// Workflow run types - must match WorkflowRunTypes from domain
+const workflowRunTypeSchema = z.enum([
+  "summarizeIssue",
+  "generateIssueTitle",
+  "resolveIssue",
+  "createDependentPR",
+  "reviewPullRequest",
+  "commentOnIssue",
+])
+
 export const workflowRunSchema = z.object({
   id: z.string(),
-  type: z.string(),
-  createdAt: z.date(),
+  type: workflowRunTypeSchema,
+  createdAt: neo4jDateTime,
   postToGithub: z.boolean().optional(),
+  state: workflowRunStateSchema.optional(),
 })
 
 // User node (app user)
 export const userSchema = z.object({
   id: z.string(),
   username: z.string().optional(), // GitHub username used for auth
-  joinDate: neo4jDateTime,
+  joinDate: neo4jDateTime.optional(),
 })
 
 // GithubUser node (GitHub identity)
@@ -44,7 +68,7 @@ export const githubUserSchema = z.object({
 const baseWebhookEventSchema = z.object({
   id: z.string(), // Our internal event ID
   deliveryId: z.string().optional(), // GitHub's X-GitHub-Delivery header
-  createdAt: z.date(), // When we received/stored the event
+  createdAt: neo4jDateTime, // When we received/stored the event
 })
 
 // Issues event - labeled action
@@ -55,7 +79,7 @@ export const issuesLabeledEventSchema = baseWebhookEventSchema.extend({
   action: z.literal("labeled"), // GitHub action type
   labelName: z.string(), // The label that was added (e.g., "resolve", "i2pr: resolve issue")
   repoFullName: z.string(), // owner/repo format from payload.repository.full_name
-  issueNumber: z.number(), // Issue number from payload.issue.number
+  issueNumber: neo4jInteger, // Issue number from payload.issue.number
 })
 
 // Pull request event - labeled action
@@ -66,7 +90,7 @@ export const pullRequestLabeledEventSchema = baseWebhookEventSchema.extend({
   action: z.literal("labeled"), // GitHub action type
   labelName: z.string(), // The label that was added (e.g., "i2pr: update pr")
   repoFullName: z.string(), // owner/repo format from payload.repository
-  prNumber: z.number(), // PR number from payload.pull_request.number
+  prNumber: neo4jInteger, // PR number from payload.pull_request.number
 })
 
 // Discriminated union of all workflow-launching webhook events
@@ -83,13 +107,7 @@ export const genericWebhookEventSchema = z.object({
   deliveryId: z.string().optional(),
   event: z.string(), // Generic event type
   action: z.string().optional(), // Generic action type
-  createdAt: z.date(),
-})
-
-// Installation node (GitHub App installation)
-export const installationSchema = z.object({
-  id: z.string(),
-  githubInstallationId: z.string(),
+  createdAt: neo4jDateTime,
 })
 
 // Repository node (stores GitHub repository metadata)
@@ -97,9 +115,9 @@ export const installationSchema = z.object({
 // Immutable identifiers: id, nodeId
 // Mutable properties: fullName, owner, name, defaultBranch, visibility, hasIssues
 export const repositorySchema = z.object({
-  id: z.string(), // GitHub numeric ID (stored as string in Neo4j)
-  nodeId: z.string(), // GitHub global node ID (immutable)
-  fullName: z.string(), // owner/repo format (mutable, can change via rename/transfer)
+  id: z.string().optional(), // GitHub numeric ID (stored as string in Neo4j)
+  nodeId: z.string().optional(), // GitHub global node ID (immutable)
+  fullName: z.string(), // Repository full name in "owner/name" format (mutable)
   owner: z.string(), // Repository owner (mutable)
   name: z.string(), // Repository name (mutable)
   defaultBranch: z.string().optional(), // Default branch name (mutable)
@@ -107,29 +125,54 @@ export const repositorySchema = z.object({
   hasIssues: z.boolean().optional(), // Whether issues are enabled
   createdAt: neo4jDateTime.optional(), // When this node was created in Neo4j
   lastUpdated: neo4jDateTime.optional(), // Last time this node was updated
+  githubInstallationId: z.string().optional(), // Store this here instead of a separate node, since we'll only have 1 Github App to reference
 })
 
-export const workflowRunStateSchema = z.enum([
-  "running",
-  "completed",
-  "error",
-  "timedOut",
-])
+// Commit node (stores Git commit metadata)
+// All fields are immutable - a commit's SHA is derived from its content,
+// so changing any field would result in a different SHA (a different commit)
+// Reference: https://docs.github.com/en/rest/git/commits
+// Note: Most fields are optional to support progressive attachment
+export const commitSchema = z.object({
+  // Immutable identifiers
+  sha: z.string(), // Primary key - Git SHA-1 hash (40 hex chars)
+  nodeId: z.string().optional(), // GitHub GraphQL node ID
+
+  // Commit content (immutable)
+  message: z.string().optional(), // Full commit message
+  treeSha: z.string().optional(), // Git tree object SHA (represents file structure)
+
+  // Author (person who wrote the code)
+  authorName: z.string().optional(),
+  authorEmail: z.string().optional(),
+  authoredAt: neo4jDateTime.optional(),
+
+  // Committer (person who applied the commit to the repository)
+  // Often same as author, but differs in cases like rebasing, cherry-picking, or applying patches
+  committerName: z.string().optional(),
+  committerEmail: z.string().optional(),
+  committedAt: neo4jDateTime.optional(),
+
+  // Metadata about when we stored this in Neo4j
+  createdAt: neo4jDateTime.optional(),
+})
 
 export const issueSchema = z.object({
-  number: z.number(),
-  createdAt: z.date().optional(),
+  number: neo4jInteger,
+  createdAt: neo4jDateTime.optional(),
   repoFullName: z.string(),
   title: z.string().optional(),
   body: z.string().optional(),
   state: z.enum(["open", "closed"]).optional(),
   labels: z.array(z.string()).optional(),
   assignees: z.array(z.string()).optional(),
-  updatedAt: z.date().optional(),
+  updatedAt: neo4jDateTime.optional(),
 })
 
 //--------Event Types--------
 
+// TODO: It seems that we mix "messages" with "events", but I think these concepts should be separated.
+// TODO: We're not really using llmResponseWithPlan anymore, I think we can start to remove this feature.
 const eventTypes = z.enum([
   "error",
   "llmResponse",
@@ -143,6 +186,11 @@ const eventTypes = z.enum([
   "toolCallResult",
   "userMessage",
   "workflowState",
+  "workflowStarted",
+  "workflowCompleted",
+  "workflowCancelled",
+  "workflowCheckpointSaved",
+  "workflowCheckpointRestored",
 ])
 
 export const baseEventSchema = z.object({
@@ -162,14 +210,18 @@ export const statusEventSchema = baseEventSchema.extend({
   content: z.string(),
 })
 
-export const workflowStateEventSchema = baseEventSchema.extend({
-  type: z.literal("workflowState"),
-  state: workflowRunStateSchema,
-})
+export const workflowStateEventSchema = baseEventSchema
+  .omit({ content: true })
+  .extend({
+    type: z.literal("workflowState"),
+    state: workflowRunStateSchema,
+  })
 
 export const systemPromptSchema = baseEventSchema.extend({
   type: z.literal("systemPrompt"),
   content: z.string(),
+  data: z.string().optional(), // Legacy, use content instead
+  timestamp: neo4jDateTime.optional(), // Legacy, use createdAt instead
 })
 
 export const userMessageSchema = baseEventSchema.extend({
@@ -184,7 +236,7 @@ export const llmResponseSchema = baseEventSchema.extend({
 
 export const reasoningEventSchema = baseEventSchema.extend({
   type: z.literal("reasoning"),
-  content: z.string(),
+  summary: z.string(),
 })
 
 export const planSchema = z.object({
@@ -203,17 +255,50 @@ export const llmResponseWithPlanSchema = llmResponseSchema.merge(
 
 export const toolCallSchema = baseEventSchema.extend({
   type: z.literal("toolCall"),
-  content: z.string(),
+  toolName: z.string(),
+  toolCallId: z.string(),
+  args: z.string().optional(),
+  data: z.string().optional(), // Legacy, use content instead
+  timestamp: neo4jDateTime.optional(), // Legacy, use createdAt instead
 })
 
 export const toolCallResultSchema = baseEventSchema.extend({
   type: z.literal("toolCallResult"),
+  toolCallId: z.string(),
+  toolName: z.string(),
   content: z.string(),
+  data: z.string().optional(), // Legacy, use content instead
+  timestamp: neo4jDateTime.optional(), // Legacy, use createdAt instead
 })
 
 export const reviewCommentSchema = baseEventSchema.extend({
   type: z.literal("reviewComment"),
   content: z.string(),
+})
+
+export const workflowStartedEventSchema = baseEventSchema.extend({
+  type: z.literal("workflowStarted"),
+  content: z.string().optional(),
+})
+
+export const workflowCompletedEventSchema = baseEventSchema.extend({
+  type: z.literal("workflowCompleted"),
+  content: z.string().optional(),
+})
+
+export const workflowCancelledEventSchema = baseEventSchema.extend({
+  type: z.literal("workflowCancelled"),
+  content: z.string().optional(),
+})
+
+export const workflowCheckpointSavedEventSchema = baseEventSchema.extend({
+  type: z.literal("workflowCheckpointSaved"),
+  content: z.string().optional(),
+})
+
+export const workflowCheckpointRestoredEventSchema = baseEventSchema.extend({
+  type: z.literal("workflowCheckpointRestored"),
+  content: z.string().optional(),
 })
 
 export const messageEventSchema = z.union([
@@ -239,15 +324,20 @@ export const anyEventSchema = z.discriminatedUnion("type", [
   toolCallSchema,
   userMessageSchema,
   workflowStateEventSchema,
+  workflowStartedEventSchema,
+  workflowCompletedEventSchema,
+  workflowCancelledEventSchema,
+  workflowCheckpointSavedEventSchema,
+  workflowCheckpointRestoredEventSchema,
 ])
 
 //--------Export all types--------
 export type AnyEvent = z.infer<typeof anyEventSchema>
+export type Commit = z.infer<typeof commitSchema>
 export type ErrorEvent = z.infer<typeof errorEventSchema>
 export type GenericWebhookEvent = z.infer<typeof genericWebhookEventSchema>
 export type GithubUser = z.infer<typeof githubUserSchema>
 export type GithubWebhookEvent = z.infer<typeof githubWebhookEventSchema>
-export type Installation = z.infer<typeof installationSchema>
 export type Issue = z.infer<typeof issueSchema>
 export type IssuesLabeledEvent = z.infer<typeof issuesLabeledEventSchema>
 export type PullRequestLabeledEvent = z.infer<

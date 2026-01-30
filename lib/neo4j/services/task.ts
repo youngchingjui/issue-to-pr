@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from "uuid"
 import { n4j } from "@/lib/neo4j/client"
 import { neo4jToJs } from "@/lib/neo4j/convert"
 import * as repo from "@/lib/neo4j/repositories/task"
-import { Task as AppTask } from "@/lib/types"
+import { Task as AppTask, taskSchema } from "@/lib/types"
 import { RepoFullName } from "@/lib/types/github"
 
 type CreateTaskParams = {
@@ -36,7 +36,7 @@ export async function createTask({
         syncedToGithub: false,
       })
     )
-    return neo4jToJs(db)
+    return taskSchema.parse(neo4jToJs(db))
   } finally {
     await session.close()
   }
@@ -46,7 +46,7 @@ export async function getTask(id: string): Promise<AppTask | null> {
   const session = await n4j.getSession()
   try {
     const db = await session.executeRead((tx) => repo.get(tx, id))
-    return db ? neo4jToJs(db) : null
+    return db ? taskSchema.parse(neo4jToJs(db)) : null
   } finally {
     await session.close()
   }
@@ -60,7 +60,7 @@ export async function listTasksForRepo(
     const db = await session.executeRead((tx) =>
       repo.listForRepo(tx, repoFullName)
     )
-    return db.map(neo4jToJs)
+    return db.map(neo4jToJs).map((task) => taskSchema.parse(task))
   } finally {
     await session.close()
   }
@@ -98,7 +98,7 @@ export async function updateTask({
             : null,
       })
     )
-    return neo4jToJs(db)
+    return taskSchema.parse(neo4jToJs(db))
   } finally {
     await session.close()
   }

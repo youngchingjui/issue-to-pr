@@ -1,5 +1,8 @@
 services:
   workflow-workers:
+    profiles:
+      - prod
+      - staging
     image: ghcr.io/youngchingjui/workflow-workers:latest
     env_file:
       - ../env/.env.worker

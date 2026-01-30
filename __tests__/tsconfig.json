@@ -5,6 +5,7 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "noEmit": true,
+    "noImplicitAny": true,
     "baseUrl": "..",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ES2022",
@@ -14,7 +15,6 @@
       "@/styles/*": ["styles/*"],
       "@/lib/*": ["lib/*"],
       "@/__tests__/*": ["__tests__/*"],
-      "@shared/*": ["shared/src/*"], // @deprecated: use "@/shared/*" instead
       "@/shared/*": ["shared/src/*"],
       "@workers/*": ["apps/workers/src/*"]
     }
