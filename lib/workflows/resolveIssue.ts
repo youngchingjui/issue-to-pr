@@ -92,25 +92,25 @@ export const resolveIssue = async ({
     await storage.workflow.run.create({
       id: workflowId,
       type: "resolveIssue",
-      issueNumber: issue.number,
-      repository: {
-        id: repository.id,
-        nodeId: repository.node_id,
-        fullName: repository.full_name,
-        owner: repository.owner?.login || repository.full_name.split("/")[0],
-        name: repository.name,
-        defaultBranch: repository.default_branch || undefined,
-        visibility: repository.visibility?.toUpperCase() as
-          | "PUBLIC"
-          | "PRIVATE"
-          | "INTERNAL"
-          | undefined,
-        hasIssues: repository.has_issues ?? undefined,
+      target: {
+        issue: {
+          number: issue.number,
+          repoFullName: repository.full_name,
+        },
+        repository: {
+          id: repository.id,
+          nodeId: repository.node_id,
+          owner: repository.owner?.login || repository.full_name.split("/")[0],
+          name: repository.name,
+          githubInstallationId: webhookContext?.installationId,
+        },
       },
-      postToGithub: createPR,
+      config: {
+        postToGithub: createPR,
+      },
       actor: webhookContext
         ? {
-            kind: "webhook",
+            type: "webhook",
             source: "github",
             event: webhookContext.event,
             action: webhookContext.action,
@@ -118,7 +118,7 @@ export const resolveIssue = async ({
             installationId: webhookContext.installationId,
           }
         : {
-            kind: "user",
+            type: "user",
             userId: "system", // TODO: Get actual user ID from context
           },
     })

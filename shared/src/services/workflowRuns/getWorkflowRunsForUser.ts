@@ -34,7 +34,7 @@ export async function getWorkflowRunsForUser(
   const { userId } = params
 
   // Fetch runs initiated by the user
-  const initiatedRuns = await storage.runs.list({
+  const initiatedRuns = await storage.workflow.run.listByVisibility({
     by: "initiator",
     user: { id: userId },
   })
@@ -42,7 +42,7 @@ export async function getWorkflowRunsForUser(
   // TODO: Expand to include runs on repositories owned by the user:
   // const userRepos = await getUserRepositories(userId) // from GitHub API or Neo4j
   // const repoRunsPromises = userRepos.map(repo =>
-  //   storage.runs.list({ by: "repository", repo: { fullName: repo.fullName, id: repo.id } })
+  //   storage.workflow.run.listByVisibility({ by: "repository", repo: { fullName: repo.fullName, id: repo.id } })
   // )
   // const repoRuns = (await Promise.all(repoRunsPromises)).flat()
   // const allRuns = [...initiatedRuns, ...repoRuns]

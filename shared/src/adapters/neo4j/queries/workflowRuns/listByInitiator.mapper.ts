@@ -44,11 +44,17 @@ export function mapListByInitiatorResult(
     return {
       id: run.id,
       type: run.type,
-      createdAt: run.createdAt.toISOString(),
+      createdAt: run.createdAt.toString(),
       postToGithub: run.postToGithub,
       state: state.success ? state.data : "completed",
       issue: issue
-        ? { repoFullName: issue.repoFullName, number: issue.number }
+        ? {
+            repoFullName: issue.repoFullName,
+            number:
+              typeof issue.number === "object"
+                ? issue.number.toNumber()
+                : issue.number,
+          }
         : undefined,
       repository: repo ? { fullName: repo.fullName, id: repo.id } : undefined,
       actor,
