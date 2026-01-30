@@ -20,6 +20,7 @@ This migration creates Repository nodes with immutable GitHub IDs and establishe
 Before running this migration, create a backup of your Neo4j database:
 
 **Option 1: Using Neo4j Admin Dump (Recommended)**
+
 ```bash
 # Stop Neo4j if running
 neo4j stop
@@ -32,6 +33,7 @@ neo4j start
 ```
 
 **Option 2: Using Neo4j Desktop**
+
 1. Open Neo4j Desktop
 2. Select your database
 3. Click the three dots menu
@@ -39,6 +41,7 @@ neo4j start
 5. Save with timestamp: `neo4j-backup-2025-12-31.dump`
 
 **Option 3: Copy Data Directory (Simple but requires downtime)**
+
 ```bash
 # Stop Neo4j
 neo4j stop
@@ -51,6 +54,7 @@ neo4j start
 ```
 
 **Restore Instructions (if needed)**
+
 ```bash
 # Stop Neo4j
 neo4j stop
@@ -67,6 +71,7 @@ neo4j start
 Run these queries to understand your current data structure and verify the migration will work correctly:
 
 **1. Count all node types**
+
 ```cypher
 MATCH (n)
 RETURN labels(n) as nodeType, count(n) as count
@@ -76,6 +81,7 @@ ORDER BY count DESC
 **Expected**: Should show counts of Issue, WorkflowRun, Repository (if any), and other node types.
 
 **2. Check Issues with repository information**
+
 ```cypher
 MATCH (i:Issue)
 RETURN
@@ -87,6 +93,7 @@ RETURN
 **Expected**: All or most Issues should have `repoFullName`.
 
 **3. Check WorkflowRuns linked to Issues**
+
 ```cypher
 MATCH (w:WorkflowRun)
 OPTIONAL MATCH (w)-[:BASED_ON_ISSUE]->(i:Issue)
@@ -98,6 +105,7 @@ RETURN
 **Expected**: Most WorkflowRuns should be linked to Issues.
 
 **4. Check existing Repository nodes**
+
 ```cypher
 MATCH (r:Repository)
 RETURN
@@ -110,6 +118,7 @@ RETURN
 **Expected**: May have 0 or some Repository nodes from settings management.
 
 **5. Check existing Repository relationships**
+
 ```cypher
 MATCH (r:Repository)-[rel]-()
 RETURN
@@ -120,6 +129,7 @@ RETURN
 **Expected**: May show `HAS_SETTINGS` or other existing relationships.
 
 **6. Verify no duplicate or orphaned data**
+
 ```cypher
 // Check for Issues without repoFullName
 MATCH (i:Issue)
@@ -134,6 +144,7 @@ RETURN count(i) as issuesWithoutRepo, collect(i.number)[..10] as sampleIssueNumb
 This migration must be run on all three environments. Complete each environment fully before moving to the next.
 
 ### MacBook Air
+
 - [ ] Pre-migration backup completed
 - [ ] Pre-migration verification queries run
 - [ ] Step 1: Normalize existing Repository nodes
@@ -145,6 +156,7 @@ This migration must be run on all three environments. Complete each environment 
 - [ ] Application code updated and tested
 
 ### Mac Mini
+
 - [ ] Pre-migration backup completed
 - [ ] Pre-migration verification queries run
 - [ ] Step 1: Normalize existing Repository nodes
@@ -156,6 +168,7 @@ This migration must be run on all three environments. Complete each environment 
 - [ ] Application code updated and tested
 
 ### Production Server
+
 - [ ] Pre-migration backup completed
 - [ ] Pre-migration verification queries run
 - [ ] Step 1: Normalize existing Repository nodes

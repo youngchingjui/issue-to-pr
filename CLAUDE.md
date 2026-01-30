@@ -19,7 +19,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - This is a monorepo. The NextJS application currently sits in the root directory, with files in the /components and /lib directories supporting it. But we'd like to move the NextJS application to the /apps/web directory.
 - We have a /shared folder where shared code between the NextJS application and the workers lives.
-- Be sure to refer to config files to see how we run scripts, run typechecks, etc.
 - We want good, clean code
 - We want easy, clear code file organization. Any new joiner should be able to quickly understand where to find a file.
 - We'll scatter additional specific guidance throughout the codebase. Look for README.md in nested folders, sitting close to any code they might be referencing.
