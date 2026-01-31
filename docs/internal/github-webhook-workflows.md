@@ -234,6 +234,33 @@ Different workflows may have different:
 
 ---
 
+## PR Review Webhook Deduplication
+
+When a user submits a GitHub PR review, they may write multiple inline comments plus a summary. GitHub fires webhooks nearly simultaneously:
+
+- One `pull_request_review` event (for the review itself)
+- Multiple `pull_request_review_comment` events (one per inline comment)
+
+If the user mentions @issuetopr in multiple places within the same review, we need to deduplicate to avoid triggering multiple workflows.
+
+### Deduplication Strategy
+
+Group related webhook events using a review correlation window:
+
+1. Extract the `pull_request_review_id` from the payload
+2. Check if we've already processed a trigger for this review ID
+3. If yes, skip processing
+4. If no, mark this review ID as processed and continue
+
+### Implementation Notes
+
+- Correlation window: 30-60 seconds
+- Storage: Short-lived cache (Redis or in-memory with TTL)
+- Include the review ID in workflow audit logs for debugging
+- **TODO**: Verify `pull_request_review_id` field presence in actual webhook payloads before relying on it
+
+---
+
 ## Open Questions
 
 1. **External contributors on public repos**: Allow them to trigger? Require approval? Charge repo owner?
