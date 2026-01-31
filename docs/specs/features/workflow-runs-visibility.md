@@ -14,15 +14,14 @@ As a user, I want to see workflow runs that are relevant to me so I don't get co
 
 ### What Users Should See (v1)
 
-A user sees a workflow run when either:
-- They started the run, OR
-- The run happened on a repository they own
+Users see only workflow runs they started (initiated).
 
 ### Page Copy
 
 - Title: "Workflow Runs"
-- Subtitle: "Runs you started and runs on repositories you own."
-- Empty state: "No workflow runs visible to you yet."
+- Subtitle: "Workflow runs you have initiated."
+- Empty state: "No workflow runs yet."
+- Empty state CTA: "Start a run" (link to the main page)
 
 ---
 
@@ -38,15 +37,18 @@ A user sees a workflow run when either:
 
 - Store who started each run when it's created
 - Store which repository each run belongs to
-- Filter runs by: initiator = current user OR repository owner = current user
+- Filter runs by: initiator = current user
 - Apply the same filter to list view, detail view, and logs
 
 ### Data to Store on Run Creation
 
 Required:
 - Repository ID and full name
+  - Note: repository full name is mutable; treat the numeric repository ID as the source of truth and update full name opportunistically (e.g., via repository/webhook events or when fresh data is fetched).
 - Installation ID (GitHub App)
-- Who started the run (user ID and GitHub username)
+- Initiator attribution:
+  - App user ID (Issue to PR user)
+  - Linked GitHub user (numeric ID and login), when available
 - Trigger type (app UI, webhook from label, etc.)
 
 Optional (when available):
@@ -55,16 +57,15 @@ Optional (when available):
 
 ### Authorization Rule
 
-A user can view a run (list, details, logs) if:
-- They are the initiator of the run, OR
-- They own the repository the run executed on
+A user can view a run (list, details, logs) only if they are the initiator of the run.
 
 ### Webhooks
 
 - Verify webhook signatures to prevent spoofing
 - Extract the actor (sender) from the webhook payload
-- Link GitHub identity to the app user when possible
-- If no user mapping exists, treat as "unknown initiator" but still show to repo owners
+- Link GitHub identity to the app user when possible (users authenticate via GitHub OAuth, so this mapping often exists)
+- If no mapping exists, persist the actor as a GitHub identity only; the run will not appear in any user's "My runs" list until the identity is linked to an app user
+- See also: docs/internal/github-webhook-workflows.md and docs/internal/workflow-authorization-spec.md
 
 ---
 
@@ -74,3 +75,4 @@ A user can view a run (list, details, logs) if:
 - Filters or dropdowns on the page
 - Backfilling historical runs with attribution
 - Different access levels for list vs details vs logs
+
