@@ -18,10 +18,10 @@ Users see only workflow runs they started (initiated).
 
 ### Page Copy
 
-- Title: "Workflow Runs"
+- Title: "Your workflow runs"
 - Subtitle: "Workflow runs you have initiated."
 - Empty state: "No workflow runs yet."
-- Empty state CTA: "Start a run" (link to the main page)
+- Empty state CTA: "Resolve an issue" (link to the main page)
 
 ---
 
@@ -43,15 +43,17 @@ Users see only workflow runs they started (initiated).
 ### Data to Store on Run Creation
 
 Required:
+
 - Repository ID and full name
   - Note: repository full name is mutable; treat the numeric repository ID as the source of truth and update full name opportunistically (e.g., via repository/webhook events or when fresh data is fetched).
 - Installation ID (GitHub App)
 - Initiator attribution:
   - App user ID (Issue to PR user)
-  - Linked GitHub user (numeric ID and login), when available
+  - Linked GitHub user (numeric ID and login)
 - Trigger type (app UI, webhook from label, etc.)
 
 Optional (when available):
+
 - GitHub user ID of the trigger actor
 - Issue or PR number
 
@@ -62,9 +64,9 @@ A user can view a run (list, details, logs) only if they are the initiator of th
 ### Webhooks
 
 - Verify webhook signatures to prevent spoofing
-- Extract the actor (sender) from the webhook payload
-- Link GitHub identity to the app user when possible (users authenticate via GitHub OAuth, so this mapping often exists)
-- If no mapping exists, persist the actor as a GitHub identity only; the run will not appear in any user's "My runs" list until the identity is linked to an app user
+- Extract the actor (sender) from the webhook payload (map by stable numeric GitHub user ID when available)
+- App users authenticate via GitHub OAuth, so every app user has a linked GitHub identity. When a webhook actor corresponds to an app user, attribute the run to that user.
+- If no corresponding app user exists yet for the webhook actor, persist the actor as a GitHub identity only; the run will not appear in any user's "My runs" list until that GitHub identity signs in and links to an app account.
 - See also: docs/internal/github-webhook-workflows.md and docs/internal/workflow-authorization-spec.md
 
 ---

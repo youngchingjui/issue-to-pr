@@ -1,6 +1,6 @@
 # Tech Specs — Workflow Runs Visibility and Attribution
 
-Source PRD: `docs/internal/PRD.md`
+Source spec: `docs/specs/features/workflow-runs-visibility.md`
 
 Scope: Define the shape of new/updated functions, types, and files required to implement v1 behavior for Workflow Runs listing, creation (with attribution), and consistent authorization across list/details/logs. No implementation details are provided here—only filenames, exported members, and their input/output shapes.
 
@@ -294,4 +294,5 @@ export async function getWorkflowRunEvents(
 ## Notes
 
 - All shapes are additive to maintain compatibility with current UI and storage.
-- Only immutable identifiers are persisted at creation time; presentation data is fetched from GitHub APIs at read time (refer to PRD for rationale).
+- Only immutable identifiers are persisted at creation time; presentation data is fetched from GitHub APIs at read time (refer to the feature spec for rationale).
+
