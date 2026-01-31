@@ -26,6 +26,8 @@ export type WorkflowRunTypes =
   | "commentOnIssue"
   | "resolveMergeConflicts"
   | "testEventBus"
+  | "alignmentCheck"
+  | "identifyPRGoal"
 
 export interface WorkflowRun {
   id: string

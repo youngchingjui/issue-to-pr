@@ -46,6 +46,8 @@ const workflowRunTypeSchema = z.enum([
   "commentOnIssue",
   "resolveMergeConflicts",
   "testEventBus",
+  "alignmentCheck",
+  "identifyPRGoal",
 ])
 
 export const workflowRunSchema = z.object({
