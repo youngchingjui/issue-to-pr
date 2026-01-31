@@ -1,5 +1,5 @@
 // File system operations
-import { promises as fs } from "fs"
+import { promises as fs, existsSync } from "fs"
 import os from "os"
 import * as path from "path"
 
@@ -65,6 +65,20 @@ export async function getLocalRepoDir(repo_full_name: string) {
   return dirPath
 }
 
+export async function checkFileExists(filePath: string): Promise<boolean> {
+  try {
+    await fs.access(filePath) // Checks if the file can be accessed
+    return true
+  } catch (error) {
+    return false
+  }
+}
+
+export function fileExists(filePath: string): boolean {
+  // Uses fs.existsSync() to check if a file exists synchronously
+  return existsSync(filePath)
+}
+
 export async function getFileContent(filePath: string) {
   const stats = await fs.stat(filePath)
   if (stats.isDirectory()) {
@@ -86,3 +100,4 @@ export async function writeFile(fullPath: string, content: string) {
   // Write the file
   await fs.writeFile(fullPath, content, "utf-8")
 }
+
