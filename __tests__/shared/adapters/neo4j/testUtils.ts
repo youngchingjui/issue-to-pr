@@ -11,9 +11,9 @@ import {
  * These utilities help set up and tear down test data in a local Neo4j instance
  */
 
-// Load test-specific environment variables from __tests__/.env
+// Load test-specific environment variables from __tests__/.env.neo4j
 // This allows tests to use a separate test database
-const testEnvPath = path.resolve(__dirname, "../../../.env")
+const testEnvPath = path.resolve(__dirname, "../../../.env.neo4j")
 dotenv.config({ path: testEnvPath })
 
 /**
@@ -28,7 +28,7 @@ export function createTestDataSource(): Neo4jDataSource {
   if (!uri || !user || !password) {
     throw new Error(
       "NEO4J_URI, NEO4J_USER, and NEO4J_PASSWORD must be set for integration tests.\n" +
-        "Create a __tests__/.env file (use __tests__/.env.example as a template) with these values pointing to your TEST Neo4j database.\n" +
+        "Create a __tests__/.env.neo4j file (use __tests__/.env.neo4j.example as a template) with these values pointing to your TEST Neo4j database.\n" +
         "IMPORTANT: Use a separate test database, not your production/development database!"
     )
   }

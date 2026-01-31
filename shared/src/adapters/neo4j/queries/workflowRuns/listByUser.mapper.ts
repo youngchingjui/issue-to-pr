@@ -38,7 +38,10 @@ export function mapListByUser(
     const commit = commitNode
       ? commitSchema.parse(commitNode.properties)
       : undefined
-    const state = workflowRunStateSchema.parse(stateNode)
+    // State may be null if no workflow state event exists yet (e.g., newly created runs)
+    const state = stateNode
+      ? workflowRunStateSchema.parse(stateNode)
+      : "pending"
 
     // Map actor from User relationship (this query only returns user-initiated runs)
     if (!user) {

@@ -33,10 +33,10 @@
     "test:agent": "NODE_OPTIONS='--experimental-vm-modules' jest -c __tests__/config/jest.config.agent.ts",
     "test:neo4j": "jest -c __tests__/config/jest.config.neo4j.ts",
     "test:fs": "jest \"**/*.integration.test.ts\"",
-    "test:e2e:up": "docker compose -f docker/docker-compose.e2e-test.yml up -d --wait",
-    "test:e2e:down": "docker compose -f docker/docker-compose.e2e-test.yml down -v",
+    "test:infra:up": "docker compose -f docker/docker-compose.e2e-test.yml up -d --wait",
+    "test:infra:down": "docker compose -f docker/docker-compose.e2e-test.yml down -v",
     "test:e2e": "jest -c __tests__/config/jest.config.e2e.ts",
-    "test:e2e:run": "pnpm test:e2e:up && pnpm test:e2e; pnpm test:e2e:down",
+    "test:e2e:run": "pnpm test:infra:up && pnpm test:e2e; pnpm test:infra:down",
     "storybook": "pnpm --filter @issue-to-pr/storybook dev",
     "build-storybook": "pnpm --filter @issue-to-pr/storybook build",
     "smee": "dotenv -e .env.local -- sh -c 'smee -u $SMEE_URL --path /api/webhook/github --port 3000'"

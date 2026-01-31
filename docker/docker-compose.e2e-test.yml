@@ -1,13 +1,16 @@
-# E2E Test Environment
-# This compose file provides isolated services for end-to-end testing.
+# Test Infrastructure
+# This compose file provides isolated services for all integration/e2e tests.
 # Services use different ports to avoid conflicts with development environment.
 #
 # Usage:
-#   Start:  pnpm test:e2e:up
-#   Stop:   pnpm test:e2e:down
-#   Run:    pnpm test:e2e
+#   Start:  pnpm test:infra:up
+#   Stop:   pnpm test:infra:down
+#
+# Used by:
+#   - Neo4j integration tests (pnpm test:neo4j)
+#   - E2E tests (pnpm test:e2e)
 
 include:
   - compose/e2e-test.yml
 
-name: issue-to-pr-e2e-test
+name: issue-to-pr-test

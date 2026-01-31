@@ -25,7 +25,10 @@ export function mapListForIssue(
     const run = workflowRunSchema.parse(w?.properties)
     const issue = issueSchema.parse(issueNode?.properties)
     const commit = commitNode ? commitSchema.parse(commitNode.properties) : null
-    const state = workflowRunStateSchema.parse(stateNode)
+    // State may be null if no workflow state event exists yet (e.g., newly created runs)
+    const state = stateNode
+      ? workflowRunStateSchema.parse(stateNode)
+      : "pending"
 
     const workflowRun: WorkflowRun = {
       id: run.id,

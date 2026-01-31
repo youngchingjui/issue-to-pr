@@ -28,10 +28,12 @@ import {
   createWorkflowRun,
   type CreateWorkflowRunParams,
   getWorkflowRunById,
+  listByUser,
   listEventsForWorkflowRun,
   mapAddEventResult,
   mapDomainEventTypeToNeo4j,
   mapGetWorkflowRunById,
+  mapListByUser,
   mapListEvents,
 } from "./queries/workflowRuns"
 
@@ -452,10 +454,20 @@ export class StorageAdapter implements DatabaseStorage {
   }
 
   private async listWorkflowRuns(
-    _filter: WorkflowRunFilter
+    filter: WorkflowRunFilter
   ): Promise<WorkflowRun[]> {
-    // Foundation PR: keep simple and return empty until wired by subsequent PRs.
-    // Implementers can build queries using helpers in queries/workflowRuns/*
+    const userId = filter.userId
+    if (userId) {
+      const session = this.ds.getSession("READ")
+      try {
+        const result = await session.executeRead((tx) =>
+          listByUser(tx, { user: { id: userId } })
+        )
+        return mapListByUser(result)
+      } finally {
+        await session.close()
+      }
+    }
     return []
   }
 
