@@ -10,7 +10,7 @@ import {
   type MessageEvent,
 } from "@/shared/lib/types/db/neo4j"
 
-export function neo4jToJs<T>(value: T) {
+export function neo4jToJs<T>(value: T): unknown {
   if (value === null || value === undefined) return value
   if (neo4j.isInt(value)) {
     return (value as unknown as Integer).toNumber()
@@ -19,11 +19,11 @@ export function neo4jToJs<T>(value: T) {
     return (value as DateTime).toStandardDate()
   }
   if (Array.isArray(value)) {
-    return value.map((v) => neo4jToJs(v))
+    return value.map((v: unknown) => neo4jToJs(v))
   }
   if (typeof value === "object") {
-    const result = {}
-    for (const [k, v] of Object.entries(value)) {
+    const result: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
       result[k] = neo4jToJs(v)
     }
     return result
@@ -31,14 +31,14 @@ export function neo4jToJs<T>(value: T) {
   return value
 }
 
-export function jsToNeo4j<T>(value: T) {
+export function jsToNeo4j<T>(value: T): unknown {
   if (value === null || value === undefined) return value
   if (typeof value === "number") return neo4j.int(value)
   if (value instanceof Date) return neo4j.types.DateTime.fromStandardDate(value)
-  if (Array.isArray(value)) return value.map((v) => jsToNeo4j(v))
+  if (Array.isArray(value)) return value.map((v: unknown) => jsToNeo4j(v))
   if (typeof value === "object") {
-    const result = {}
-    for (const [k, v] of Object.entries(value)) {
+    const result: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
       result[k] = jsToNeo4j(v)
     }
     return result

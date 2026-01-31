@@ -5,7 +5,9 @@ import { neo4jToJs } from "@/lib/neo4j/convert"
 import * as repoRepo from "@/lib/neo4j/repositories/repository"
 import {
   BuildDeploymentSettings as AppBuildDeploymentSettings,
+  buildDeploymentSettingsSchema,
   RepoSettings as AppRepoSettings,
+  repoSettingsSchema,
 } from "@/lib/types"
 import { RepoFullName } from "@/lib/types/github"
 
@@ -18,7 +20,7 @@ export async function getRepositorySettings(
       repoRepo.getRepositorySettings(tx, repoFullName.fullName)
     )
     if (!db) return null
-    return neo4jToJs(db)
+    return repoSettingsSchema.parse(neo4jToJs(db))
   } finally {
     await session.close()
   }
@@ -49,7 +51,7 @@ export async function getBuildDeploymentSettings(
       repoRepo.getBuildDeploymentSettings(tx, repoFullName.fullName)
     )
     if (!db) return null
-    return neo4jToJs(db)
+    return buildDeploymentSettingsSchema.parse(neo4jToJs(db))
   } finally {
     await session.close()
   }
