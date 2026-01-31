@@ -362,3 +362,42 @@ export async function copyRepoToExistingContainer({
     await chownExec.start({})
   }
 }
+
+/**
+ * Start a dev server inside an existing container for the app in `mountPath`.
+ * This determines the appropriate package manager based on lockfiles and then
+ * runs install and dev in the background using nohup so this call can return
+ * immediately. Logs are written to .dev.log and PID to .dev.pid under mountPath.
+ */
+export async function startDevServerInContainer({
+  containerName,
+  mountPath = "/workspace",
+}: {
+  containerName: string
+  mountPath?: string
+}): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  // Build a shell script that:
+  // - chooses package manager (pnpm > yarn > npm)
+  // - runs install (preferring frozen/ci if lockfile present)
+  // - starts dev server
+  // - backgrounds the process with nohup and stores logs/pid
+  const script = [
+    "set -e",
+    `cd ${mountPath}`,
+    // Pick package manager
+    "if [ -f pnpm-lock.yaml ]; then PM=pnpm; elif [ -f yarn.lock ]; then PM=yarn; else PM=npm; fi",
+    // Construct install command
+    'if [ "$PM" = "pnpm" ]; then INSTALL="pnpm install --frozen-lockfile || pnpm install"; ' +
+      'elif [ "$PM" = "yarn" ]; then INSTALL="yarn install --frozen-lockfile || yarn install"; ' +
+      'else INSTALL="if [ -f package-lock.json ]; then npm ci || npm i; else npm i; fi"; fi',
+    // Start dev in background after install completes
+    'nohup sh -c "$INSTALL && "$PM" run -s dev" > .dev.log 2>&1 & echo $! > .dev.pid',
+    'echo "Dev server starting with $PM. Logs: .dev.log, PID: $(cat .dev.pid)"',
+  ].join(" && ")
+
+  return await execInContainerWithDockerode({
+    name: containerName,
+    command: script,
+    cwd: mountPath,
+  })
+}
