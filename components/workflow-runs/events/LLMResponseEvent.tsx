@@ -40,7 +40,7 @@ export function LLMResponseEvent({ event, issue }: Props) {
                 View Plan
               </Button>
             </Link>
-            <PostToGitHubButton content={event.content} issue={issue} />
+            <PostToGitHubButton content={event.content ?? ""} issue={issue} />
             <ResolveIssueButton
               planId={event.plan.id}
               issueNumber={issue.number}
@@ -49,7 +49,7 @@ export function LLMResponseEvent({ event, issue }: Props) {
             />
           </>
         )}
-        <CopyMarkdownButton content={event.content} />
+        <CopyMarkdownButton content={event.content ?? ""} />
         <FeedbackButton />
       </div>
     </div>
@@ -61,7 +61,7 @@ export function LLMResponseEvent({ event, issue }: Props) {
       className="hover:bg-muted/50"
     >
       <div className="prose prose-sm dark:prose-invert max-w-none">
-        <ReactMarkdown>{event.content}</ReactMarkdown>
+        <ReactMarkdown>{event.content ?? ""}</ReactMarkdown>
       </div>
     </CollapsibleContent>
   )

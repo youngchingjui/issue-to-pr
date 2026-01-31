@@ -98,7 +98,7 @@ function mapNeo4jEventToDomain(neo4jEvent: AnyEvent): AllEvents {
       return {
         timestamp: messageTimestamp,
         type: "assistant_message",
-        content: neo4jEvent.content,
+        content: neo4jEvent.content ?? "",
         metadata: {},
       }
 

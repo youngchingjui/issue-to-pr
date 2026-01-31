@@ -100,7 +100,7 @@ function neo4jEventToDomainEvent(neo4jEvent: AnyEvent): AllEvents {
       return {
         type: "assistant_message",
         timestamp: isoTimestamp,
-        content: neo4jEvent.content,
+        content: neo4jEvent.content ?? "",
       }
 
     case "reasoning":

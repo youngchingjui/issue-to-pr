@@ -14,7 +14,7 @@ As a user, I want to see workflow runs that are relevant to me so I don't get co
 
 ### What Users Should See (v1)
 
-Users see only workflow runs they started (initiated).
+Users see only workflow runs they started (initiated), sorted by start time (newest first).
 
 ### Page Copy
 
@@ -38,6 +38,7 @@ Users see only workflow runs they started (initiated).
 - Store who started each run when it's created
 - Store which repository each run belongs to
 - Filter runs by: initiator = current user
+- Sort runs by start time descending (newest first)
 - Apply the same filter to list view, detail view, and logs
 
 ### Data to Store on Run Creation

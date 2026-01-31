@@ -6,8 +6,26 @@
 import { DateTime, Integer } from "neo4j-driver"
 import { z } from "zod"
 
-const neo4jDateTime = z.instanceof(DateTime<Integer>)
-const neo4jInteger = z.instanceof(Integer)
+// Custom validator for Neo4j DateTime that works across module boundaries
+// Using instanceof can fail when the same package is resolved to different paths
+const neo4jDateTime = z.custom<DateTime<Integer>>(
+  (val) =>
+    val !== null &&
+    typeof val === "object" &&
+    "toStandardDate" in val &&
+    typeof (val as DateTime<Integer>).toStandardDate === "function",
+  { message: "Input not instance of DateTime" }
+)
+
+// Custom validator for Neo4j Integer
+const neo4jInteger = z.custom<Integer>(
+  (val) =>
+    val !== null &&
+    typeof val === "object" &&
+    "toNumber" in val &&
+    typeof (val as Integer).toNumber === "function",
+  { message: "Input not instance of Integer" }
+)
 
 export const workflowRunStateSchema = z.enum([
   "pending",
@@ -22,9 +40,12 @@ const workflowRunTypeSchema = z.enum([
   "summarizeIssue",
   "generateIssueTitle",
   "resolveIssue",
+  "autoResolveIssue",
   "createDependentPR",
   "reviewPullRequest",
   "commentOnIssue",
+  "resolveMergeConflicts",
+  "testEventBus",
 ])
 
 export const workflowRunSchema = z.object({
@@ -231,7 +252,7 @@ export const userMessageSchema = baseEventSchema.extend({
 
 export const llmResponseSchema = baseEventSchema.extend({
   type: z.literal("llmResponse"),
-  content: z.string(),
+  content: z.string().optional(), // Made optional for legacy data with NULL content
 })
 
 export const reasoningEventSchema = baseEventSchema.extend({

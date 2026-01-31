@@ -22,7 +22,8 @@ export const dynamic = "force-dynamic"
  */
 async function getWorkflowRunsForUser() {
   const session = await auth()
-  const login = session?.user?.name
+  // Use profile.login (GitHub username) not user.name (display name)
+  const login = session?.profile?.login
   if (!login) return []
 
   const storage = new StorageAdapter(neo4jDs)

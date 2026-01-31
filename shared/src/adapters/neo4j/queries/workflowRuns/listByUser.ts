@@ -13,16 +13,32 @@ import {
   type WorkflowRunState,
 } from "@/shared/adapters/neo4j/types"
 
+// Query to list workflow runs with their derived state
+// Handles two patterns for state events:
+// 1. Old pattern: workflowState events with a state property
+// 2. New pattern: workflowStarted/workflowCompleted/workflowCancelled event types
 const QUERY = `
   MATCH (w:WorkflowRun)-[:INITIATED_BY]->(u:User {id: $user.id})
   OPTIONAL MATCH (w)-[:BASED_ON_ISSUE]->(i:Issue)
   OPTIONAL MATCH (w)-[:BASED_ON_REPOSITORY]->(r:Repository)
   OPTIONAL MATCH (w)-[:BASED_ON_COMMIT]->(c:Commit)
-  OPTIONAL MATCH (w)-[:STARTS_WITH|NEXT*]->(e:Event {type: 'workflowState'})
+  OPTIONAL MATCH (w)-[:STARTS_WITH|NEXT*]->(e)
+  WHERE e.type IN ['workflowState', 'workflowStarted', 'workflowCompleted', 'workflowCancelled']
   WITH w, u, i, r, c, e
   ORDER BY e.createdAt DESC
-  WITH w, u, i, r, c, collect(e)[0] as latestWorkflowState
-  RETURN w, u, latestWorkflowState.state AS state, i, r, c
+  WITH w, u, i, r, c, collect(e)[0] as latestStateEvent
+  // Derive state from either the state property (old pattern) or event type (new pattern)
+  WITH w, u, i, r, c,
+    CASE
+      WHEN latestStateEvent IS NULL THEN null
+      WHEN latestStateEvent.state IS NOT NULL THEN latestStateEvent.state
+      WHEN latestStateEvent.type = 'workflowCompleted' THEN 'completed'
+      WHEN latestStateEvent.type = 'workflowCancelled' THEN 'error'
+      WHEN latestStateEvent.type = 'workflowStarted' THEN 'running'
+      ELSE null
+    END AS state
+  RETURN w, u, state, i, r, c
+  ORDER BY w.createdAt DESC
 `
 
 export interface ListByUserParams {

@@ -10,7 +10,7 @@ export interface Props {
 }
 
 export function ToolCallEvent({ event }: Props) {
-  const args = JSON.parse(event.args)
+  const args = event.args ? JSON.parse(event.args) : {}
 
   return (
     <div className="rounded-lg border bg-card p-3 sm:p-4 hover:bg-muted/50 transition-colors">

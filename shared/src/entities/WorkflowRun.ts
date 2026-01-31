@@ -20,9 +20,12 @@ export type WorkflowRunTypes =
   | "summarizeIssue"
   | "generateIssueTitle"
   | "resolveIssue"
+  | "autoResolveIssue"
   | "createDependentPR"
   | "reviewPullRequest"
   | "commentOnIssue"
+  | "resolveMergeConflicts"
+  | "testEventBus"
 
 export interface WorkflowRun {
   id: string

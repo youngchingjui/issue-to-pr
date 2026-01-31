@@ -105,7 +105,7 @@ export const baseEventSchema = z.object({
 export const llmResponseSchema = baseEventSchema.merge(
   z.object({
     type: z.literal("llmResponse"),
-    content: z.string(),
+    content: z.string().optional(), // Optional for legacy data with NULL content
     model: z
       .string()
       .optional()
@@ -116,7 +116,7 @@ export const llmResponseSchema = baseEventSchema.merge(
 export const llmResponseWithPlanSchema = baseEventSchema.merge(
   z.object({
     type: z.literal("llmResponseWithPlan"),
-    content: z.string(),
+    content: z.string().optional(), // Optional for legacy data with NULL content
     plan: planMetaSchema,
   })
 )
@@ -148,14 +148,14 @@ export const toolCallSchema = baseEventSchema.extend({
   type: z.literal("toolCall"),
   toolName: z.string(),
   toolCallId: z.string(),
-  args: z.string(),
+  args: z.string().optional(), // Optional for legacy data with NULL args
 })
 
 export const toolCallResultSchema = baseEventSchema.extend({
   type: z.literal("toolCallResult"),
   toolCallId: z.string(),
   toolName: z.string(),
-  content: z.string(),
+  content: z.string().optional(), // Optional for legacy data with NULL content
 })
 
 // Added "timedOut" to represent runs that exceeded the maximum allowed duration.
