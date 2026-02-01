@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 
+import { auth } from "@/auth"
 import { makeFetchRepositoryReaderAdapter } from "@/lib/adapters/github/fetch/repository.reader"
-import { auth } from "@/lib/auth/cached"
 
 export async function GET(request: Request) {
   const session = await auth()
