@@ -12,8 +12,8 @@ This directory contains automated tests organized into 3 categories based on cos
 pnpm test
 ```
 
-| Pattern | Description |
-|---------|-------------|
+| Pattern     | Description         |
+| ----------- | ------------------- |
 | `*.test.ts` | Standard unit tests |
 
 Examples: `markdown.test.ts`, `auth-performance.test.ts`
@@ -27,10 +27,10 @@ pnpm docker:up      # Start services first
 pnpm test:services
 ```
 
-| Pattern | Description |
-|---------|-------------|
+| Pattern                 | Description                         |
+| ----------------------- | ----------------------------------- |
 | `*.integration.test.ts` | Tests requiring Redis or filesystem |
-| `*.neo4j.test.ts` | Tests requiring Neo4j database |
+| `*.neo4j.test.ts`       | Tests requiring Neo4j database      |
 
 Examples: `auth-real-redis.integration.test.ts`, `queries.neo4j.test.ts`
 
@@ -42,12 +42,12 @@ Examples: `auth-real-redis.integration.test.ts`, `queries.neo4j.test.ts`
 pnpm test:external
 ```
 
-| Pattern | Description |
-|---------|-------------|
-| `*.openai.test.ts` | OpenAI/LLM API tests (costs tokens) |
-| `*.github.test.ts` | GitHub API tests (uses rate limits) |
-| `*.llm.test.ts` | Legacy LLM tests (same as openai) |
-| `*.e2e.test.ts` | End-to-end tests (touches multiple services) |
+| Pattern            | Description                                  |
+| ------------------ | -------------------------------------------- |
+| `*.openai.test.ts` | OpenAI/LLM API tests (costs tokens)          |
+| `*.github.test.ts` | GitHub API tests (uses rate limits)          |
+| `*.llm.test.ts`    | Legacy LLM tests (same as openai)            |
+| `*.e2e.test.ts`    | End-to-end tests (touches multiple services) |
 
 Examples: `resolveIssue.llm.test.ts`, `webhook-to-workflow.e2e.test.ts`
 
@@ -55,11 +55,11 @@ Examples: `resolveIssue.llm.test.ts`, `webhook-to-workflow.e2e.test.ts`
 
 ## Quick Reference
 
-| Command | Category | Cost | CI |
-|---------|----------|------|-----|
-| `pnpm test` | Unit | Free | ✓ Every commit |
+| Command              | Category | Cost          | CI               |
+| -------------------- | -------- | ------------- | ---------------- |
+| `pnpm test`          | Unit     | Free          | ✓ Every commit   |
 | `pnpm test:services` | Services | Free (Docker) | Special workflow |
-| `pnpm test:external` | External | $$$ | Manual only |
+| `pnpm test:external` | External | $$$           | Manual only      |
 
 ---
 
@@ -88,6 +88,7 @@ __tests__/
 ### For Service Tests (Category 2)
 
 1. Start Docker services:
+
    ```bash
    pnpm docker:up
    ```
@@ -100,6 +101,7 @@ __tests__/
 ### For External Tests (Category 3)
 
 Ensure `.env.local` contains required API keys:
+
 - `OPENAI_API_KEY` - For LLM tests
 - `GITHUB_TOKEN` - For GitHub API tests
 
