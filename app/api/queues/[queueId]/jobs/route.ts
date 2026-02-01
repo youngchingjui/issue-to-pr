@@ -14,7 +14,7 @@
 // TODO: This can be converted to a server action.
 import { NextRequest, NextResponse } from "next/server"
 
-import { auth } from "@/lib/auth/cached"
+import { auth } from "@/auth"
 import { getInstallationFromRepo } from "@/lib/github/repos"
 import { QueueEnum } from "@/shared/entities/Queue"
 import { addJob } from "@/shared/services/job"
