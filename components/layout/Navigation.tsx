@@ -1,14 +1,14 @@
 import { GitBranch } from "lucide-react"
 import Link from "next/link"
 
-import { auth } from "@/auth"
+import { authWithDiagnostics } from "@/lib/auth/diagnostics"
 import { getUserRoles } from "@/lib/neo4j/services/user"
 
 import DynamicNavigation from "./DynamicNavigation"
 import HideOnScroll from "./HideOnScroll"
 
 export default async function Navigation() {
-  const session = await auth()
+  const session = await authWithDiagnostics("Navigation.tsx")
 
   // Only try to get GitHub user if we have a session
   const githubUser = session?.profile?.login
