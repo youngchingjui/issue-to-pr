@@ -7,7 +7,7 @@
 
 import { v4 as uuidv4 } from "uuid"
 
-import { auth } from "@/auth"
+import { auth } from "@/lib/auth/cached"
 import { makeNextjsGitHubAuthProvider } from "@/lib/github/auth"
 import { neo4jDs } from "@/lib/neo4j"
 import * as userRepo from "@/lib/neo4j/repositories/user"

@@ -1,6 +1,6 @@
 "use server"
 
-import { auth } from "@/auth"
+import { auth } from "@/lib/auth/cached"
 import { getLocalRepoDir } from "@/lib/fs"
 import { checkIfGitExists } from "@/lib/git"
 import { getIssueList } from "@/lib/github/issues"

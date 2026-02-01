@@ -8,7 +8,7 @@ import { SessionProvider } from "next-auth/react"
 import Navigation from "@/components/layout/Navigation"
 import ErrorListener from "@/components/system/ErrorListener"
 import { Toaster } from "@/components/ui/toaster"
-import { auth } from "@/lib/auth/cached-auth"
+import { auth } from "@/lib/auth/cached"
 
 const inter = Inter({ subsets: ["latin"] })
 

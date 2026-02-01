@@ -1,6 +1,6 @@
 "use server"
 
-import { auth } from "@/auth"
+import { auth } from "@/lib/auth/cached"
 import type { GetIssueResult } from "@/lib/types/github"
 import { makeIssueReaderAdapter } from "@/shared/adapters/github/IssueReaderAdapter"
 import {

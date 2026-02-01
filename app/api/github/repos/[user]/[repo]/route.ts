@@ -1,5 +1,5 @@
-import { auth } from "@/auth"
 import { makeFetchRepositoryReaderAdapter } from "@/lib/adapters/github/fetch/repository.reader"
+import { auth } from "@/lib/auth/cached"
 import { GetRepoRequestSchema } from "@/lib/types/api/github"
 
 export async function GET(
@@ -37,5 +37,3 @@ export async function GET(
 
   return new Response(JSON.stringify(repoDetails.value), { status: 200 })
 }
-
-

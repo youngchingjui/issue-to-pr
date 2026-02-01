@@ -1,9 +1,9 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 
-import { auth } from "@/auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { auth } from "@/lib/auth/cached"
 import { getGithubUser } from "@/lib/github/users"
 import { getUserRoles } from "@/lib/neo4j/services/user"
 

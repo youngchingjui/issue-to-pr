@@ -5,7 +5,7 @@ import "server-only"
 
 import { AsyncLocalStorage } from "node:async_hooks"
 
-import { auth } from "@/auth"
+import { auth } from "@/lib/auth/cached"
 import { getLocalRepoDir } from "@/lib/fs"
 import {
   cleanCheckout,

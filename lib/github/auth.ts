@@ -5,7 +5,7 @@ import { Octokit } from "@octokit/rest"
 import * as fs from "fs/promises"
 import { App } from "octokit"
 
-import { auth } from "@/auth"
+import { auth } from "@/lib/auth/cached"
 import type {
   GitHubAuthProvider,
   GitHubClientBundle,

@@ -17,7 +17,6 @@ const DEFAULT_TOOLS = [
 import Link from "next/link"
 import { redirect } from "next/navigation"
 
-import { auth } from "@/auth"
 import OAuthTokenCard from "@/components/auth/OAuthTokenCard"
 import RepoSelector from "@/components/common/RepoSelector"
 import AgentWorkflowClient from "@/components/playground/AgentWorkflowClient"
@@ -33,6 +32,7 @@ import TestGithubUserFunctionsCard from "@/components/playground/TestGithubUserF
 import UserRolesCard from "@/components/playground/UserRolesCard"
 import WriteFileCard from "@/components/playground/WriteFileCard"
 import { Button } from "@/components/ui/button"
+import { auth } from "@/lib/auth/cached"
 import { getGithubUser } from "@/lib/github/users"
 import { getUserRoles } from "@/lib/neo4j/services/user"
 
