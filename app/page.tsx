@@ -5,12 +5,12 @@ import GetStarted from "@/components/landing-page/GetStarted"
 import Hero from "@/components/landing-page/Hero"
 import NonDeveloperBenefits from "@/components/landing-page/NonDeveloperBenefits"
 import GridBackground from "@/components/ui/grid-background"
-import { authWithDiagnostics } from "@/lib/auth/diagnostics"
+import { auth } from "@/lib/auth/cached-auth"
 
 import OpenAIApiKeyCard from "./OpenAIApiKeyCard"
 
 export default async function LandingPage() {
-  const session = await authWithDiagnostics("page.tsx")
+  const session = await auth()
 
   if (session?.user) {
     return (

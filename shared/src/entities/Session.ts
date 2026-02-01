@@ -16,6 +16,5 @@ export type JWT = {
 
 export type Session = {
   token?: JWT
-  authMethod?: "github-app"
   profile?: { login: string }
 }
