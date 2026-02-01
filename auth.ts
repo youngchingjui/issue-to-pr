@@ -59,6 +59,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       try {
         // Sign-in or sign-up: store tokens from account
         if (trigger === "signIn" || trigger === "signUp") {
+          const login = typeof profile?.login === "string" ? profile.login : ""
+
           const newToken: JWT = {
             ...token,
             access_token: account?.access_token,
@@ -66,14 +68,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             expires_at: account?.expires_in
               ? Math.floor(Date.now() / 1000) + account.expires_in
               : undefined,
-            profile: { login: (profile?.login as string) ?? "" },
+            profile: { login },
           }
           return newToken
         }
 
         // Check if token is expired
         const now = Math.floor(Date.now() / 1000)
-        const expiresAt = token.expires_at as number | undefined
+        const expiresAt =
+          typeof token.expires_at === "number" ? token.expires_at : undefined
         const isExpired = expiresAt && expiresAt < now
 
         if (isExpired) {

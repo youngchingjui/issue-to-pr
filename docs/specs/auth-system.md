@@ -51,22 +51,19 @@ Within a single server process, maintain an in-memory cache of the current sessi
 
 ### Concurrency Control
 
-**Single-Flight Refresh**
-When a token needs refreshing, only one refresh operation runs per user across the entire process. Additional calls to `auth()` wait for the in-flight refresh to complete and share its result.
+**Request-Level Deduplication**
+Within a single HTTP request, React `cache()` ensures multiple components calling `auth()` share the same result. This prevents redundant JWT decoding and refresh checks within a single page render.
 
-**Cross-Process Coordination**
-In multi-server deployments, use Redis as a best-effort cache for refreshed tokens. If server A refreshes a token, server B can pick it up from Redis rather than refreshing again. This is optimization, not a requirement; if Redis is unavailable, the system still works.
-
-**No Polling Loops**
-Remove retry logic that polls Redis repeatedly. Instead, use promise-based coordination within each process.
+**No Redis Dependency**
+The auth system operates without Redis. Each HTTP request handles its own token refresh if needed. React `cache()` ensures only one refresh per request.
 
 ### Graceful Failure Handling
 
 **Clear Error States**
 When refresh fails due to an invalid refresh token, immediately clear all cached tokens and redirect the user to a friendly re-authentication page explaining what happened.
 
-**Fallback Pathways**
-If Redis is unavailable, the system continues functioning using in-process coordination only. Each server instance may refresh tokens independently, which is acceptable.
+**No External Dependencies**
+The auth system operates entirely without external dependencies like Redis. Each server process handles token refresh independently using in-process single-flight coordination.
 
 **Session Fixation Prevention**
 When users sign in or refresh tokens, rotate session identifiers to prevent session hijacking.
@@ -74,7 +71,7 @@ When users sign in or refresh tokens, rotate session identifiers to prevent sess
 ### Multi-Provider Readiness
 
 **Provider-Agnostic Token Storage**
-Store tokens in a structure that accommodates multiple providers: `{ provider: 'github', accessToken: '...', expiresAt: ... }`.
+Store tokens in a structure that accommodates multiple providers.
 
 **Unified Session Interface**
 Components calling `auth()` receive a consistent session object regardless of whether the user authenticated via GitHub, Google, or email. The session includes a `provider` field but otherwise looks the same.

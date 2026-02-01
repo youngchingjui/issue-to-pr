@@ -4,7 +4,7 @@ This document explains how authentication works in the application with visual d
 
 ## File Structure
 
-```
+```text
 auth.ts                          # NextAuth config, JWT callback logic
 lib/auth/
   cached-auth.ts                 # React cache() wrapper for request deduplication
@@ -84,7 +84,7 @@ sequenceDiagram
     alt Success
         GitHub-->>Refresh: New access_token, refresh_token, expires_in
         Refresh->>Refresh: Build new JWT with updated tokens
-        Refresh-->>JWT: Return { token, githubApiMs }
+        Refresh-->>JWT: Return { token }
         JWT-->>JWT: Return new token to NextAuth
     else Error (bad_refresh_token)
         GitHub-->>Refresh: { error: "bad_refresh_token" }

@@ -3,7 +3,6 @@
  *
  * Just calls GitHub API to refresh the token.
  * React cache() handles request-level deduplication.
- * No locking needed - each request can refresh independently.
  */
 
 import { JWT } from "next-auth/jwt"
@@ -17,9 +16,22 @@ interface RefreshResult {
  * Works on Edge runtime (HTTP only, no Redis).
  */
 export async function refreshToken(token: JWT): Promise<RefreshResult> {
-  // Validate we have what we need
-  if (!token.refresh_token) {
+  // Runtime guard for refresh_token
+  const refreshTokenValue =
+    typeof token.refresh_token === "string" ? token.refresh_token : null
+
+  if (!refreshTokenValue) {
     throw new Error("No refresh token available")
+  }
+
+  // Validate env vars before making the API call
+  const clientId = process.env.GITHUB_APP_CLIENT_ID
+  const clientSecret = process.env.GITHUB_APP_CLIENT_SECRET
+
+  if (!clientId || !clientSecret) {
+    throw new Error(
+      "Missing GitHub App credentials (GITHUB_APP_CLIENT_ID or GITHUB_APP_CLIENT_SECRET)"
+    )
   }
 
   // Call GitHub API to refresh
@@ -30,9 +42,9 @@ export async function refreshToken(token: JWT): Promise<RefreshResult> {
       Accept: "application/json",
     },
     body: new URLSearchParams({
-      client_id: process.env.GITHUB_APP_CLIENT_ID ?? "",
-      client_secret: process.env.GITHUB_APP_CLIENT_SECRET ?? "",
-      refresh_token: token.refresh_token as string,
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshTokenValue,
       grant_type: "refresh_token",
     }),
   })
