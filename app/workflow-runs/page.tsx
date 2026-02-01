@@ -1,6 +1,5 @@
 import { Suspense } from "react"
 
-import { auth } from "@/auth"
 import TableSkeleton from "@/components/layout/TableSkeleton"
 import { Card, CardContent } from "@/components/ui/card"
 import { Table, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -8,6 +7,7 @@ import {
   IssueTitlesTableBody,
   TableBodyFallback,
 } from "@/components/workflow-runs/WorkflowRunsIssueTitlesTableBody"
+import { auth } from "@/lib/auth/cached"
 import { neo4jDs } from "@/lib/neo4j"
 import { StorageAdapter } from "@/shared/adapters/neo4j/StorageAdapter"
 

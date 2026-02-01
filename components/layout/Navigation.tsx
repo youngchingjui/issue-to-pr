@@ -1,7 +1,7 @@
 import { GitBranch } from "lucide-react"
 import Link from "next/link"
 
-import { auth } from "@/auth"
+import { auth } from "@/lib/auth/cached"
 import { getUserRoles } from "@/lib/neo4j/services/user"
 
 import DynamicNavigation from "./DynamicNavigation"

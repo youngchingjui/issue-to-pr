@@ -1,5 +1,5 @@
-import { auth } from "@/auth"
 import { makeFetchRepositoryReaderAdapter } from "@/lib/adapters/github/fetch/repository.reader"
+import { auth } from "@/lib/auth/cached"
 import { RepoFullName } from "@/lib/types/github"
 
 export default async function IssuesNotEnabled({

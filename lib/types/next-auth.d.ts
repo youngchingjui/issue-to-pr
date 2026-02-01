@@ -15,7 +15,6 @@ declare module "next-auth/jwt" {
     provider?: string
 
     // what you add in callbacks
-    authMethod?: "github-app"
     profile?: { login: string }
   }
 }
@@ -24,7 +23,6 @@ declare module "next-auth" {
   interface Session {
     // you set this in the session callback
     token?: import("next-auth/jwt").JWT
-    authMethod?: "github-app"
     profile?: { login: string }
   }
 }

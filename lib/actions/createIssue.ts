@@ -2,7 +2,7 @@
 
 import { revalidateTag } from "next/cache"
 
-import { auth } from "@/auth"
+import { auth } from "@/lib/auth/cached"
 import { makeIssueWriterAdapter } from "@/shared/adapters/github/octokit/rest/issue.writer"
 import { createIssueForRepo } from "@/shared/services/github/issues"
 

@@ -47,6 +47,8 @@ We would likely not want to see any code examples in the specs. This should just
 - `docs/README.md` - Main documentation index
 - `docs/components/README.md` - React components and patch tool format
 - `docs/internal/README.md` - Internal planning and architecture docs
+- `docs/internal/auth-flow-diagrams.md` - Auth flow Mermaid diagrams and technical docs
+- `docs/specs/auth-system.md` - Authentication system specification
 - `lib/README.md` - Backend/domain layer organization
 - `lib/neo4j/README.md` - Neo4j data access layer (repos vs services)
 - `lib/tools/README.md` - LLM-callable tool creation patterns

@@ -3,7 +3,7 @@
 // TODO: Not used anywhere anymore. Delete.
 import { v4 as uuidv4 } from "uuid"
 
-import { auth } from "@/auth"
+import { auth } from "@/lib/auth/cached"
 import { getRepoFromString } from "@/lib/github/content"
 import { getIssue } from "@/lib/github/issues"
 import { neo4jDs } from "@/lib/neo4j"

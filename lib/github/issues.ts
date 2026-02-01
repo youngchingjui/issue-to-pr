@@ -1,7 +1,7 @@
 "use server"
 
-import { auth } from "@/auth"
 import { makeFetchIssueReaderAdapter } from "@/lib/adapters/github/fetch/issue.reader"
+import { auth } from "@/lib/auth/cached"
 import getOctokit, { getGraphQLClient, getUserOctokit } from "@/lib/github"
 import {
   getLatestPlanIdsForIssues,

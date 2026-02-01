@@ -1,5 +1,4 @@
 import { ThinkerAgent } from "@/lib/agents/thinker"
-import { AUTH_CONFIG } from "@/lib/auth/config"
 import { isContainerRunning } from "@/lib/docker"
 import {
   createIssueComment,
@@ -113,7 +112,6 @@ export default async function commentOnIssue(
           status: githubError.status,
           message: githubError.message,
           responseData: githubError.response?.data,
-          authMethod: AUTH_CONFIG.getCurrentProvider(),
           repo: repo.full_name,
           issueNumber,
         })
@@ -123,7 +121,7 @@ export default async function commentOnIssue(
             githubError.response?.data?.message?.includes(
               "not accessible by integration"
             )
-          if (isIntegrationError && AUTH_CONFIG.isUsingOAuth()) {
+          if (isIntegrationError) {
             throw new Error(
               "Permission denied: You don't have write access to this repository. " +
                 "Please ensure you have the necessary permissions to comment on this issue."

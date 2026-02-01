@@ -1,6 +1,6 @@
 "use server"
 
-import { auth } from "@/auth"
+import { auth } from "@/lib/auth/cached"
 import * as userRepo from "@/lib/neo4j/repositories/user"
 import { makeIssueReaderAdapter } from "@/shared/adapters/github/IssueReaderAdapter"
 import { EventBusAdapter } from "@/shared/adapters/ioredis/EventBusAdapter"

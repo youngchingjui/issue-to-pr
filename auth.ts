@@ -1,25 +1,27 @@
-import { NextResponse } from "next/server"
+/**
+ * NextAuth Configuration
+ *
+ * Simplified auth flow - no Redis dependency.
+ * Works on both Edge and Node.js runtimes.
+ * React cache() handles request-level deduplication.
+ */
+
 import NextAuth from "next-auth"
 import { JWT } from "next-auth/jwt"
 import GithubProvider from "next-auth/providers/github"
 
 import { AUTH_CONFIG } from "@/lib/auth/config"
-import { redis } from "@/lib/redis"
-import { refreshTokenWithLock } from "@/lib/utils/auth"
-
-export const runtime = "nodejs"
+import { refreshToken } from "@/lib/auth/refresh-token"
 
 declare module "next-auth" {
   interface Session {
     token?: JWT
-    authMethod?: "github-app"
     profile?: { login: string }
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
-    authMethod?: "github-app"
     profile?: { login: string }
   }
 }
@@ -53,73 +55,45 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, account, user, profile, trigger, session }) {
-      // TODO: Should test on `trigger` instead of `account`
-      if (account) {
-        console.log("Auth info:", {
-          provider: account.provider,
-          type: account.type,
-          tokenType: account.token_type,
-          accessToken: !!account.access_token,
-          scope: account.scope,
-        })
-        const newToken = {
-          ...token,
-          ...account,
-          profile: { login: profile?.login },
-          // Store which auth method was used
-          authMethod: "github-app",
-        }
-        if (account.expires_in) {
-          newToken.expires_at =
-            Math.floor(Date.now() / 1000) + account.expires_in
-        }
+    async jwt({ token, account, profile, trigger }) {
+      try {
+        // Sign-in or sign-up: store tokens from account
+        if (trigger === "signIn" || trigger === "signUp") {
+          const login = typeof profile?.login === "string" ? profile.login : ""
 
-        await redis.set(`token_${token.sub}`, JSON.stringify(newToken), {
-          ex: account.expires_in || AUTH_CONFIG.tokenCacheTtlSeconds,
-        })
-        return newToken
-      }
-
-      // Check if this is an old OAuth App token (migration cleanup)
-      if (token.authMethod !== "github-app") {
-        console.log(
-          "Invalidating old OAuth App token, forcing re-authentication"
-        )
-        throw new Error("OAuth App token detected - please sign in again")
-      }
-
-      if (
-        token.expires_at &&
-        (token.expires_at as number) < Date.now() / 1000
-      ) {
-        // Try to refresh when we have a refresh token available
-        if (token.refresh_token) {
-          try {
-            console.log("Refreshing token", {
-              provider: token.provider,
-              sub: token.sub,
-              expires_at: token.expires_at,
-            })
-            return await refreshTokenWithLock(token)
-          } catch (error) {
-            console.error("Error refreshing token. Sign in again", error)
-            // Use NextURL for proper URL handling
-            const url = new URL(
-              "/",
-              process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
-            )
-            return NextResponse.redirect(url)
+          const newToken: JWT = {
+            ...token,
+            access_token: account?.access_token,
+            refresh_token: account?.refresh_token,
+            expires_at: account?.expires_in
+              ? Math.floor(Date.now() / 1000) + account.expires_in
+              : undefined,
+            profile: { login },
           }
+          return newToken
         }
-        throw new Error("Token expired")
+
+        // Check if token is expired
+        const now = Math.floor(Date.now() / 1000)
+        const expiresAt =
+          typeof token.expires_at === "number" ? token.expires_at : undefined
+        const isExpired = expiresAt && expiresAt < now
+
+        if (isExpired) {
+          // Refresh the token
+          const { token: newToken } = await refreshToken(token)
+
+          return newToken
+        }
+
+        return token
+      } catch (error) {
+        throw error
       }
-      return token
     },
-    async session({ session, token, user }) {
+
+    async session({ session, token }) {
       session.token = token
-      // Add auth method to session for frontend usage
-      session.authMethod = token.authMethod
       session.profile = token.profile
       return session
     },

@@ -5,7 +5,7 @@ This directory is the **backend & domain layer** of the project. All code that m
 High-level structure (non-exhaustive):
 
 - `agents/` – Prompt wrappers around the core `Agent` class (coder, reviewer, thinker, etc.).
-- `github/`, `neo4j/`, `redis.ts`, `langfuse.ts` – Service clients and data-access helpers.
+- `github/`, `neo4j/`, `langfuse.ts` – Service clients and data-access helpers.
 - `workflows/` – Orchestrated flows that combine agents, tools, and services to achieve a higher-level goal (e.g. _resolveIssue_, _reviewPullRequest_).
 - `tools/` – Thin wrappers that expose selected helper functions to LLMs as OpenAI Function-calling **tools**. See `lib/tools/README.md`.
 - `utils/` – Generic utility functions that do **not** belong to any specific service (e.g. `setupEnv.ts`, string helpers, etc.).

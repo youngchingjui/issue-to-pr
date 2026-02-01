@@ -1,4 +1,3 @@
-import { auth } from "@/auth"
 import IssueDashboard from "@/components/home/IssueDashboard"
 import Benefits from "@/components/landing-page/Benefits"
 import Footer from "@/components/landing-page/Footer"
@@ -6,6 +5,7 @@ import GetStarted from "@/components/landing-page/GetStarted"
 import Hero from "@/components/landing-page/Hero"
 import NonDeveloperBenefits from "@/components/landing-page/NonDeveloperBenefits"
 import GridBackground from "@/components/ui/grid-background"
+import { auth } from "@/lib/auth/cached"
 
 import OpenAIApiKeyCard from "./OpenAIApiKeyCard"
 
@@ -37,4 +37,3 @@ export default async function LandingPage() {
     </div>
   )
 }
-

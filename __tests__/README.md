@@ -1,149 +1,129 @@
-# **tests** Directory
+# Tests Directory
 
-This directory contains automated and manual tests for the project.
+This directory contains automated tests organized into 3 categories based on cost and infrastructure requirements.
 
-## Structure
+## Test Categories
 
-- `*.test.ts` / `*.spec.ts`: Fast, automated unit tests. These are run by default in CI and local `pnpm test` runs.
-- `*.llm.test.ts`: Manual or expensive tests that interact with real LLMs or external APIs. These are **excluded** from regular test runs and CI by default.
-- `*.integration.test.ts`: Integration tests that interact with the filesystem, run CLI commands, or have other external dependencies. These are **excluded** from regular test runs and CI by default.
+### Category 1: Unit Tests (Free)
 
-## Running Manual/LLM Tests
-
-### Using npm/pnpm script (Recommended)
+**No external services required. Runs on every commit/PR in CI.**
 
 ```bash
-# Run all agent tests (loads .env.local automatically)
-pnpm test:agent
+pnpm test
 ```
 
-### Using Jest directly
+| Pattern     | Description         |
+| ----------- | ------------------- |
+| `*.test.ts` | Standard unit tests |
 
-- To run a specific LLM/manual test:
-  ```bash
-  npx jest __tests__/llm-lint.llm.test.ts
-  ```
-- To run all LLM/manual tests:
-  ```bash
-  npx jest "**/*.llm.test.ts"
-  ```
-- To run a specific test case inside a file, use `test.only` or:
-  ```bash
-  npx jest __tests__/llm-lint.llm.test.ts -t "test name"
-  ```
+Examples: `markdown.test.ts`, `auth-performance.test.ts`
 
-## Neo4j Integration Tests
+### Category 2: Service Tests (Local Infrastructure)
 
-Neo4j integration tests require a running Neo4j database. **IMPORTANT: Use a separate test database, not your production or development database!**
+**Requires Docker services (Redis, Neo4j). Run manually or in special CI workflow.**
 
-### Setup
+```bash
+pnpm docker:up      # Start services first
+pnpm test:services
+```
 
-1. **Create test environment file:**
+| Pattern                 | Description                         |
+| ----------------------- | ----------------------------------- |
+| `*.integration.test.ts` | Tests requiring Redis or filesystem |
+| `*.neo4j.test.ts`       | Tests requiring Neo4j database      |
 
+Examples: `auth-real-redis.integration.test.ts`, `queries.neo4j.test.ts`
+
+### Category 3: External Tests (API Calls)
+
+**Makes real API calls. Costs money or uses rate limits. Run manually and carefully.**
+
+```bash
+pnpm test:external
+```
+
+| Pattern            | Description                                  |
+| ------------------ | -------------------------------------------- |
+| `*.openai.test.ts` | OpenAI/LLM API tests (costs tokens)          |
+| `*.github.test.ts` | GitHub API tests (uses rate limits)          |
+| `*.llm.test.ts`    | Legacy LLM tests (same as openai)            |
+| `*.e2e.test.ts`    | End-to-end tests (touches multiple services) |
+
+Examples: `resolveIssue.llm.test.ts`, `webhook-to-workflow.e2e.test.ts`
+
+---
+
+## Quick Reference
+
+| Command              | Category | Cost          | CI               |
+| -------------------- | -------- | ------------- | ---------------- |
+| `pnpm test`          | Unit     | Free          | ✓ Every commit   |
+| `pnpm test:services` | Services | Free (Docker) | Special workflow |
+| `pnpm test:external` | External | $$$           | Manual only      |
+
+---
+
+## Directory Structure
+
+```
+__tests__/
+├── config/                    # Jest configurations
+│   ├── jest.config.base.ts    # Shared config
+│   ├── jest.config.unit.ts    # Category 1
+│   ├── jest.config.services.ts # Category 2
+│   └── jest.config.external.ts # Category 3
+├── lib/                       # Tests for lib/ code
+│   └── auth/                  # Auth performance tests
+├── api/                       # Tests for API routes
+├── shared/                    # Tests for shared/ code
+│   └── adapters/neo4j/        # Neo4j integration tests
+├── e2e/                       # End-to-end tests
+└── mocks/                     # Shared test mocks
+```
+
+---
+
+## Environment Setup
+
+### For Service Tests (Category 2)
+
+1. Start Docker services:
+
+   ```bash
+   pnpm docker:up
+   ```
+
+2. Create test environment file (optional):
    ```bash
    cp __tests__/.env.example __tests__/.env
    ```
 
-2. **Configure test database credentials:**
-   Edit `__tests__/.env` and fill in your test Neo4j database credentials:
+### For External Tests (Category 3)
 
-   ```env
-   NEO4J_URI=bolt://localhost:7687
-   NEO4J_USER=neo4j
-   NEO4J_PASSWORD=your-test-password
-   ```
+Ensure `.env.local` contains required API keys:
 
-3. **Ensure Neo4j is running:**
-   - If using Docker:
-     ```bash
-     docker run -d \
-       --name neo4j-test \
-       -p 7687:7687 -p 7474:7474 \
-       -e NEO4J_AUTH=neo4j/your-test-password \
-       neo4j:latest
-     ```
-   - Or use a local Neo4j installation pointing to a test database
-
-### Running Neo4j Tests
-
-```bash
-pnpm test:neo4j
-```
-
-### Test Database Isolation
-
-- Tests use hardcoded test data IDs (prefixed with `test-` or `test-prog-`)
-- Cleanup functions remove only these specific test nodes
-- Tests are designed to be idempotent and can be run multiple times
-
-## Filesystem Tests
-
-Filesystem tests run actual CLI commands and interact with the filesystem. These are excluded from regular test runs to avoid side effects in CI/CD environments.
-
-```bash
-pnpm test:fs
-```
-
-## End-to-End Tests
-
-E2E tests verify full integration flows from webhook receipt through queue processing to worker execution. These require multiple services to be running.
-
-### Setup
-
-1. **Create e2e environment file:**
-
-   ```bash
-   cp __tests__/.env.e2e.example __tests__/.env.e2e
-   ```
-
-2. **Configure test services:**
-   Edit `__tests__/.env.e2e` with your test environment:
-
-   ```env
-   REDIS_URL=redis://localhost:6379
-   NEO4J_URI=bolt://localhost:7687
-   NEO4J_USER=neo4j
-   NEO4J_PASSWORD=your-test-password
-   GITHUB_WEBHOOK_SECRET=test-secret-for-e2e
-   ```
-
-3. **Start required services:**
-
-   ```bash
-   # Start Redis and Neo4j (if using docker-compose)
-   pnpm docker:up
-   ```
-
-### Running E2E Tests
-
-```bash
-pnpm test:e2e
-```
-
-### What E2E Tests Cover
-
-- **Webhook Handler Flow**: Validates authorization, user settings lookup, and job enqueueing
-- **Queue Integration**: Verifies jobs are correctly added to BullMQ
-- **Worker Processing**: Tests that workers pick up and process jobs correctly
-- **Full Flow**: Traces a job from enqueueing through worker completion
-
-**Note:** E2E tests use real Redis/Neo4j but mock external APIs (GitHub, OpenAI) to prevent side effects.
+- `OPENAI_API_KEY` - For LLM tests
+- `GITHUB_TOKEN` - For GitHub API tests
 
 ---
 
-**Note:** This is currently focused on filesystem/CLI tests. Eventually, we plan to have a unified `pnpm test:integration` command that runs all integration tests (LLM, Neo4j, filesystem, etc.) together.
+## Writing New Tests
 
-## Environment Variables
+1. **Determine the category** based on what services the test needs
+2. **Use the appropriate suffix**:
+   - Unit test → `myfeature.test.ts`
+   - Needs Redis/Neo4j → `myfeature.integration.test.ts` or `myfeature.neo4j.test.ts`
+   - Calls OpenAI → `myfeature.openai.test.ts`
+   - Calls GitHub API → `myfeature.github.test.ts`
+   - Full E2E → `myfeature.e2e.test.ts`
 
-- **Agent tests**: Automatically load environment variables from `.env.local` (at project root) during test setup. Make sure your `.env.local` file contains all required variables for agent tests.
-- **Neo4j integration tests**: Load environment variables from `__tests__/.env` for database configuration. This allows tests to use a separate test database.
+3. **Place in the right directory** mirroring the source structure
+
+---
 
 ## Notes
 
-- LLM/manual tests are skipped by default to avoid unnecessary cost and latency.
-- Integration tests are skipped by default to avoid filesystem side effects in CI/CD.
-- Place new manual/LLM tests in this folder with the `.llm.test.ts` suffix.
-- Place new filesystem/CLI integration tests with the `.integration.test.ts` suffix.
-- See `test-utils/mocks/README.md` for info on test fixtures.
-- When mocking, I'm only concerend about mocking external dependencies or API calls that might incur costs or affect databases state or cause side effects.
-- Not sure if we need to mock other internal dependencies like other modules within our codebase.
+- Unit tests should be fast and deterministic
+- Service tests may take longer due to DB operations (30s timeout)
+- External tests have 120s timeout for API calls
+- External tests run serially to avoid rate limiting

@@ -11,6 +11,7 @@ Issue-to-PR is a Next.js application that automates GitHub issue resolution usin
 - `/guides` - User and developer guides
   - `/user-stories` - Feature-specific user stories and requirements
 - `/setup` - Installation and configuration
+- `/specs` - Feature specifications and technical designs
 - `/assets` - Diagrams and images ONLY (no documentation text)
   - Store only `.svg`, `.png`, `.jpg` files
   - For Mermaid diagrams, include them directly in markdown files using ```mermaid code blocks
@@ -20,6 +21,7 @@ Issue-to-PR is a Next.js application that automates GitHub issue resolution usin
 - [Getting Started](setup/getting-started.md)
 - [Architecture Overview](guides/architecture.md)
 - [Authentication Guide](guides/authentication.md)
+- [Authentication System Spec](specs/auth-system.md)
 - [AI Integration](guides/ai-integration.md)
 - [API Reference](api/README.md)
 - [Workflow Visualization](guides/user-stories/workflow-visualization.md)

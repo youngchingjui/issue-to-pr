@@ -1,11 +1,11 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 
-import { auth } from "@/auth"
 import AutoResolveIssueCard from "@/components/playground/AutoResolveIssueCard"
 import IssueSummaryCard from "@/components/playground/IssueSummaryCard"
 import LongRunningWorkflowCard from "@/components/playground/LongRunningWorkflowCard"
 import { Button } from "@/components/ui/button"
+import { auth } from "@/lib/auth/cached"
 import { getUserRoles } from "@/lib/neo4j/services/user"
 
 export default async function WorkflowWorkersPlaygroundPage() {

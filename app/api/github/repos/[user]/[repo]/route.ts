@@ -37,5 +37,3 @@ export async function GET(
 
   return new Response(JSON.stringify(repoDetails.value), { status: 200 })
 }
-
-
