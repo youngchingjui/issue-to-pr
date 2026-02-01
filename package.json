@@ -25,6 +25,7 @@
     "lint:tsc": "tsc --noEmit",
     "lint:tsc:tests": "tsc --noEmit -p __tests__/tsconfig.json",
     "check:all": "next lint; prettier --check .; tsc --noEmit",
+    "test": "jest",
     "test:services": "jest -c __tests__/config/jest.config.services.ts",
     "test:external": "NODE_OPTIONS='--experimental-vm-modules' jest -c __tests__/config/jest.config.external.ts",
     "storybook": "pnpm --filter @issue-to-pr/storybook dev",
