@@ -22,6 +22,7 @@ import {
   createContainerizedDirectoryTree,
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
+import { extractImageUrlsFromMarkdown } from "@/lib/utils/markdown"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 import { AllEvents } from "@/shared/entities/events/index"
 
@@ -217,6 +218,21 @@ export default async function commentOnIssue(
       content: `Github issue title: ${issue.title}\nGithub issue description: ${issue.body}`,
     })
 
+    // Add image URLs extracted from the issue body (if any)
+    const imageUrls = extractImageUrlsFromMarkdown(issue.body || "")
+    if (imageUrls.length > 0) {
+      await thinker.addMessage({
+        role: "user",
+        content: [
+          { type: "text", text: "Image attachments from the GitHub issue:" },
+          ...imageUrls.map((url) => ({
+            type: "image_url" as const,
+            image_url: { url },
+          })),
+        ],
+      })
+    }
+
     // Add tree information as user message
     if (tree && tree.length > 0) {
       await thinker.addMessage({
@@ -351,3 +367,4 @@ export default async function commentOnIssue(
     }
   }
 }
+
