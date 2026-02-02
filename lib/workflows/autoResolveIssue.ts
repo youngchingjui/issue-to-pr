@@ -67,6 +67,11 @@ export const autoResolveIssue = async (
   // Step 2: Initialize workflow
   // =================================================
 
+  // Langfuse trace & span setup
+  const trace = langfuse.trace({ name: "autoResolve" })
+  const span = trace.span({ name: "PlanAndCodeAgent" })
+  let spanClosed = false
+
   try {
     await initializeWorkflowRun({
       id: workflowId,
@@ -157,9 +162,6 @@ export const autoResolveIssue = async (
       repo,
     })
 
-    const trace = langfuse.trace({ name: "autoResolve" })
-    const span = trace.span({ name: "PlanAndCodeAgent" })
-
     const agent = new PlanAndCodeAgent({
       apiKey,
       env,
@@ -212,6 +214,10 @@ export const autoResolveIssue = async (
 
     await createWorkflowStateEvent({ workflowId, state: "completed" })
 
+    // Close the Langfuse span to ensure data gets flushed
+    span.end()
+    spanClosed = true
+
     return result
   } catch (error) {
     await createErrorEvent({ workflowId, content: String(error) })
@@ -221,7 +227,17 @@ export const autoResolveIssue = async (
       content: String(error),
     })
     throw error
+  } finally {
+    // Make sure the span is always closed, even on error paths
+    if (!spanClosed) {
+      try {
+        span.end()
+      } catch {
+        /* ignore */
+      }
+    }
   }
 }
 
 export default autoResolveIssue
+
