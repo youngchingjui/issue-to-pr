@@ -85,6 +85,9 @@ export class PlanAndCodeAgent extends ResponsesAPIAgent {
     // Initialise base Agent (model defaults to "gpt-5" if not overridden)
     super({ model: "gpt-5", ...base })
 
+    // Associate environment for downstream tools and introspection
+    this.attachEnvironment(env)
+
     if (jobId) {
       this.jobId = jobId
     }

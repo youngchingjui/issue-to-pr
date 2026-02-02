@@ -77,6 +77,9 @@ export class MergeConflictResolverAgent extends ResponsesAPIAgent {
 
     super({ model: "gpt-5", ...base })
 
+    // Associate environment for downstream tools and introspection
+    this.attachEnvironment(env)
+
     if (jobId) {
       this.jobId = jobId
     }
