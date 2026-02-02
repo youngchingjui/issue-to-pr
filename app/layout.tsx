@@ -27,6 +27,12 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" type="image/svg+xml" href="/issue-to-pr-logo.svg" />
+        <link rel="alternate icon" href="/favicon.ico" />
+        <title>Issue-to-PR: Automated GitHub Issue Resolution</title>
+        <meta name="description" content="Automatically resolve your GitHub issues and create Pull Requests using AI." />
+      </head>
       <body
         className={inter.className}
         style={{ "--custom-amber": "#B45309" } as React.CSSProperties}
