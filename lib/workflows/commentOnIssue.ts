@@ -22,6 +22,7 @@ import {
   createContainerizedDirectoryTree,
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
+import { extractImageUrlsFromMarkdown } from "@/lib/utils/markdown"
 import { setupLocalRepository } from "@/lib/utils/utils-server"
 import { AllEvents } from "@/shared/entities/events/index"
 
@@ -217,6 +218,15 @@ export default async function commentOnIssue(
       content: `Github issue title: ${issue.title}\nGithub issue description: ${issue.body}`,
     })
 
+    // Extract image URLs
+    const imageUrls = extractImageUrlsFromMarkdown(issue.body ?? "")
+    if (imageUrls.length > 0) {
+      await thinker.addMessage({
+        role: "user",
+        content: `Github issue images:\n${imageUrls.join("\n")}`,
+      })
+    }
+
     // Add tree information as user message
     if (tree && tree.length > 0) {
       await thinker.addMessage({
@@ -326,7 +336,7 @@ export default async function commentOnIssue(
         await updateIssueComment({
           repoFullName: repo.full_name,
           commentId: initialCommentId,
-          comment: `[Issue to PR] Failed to generate a plan for this issue:\n\n\`\`\`\n${errorMessage}\n\`\`\``,
+          comment: `[Issue to PR] Failed to generate a plan for this issue:\n\n\u0060\u0060\u0060\n${errorMessage}\n\u0060\u0060\u0060`,
         })
       } catch (updateError) {
         console.error("Failed to update error message in comment:", {
@@ -351,3 +361,4 @@ export default async function commentOnIssue(
     }
   }
 }
+
