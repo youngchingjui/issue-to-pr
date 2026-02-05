@@ -238,7 +238,7 @@ We ship a custom base image for containerized agent workflows with pre-installed
   - Node.js v22 (with npm)
   - pnpm (via Corepack)
   - Python 3.11, pip3, Poetry
-  - ripgrep, git, tree, curl
+  - ripgrep, git, tree, curl, make
 
 Image name: `ghcr.io/youngchingjui/agent-base:latest`  
 If the image is private, log in to GHCR:
@@ -277,3 +277,4 @@ All services run on the `issue-to-pr-network` created by `docker/docker-compose.
 2. Add any service-specific configs and volumes.
 3. Ensure it’s included via `include:` in `docker/docker-compose.yml` (or use `-f` flags).
 4. Add required env keys to `docker/env/.env.<service>.example` and document them here.
+
