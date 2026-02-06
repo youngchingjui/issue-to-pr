@@ -2,6 +2,53 @@
 
 Authorized users can trigger workflows from within GitHub Issues and Pull Requests. This document outlines the authorization model, billing considerations, and operational behavior for webhook-triggered workflows.
 
+## Architecture direction: internal event bus (web app only)
+
+To reduce route complexity and allow a many-to-many mapping between GitHub webhooks and internal behaviors, we are introducing a lightweight, in-process event bus in the Next.js app. The flow will be:
+
+1) Receive GitHub webhook and verify signature.
+2) Parse and validate the payload at the boundary using zod (see parseGithubWebhookPayload(event, payload)).
+3) Publish a typed domain event to the internal bus.
+4) One or more handlers subscribe to the event type and run in parallel.
+
+Notes
+
+- Scope: This bus is process-local to the web app. Cross-process/app pub/sub (e.g., workers) will use a different transport and likely live in /shared.
+- Location: Implementation lives under /lib (see lib/events/event-bus.ts) with GitHub parsing helpers in lib/webhook/github/parse.ts.
+- Migration: The existing route handlers remain in place. We will incrementally move logic behind bus subscribers to keep risk low.
+
+Example bus implementation
+
+```ts
+// lib/events/event-bus.ts
+export type Handler<T> = (event: T) => Promise<void> | void
+
+export class EventBus<E extends { type: string }> {
+  private handlers = new Map<E["type"], Handler<any>[]>()
+
+  on<T extends E["type"]>(type: T, handler: Handler<Extract<E, { type: T }>>) {
+    const list = this.handlers.get(type) ?? []
+    list.push(handler)
+    this.handlers.set(type, list)
+  }
+
+  async emit(event: E) {
+    const list = this.handlers.get(event.type) ?? []
+    await Promise.all(list.map((h) => h(event)))
+  }
+}
+```
+
+Parsing helper
+
+```ts
+// lib/webhook/github/parse.ts
+import { parseGithubWebhookPayload } from "@/lib/webhook/github/parse"
+// Usage: const r = parseGithubWebhookPayload(event, payload)
+```
+
+---
+
 ## Entry Points
 
 Workflows can be triggered from the following GitHub events:
@@ -48,7 +95,7 @@ Authorization requires passing multiple checks:
 Reasonable defaults for who can trigger (can be overridden by admins):
 
 | Repo type | Authorized users |
-|-----------|------------------|
+| --- | --- |
 | **Personal repo** | Owner, collaborators with write access |
 | **Org repo** | Org admins, repo admins, members with write access |
 | **Public repo (external contributors)** | TBD - probably require explicit allowlist or approval |
@@ -73,7 +120,7 @@ If a user does not have a billing account with Issue To PR, but they expected to
 ### Billing Scenarios to Handle
 
 | Scenario | Behavior |
-|----------|----------|
+| --- | --- |
 | User has account with credits | Charge user, execute workflow |
 | User has account, no credits | Prompt to add credits, don't execute |
 | User has no account, repo owner has credits | Require user signup |
@@ -86,7 +133,7 @@ If a user does not have a billing account with Issue To PR, but they expected to
 ### Dimensions to Limit
 
 | Dimension | Purpose |
-|-----------|---------|
+| --- | --- |
 | Per user | Prevent single user abuse |
 | Per repo | Prevent repo-level spam |
 | Per org | Budget control for organizations |
@@ -105,7 +152,7 @@ If a user does not have a billing account with Issue To PR, but they expected to
 ### Feedback Matrix
 
 | Trigger result | Response |
-|----------------|----------|
+| --- | --- |
 | **Success** | Add reaction emoji (e.g., 👀 or 🚀) to comment, optionally reply with status |
 | **Unauthorized (no GitHub perms)** | Silent ignore (don't reveal we're watching) |
 | **Unauthorized (no platform account)** | Reply with signup link |
@@ -182,8 +229,35 @@ Different workflows may have different:
 - Rate limits
 
 | Workflow | Description | Authorization level | Estimated cost |
-|----------|-------------|---------------------|----------------|
+| --- | --- | --- | --- |
 | (to be defined) | | | |
+
+---
+
+## PR Review Webhook Deduplication
+
+When a user submits a GitHub PR review, they may write multiple inline comments plus a summary. GitHub fires webhooks nearly simultaneously:
+
+- One `pull_request_review` event (for the review itself)
+- Multiple `pull_request_review_comment` events (one per inline comment)
+
+If the user mentions @issuetopr in multiple places within the same review, we need to deduplicate to avoid triggering multiple workflows.
+
+### Deduplication Strategy
+
+Group related webhook events using a review correlation window:
+
+1. Extract the `pull_request_review_id` from the payload
+2. Check if we've already processed a trigger for this review ID
+3. If yes, skip processing
+4. If no, mark this review ID as processed and continue
+
+### Implementation Notes
+
+- Correlation window: 30-60 seconds
+- Storage: Short-lived cache (Redis or in-memory with TTL)
+- Include the review ID in workflow audit logs for debugging
+- **TODO**: Verify `pull_request_review_id` field presence in actual webhook payloads before relying on it
 
 ---
 
