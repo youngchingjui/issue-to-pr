@@ -24,6 +24,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - We'll scatter additional specific guidance throughout the codebase. Look for README.md in nested folders, sitting close to any code they might be referencing.
 - When reviewing files or editing files, try to look for any relevant README.md files nearby that might give context about the direction of the code.
 
+## Workflow for Making Changes
+
+Before implementing fixes or features, follow this process:
+
+1. **Review existing documentation first** - Check for relevant specs in `/docs/specs/`, README files near the code, and inline documentation that describes expected behavior
+2. **Understand expected behavior** - Clarify what the feature should do from a user perspective, separate from technical implementation details
+3. **Compare GitHub issues** - Search for related issues, bugs, or gaps to understand the full scope before making changes
+
+### Documentation Categories
+
+We maintain two types of documentation:
+
+- **User-facing docs**: Describe what users see and how they can use features (no code examples, readable by non-technical people)
+- **Technical architecture docs**: Describe implementation details that support user-facing features
+
 ## Writing specs
 
 Specifications for the application should be first saved in `/docs/specs/`. We should have separate `.md` files for each spec.
@@ -44,7 +59,10 @@ We would likely not want to see any code examples in the specs. This should just
 - `apps/workers/workflow-workers/README.md` - BullMQ worker setup and env vars
 - `apps/openai-realtime-agents/README.md` - OpenAI Realtime API demo app
 - `docker/README.md` - Docker configuration and compose files
+- `docker/nginx/README.md` - NGINX reverse proxy configuration and usage
 - `docs/README.md` - Main documentation index
+- `docs/deployment/README.md` - Production deployment guide
+- `docs/deployment/production-checklist.md` - Production hardening checklist (critical for production deploys)
 - `docs/components/README.md` - React components and patch tool format
 - `docs/internal/README.md` - Internal planning and architecture docs
 - `docs/internal/auth-flow-diagrams.md` - Auth flow Mermaid diagrams and technical docs

@@ -1,0 +1,45 @@
+services:
+  nginx:
+    image: nginx:stable-alpine
+    ports:
+      # Use env vars for ports to avoid conflicts (default 80/443)
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
+    volumes:
+      - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../nginx/conf.d:/etc/nginx/conf.d:ro
+      - ../nginx/default.d:/etc/nginx/default.d:ro
+      # Mount Let's Encrypt certs from host (read-only)
+      # Note: Ensure /etc/letsencrypt exists on host before starting
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    extra_hosts:
+      # Allow container to reach host services (Next.js on port 3000, etc.)
+      - "host.docker.internal:host-gateway"
+    networks:
+      - issue-to-pr-network
+      - preview
+    healthcheck:
+      test: ["CMD", "sh", "-c", "wget --quiet --tries=1 --spider http://localhost:80/ && nginx -t"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    profiles:
+      - prod
+
+  certbot:
+    build: ../certbot-porkbun
+    # Preflight check validates /etc/letsencrypt/secrets/porkbun.ini exists
+    entrypoint: ["sh", "/scripts/check-secrets.sh"]
+    volumes:
+      # Write certs/renewals to host's letsencrypt directory for nginx
+      - /etc/letsencrypt:/etc/letsencrypt
+      # Mount helper scripts (preflight)
+      - ../scripts:/scripts:ro
+    profiles:
+      - prod
+
+networks:
+  preview:
+    external: true

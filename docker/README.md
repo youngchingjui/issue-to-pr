@@ -4,17 +4,26 @@ This directory contains all Docker-related configurations for Issue To PR.
 
 ## Directory Structure
 
-```
+```markdown
 docker/
 ├── agent-base/ # Base image for containerized agent workflows
+│ └── Dockerfile
+├── certbot-porkbun/ # Certbot Dockerfile for SSL cert management
 │ └── Dockerfile
 ├── compose/ # Service-specific compose files
 │ ├── neo4j.yml
 │ ├── neo4j-staging.yml
 │ ├── neo4j-prod-backup.yml
+│ ├── nginx.yml
 │ ├── redis.yml
 │ └── worker.yml
 ├── env/ # Per-service .env files (e.g. .env.worker, .env.neo4j)
+├── nginx/ # NGINX reverse proxy configuration
+│ ├── conf.d/ # Server block configs for each domain
+│ ├── default.d/ # Default server configs
+│ ├── nginx.conf # Main NGINX config
+│ └── README.md # NGINX documentation
+├── scripts/ # Helper scripts (e.g., certbot preflight checks)
 └── docker-compose.yml # Main compose file (includes the files above)
 ```
 
@@ -86,7 +95,7 @@ Services are organized using Docker Compose profiles for different environments:
 | Profile | Services Started | Use Case |
 |---------|-----------------|----------|
 | (none)  | Neo4j, Redis | Local dev - run workers locally with hot reload |
-| `prod`  | Neo4j, Redis, Workers | Production/staging - all services in Docker |
+| `prod`  | Neo4j, Redis, Workers, NGINX | Production/staging - all services in Docker |
 
 ### pnpm Scripts (Recommended)
 
@@ -158,6 +167,40 @@ docker compose -f docker/compose/redis.yml -f docker/compose/neo4j.yml up -d
 - Stop behavior: `SIGTERM` with `1h` grace period
 
 For application-level details and local development instructions, see `apps/workers/workflow-workers/README.md`.
+
+### NGINX
+
+- Service name: `nginx`
+- Image: `nginx:stable-alpine`
+- Ports: 80 (HTTP), 443 (HTTPS)
+- Config files: `docker/nginx/` (nginx.conf, conf.d/*)
+- Volumes:
+  - NGINX configs (read-only)
+  - `/etc/letsencrypt` (SSL certificates from host)
+- Networks: `issue-to-pr-network`, `preview` (external)
+- Profile: `prod`
+- Restart: `unless-stopped`
+
+NGINX serves as the reverse proxy for:
+
+- **Production**: `issuetopr.dev` → Next.js on `host.docker.internal:3000`
+- **Previews**: `*.issuetopr.dev` → Docker containers on `preview` network
+- **Monitoring**: `grafana.issuetopr.dev` → Grafana dashboard
+
+For detailed configuration and usage, see `docker/nginx/README.md`.
+
+Quick commands:
+
+```bash
+# Start NGINX
+docker compose -f docker/docker-compose.yml --profile prod up -d nginx
+
+# Test config
+docker compose -f docker/docker-compose.yml exec nginx nginx -t
+
+# Reload after changes
+docker compose -f docker/docker-compose.yml exec nginx nginx -s reload
+```
 
 ### Additional Neo4j stacks
 
@@ -269,7 +312,16 @@ docker login ghcr.io
 
 ## Networks
 
-All services run on the `issue-to-pr-network` created by `docker/docker-compose.yml`.
+- **`issue-to-pr-network`**: Main internal network for all services (Neo4j, Redis, Workers, NGINX)
+- **`preview`** (external): For ephemeral preview containers that NGINX routes to
+
+The `preview` network must be created externally before starting NGINX:
+
+```bash
+docker network create preview
+```
+
+Preview containers must join this network with a network alias matching their subdomain.
 
 ## Adding New Services
 
