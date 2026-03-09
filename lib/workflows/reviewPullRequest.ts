@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from "uuid"
 import { ReviewerAgent } from "@/lib/agents/reviewer"
 import { getRepoFromString } from "@/lib/github/content"
 import {
+  getPullRequest,
   getPullRequestComments,
   getPullRequestDiff,
   getPullRequestReviews,
@@ -131,9 +132,18 @@ export async function reviewPullRequest({
     })
 
     const repo = await getRepoFromString(repoFullName)
+
+    // When reviewing a PR, clone the PR head branch so tools inspect the right code.
+    // Fall back to default branch for diff-only reviews.
+    let branch = repo.default_branch
+    if (pullNumber) {
+      const pr = await getPullRequest({ repoFullName, pullNumber })
+      branch = pr.head.ref
+    }
+
     const { containerName, cleanup } = await createContainerizedWorkspace({
       repoFullName,
-      branch: repo.default_branch,
+      branch,
       workflowId,
     })
     containerCleanup = cleanup

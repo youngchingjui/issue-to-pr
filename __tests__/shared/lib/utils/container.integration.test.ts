@@ -85,7 +85,7 @@ describe("createContainerizedWorkspace (no hostRepoPath)", () => {
     // This is the exact scenario that caused the production race condition.
     // Before the fix, concurrent jobs shared /tmp/git-repos/{owner}/{repo} on the host,
     // causing git index.lock conflicts and ENOENT errors.
-    const results = await Promise.all([
+    const settled = await Promise.allSettled([
       createContainerizedWorkspace({
         repoFullName: TEST_REPO,
         branch: TEST_BRANCH,
@@ -99,7 +99,18 @@ describe("createContainerizedWorkspace (no hostRepoPath)", () => {
         branch: TEST_BRANCH,
       }),
     ])
+
+    // Always register successful containers for cleanup, even if some failed
+    const results = settled
+      .filter(
+        (s): s is PromiseFulfilledResult<WorkspaceResult> =>
+          s.status === "fulfilled"
+      )
+      .map((s) => s.value)
     containersToCleanup.push(...results)
+
+    // Now assert all succeeded
+    expect(settled.every((s) => s.status === "fulfilled")).toBe(true)
 
     // All 3 should have different container names
     const names = results.map((r) => r.containerName)

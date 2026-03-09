@@ -57,17 +57,8 @@ export async function resolveMergeConflicts({
       content: `Starting merge-conflict resolution workflow for ${repoFullName}#${pullNumber}`,
     })
 
-    // Clone repo directly inside container (no shared host temp dir)
-    const repo = await getRepoFromString(repoFullName)
-    const { containerName, cleanup } = await createContainerizedWorkspace({
-      repoFullName,
-      branch: repo.default_branch,
-      workflowId,
-    })
-    const env: RepoEnvironment = { kind: "container", name: containerName }
-    containerCleanup = cleanup
-
-    // Fetch PR core context via GraphQL (mergeable field etc.)
+    // Fetch PR core context via GraphQL (mergeable field etc.) — needed before
+    // container setup so we can clone the correct (head) branch.
     await createStatusEvent({
       workflowId,
       content: `Fetching pull request details (GraphQL)`,
@@ -76,6 +67,16 @@ export async function resolveMergeConflicts({
       repoFullName,
       pullNumber,
     })
+
+    // Clone repo directly inside container using the PR head branch
+    const repo = await getRepoFromString(repoFullName)
+    const { containerName, cleanup } = await createContainerizedWorkspace({
+      repoFullName,
+      branch: pr.headRefName,
+      workflowId,
+    })
+    const env: RepoEnvironment = { kind: "container", name: containerName }
+    containerCleanup = cleanup
 
     // Fetch linked issue (first closing reference if any)
     let linkedIssue: GitHubIssue | undefined
