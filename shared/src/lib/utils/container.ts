@@ -253,10 +253,6 @@ export async function createContainerizedWorkspace({
   // 4. Configure Git inside the container
   await exec(`git config --global user.name "${DEFAULT_GIT_USER_NAME}"`)
   await exec(`git config --global user.email "${DEFAULT_GIT_USER_EMAIL}"`)
-  await exec("git config --global credential.helper store")
-  await exec(
-    'sh -c "printf \"https://%s:x-oauth-basic@github.com\\n\" \"$GITHUB_TOKEN\" > ~/.git-credentials"'
-  )
 
   // If a host repository directory is provided, copy it into the container to
   // avoid another network clone. Fallback to git clone when not provided.
@@ -282,9 +278,10 @@ export async function createContainerizedWorkspace({
       await exec(`git checkout -b ${branch}`)
     }
   } else {
-    // 5. Clone the repository and checkout the requested branch
-    await exec(`git clone https://github.com/${repoFullName} ${mountPath}`)
-    await exec(`git fetch origin || true`)
+    // Clone using the token directly in the URL (avoids credential helper issues)
+    await exec(
+      `git clone https://x-access-token:$GITHUB_TOKEN@github.com/${repoFullName} ${mountPath}`
+    )
     const checkoutRes = await exec(`git checkout ${branch}`)
     if (checkoutRes.exitCode !== 0) {
       await exec(`git checkout -b ${branch}`)

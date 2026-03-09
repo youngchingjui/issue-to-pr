@@ -26,7 +26,9 @@
     "lint:tsc:tests": "tsc --noEmit -p __tests__/tsconfig.json",
     "check:all": "next lint; prettier --check .; tsc --noEmit",
     "test": "jest",
-    "test:services": "jest -c __tests__/config/jest.config.services.ts",
+    "test:services": "jest -c __tests__/config/jest.config.services.ts && vitest run -c __tests__/config/vitest.config.services.ts",
+    "test:services:jest": "jest -c __tests__/config/jest.config.services.ts",
+    "test:services:vitest": "vitest run -c __tests__/config/vitest.config.services.ts",
     "test:external": "NODE_OPTIONS='--experimental-vm-modules' jest -c __tests__/config/jest.config.external.ts",
     "storybook": "pnpm --filter @issue-to-pr/storybook dev",
     "build-storybook": "pnpm --filter @issue-to-pr/storybook build",
@@ -152,5 +154,11 @@
       "<rootDir>/__tests__/config/jest.config.node.ts"
     ],
     "rootDir": "."
-  }
+  },
+  "workspaces": [
+    ".",
+    "apps/*",
+    "apps/workers/*",
+    "shared/"
+  ]
 }
