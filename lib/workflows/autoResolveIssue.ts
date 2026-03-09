@@ -18,7 +18,6 @@ import {
   createContainerizedDirectoryTree,
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
-import { setupLocalRepository } from "@/lib/utils/utils-server"
 import { OpenAIAdapter } from "@/shared/adapters/llm/OpenAIAdapter"
 import { EventBusPort } from "@/shared/ports/events/eventBus"
 import { createWorkflowEventPublisher } from "@/shared/ports/events/publisher"
@@ -136,18 +135,10 @@ export const autoResolveIssue = async (
       }
     }
 
-    const hostRepoPath = await setupLocalRepository({
-      repoFullName: repository.full_name,
-      // Always prepare local repo on the default branch to ensure fetch/checkout succeeds,
-      // we will create/switch to the workingBranch inside the container as needed.
-      workingBranch: repository.default_branch,
-    })
-
     const { containerName } = await createContainerizedWorkspace({
       repoFullName: repository.full_name,
       branch: workingBranch,
       workflowId,
-      hostRepoPath,
     })
 
     const env: RepoEnvironment = { kind: "container", name: containerName }

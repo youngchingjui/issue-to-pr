@@ -22,7 +22,6 @@ import {
   createContainerizedDirectoryTree,
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
-import { setupLocalRepository } from "@/lib/utils/utils-server"
 import { AllEvents } from "@/shared/entities/events/index"
 
 interface GitHubError extends Error {
@@ -147,19 +146,11 @@ export default async function commentOnIssue(
       parentId: latestEvent.id,
     })
 
-    // Ensure local repository exists and is up-to-date
-    const hostRepoPath = await setupLocalRepository({
-      repoFullName: repo.full_name,
-      workingBranch: repo.default_branch,
-    })
-
-    // Setup containerized workspace environment, copying from host path
     const { containerName, cleanup } = await createContainerizedWorkspace({
       repoFullName: repo.full_name,
       branch: repo.default_branch,
       workflowId: jobId,
       image: AGENT_BASE_IMAGE,
-      hostRepoPath,
     }).catch((error) => {
       console.error("Failed to setup containerized environment:", {
         error,
