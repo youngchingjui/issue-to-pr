@@ -40,7 +40,6 @@ import {
   createContainerizedDirectoryTree,
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
-import { setupLocalRepository } from "@/lib/utils/utils-server"
 
 interface ResolveIssueParams {
   issue: GitHubIssue
@@ -109,18 +108,11 @@ export const resolveIssue = async ({
       }
     }
 
-    // Ensure local repository exists and is up-to-date
-    const hostRepoPath = await setupLocalRepository({
-      repoFullName: repository.full_name,
-      workingBranch: repository.default_branch,
-    })
-
-    // Setup containerized repository using the local copy
+    // Clone repo directly inside container (no shared host temp dir)
     const { containerName, cleanup } = await createContainerizedWorkspace({
       repoFullName: repository.full_name,
       branch: repository.default_branch,
       workflowId,
-      hostRepoPath,
     })
     const env: RepoEnvironment = { kind: "container", name: containerName }
     containerCleanup = cleanup

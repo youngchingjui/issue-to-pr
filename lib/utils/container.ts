@@ -1,7 +1,5 @@
 import { exec as hostExec } from "child_process"
 import Docker from "dockerode"
-import os from "os"
-import path from "path"
 import util from "util"
 import { v4 as uuidv4 } from "uuid"
 
@@ -10,11 +8,9 @@ import {
   startContainer,
   stopAndRemoveContainer,
 } from "@/lib/docker"
-import { addWorktree, removeWorktree } from "@/lib/git"
 import { getInstallationTokenFromRepo } from "@/lib/github/installation"
 import { AGENT_BASE_IMAGE } from "@/lib/types/docker"
 import { containerNameForTrace } from "@/lib/utils/utils-common"
-import { setupLocalRepository } from "@/lib/utils/utils-server"
 import { buildPreviewSubdomainSlug } from "@/shared/entities/previewSlug"
 
 // Promisified exec for host-side commands (e.g., docker cp)
@@ -43,8 +39,6 @@ interface ContainerizedWorktreeOptions {
   image?: string
   /** Mount path inside container (default "/workspace") */
   mountPath?: string
-  /** Optional path to a local repository directory to copy into the container */
-  hostRepoPath?: string
 }
 
 // ---- Git identity defaults ----
@@ -106,96 +100,6 @@ export async function createContainerizedDirectoryTree(
 }
 
 /**
- * Sets up a containerized worktree environment for agent workflows.
- *
- * This function:
- * 1. Clones/updates the repository locally
- * 2. Creates a git worktree for the specified branch
- * 3. Starts a Docker container with the worktree mounted
- * 4. Returns helpers for executing commands and cleanup
- */
-export async function createContainerizedWorktree({
-  repoFullName,
-  branch = "main",
-  workflowId = uuidv4(),
-  image = AGENT_BASE_IMAGE,
-  mountPath = "/workspace",
-}: ContainerizedWorktreeOptions): Promise<ContainerizedWorktreeResult> {
-  // 1. Ensure we have a clean local clone
-  const cloneDir = await setupLocalRepository({
-    repoFullName,
-    workingBranch: branch,
-  })
-
-  // 2. Compute sibling worktree dir (avoid nesting worktrees)
-  const worktreeBase = path.join(os.tmpdir(), "git-worktrees", repoFullName)
-  const worktreeDir = path.join(worktreeBase, workflowId)
-
-  // 3. Add the worktree for the chosen branch
-  await addWorktree(cloneDir, worktreeDir, branch)
-
-  const containerName = containerNameForTrace(workflowId)
-
-  // Metadata for labels and network alias
-  const [ownerRaw, repoRaw] = repoFullName.split("/")
-  const owner = ownerRaw ?? ""
-  const repo = repoRaw ?? ""
-  const subdomain = buildPreviewSubdomainSlug({ branch, owner, repo })
-  const ttlHours = Number.parseInt(process.env.CONTAINER_TTL_HOURS ?? "24", 10)
-
-  // 4. Start detached container mounting both the *clone* (read-only) and the *worktree* (rw)
-  await startContainer({
-    image,
-    name: containerName,
-    mounts: [
-      { hostPath: cloneDir, containerPath: cloneDir, readOnly: true },
-      { hostPath: worktreeDir, containerPath: worktreeDir },
-    ],
-    workdir: worktreeDir,
-    labels: {
-      preview: "true",
-      repo,
-      owner,
-      branch,
-      ...(Number.isFinite(ttlHours) ? { "ttl-hours": String(ttlHours) } : {}),
-      subdomain,
-    },
-    network: {
-      name: "preview",
-      aliases: subdomain ? [subdomain] : [],
-    },
-  })
-
-  // Helper functions
-  const exec = async (command: string) => {
-    return await execInContainerWithDockerode({
-      name: containerName,
-      command,
-    })
-  }
-
-  const cleanup = async () => {
-    // Stop and remove container
-    await stopAndRemoveContainer(containerName)
-
-    // Remove worktree
-    try {
-      await removeWorktree(cloneDir, worktreeDir, true)
-    } catch (e) {
-      console.warn(`[WARNING] Failed to remove worktree ${worktreeDir}:`, e)
-    }
-  }
-
-  return {
-    worktreeDir,
-    containerName,
-    exec,
-    cleanup,
-    workflowId,
-  }
-}
-
-/**
  * Sets up a Docker container with the repository cloned inside the container itself (no host worktree).
  * This mirrors the manual workflow described by the user: a fresh container, Git credentials
  * configured via the passed GitHub token, followed by cloning the repository inside /workspace.
@@ -211,7 +115,6 @@ export async function createContainerizedWorkspace({
   workflowId = uuidv4(),
   image = AGENT_BASE_IMAGE,
   mountPath = "/workspace",
-  hostRepoPath,
 }: ContainerizedWorktreeOptions): Promise<ContainerizedWorktreeResult> {
   const [ownerRaw, repoRaw] = repoFullName.split("/")
   const owner = ownerRaw ?? ""
@@ -261,39 +164,6 @@ export async function createContainerizedWorkspace({
   await exec(
     'sh -c "printf \"https://%s:x-oauth-basic@github.com\\n\" \"$GITHUB_TOKEN\" > ~/.git-credentials"'
   )
-
-  // If a host repository directory is provided, copy it into the container to
-  // avoid another network clone. Fallback to git clone when not provided.
-  if (hostRepoPath) {
-    // Ensure destination directory exists inside container
-    await exec(`mkdir -p ${mountPath}`)
-
-    // Copy contents (including hidden files) from hostRepoPath -> container
-    await copyRepoToExistingContainer({
-      hostRepoPath,
-      containerName,
-      mountPath,
-    })
-
-    // Fix ownership of the repository inside the container to avoid
-    // Git "dubious ownership" warnings caused by mismatched host UIDs.
-    await exec(`chown -R root:root ${mountPath}`)
-
-    // Ensure we are on the desired branch, create it if it doesn't exist
-    await exec(`git fetch origin || true`)
-    const checkoutRes = await exec(`git checkout ${branch}`)
-    if (checkoutRes.exitCode !== 0) {
-      await exec(`git checkout -b ${branch}`)
-    }
-  } else {
-    // 5. Clone the repository and checkout the requested branch
-    await exec(`git clone https://github.com/${repoFullName} ${mountPath}`)
-    await exec(`git fetch origin || true`)
-    const checkoutRes = await exec(`git checkout ${branch}`)
-    if (checkoutRes.exitCode !== 0) {
-      await exec(`git checkout -b ${branch}`)
-    }
-  }
 
   // 6. Cleanup helper
   const cleanup = async () => {

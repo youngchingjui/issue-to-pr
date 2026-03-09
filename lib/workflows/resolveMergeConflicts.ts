@@ -23,7 +23,6 @@ import {
   createContainerizedDirectoryTree,
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
-import { setupLocalRepository } from "@/lib/utils/utils-server"
 
 interface ResolveMergeConflictsParams {
   repoFullName: string
@@ -58,19 +57,12 @@ export async function resolveMergeConflicts({
       content: `Starting merge-conflict resolution workflow for ${repoFullName}#${pullNumber}`,
     })
 
-    // Ensure local repository exists and is up-to-date
+    // Clone repo directly inside container (no shared host temp dir)
     const repo = await getRepoFromString(repoFullName)
-    const hostRepoPath = await setupLocalRepository({
-      repoFullName,
-      workingBranch: repo.default_branch,
-    })
-
-    // Setup containerized workspace using the local copy
     const { containerName, cleanup } = await createContainerizedWorkspace({
       repoFullName,
       branch: repo.default_branch,
       workflowId,
-      hostRepoPath,
     })
     const env: RepoEnvironment = { kind: "container", name: containerName }
     containerCleanup = cleanup
@@ -140,7 +132,10 @@ export async function resolveMergeConflicts({
 ## Merge State Notes
 - mergeStateStatus (GitHub): ${pr.mergeStateStatus || "n/a"}
 - Files (first 100):\n${(pr.files?.nodes || [])
-      .map((f) => `  - ${f.path} (+${f.additions}, -${f.deletions}) ${f.changeType ? ` [${f.changeType}]` : ""}`)
+      .map(
+        (f) =>
+          `  - ${f.path} (+${f.additions}, -${f.deletions}) ${f.changeType ? ` [${f.changeType}]` : ""}`
+      )
       .join("\n")}
 
 ${linkedIssue ? `## Linked Issue\n- #${linkedIssue.number} ${linkedIssue.title}\n${linkedIssue.body}\n` : ""}
@@ -205,4 +200,3 @@ ${formattedReviews ? `## Reviews\n${formattedReviews}\n` : ""}
     if (containerCleanup) await containerCleanup()
   }
 }
-

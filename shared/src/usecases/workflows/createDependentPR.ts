@@ -4,7 +4,6 @@ import {
   getPullRequestDiscussionGraphQL,
   getPullRequestMetaAndLinkedIssue,
 } from "@/shared/adapters/github/octokit/graphql/pullRequest.reader"
-import { clearAccessToken, setAccessToken } from "@/shared/auth"
 import { DependentPRAgent } from "@/shared/lib/agents/DependentPRAgent"
 import { execInContainerWithDockerode } from "@/shared/lib/docker"
 import { getInstallationTokenFromRepo } from "@/shared/lib/github/installation"
@@ -16,7 +15,6 @@ import {
   createContainerizedDirectoryTree,
   createContainerizedWorkspace,
 } from "@/shared/lib/utils/container"
-import { setupLocalRepository } from "@/shared/lib/utils/utils-server"
 import type { DatabaseStorage, WorkflowRunHandle } from "@/shared/ports/db"
 import type { GitHubAuthProvider } from "@/shared/ports/github/auth"
 
@@ -122,28 +120,14 @@ export async function createDependentPRWorkflow({
 
     const linkedIssue = prMetaAndLinkedIssue.linkedIssue
 
-    // Get installation token first (needed for setupLocalRepository)
     const [owner, repo] = repoFullName.split("/")
     const sessionToken = await getInstallationTokenFromRepo({ owner, repo })
 
-    // TEMPORARY FIX: Set token in deprecated global store for setupLocalRepository
-    // TODO: Remove this after refactoring setupLocalRepository to accept token as parameter (see #1474)
-    if (sessionToken) {
-      setAccessToken(sessionToken)
-    }
-
-    // Ensure local repository exists and is up-to-date (use baseRef as working branch)
-    const hostRepoPath = await setupLocalRepository({
-      repoFullName,
-      workingBranch: baseRef,
-    })
-
-    // Setup containerized workspace using the local copy
+    // Clone repo directly inside container (no shared host temp dir)
     const { containerName, cleanup } = await createContainerizedWorkspace({
       repoFullName,
       branch: baseRef,
       workflowId,
-      hostRepoPath,
     })
     const env: RepoEnvironment = { kind: "container", name: containerName }
     containerCleanup = cleanup
@@ -303,8 +287,5 @@ export async function createDependentPRWorkflow({
   } finally {
     // Cleanup container
     if (containerCleanup) await containerCleanup()
-    // TEMPORARY FIX: Clear the access token from global store
-    // TODO: Remove this after refactoring setupLocalRepository (see #1474)
-    clearAccessToken()
   }
 }

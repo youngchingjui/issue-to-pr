@@ -24,7 +24,6 @@ import {
   createContainerizedDirectoryTree,
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
-import { setupLocalRepository } from "@/lib/utils/utils-server"
 import {
   getPullRequestDiscussionGraphQL,
   getPullRequestMetaAndLinkedIssue,
@@ -90,19 +89,11 @@ export async function createDependentPRWorkflow({
 
     const linkedIssue = prMetaAndLinkedIssue.linkedIssue
 
-    // Ensure local repository exists and is up-to-date
     const repo = await getRepoFromString(repoFullName)
-    const hostRepoPath = await setupLocalRepository({
-      repoFullName,
-      workingBranch: repo.default_branch,
-    })
-
-    // Setup containerized workspace using the local copy
     const { containerName, cleanup } = await createContainerizedWorkspace({
       repoFullName,
       branch: repo.default_branch,
       workflowId,
-      hostRepoPath,
     })
     const env: RepoEnvironment = { kind: "container", name: containerName }
     containerCleanup = cleanup
@@ -243,4 +234,3 @@ export async function createDependentPRWorkflow({
     if (containerCleanup) await containerCleanup()
   }
 }
-
