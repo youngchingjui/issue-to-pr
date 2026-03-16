@@ -36,7 +36,13 @@ const config: Config = {
     "**/__tests__/**/*.integration.test.ts",
     "**/__tests__/**/*.neo4j.test.ts",
   ],
-  testPathIgnorePatterns: ["/node_modules/", "/.next/", "/coverage/"],
+  testPathIgnorePatterns: [
+    "/node_modules/",
+    "/.next/",
+    "/coverage/",
+    // Vitest-based integration tests (run separately via vitest)
+    "__tests__/shared/lib/",
+  ],
   displayName: "services",
   // Service tests may take longer due to DB operations
   testTimeout: 30000,

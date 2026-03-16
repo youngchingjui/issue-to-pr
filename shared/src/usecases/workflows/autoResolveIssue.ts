@@ -24,7 +24,6 @@ import {
   createContainerizedDirectoryTree,
   createContainerizedWorkspace,
 } from "@/shared/lib/utils/container"
-import { setupLocalRepository } from "@/shared/lib/utils/utils-server"
 import { type DatabaseStorage } from "@/shared/ports/db"
 import { type EventBusPort } from "@/shared/ports/events/eventBus"
 import { createWorkflowEventPublisher } from "@/shared/ports/events/publisher"
@@ -171,18 +170,10 @@ export const autoResolveIssue = async (
       }
     }
 
-    const hostRepoPath = await setupLocalRepository({
-      repoFullName,
-      // Always prepare local repo on the default branch to ensure fetch/checkout succeeds,
-      // we will create/switch to the workingBranch inside the container as needed.
-      workingBranch: repository.data.default_branch,
-    })
-
     const { containerName } = await createContainerizedWorkspace({
       repoFullName,
       branch: workingBranch,
       workflowId,
-      hostRepoPath,
     })
 
     const env: RepoEnvironment = { kind: "container", name: containerName }

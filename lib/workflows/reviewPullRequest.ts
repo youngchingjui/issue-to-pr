@@ -1,9 +1,9 @@
 import { v4 as uuidv4 } from "uuid"
 
 import { ReviewerAgent } from "@/lib/agents/reviewer"
-import { createDirectoryTree } from "@/lib/fs"
 import { getRepoFromString } from "@/lib/github/content"
 import {
+  getPullRequest,
   getPullRequestComments,
   getPullRequestDiff,
   getPullRequestReviews,
@@ -16,19 +16,22 @@ import {
 import { initializeWorkflowRun } from "@/lib/neo4j/services/workflow"
 import { createGetFileContentTool } from "@/lib/tools/GetFileContent"
 import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
+import { RepoEnvironment } from "@/lib/types"
 import {
   GitHubIssue,
   IssueComment,
   PullRequestReview,
 } from "@/lib/types/github"
-import { setupLocalRepository } from "@/lib/utils/utils-server"
+import {
+  createContainerizedDirectoryTree,
+  createContainerizedWorkspace,
+} from "@/lib/utils/container"
 
 interface ReviewPullRequestParams {
   repoFullName: string
   issue?: GitHubIssue
   pullNumber?: number
   diff?: string
-  baseDir?: string
   apiKey: string
   jobId?: string
 }
@@ -38,11 +41,11 @@ export async function reviewPullRequest({
   issue,
   pullNumber,
   diff,
-  baseDir,
   apiKey,
   jobId,
 }: ReviewPullRequestParams) {
   const workflowId = jobId || uuidv4()
+  let containerCleanup: (() => Promise<void>) | null = null
 
   try {
     // This workflow takes in a Pull Request or git diff
@@ -104,15 +107,6 @@ export async function reviewPullRequest({
 
     const span = trace.span({ name: traceName })
 
-    // Initialize tools
-    const getFileContentTool = createGetFileContentTool(baseDir || "")
-    const searchCodeTool = createRipgrepSearchTool(repoFullName)
-
-    // Initialize LLM
-    const reviewer = new ReviewerAgent({ apiKey })
-    await reviewer.addJobId(workflowId)
-    reviewer.addSpan({ span, generationName: "Review pull request" })
-
     let finalDiff: string
     // Identify the diff
     if (pullNumber) {
@@ -131,21 +125,40 @@ export async function reviewPullRequest({
       throw new Error("No diff provided")
     }
 
-    let updatedBaseDir = baseDir
-    if (!baseDir) {
-      await createStatusEvent({
-        workflowId,
-        content: "Setting up local repository",
-      })
+    // Clone repo directly inside container (no shared host temp dir)
+    await createStatusEvent({
+      workflowId,
+      content: "Setting up containerized environment",
+    })
 
-      const repo = await getRepoFromString(repoFullName)
-      updatedBaseDir = await setupLocalRepository({
-        repoFullName,
-        workingBranch: repo.default_branch,
-      })
+    const repo = await getRepoFromString(repoFullName)
+
+    // When reviewing a PR, clone the PR head branch so tools inspect the right code.
+    // Fall back to default branch for diff-only reviews.
+    let branch = repo.default_branch
+    if (pullNumber) {
+      const pr = await getPullRequest({ repoFullName, pullNumber })
+      branch = pr.head.ref
     }
 
-    const tree = await createDirectoryTree(updatedBaseDir || "")
+    const { containerName, cleanup } = await createContainerizedWorkspace({
+      repoFullName,
+      branch,
+      workflowId,
+    })
+    containerCleanup = cleanup
+    const env: RepoEnvironment = { kind: "container", name: containerName }
+
+    // Initialize tools using container environment
+    const getFileContentTool = createGetFileContentTool(env)
+    const searchCodeTool = createRipgrepSearchTool(env)
+
+    // Initialize LLM
+    const reviewer = new ReviewerAgent({ apiKey })
+    await reviewer.addJobId(workflowId)
+    reviewer.addSpan({ span, generationName: "Review pull request" })
+
+    const tree = await createContainerizedDirectoryTree(containerName)
 
     // Fetch comments and reviews if pullNumber is provided
     let comments: IssueComment[] = []
@@ -225,5 +238,7 @@ export async function reviewPullRequest({
     })
 
     throw error
+  } finally {
+    if (containerCleanup) await containerCleanup()
   }
 }

@@ -149,45 +149,6 @@ export async function resetToOrigin(
   return executeGitCommand(command, dir)
 }
 
-export async function cleanCheckout(branchName: string, dir: string) {
-  try {
-    // First clean any untracked files
-    await cleanUntrackedFiles(dir)
-
-    // Fetch latest changes
-    await fetchLatest(dir)
-
-    // Force clean the index before reset
-    await executeGitCommand("git rm --cached -r .", dir)
-
-    // Reset to origin
-    await resetToOrigin(branchName, dir)
-
-    // Checkout the branch
-    await checkoutBranchQuietly(branchName, dir)
-  } catch (error) {
-    console.error(`[ERROR] Failed during clean checkout: ${error}`)
-    throw error
-  }
-}
-
-// TODO: This will fail if we don't authenticate with user's credentials
-// for private repos
-export async function cloneRepo(
-  cloneUrl: string,
-  dir: string | undefined = undefined
-): Promise<string> {
-  const command = `git clone ${cloneUrl}${dir ? ` ${dir}` : ""}`
-  return new Promise((resolve, reject) => {
-    exec(command, (error, stdout) => {
-      if (error) {
-        return reject(new Error(error.message))
-      }
-      return resolve(stdout)
-    })
-  })
-}
-
 export async function getLocalFileContent(filePath: string): Promise<string> {
   // use os to get file content
   // Return error if file does not exist
@@ -217,45 +178,6 @@ export async function checkRepoIntegrity(dir: string): Promise<boolean> {
     console.error(`[ERROR] Repository integrity check failed: ${error}`)
     return false
   }
-}
-
-export async function cleanupRepo(dir: string): Promise<void> {
-  try {
-    // Remove the .git directory to force a fresh clone
-    await fs.rm(path.join(dir, ".git"), { recursive: true, force: true })
-    // Also remove any tracked files that might be corrupted
-    await fs.rm(dir, { recursive: true, force: true })
-  } catch (error) {
-    console.error(`[ERROR] Failed to cleanup repository: ${error}`)
-    throw error
-  }
-}
-
-export async function ensureValidRepo(
-  dir: string,
-  cloneUrl: string
-): Promise<void> {
-  const gitExists = await checkIfGitExists(dir)
-  if (!gitExists) {
-    await cloneRepo(cloneUrl, dir)
-    return
-  }
-
-  const isValid = await checkRepoIntegrity(dir)
-  if (!isValid) {
-    console.warn(
-      "[WARNING] Repository corruption detected, cleaning up and re-cloning"
-    )
-    await cleanupRepo(dir)
-    await cloneRepo(cloneUrl, dir)
-  }
-}
-
-export async function setRemoteOrigin(
-  dir: string,
-  remoteUrl: string
-): Promise<void> {
-  await executeGitCommand(`git remote set-url origin "${remoteUrl}"`, dir)
 }
 
 export async function stageFile(
