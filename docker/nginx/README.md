@@ -15,11 +15,10 @@ NGINX runs as a Docker container and serves as the reverse proxy for:
 ```
 docker/nginx/
 ├── nginx.conf           # Main NGINX configuration
-├── conf.d/              # Server block configurations
-│   ├── issuetopr.dev.conf                      # Main production domain
-│   ├── preview.issuetopr.dev.conf              # Wildcard preview subdomains
-│   └── grafana.issuetopr.dev.conf              # Grafana monitoring
-└── default.d/           # Default server configurations
+└── conf.d/              # Server block configurations
+    ├── issuetopr.dev.conf                      # Main production domain
+    ├── preview.issuetopr.dev.conf              # Wildcard preview subdomains
+    └── grafana.issuetopr.dev.conf              # Grafana monitoring
 ```
 
 ## Key Configuration Files
@@ -65,36 +64,25 @@ Certificates are managed via Certbot with Porkbun DNS-01 challenge (see `../cert
 
 **Automatic Renewal** (recommended for production):
 
-Set up a cron job to run the renewal script daily:
+Add a cron job to renew certs and reload NGINX daily:
 
 ```bash
-# Edit crontab
-crontab -e
-
-# Add this line (runs daily at 2am):
-0 2 * * * /path/to/issue-to-pr/docker/scripts/renew-certs.sh >> /var/log/certbot-renewal.log 2>&1
+# Add to crontab (runs daily at 2am):
+0 2 * * * cd /path/to/issue-to-pr && docker compose -f docker/docker-compose.yml --profile prod run --rm certbot renew && docker compose -f docker/docker-compose.yml exec nginx nginx -s reload >> /var/log/certbot-renewal.log 2>&1
 ```
 
-The script automatically:
-
-1. Attempts certificate renewal (only renews if expiring soon)
-2. Reloads NGINX to pick up new certificates
-3. Logs all activity
-
-**Manual Renewal** (for testing):
+**Manual Renewal**:
 
 ```bash
-# Test renewal without actually renewing
+# Dry run
 docker compose -f docker/docker-compose.yml --profile prod run --rm certbot renew --dry-run
 
-# Force renewal
+# Force renewal + reload
 docker compose -f docker/docker-compose.yml --profile prod run --rm certbot renew --force-renewal
-
-# Reload NGINX after manual renewal
 docker compose -f docker/docker-compose.yml exec nginx nginx -s reload
 ```
 
-⚠️ **Critical**: Without automated renewal, certificates expire in 90 days and your site will show security warnings. See [Production Checklist](../../docs/deployment/production-checklist.md#1-ssl-certificate-auto-renewal) for setup instructions.
+Certificates expire in 90 days without automated renewal.
 
 ## Docker Networks
 

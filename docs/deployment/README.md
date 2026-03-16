@@ -15,13 +15,13 @@ This starts Neo4j and Redis. Run Next.js and workers locally with hot reload.
 
 ### Production Deployment
 
-One-command deployment:
-
 ```bash
-./scripts/deploy-production.sh --with-nginx
-```
+# Create the preview network (one-time)
+docker network create preview
 
-⚠️ **Before deploying to production**, complete the [Production Hardening Checklist](production-checklist.md). This includes critical items like SSL certificate auto-renewal, log rotation, and monitoring.
+# Start all services including NGINX
+docker compose -f docker/docker-compose.yml --profile prod up -d
+```
 
 ## Deployment Scenarios
 
@@ -51,45 +51,60 @@ One-command deployment:
 
    Edit these files with your credentials and API keys.
 
-3. **Deploy with NGINX:**
+3. **Create the preview network and start services:**
 
    ```bash
-   ./scripts/deploy-production.sh --with-nginx
+   docker network create preview
+   docker compose -f docker/docker-compose.yml --profile prod up -d
    ```
 
-4. **Set up SSL (optional):**
+4. **Set up SSL:**
 
    ```bash
    # Add Porkbun credentials
    sudo mkdir -p /etc/letsencrypt/secrets
    sudo nano /etc/letsencrypt/secrets/porkbun.ini
+   # Add: dns_porkbun_key = <KEY>
+   # Add: dns_porkbun_secret = <SECRET>
+   sudo chmod 600 /etc/letsencrypt/secrets/porkbun.ini
 
    # Obtain certificates
    docker compose -f docker/docker-compose.yml --profile prod run --rm certbot certonly \
-     --dns-porkbun -d yourdomain.com -d '*.yourdomain.com'
+     --agree-tos -m admin@yourdomain.com --no-eff-email \
+     --authenticator dns-porkbun \
+     --dns-porkbun-credentials /etc/letsencrypt/secrets/porkbun.ini \
+     -d yourdomain.com -d '*.yourdomain.com'
+
+   # Reload NGINX to pick up certs
+   docker compose -f docker/docker-compose.yml exec nginx nginx -s reload
    ```
 
 5. **Update NGINX configs:**
    Edit `docker/nginx/conf.d/*.conf` to use your domain instead of `issuetopr.dev`.
+
+6. **Set up certificate auto-renewal** (certs expire every 90 days):
+
+   ```bash
+   # Add to crontab (runs daily at 2am):
+   0 2 * * * cd /path/to/issue-to-pr && docker compose -f docker/docker-compose.yml --profile prod run --rm certbot renew && docker compose -f docker/docker-compose.yml exec nginx nginx -s reload >> /var/log/certbot-renewal.log 2>&1
+   ```
 
 ### Scenario 2: Deploy Without NGINX
 
 If you have your own reverse proxy (Caddy, Traefik, etc.):
 
 ```bash
-./scripts/deploy-production.sh
+docker compose -f docker/docker-compose.yml --profile prod up -d neo4j redis workflow-workers
 ```
 
-This deploys all services except NGINX. Access Next.js at `http://localhost:3000`.
+Access Next.js at `http://localhost:3000`.
 
 ### Scenario 3: Updating Existing Deployment
 
 ```bash
 git pull origin main
-./scripts/deploy-production.sh --with-nginx
+docker compose -f docker/docker-compose.yml --profile prod up -d
 ```
-
-The script detects existing services and updates them gracefully.
 
 ### Scenario 4: Port Conflicts
 
@@ -98,7 +113,7 @@ If ports 80/443 are already in use:
 **Option A: Use different ports**
 
 ```bash
-NGINX_HTTP_PORT=8080 NGINX_HTTPS_PORT=8443 ./scripts/deploy-production.sh --with-nginx
+NGINX_HTTP_PORT=8080 NGINX_HTTPS_PORT=8443 docker compose -f docker/docker-compose.yml --profile prod up -d
 ```
 
 **Option B: Stop conflicting service**
@@ -106,65 +121,17 @@ NGINX_HTTP_PORT=8080 NGINX_HTTPS_PORT=8443 ./scripts/deploy-production.sh --with
 ```bash
 # Find what's using the port
 sudo lsof -i :80
-sudo lsof -i :443
 
-# Stop old nginx (example)
-docker stop nginx
-docker rm nginx
-
-# Now deploy
-./scripts/deploy-production.sh --with-nginx
+# Stop it, then deploy
+docker compose -f docker/docker-compose.yml --profile prod up -d
 ```
-
-## Environment-Specific Configurations
-
-### Development (Local)
-
-- **Profile**: None (default)
-- **Services**: Neo4j, Redis only
-- **NGINX**: Not needed (use Next.js dev server)
-- **Command**: `pnpm dev`
-
-### Staging
-
-- **Profile**: `prod`
-- **Services**: All services including workers
-- **NGINX**: Optional (use `--with-nginx`)
-- **Command**: `./scripts/deploy-production.sh`
-
-### Production
-
-- **Profile**: `prod`
-- **Services**: All services including NGINX
-- **NGINX**: Recommended for SSL/preview URLs
-- **Command**: `./scripts/deploy-production.sh --with-nginx`
-
-## Pre-Deployment Checks
-
-Run pre-flight checks before deploying:
-
-```bash
-bash docker/scripts/check-nginx-prereqs.sh
-```
-
-This validates:
-
-- Port availability (80, 443)
-- Docker networks exist
-- SSL certificates present
-- NGINX config syntax
-- No conflicting containers
 
 ## Profiles
-
-Issue To PR uses Docker Compose profiles:
 
 | Profile | Services | Use Case |
 |---------|----------|----------|
 | (none) | Neo4j, Redis | Local development |
 | `prod` | Neo4j, Redis, Workers, NGINX | Production/Staging |
-
-Start specific profiles:
 
 ```bash
 # Infrastructure only
@@ -179,15 +146,14 @@ docker compose -f docker/docker-compose.yml --profile prod up -d
 
 ## NGINX Configuration
 
-NGINX is optional but recommended for production because:
+NGINX is optional but recommended for production:
 
 - SSL/TLS termination
 - Preview URL routing (`*.yourdomain.com` → containers)
-- Load balancing (future)
 
 ### Customizing for Your Domain
 
-Edit `docker/nginx/conf.d/`:
+Edit files in `docker/nginx/conf.d/`:
 
 - Replace `issuetopr.dev` with your domain
 - Update SSL certificate paths
@@ -204,41 +170,29 @@ server {
 
     location / {
         proxy_pass http://host.docker.internal:3000;  # Keep this
-        # ... rest of config
     }
 }
 ```
+
+See `docker/nginx/README.md` for full NGINX documentation.
 
 ## Troubleshooting
 
 ### Port Conflicts
 
-**Error**: `Error starting userland proxy: listen tcp4 0.0.0.0:80: bind: address already in use`
-
-**Solution**:
+**Error**: `bind: address already in use`
 
 ```bash
 # Find what's using the port
 sudo lsof -i :80
 
-# Option 1: Stop the service
-sudo systemctl stop nginx  # or whatever service
-
-# Option 2: Use different port
-NGINX_HTTP_PORT=8080 ./scripts/deploy-production.sh --with-nginx
+# Or use different ports
+NGINX_HTTP_PORT=8080 docker compose -f docker/docker-compose.yml --profile prod up -d
 ```
-
-### NGINX Config Error
-
-**Error**: `nginx: [emerg] host not found in upstream`
-
-**Solution**: Check that service names in proxy_pass directives are correct and containers are running.
 
 ### Preview Network Missing
 
 **Error**: `network preview declared as external, but could not be found`
-
-**Solution**:
 
 ```bash
 docker network create preview
@@ -248,52 +202,114 @@ docker network create preview
 
 **Error**: `cannot load certificate "/etc/letsencrypt/live/..."`
 
-**Solution**: Either obtain certificates or temporarily disable SSL in NGINX config for testing.
+Obtain certificates via certbot (see fresh install steps above), or temporarily comment out SSL directives in nginx configs for testing.
+
+### NGINX Config Error
+
+**Error**: `nginx: [emerg] host not found in upstream`
+
+Check that service names in proxy_pass directives are correct and containers are running.
+
+```bash
+# Test config syntax
+docker compose -f docker/docker-compose.yml exec nginx nginx -t
+
+# View logs
+docker compose -f docker/docker-compose.yml logs -f nginx
+```
+
+## Environment-Specific Configurations
+
+### Development (Local)
+
+- **Profile**: None (default)
+- **Services**: Neo4j, Redis only
+- **NGINX**: Not needed (use Next.js dev server)
+- **Command**: `pnpm dev`
+
+### Staging
+
+- **Profile**: `prod`
+- **Services**: All services including workers
+- **NGINX**: Optional
+- **Command**: `docker compose -f docker/docker-compose.yml --profile prod up -d neo4j redis workflow-workers`
+
+### Production
+
+- **Profile**: `prod`
+- **Services**: All services including NGINX
+- **NGINX**: Recommended for SSL/preview URLs
+- **Command**: `docker compose -f docker/docker-compose.yml --profile prod up -d`
 
 ## Monitoring
 
-### View Logs
-
 ```bash
-# All services
-docker compose -f docker/docker-compose.yml logs -f
+# Check service health
+docker compose -f docker/docker-compose.yml ps
 
-# Specific service
+# View logs (all or specific service)
+docker compose -f docker/docker-compose.yml logs -f
 docker compose -f docker/docker-compose.yml logs -f nginx
 docker compose -f docker/docker-compose.yml logs -f workflow-workers
-```
 
-### Check Service Health
-
-```bash
-docker compose -f docker/docker-compose.yml ps
-```
-
-### Restart Service
-
-```bash
-docker compose -f docker/docker-compose.yml restart nginx
+# Restart a service
+docker compose -f docker/docker-compose.yml restart workflow-workers
 ```
 
 ## Rollback
 
-If deployment fails:
+```bash
+docker compose -f docker/docker-compose.yml --profile prod down
+git checkout <previous-commit>
+docker compose -f docker/docker-compose.yml --profile prod up -d
+```
+
+## Production Checklist
+
+Complete these before running in production.
+
+### Certificate Auto-Renewal
+
+Certs expire every 90 days. Add to crontab:
 
 ```bash
-# Stop all services
-docker compose -f docker/docker-compose.yml --profile prod down
-
-# Checkout previous version
-git checkout <previous-commit>
-
-# Redeploy
-./scripts/deploy-production.sh --with-nginx
+0 2 * * * cd /path/to/issue-to-pr && docker compose -f docker/docker-compose.yml --profile prod run --rm certbot renew && docker compose -f docker/docker-compose.yml exec nginx nginx -s reload >> /var/log/certbot-renewal.log 2>&1
 ```
+
+Test with a dry run: `docker compose -f docker/docker-compose.yml --profile prod run --rm certbot renew --dry-run`
+
+### Log Rotation
+
+Docker container logs grow indefinitely. Add to `docker/compose/nginx.yml`:
+
+```yaml
+services:
+  nginx:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+```
+
+### Monitoring
+
+Set up uptime monitoring (e.g. UptimeRobot free tier) for your domain. Monitor:
+
+- HTTPS response on your domain
+- SSL certificate expiration
+- Disk space on the server
+
+### Backups
+
+Back up regularly:
+
+- `docker/env/` (environment variables and API keys)
+- Neo4j database (`docker compose exec neo4j neo4j-admin database dump neo4j`)
+- SSL certs are re-obtainable via certbot, but backing up `/etc/letsencrypt` saves time
 
 ## References
 
-- [Production Hardening Checklist](production-checklist.md) ⭐ **Start here for production deployments**
 - [Docker Configuration](../../docker/README.md)
 - [NGINX Setup](../../docker/nginx/README.md)
-- [NGINX Migration Guide](../../docker/NGINX_MIGRATION.md)
 - [Worker Configuration](../../apps/workers/workflow-workers/README.md)
