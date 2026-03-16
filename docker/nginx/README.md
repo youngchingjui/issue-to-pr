@@ -1,200 +1,156 @@
 # NGINX Configuration
 
-This directory contains NGINX reverse proxy configuration for Issue To PR.
+NGINX reverse proxy for Issue To PR. Runs as a Docker container, routing traffic to the right service.
 
-## Overview
+## What it routes
 
-NGINX runs as a Docker container and serves as the reverse proxy for:
+| Domain | Upstream | Port |
+|--------|----------|------|
+| `issuetopr.dev` | Next.js on host | 3000 |
+| `*.issuetopr.dev` | Preview containers on `preview` network | 3000 |
+| `grafana.issuetopr.dev` | Grafana on host | 3001 |
 
-- **Main application**: `issuetopr.dev` → Next.js app on host (port 3000)
-- **Preview deployments**: `*.issuetopr.dev` → Docker containers on preview network
-- **Monitoring**: `grafana.issuetopr.dev` → Grafana dashboard
-
-## Directory Structure
+## Directory structure
 
 ```
 docker/nginx/
-├── nginx.conf           # Main NGINX configuration
-└── conf.d/              # Server block configurations
-    ├── issuetopr.dev.conf                      # Main production domain
-    ├── preview.issuetopr.dev.conf              # Wildcard preview subdomains
-    └── grafana.issuetopr.dev.conf              # Grafana monitoring
+├── nginx.conf           # Main config (worker settings, WebSocket map)
+└── conf.d/              # One file per domain
+    ├── issuetopr.dev.conf
+    ├── preview.issuetopr.dev.conf
+    └── grafana.issuetopr.dev.conf
 ```
 
-## Key Configuration Files
-
-### `nginx.conf`
-
-Main NGINX configuration with:
-
-- Worker process settings
-- HTTP/HTTPS server defaults
-- WebSocket upgrade support (`map $http_upgrade $connection_upgrade`)
-- Increased `server_names_hash_bucket_size` for long DNS names
-
-### `conf.d/issuetopr.dev.conf`
-
-Production server block:
-
-- Routes `issuetopr.dev` → `host.docker.internal:3000` (Next.js)
-- SSL/TLS with Let's Encrypt certificates
-- SSE (Server-Sent Events) support on `/api/sse`
-- HTTP → HTTPS redirect
-
-### `conf.d/preview.issuetopr.dev.conf`
-
-**Wildcard preview routing** for ephemeral deployments:
-
-- Pattern: `~^(?<preview>.+)\.issuetopr\.dev$`
-- Routes to Docker containers on `preview` network using subdomain as hostname
-- Example: `main-youngchingjui-repo.issuetopr.dev` → container `main-youngchingjui-repo:3000`
-- Injects tracking script into HTML responses
-- Dynamic DNS resolution with `resolver 127.0.0.11`
-
-## SSL/TLS Certificates
-
-NGINX expects Let's Encrypt certificates at:
-
-- Main domain: `/etc/letsencrypt/live/issuetopr.dev/`
-- Wildcard: `/etc/letsencrypt/live/issuetopr.dev-0001/`
-
-Certificates are managed via Certbot with Porkbun DNS-01 challenge (see `../certbot-porkbun/`).
-
-### Certificate Renewal
-
-**Automatic Renewal** (recommended for production):
-
-Add a cron job to renew certs and reload NGINX daily:
+## Running locally
 
 ```bash
-# Add to crontab (runs daily at 2am):
-0 2 * * * cd /path/to/issue-to-pr && docker compose -f docker/docker-compose.yml --profile prod run --rm certbot renew && docker compose -f docker/docker-compose.yml exec nginx nginx -s reload >> /var/log/certbot-renewal.log 2>&1
-```
+# Create the preview network (one-time)
+docker network create preview
 
-**Manual Renewal**:
-
-```bash
-# Dry run
-docker compose -f docker/docker-compose.yml --profile prod run --rm certbot renew --dry-run
-
-# Force renewal + reload
-docker compose -f docker/docker-compose.yml --profile prod run --rm certbot renew --force-renewal
-docker compose -f docker/docker-compose.yml exec nginx nginx -s reload
-```
-
-Certificates expire in 90 days without automated renewal.
-
-## Docker Networks
-
-NGINX bridges two networks:
-
-1. **`issue-to-pr-network`**: Main internal network for services
-2. **`preview`** (external): For ephemeral preview containers
-
-Preview containers must:
-
-- Join the `preview` network
-- Use a network alias matching the subdomain (e.g., `main-youngchingjui-repo`)
-
-## Usage
-
-### Start NGINX (Production Profile)
-
-```bash
-# From repo root
+# Start NGINX
 docker compose -f docker/docker-compose.yml --profile prod up -d nginx
 ```
 
-### Test Configuration
+NGINX starts on port 80 (HTTP). No SSL certificates needed.
+
+To use a different port: `NGINX_HTTP_PORT=8080 docker compose -f docker/docker-compose.yml --profile prod up -d nginx`
+
+## Common commands
 
 ```bash
+# Test config syntax
 docker compose -f docker/docker-compose.yml exec nginx nginx -t
-```
 
-### Reload After Config Changes
-
-```bash
+# Reload after config changes
 docker compose -f docker/docker-compose.yml exec nginx nginx -s reload
-```
 
-### View Logs
-
-```bash
+# View logs
 docker compose -f docker/docker-compose.yml logs -f nginx
 ```
 
-### Stop NGINX
+## Preview URL routing
+
+Preview containers get a subdomain like `my-feature.issuetopr.dev`. NGINX captures the subdomain via regex and proxies to a Docker container with a matching network alias on the `preview` network.
+
+For this to work, the preview container must:
+
+1. Join the `preview` Docker network
+2. Have a network alias matching the subdomain (e.g., `my-feature`)
+3. Listen on port 3000
+
+NGINX also injects a small console log script into HTML responses from preview containers.
+
+See `/shared/src/entities/previewSlug.ts` for slug generation logic.
+
+## Adding SSL for production
+
+The configs default to HTTP-only. To add SSL on a production server:
+
+### 1. Get certificates with Certbot
+
+Use the Porkbun DNS-01 challenge for wildcard certs:
 
 ```bash
-docker compose -f docker/docker-compose.yml stop nginx
+# Install the Porkbun plugin
+pip install certbot certbot-dns-porkbun
+
+# Create credentials file
+sudo mkdir -p /etc/letsencrypt/secrets
+sudo tee /etc/letsencrypt/secrets/porkbun.ini > /dev/null <<EOL
+dns_porkbun_key = YOUR_PORKBUN_API_KEY
+dns_porkbun_secret = YOUR_PORKBUN_SECRET_KEY
+EOL
+sudo chmod 600 /etc/letsencrypt/secrets/porkbun.ini
+
+# Obtain wildcard cert
+sudo certbot certonly \
+  --authenticator dns-porkbun \
+  --dns-porkbun-credentials /etc/letsencrypt/secrets/porkbun.ini \
+  --agree-tos -m admin@issuetopr.dev --no-eff-email \
+  -d issuetopr.dev -d '*.issuetopr.dev'
 ```
 
-## Preview URL Flow
+Or use the certbot Docker image: `docker run --rm -v /etc/letsencrypt:/etc/letsencrypt certbot/certbot ...`
 
-When a user requests a workflow run:
+### 2. Update NGINX configs
 
-1. Backend creates a container with labels (`preview=true`, `subdomain=<slug>`)
-2. Container joins `preview` network with alias matching subdomain
-3. User accesses `https://<subdomain>.issuetopr.dev`
-4. NGINX regex captures subdomain and proxies to `http://<subdomain>:3000`
+Add SSL directives to each server block in `conf.d/`. Example for `issuetopr.dev.conf`:
 
-See `/shared/src/entities/previewSlug.ts` for subdomain slug generation logic.
+```nginx
+server {
+    listen 80;
+    listen 443 ssl;
+    server_name issuetopr.dev www.issuetopr.dev;
 
-## Adding New Server Blocks
+    ssl_certificate /etc/letsencrypt/live/issuetopr.dev/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/issuetopr.dev/privkey.pem;
 
-To add a new domain/service:
+    # ... existing location blocks ...
+}
 
-1. Create a new `.conf` file in `conf.d/`:
+# Redirect HTTP to HTTPS
+server {
+    listen 80;
+    server_name issuetopr.dev www.issuetopr.dev;
+    return 301 https://issuetopr.dev$request_uri;
+}
+```
 
-   ```nginx
-   server {
-       listen 443 ssl;
-       server_name example.issuetopr.dev;
+### 3. Mount certs and expose port 443
 
-       ssl_certificate /etc/letsencrypt/live/issuetopr.dev-0001/fullchain.pem;
-       ssl_certificate_key /etc/letsencrypt/live/issuetopr.dev-0001/privkey.pem;
+Update `docker/compose/nginx.yml`:
 
-       location / {
-           proxy_pass http://host.docker.internal:PORT;
-           # Add standard proxy headers...
-       }
-   }
-   ```
+```yaml
+ports:
+  - "${NGINX_HTTP_PORT:-80}:80"
+  - "${NGINX_HTTPS_PORT:-443}:443"
+volumes:
+  - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+  - ../nginx/conf.d:/etc/nginx/conf.d:ro
+  - /etc/letsencrypt:/etc/letsencrypt:ro
+```
 
-2. Test configuration:
+Then reload: `docker compose -f docker/docker-compose.yml exec nginx nginx -s reload`
 
-   ```bash
-   docker compose -f docker/docker-compose.yml exec nginx nginx -t
-   ```
+### 4. Set up auto-renewal
 
-3. Reload NGINX:
+Certs expire every 90 days. Add a cron job:
 
-   ```bash
-   docker compose -f docker/docker-compose.yml exec nginx nginx -s reload
-   ```
+```bash
+# Add to crontab (runs daily at 2am):
+0 2 * * * certbot renew --quiet && docker compose -f /path/to/docker/docker-compose.yml exec nginx nginx -s reload
+```
 
 ## Troubleshooting
 
-### Container Can't Reach Host Services
+**Container can't reach host services** — Verify Next.js is listening on `0.0.0.0:3000`, not just `localhost`.
 
-- Ensure `host.docker.internal` is in `extra_hosts` (docker/compose/nginx.yml)
-- Verify Next.js is listening on `0.0.0.0:3000` (not just `localhost`)
+**Preview URLs return 502** — Check the container is on the `preview` network with the right alias: `docker network inspect preview`
 
-### Preview URLs Return 502
-
-- Check container is on `preview` network: `docker network inspect preview`
-- Verify network alias matches subdomain: `docker inspect <container>`
-- Check container port 3000 is listening
-
-### SSL Certificate Errors
-
-- Verify certs exist at `/etc/letsencrypt/live/issuetopr.dev*/`
-- Ensure volume mount is correct in `docker/compose/nginx.yml`
-- Check cert permissions (should be readable by nginx user)
+**Config syntax error** — Run `docker compose -f docker/docker-compose.yml exec nginx nginx -t` and check the error message.
 
 ## References
 
-- Main Docker README: `../README.md`
-- Certbot setup: `../certbot-porkbun/`
+- Docker compose setup: `../README.md`
 - Preview slug generation: `/shared/src/entities/previewSlug.ts`
 - Container setup: `/shared/src/lib/utils/container.ts`

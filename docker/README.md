@@ -8,8 +8,6 @@ This directory contains all Docker-related configurations for Issue To PR.
 docker/
 ├── agent-base/ # Base image for containerized agent workflows
 │ └── Dockerfile
-├── certbot-porkbun/ # Certbot Dockerfile for SSL cert management
-│ └── Dockerfile
 ├── compose/ # Service-specific compose files
 │ ├── neo4j.yml
 │ ├── neo4j-staging.yml
@@ -20,10 +18,8 @@ docker/
 ├── env/ # Per-service .env files (e.g. .env.worker, .env.neo4j)
 ├── nginx/ # NGINX reverse proxy configuration
 │ ├── conf.d/ # Server block configs for each domain
-│ ├── default.d/ # Default server configs
 │ ├── nginx.conf # Main NGINX config
 │ └── README.md # NGINX documentation
-├── scripts/ # Helper scripts (e.g., certbot preflight checks)
 └── docker-compose.yml # Main compose file (includes the files above)
 ```
 
@@ -172,11 +168,9 @@ For application-level details and local development instructions, see `apps/work
 
 - Service name: `nginx`
 - Image: `nginx:stable-alpine`
-- Ports: 80 (HTTP), 443 (HTTPS)
+- Port: 80 (HTTP) — SSL is added separately for production (see `docker/nginx/README.md`)
 - Config files: `docker/nginx/` (nginx.conf, conf.d/*)
-- Volumes:
-  - NGINX configs (read-only)
-  - `/etc/letsencrypt` (SSL certificates from host)
+- Volumes: NGINX configs (read-only)
 - Networks: `issue-to-pr-network`, `preview` (external)
 - Profile: `prod`
 - Restart: `unless-stopped`
