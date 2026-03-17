@@ -1,5 +1,7 @@
 # Deployment Guide
 
+For the reasoning behind our infrastructure choices, see [Infrastructure Requirements](../dev/infrastructure.md).
+
 ## Quick Start
 
 ### Local Development

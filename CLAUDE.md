@@ -62,6 +62,7 @@ We would likely not want to see any code examples in the specs. This should just
 - `docker/nginx/README.md` - NGINX reverse proxy configuration and usage
 - `docs/README.md` - Main documentation index
 - `docs/deployment/README.md` - Production deployment guide
+- `docs/dev/infrastructure.md` - Infrastructure DX requirements and rationale
 - `docs/components/README.md` - React components and patch tool format
 - `docs/internal/README.md` - Internal planning and architecture docs
 - `docs/internal/auth-flow-diagrams.md` - Auth flow Mermaid diagrams and technical docs
