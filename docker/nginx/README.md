@@ -31,9 +31,9 @@ docker network create preview
 docker compose -f docker/docker-compose.yml --profile prod up -d nginx
 ```
 
-NGINX starts on port 80 (HTTP). No SSL certificates needed.
+NGINX requires SSL certificates to start. See "SSL certificates" below for setup.
 
-To use a different port: `NGINX_HTTP_PORT=8080 docker compose -f docker/docker-compose.yml --profile prod up -d nginx`
+To use different ports: `NGINX_HTTP_PORT=8080 NGINX_HTTPS_PORT=8443 docker compose -f docker/docker-compose.yml --profile prod up -d nginx`
 
 ## Common commands
 
@@ -62,17 +62,17 @@ NGINX also injects a small console log script into HTML responses from preview c
 
 See `/shared/src/entities/previewSlug.ts` for slug generation logic.
 
-## Adding SSL for production
+## SSL certificates
 
-The configs default to HTTP-only. To add SSL on a production server:
+The nginx configs include SSL by default. All HTTP traffic is redirected to HTTPS. NGINX will not start without valid certificates at `/etc/letsencrypt/live/issuetopr.dev/`.
 
-### 1. Get certificates with Certbot
+### Obtaining certificates
 
-Use the Porkbun DNS-01 challenge for wildcard certs:
+Use Certbot with the Porkbun DNS-01 challenge to get a wildcard cert:
 
 ```bash
-# Install the Porkbun plugin
-pip install certbot certbot-dns-porkbun
+# Install certbot and the Porkbun plugin
+sudo pip install certbot certbot-dns-porkbun
 
 # Create credentials file
 sudo mkdir -p /etc/letsencrypt/secrets
@@ -90,55 +90,13 @@ sudo certbot certonly \
   -d issuetopr.dev -d '*.issuetopr.dev'
 ```
 
-Or use the certbot Docker image: `docker run --rm -v /etc/letsencrypt:/etc/letsencrypt certbot/certbot ...`
-
-### 2. Update NGINX configs
-
-Add SSL directives to each server block in `conf.d/`. Example for `issuetopr.dev.conf`:
-
-```nginx
-server {
-    listen 80;
-    listen 443 ssl;
-    server_name issuetopr.dev www.issuetopr.dev;
-
-    ssl_certificate /etc/letsencrypt/live/issuetopr.dev/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/issuetopr.dev/privkey.pem;
-
-    # ... existing location blocks ...
-}
-
-# Redirect HTTP to HTTPS
-server {
-    listen 80;
-    server_name issuetopr.dev www.issuetopr.dev;
-    return 301 https://issuetopr.dev$request_uri;
-}
-```
-
-### 3. Mount certs and expose port 443
-
-Update `docker/compose/nginx.yml`:
-
-```yaml
-ports:
-  - "${NGINX_HTTP_PORT:-80}:80"
-  - "${NGINX_HTTPS_PORT:-443}:443"
-volumes:
-  - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-  - ../nginx/conf.d:/etc/nginx/conf.d:ro
-  - /etc/letsencrypt:/etc/letsencrypt:ro
-```
-
-Then reload: `docker compose -f docker/docker-compose.yml exec nginx nginx -s reload`
-
-### 4. Set up auto-renewal
+### Auto-renewal
 
 Certs expire every 90 days. Add a cron job:
 
 ```bash
 # Add to crontab (runs daily at 2am):
-0 2 * * * certbot renew --quiet && docker compose -f /path/to/docker/docker-compose.yml exec nginx nginx -s reload
+0 2 * * * certbot renew --quiet && docker compose -f /path/to/issue-to-pr/docker/docker-compose.yml exec nginx nginx -s reload
 ```
 
 ## Troubleshooting

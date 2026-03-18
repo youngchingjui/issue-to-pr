@@ -26,7 +26,7 @@ This starts Neo4j, Redis, Next.js, workers, and NGINX.
 
 ## Fresh Server Setup
 
-**Prerequisites:** Docker, Docker Compose, ports 80 available, DNS configured.
+**Prerequisites:** Docker, Docker Compose, ports 80 and 443 available, DNS configured, domain pointing to server.
 
 1. **Clone and configure:**
 
@@ -38,14 +38,14 @@ This starts Neo4j, Redis, Next.js, workers, and NGINX.
    # Edit .env files with your credentials
    ```
 
-2. **Create the preview network and start services:**
+2. **Obtain SSL certificates:** See `docker/nginx/README.md` → "SSL certificates"
+
+3. **Create the preview network and start services:**
 
    ```bash
    docker network create preview
    docker compose -f docker/docker-compose.yml --profile prod up -d
    ```
-
-3. **Add SSL (optional):** See `docker/nginx/README.md` → "Adding SSL for production"
 
 ## Profiles
 
@@ -88,8 +88,8 @@ docker compose -f docker/docker-compose.yml --profile prod up -d
 ## Production Checklist
 
 - [ ] Environment variables configured (`docker/env/.env.worker`, `.env.neo4j`)
-- [ ] SSL certificates obtained and NGINX configs updated (see `docker/nginx/README.md`)
-- [ ] Certificate auto-renewal cron job set up
+- [ ] SSL certificates obtained (see `docker/nginx/README.md`)
+- [ ] Certificate auto-renewal cron job set up (certs expire every 90 days)
 - [ ] Uptime monitoring configured (e.g. UptimeRobot) for your domain
 - [ ] Neo4j backups scheduled
 

@@ -168,9 +168,10 @@ For application-level details and local development instructions, see `apps/work
 
 - Service name: `nginx`
 - Image: `nginx:stable-alpine`
-- Port: 80 (HTTP) — SSL is added separately for production (see `docker/nginx/README.md`)
+- Ports: 80 (HTTP → HTTPS redirect), 443 (HTTPS)
 - Config files: `docker/nginx/` (nginx.conf, conf.d/*)
-- Volumes: NGINX configs (read-only)
+- Volumes: NGINX configs (read-only), `/etc/letsencrypt` (read-only)
+- Requires SSL certificates at `/etc/letsencrypt/live/issuetopr.dev/` (see `docker/nginx/README.md`)
 - Networks: `issue-to-pr-network`, `preview` (external)
 - Profile: `prod`
 - Restart: `unless-stopped`
