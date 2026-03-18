@@ -1,23 +1,28 @@
 # Deployment Guide
 
-For the reasoning behind our infrastructure choices, see [Infrastructure Requirements](../dev/infrastructure.md).
+For the reasoning behind our infrastructure choices, see [Infrastructure Requirements](./infrastructure.md).
 
-## Quick Start
+## Local Development
 
-### Local Development
+A single command starts everything needed for local development with hot reload:
 
 ```bash
-pnpm dev
+docker compose -f docker/docker-compose.yml up -d
 ```
 
-Starts Neo4j and Redis. Run Next.js and workers locally with hot reload.
+This starts Neo4j, Redis, Next.js, and workers — all with hot reload.
 
-### Production
+> **Open question:** Should local dev use `docker compose` for everything (including Next.js and workers with volume-mounted source for hot reload), or should Docker only run infrastructure (Neo4j, Redis) while Next.js and workers run natively? Docker Compose for everything gives a single-command setup, but hot reload can be slower on macOS. Native apps are faster but require multiple commands.
+
+## Production
+
+A single command starts the full production stack:
 
 ```bash
-docker network create preview
 docker compose -f docker/docker-compose.yml --profile prod up -d
 ```
+
+This starts Neo4j, Redis, Next.js, workers, and NGINX.
 
 ## Fresh Server Setup
 
@@ -33,14 +38,12 @@ docker compose -f docker/docker-compose.yml --profile prod up -d
    # Edit .env files with your credentials
    ```
 
-2. **Start services:**
+2. **Create the preview network and start services:**
 
    ```bash
    docker network create preview
    docker compose -f docker/docker-compose.yml --profile prod up -d
    ```
-
-   NGINX starts on port 80 (HTTP). Everything works without SSL.
 
 3. **Add SSL (optional):** See `docker/nginx/README.md` → "Adding SSL for production"
 
@@ -48,19 +51,8 @@ docker compose -f docker/docker-compose.yml --profile prod up -d
 
 | Profile | Services | Use Case |
 |---------|----------|----------|
-| (none) | Neo4j, Redis | Local development |
-| `prod` | Neo4j, Redis, Workers, NGINX | Production/Staging |
-
-```bash
-# Infrastructure only (local dev)
-docker compose -f docker/docker-compose.yml up -d
-
-# Production without NGINX (bring your own reverse proxy)
-docker compose -f docker/docker-compose.yml --profile prod up -d neo4j redis workflow-workers
-
-# Production with NGINX
-docker compose -f docker/docker-compose.yml --profile prod up -d
-```
+| (none) | Neo4j, Redis, Next.js, Workers | Local development (hot reload) |
+| `prod` | Neo4j, Redis, Next.js, Workers, NGINX | Production |
 
 ## Updating
 

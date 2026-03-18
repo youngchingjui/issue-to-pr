@@ -1,5 +1,7 @@
 # Developer Documentation
 
+> These docs describe the **ideal state** of the system — the architecture we're building toward. They may not reflect the current implementation.
+
 Technical documentation for developers working on Issue To PR.
 
 Each file describes the technical requirements to support a user-facing feature or a DX use case. User docs (`docs/user/`) describe WHAT users experience; dev docs describe HOW we make that happen.
@@ -15,6 +17,7 @@ Docs are organized by DX use case — a developer should be able to find the rig
 
 ## Current files
 
+- [Deployment Guide](./deployment.md) — How to deploy Issue To PR (local dev and production)
 - [Infrastructure Requirements](./infrastructure.md) — DX requirements for deployment, Docker, NGINX
 
 ## Planned
@@ -25,7 +28,6 @@ Docs are organized by DX use case — a developer should be able to find the rig
 
 ## TODO: Migrate existing docs here
 
-- `docs/deployment/README.md` → `docs/dev/deployment.md`
 - `docs/guides/architecture.md` → `docs/dev/architecture.md`
 - `docs/guides/authentication.md` → `docs/dev/authentication.md`
 - `docs/guides/ai-integration.md` → `docs/dev/ai-integration.md`

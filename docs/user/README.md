@@ -1,5 +1,7 @@
 # User Documentation
 
+> These docs describe the **ideal state** of the product — what it should look like when fully built. They may not reflect the current implementation.
+
 User-facing feature specifications. Describes what users see and experience. No code examples — readable by non-technical people.
 
 Each file represents a feature or capability from the user's perspective.

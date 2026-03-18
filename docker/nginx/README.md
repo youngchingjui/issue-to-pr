@@ -12,7 +12,7 @@ NGINX reverse proxy for Issue To PR. Runs as a Docker container, routing traffic
 
 ## Directory structure
 
-```
+```text
 docker/nginx/
 ├── nginx.conf           # Main config (worker settings, WebSocket map)
 └── conf.d/              # One file per domain
