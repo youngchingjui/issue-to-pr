@@ -37,6 +37,42 @@ export async function setUserOpenAIApiKey(apiKey: string): Promise<void> {
   }
 }
 
+export async function setUserAnthropicApiKey(apiKey: string): Promise<void> {
+  const user = await getGithubUser()
+  if (!user) throw new Error("User not authenticated")
+
+  const session = await n4j.getSession()
+  try {
+    await session.executeWrite((tx) =>
+      userRepo.setUserSettings(tx, user.login, {
+        type: "user",
+        anthropicApiKey: apiKey,
+      } as unknown as Parameters<typeof userRepo.setUserSettings>[2]
+    ))
+  } finally {
+    await session.close()
+  }
+}
+
+export async function setUserLLMProvider(
+  provider: "openai" | "anthropic"
+): Promise<void> {
+  const user = await getGithubUser()
+  if (!user) throw new Error("User not authenticated")
+
+  const session = await n4j.getSession()
+  try {
+    await session.executeWrite((tx) =>
+      userRepo.setUserSettings(tx, user.login, {
+        type: "user",
+        llmProvider: provider,
+      } as unknown as Parameters<typeof userRepo.setUserSettings>[2]
+    ))
+  } finally {
+    await session.close()
+  }
+}
+
 /**
  * @deprecated Use `getOpenAIKey` in shared/adapters/neo4j/repositories/SettingsReaderAdapter.ts instead
  */
@@ -55,6 +91,27 @@ export async function getUserOpenAIApiKey(): Promise<string | null> {
 
   // 3) Otherwise, no key available
   return null
+}
+
+export async function getUserAnthropicApiKey(): Promise<string | null> {
+  const settings = await getUserSettings()
+  if (!settings) return null
+
+  const userKey = settings.anthropicApiKey?.trim()
+  if (userKey) return userKey
+
+  const hasDemoAccess = settings.roles?.includes("demo")
+  const demoKey = process.env.ANTHROPIC_API_KEY?.trim()
+  if (hasDemoAccess && demoKey) return demoKey
+
+  return null
+}
+
+export async function getUserLLMProvider(): Promise<
+  "openai" | "anthropic" | null
+> {
+  const settings = await getUserSettings()
+  return settings?.llmProvider ?? null
 }
 
 /**
@@ -134,3 +191,4 @@ export async function getUserRoles(username: string): Promise<string[]> {
     await session.close()
   }
 }
+

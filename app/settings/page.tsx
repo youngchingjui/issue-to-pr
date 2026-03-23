@@ -4,15 +4,29 @@ import { redirect } from "next/navigation"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getGithubUser } from "@/lib/github/users"
-import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
+import {
+  getUserAnthropicApiKey,
+  getUserLLMProvider,
+  getUserOpenAIApiKey,
+} from "@/lib/neo4j/services/user"
 
 export const dynamic = "force-dynamic"
 
-const ApiKeyInput = nextDynamic(
+const OpenAIKeyInput = nextDynamic(
   () => import("@/components/settings/APIKeyInput"),
   {
     ssr: false,
   }
+)
+
+const AnthropicKeyInput = nextDynamic(
+  () => import("@/components/settings/AnthropicAPIKeyInput"),
+  { ssr: false }
+)
+
+const ModelProviderSelect = nextDynamic(
+  () => import("@/components/settings/ModelProviderSelect"),
+  { ssr: false }
 )
 
 export default async function SettingsPage() {
@@ -22,7 +36,11 @@ export default async function SettingsPage() {
     redirect("/redirect?redirect=/settings")
   }
 
-  const existingKey = await getUserOpenAIApiKey()
+  const [openAIKey, anthropicKey, provider] = await Promise.all([
+    getUserOpenAIApiKey(),
+    getUserAnthropicApiKey(),
+    getUserLLMProvider(),
+  ])
 
   return (
     <main className="container mx-auto p-4 space-y-6">
@@ -52,12 +70,26 @@ export default async function SettingsPage() {
 
       <Card className="max-w-md">
         <CardHeader>
+          <CardTitle>Model Provider</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground mb-2">
+            Choose which AI provider to use for workflows. You can store keys for
+            both and switch anytime.
+          </p>
+          <ModelProviderSelect initialProvider={provider} />
+        </CardContent>
+      </Card>
+
+      <Card className="max-w-md">
+        <CardHeader>
           <CardTitle>OpenAI API Key</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground mb-1">
-              Required to generate plans and code. Create your API key{" "}
+              Required to generate plans and code when using OpenAI. Create your
+              API key{" "}
               <a
                 href="https://platform.openai.com/api-keys"
                 target="_blank"
@@ -68,7 +100,30 @@ export default async function SettingsPage() {
               </a>
               .
             </p>
-            <ApiKeyInput initialKey={existingKey ?? ""} />
+            <OpenAIKeyInput initialKey={openAIKey ?? ""} />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="max-w-md">
+        <CardHeader>
+          <CardTitle>Anthropic API Key</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground mb-1">
+              Use Claude models by adding your Anthropic key. Create a key{" "}
+              <a
+                href="https://console.anthropic.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-blue-600"
+              >
+                here
+              </a>
+              .
+            </p>
+            <AnthropicKeyInput initialKey={anthropicKey ?? ""} />
           </div>
         </CardContent>
       </Card>
@@ -89,3 +144,4 @@ export default async function SettingsPage() {
     </main>
   )
 }
+

@@ -211,6 +211,18 @@ export const settingsSchema = z.object({
     .describe(
       "OpenAI API key used throughout the application (user-specific, optional)."
     ),
+  anthropicApiKey: z
+    .string()
+    .optional()
+    .describe(
+      "Anthropic API key used for Claude models (user-specific, optional)."
+    ),
+  llmProvider: z
+    .enum(["openai", "anthropic"]) // Global default provider selection per user
+    .optional()
+    .describe(
+      "Preferred LLM provider for workflows. Can be overridden per feature in the future."
+    ),
   autoPostPlanToGitHubIssue: z
     .boolean()
     .optional()
@@ -328,3 +340,4 @@ export type UserMessage = z.infer<typeof userMessageSchema>
 export type WorkflowRun = z.infer<typeof workflowRunSchema>
 export type WorkflowRunState = z.infer<typeof workflowRunStateSchema>
 export type WorkflowType = z.infer<typeof workflowTypeEnum>
+
