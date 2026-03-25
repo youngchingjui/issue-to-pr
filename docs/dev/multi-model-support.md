@@ -1,100 +1,182 @@
-# Multi-Model Support — Technical Design
+# Multi-Model Support — Technical Architecture
 
 User-facing requirements: [`docs/user/multi-model-support.md`](../user/multi-model-support.md)
 
-> This doc describes the **ideal state** of the system. It may not reflect the current implementation.
+> This doc describes the **ideal architectural state** of the system. It may not reflect the current implementation.
 
 ## Design goals
 
 - Let users supply their own API keys for each provider (BYOK).
 - Support model selection at three levels: system default, user default, per-generation override.
-- A single `LLMPort` abstraction is the only interface agents talk to — no provider-specific code in agent logic.
+- Each provider may use a fundamentally different agent runtime — the architecture accommodates this without forcing a single abstraction.
 - No provider is ever silently substituted; failure surfaces to the user.
+- Adding a new provider should not require changes to the orchestration or routing layers — only a new agent runtime and its configuration.
 
 ## API key management
 
-- Keys are stored per-user in the database, one field per provider.
-- Keys are encrypted at rest; never returned to the client in plaintext.
-- Validation happens at save time (a lightweight test call to the provider) and at generation time (surface provider error messages clearly).
-- A demo/fallback key (used when no user key exists) is OpenAI-only. There is no Anthropic demo key.
+See [`docs/dev/api-key-management.md`](api-key-management.md) for storage, validation, retrieval, and security details.
 
-## Model selection priority
+## Model selection and routing
+
+### Selection priority
 
 ```
 per-generation override  →  user default  →  system default
 ```
 
-The resolved provider and model are recorded on every generation run so they can be displayed in the UI.
+The resolved provider and model are recorded on every workflow run so they can be displayed in the UI.
 
-## Selection flow
+### Routing flow
+
+The orchestrator resolves which provider to use before any agent work begins. This happens in the worker process after a job is dequeued.
 
 ```mermaid
 flowchart TD
-    A[Generation triggered] --> B{Per-generation model set?}
-    B -- Yes --> E[Use per-generation model]
-    B -- No --> C{User default set?}
-    C -- Yes --> F[Use user default]
-    C -- No --> G[Use system default]
-    E --> H{API key available?}
-    F --> H
-    G --> H
-    H -- No --> I[Fail with clear error]
-    H -- Yes --> J[Run generation]
+    A[Job dequeued by worker] --> B[Resolve provider + model]
+    B --> C{API key available?}
+    C -- No --> D[Fail with clear error]
+    C -- Yes --> E{Which provider?}
+    E --> F[Provider-specific agent runtime]
+    F --> G[Code changes on branch + optional PR]
 ```
 
-## Architecture
+### Where routing happens
 
-### LLM port and adapters
+```mermaid
+flowchart LR
+    subgraph NextJS["NextJS App"]
+        WH[Webhook handler]
+        Settings[Settings UI]
+        Events[Event API / SSE]
+    end
 
-A single `LLMPort` interface defines all operations agents need (chat completion, streaming, etc.). Each provider has its own adapter implementing `LLMPort`. Agents never reference a provider directly — they receive an `LLMPort` instance at construction time.
+    subgraph Queue["Redis"]
+        BullMQ[Job Queue]
+    end
 
-### Models registry
+    subgraph Worker["Worker Process"]
+        Handler[Job handler]
+        Orchestrator[Orchestrator]
+        Router{Provider router}
+    end
 
-A models registry lists every supported model and associates each with its provider. This lets the runtime route to the correct adapter without string parsing. The registry should be easy to update when new models are released.
+    subgraph Containers["Ephemeral Docker Containers"]
+        C1[Container A<br/>Provider X runtime]
+        C2[Container B<br/>Provider Y runtime]
+    end
 
-### Agent construction
+    WH -->|enqueue job| BullMQ
+    BullMQ -->|dequeue| Handler
+    Handler --> Orchestrator
+    Orchestrator --> Router
+    Router --> C1
+    Router --> C2
+    C1 --> Events
+    C2 --> Events
+    Settings -->|store keys + preferences| Orchestrator
+```
 
-Agents accept a resolved `model` value at construction time. The caller (workflow orchestrator) resolves the model using the priority chain before constructing the agent.
+The routing decision is made in the **worker process** after the job is dequeued. The worker:
 
-### Settings UI
+1. Reads the user's provider preference and API key from the database.
+2. Selects the appropriate agent runtime.
+3. Creates (or reuses) a Docker container configured for that runtime.
+4. Invokes the agent.
 
-- A section per provider, each with an API key field.
-- A default provider/model selector.
-- API key input is a shared component pattern across providers.
+## Agent runtime architecture
 
-### Generation form
+Different providers have fundamentally different SDKs and execution models. Rather than forcing them behind a single interface, each provider has its own **agent runtime** — the code that manages the LLM conversation loop, tool execution, and interaction with the container.
 
-An optional model override field. When left blank, the resolved default is used.
+```mermaid
+flowchart TD
+    Orchestrator[Orchestrator]
+    Orchestrator --> RuntimeA[Agent Runtime A]
+    Orchestrator --> RuntimeB[Agent Runtime B]
+    Orchestrator --> RuntimeN[Agent Runtime N...]
 
-## Security
+    RuntimeA --> Container1[Container<br/>Image A]
+    RuntimeB --> Container2[Container<br/>Image B]
+    RuntimeN --> Container3[Container<br/>Image N]
 
-- API keys are never sent to the client. The settings page only shows a masked placeholder after saving.
-- Key retrieval happens server-side only (API routes and workflow workers).
-- API keys are never logged.
+    Container1 --> Result[Branch + PR]
+    Container2 --> Result
+    Container3 --> Result
+```
+
+### What all runtimes share
+
+Regardless of provider, every agent runtime:
+
+- Receives the same inputs: issue details, repo environment, GitHub credentials.
+- Produces the same outputs: code changes on a branch, optionally a pull request.
+- Emits events to the same event schema (so the UI can display progress uniformly).
+- Runs inside a Docker container with the repo cloned and a working branch checked out.
+- Has access to GitHub operations (push branch, create PR) via custom tools or SDK configuration.
+
+### How runtimes differ
+
+The key architectural distinction is **where the agent logic runs** relative to the container:
+
+| Aspect | External agent (e.g., OpenAI) | In-container agent (e.g., Claude Agent SDK) |
+|---|---|---|
+| **Agent process** | Runs in the worker; calls tools via `docker exec` | Runs inside the container as a subprocess |
+| **Tool execution** | Worker invokes tools, which shell into the container | SDK invokes its own built-in tools on the local filesystem |
+| **Docker image** | Generic base image (git, node, python, ripgrep) | Base image + SDK installed |
+| **Conversation loop** | Managed by our code in the worker | Managed by the SDK internally |
+| **Custom tools** | Defined as functions in our codebase | Provided to the SDK as MCP tools or tool definitions |
+
+```mermaid
+flowchart LR
+    subgraph External["External Agent Pattern"]
+        W1[Worker process<br/>runs agent loop] -->|docker exec| C1[Container<br/>code + repo]
+        W1 -->|API call| LLM1[LLM API]
+    end
+
+    subgraph InContainer["In-Container Agent Pattern"]
+        W2[Worker process<br/>invokes SDK] -->|start subprocess| C2[Container<br/>SDK + code + repo]
+        C2 -->|API call| LLM2[LLM API]
+    end
+```
+
+Provider-specific details are documented separately:
+
+- [`docs/dev/openai-models.md`](openai-models.md) — OpenAI agent runtime
+- [`docs/dev/claude-models.md`](claude-models.md) — Claude Agent SDK runtime
+
+## Event tracking
+
+Both runtimes emit events to the same Neo4j event chain and Redis streams so the UI can display workflow progress uniformly. Each runtime needs an adapter to map its native output format to our event schema:
+
+- LLM responses → `llmResponse` events
+- Tool invocations → `toolCall` / `toolCallResult` events
+- Workflow lifecycle → `workflowStarted` / `workflowCompleted` events
+- Provider and model recorded on the workflow run node
 
 ## Cost and token tracking
 
-Each generation run should record:
+Each workflow run records:
+
 - Provider
 - Model
 - Token counts (prompt + completion)
 
-Providers return token usage in different shapes. Normalize to a common schema before persisting.
+Providers return token usage in different shapes. Each runtime normalizes usage to a common schema before persisting.
 
 ## Error handling
 
-Provider error responses differ. Map them to a shared error type before surfacing to users:
+Provider error responses differ. Each runtime maps errors to a shared error type before surfacing to users:
 
 | Condition | User message |
 |---|---|
 | Invalid API key | "Your [Provider] API key is invalid. Check your Settings." |
 | Quota exceeded | "Your [Provider] usage limit has been reached." |
+| Insufficient funds | "Your [Provider] account has insufficient funds. Add credits and try again." |
 | Model not available | "The selected model is not available. Try a different model." |
-| Network / unknown | "Something went wrong with [Provider]. Try again." |
+| Any other error | "Something went wrong with [Provider]. Please try again." |
 
 ## Out of scope
 
-- Automatic provider fallback (if Anthropic fails, do not silently retry with OpenAI).
+- Automatic provider fallback (if one provider fails, do not silently retry with another).
 - Fine-tuned or self-hosted models.
 - Organization-level model policies.
 - Cost budgets or spend limits.
