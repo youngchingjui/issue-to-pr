@@ -19,6 +19,7 @@ Docs are organized by DX use case — a developer should be able to find the rig
 
 - [Deployment Guide](./deployment.md) — How to deploy Issue To PR (local dev and production)
 - [Infrastructure Requirements](./infrastructure.md) — DX requirements for deployment, Docker, NGINX
+- [Multi-Model Support](./multi-model-support.md) — Technical design for adding Anthropic/Claude as a model provider alongside OpenAI
 
 ## Planned
 

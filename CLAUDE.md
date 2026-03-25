@@ -63,6 +63,9 @@ We would likely not want to see any code examples in the specs. This should just
 - `docs/README.md` - Main documentation index
 - `docs/dev/deployment.md` - Production deployment guide
 - `docs/dev/infrastructure.md` - Infrastructure DX requirements and rationale
+- `docs/dev/multi-model-support.md` - Technical design for multi-model (OpenAI + Anthropic) support
+- `docs/user/multi-model-support.md` - User-facing requirements for choosing AI model providers
+- `docs/user/sessions.md` - Open questions around live, interactive workflow runs
 - `docs/components/README.md` - React components and patch tool format
 - `docs/internal/README.md` - Internal planning and architecture docs
 - `docs/internal/auth-flow-diagrams.md` - Auth flow Mermaid diagrams and technical docs

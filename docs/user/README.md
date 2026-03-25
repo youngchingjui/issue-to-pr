@@ -8,7 +8,8 @@ Each file represents a feature or capability from the user's perspective.
 
 ## Current files
 
-(none yet)
+- [Multi-Model Support](./multi-model-support.md) — How users add API keys and choose between OpenAI and Anthropic models
+- [Sessions](./sessions.md) — Open questions around live, interactive workflow runs
 
 ## Planned
 
