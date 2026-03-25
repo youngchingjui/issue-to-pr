@@ -10,7 +10,7 @@ Regardless of which model is selected, the end result is the same: code changes 
 
 ## User stories
 
-- As a user, I want to add API keys for my preferred model providers so I can use their models.
+- As a user, I want to add API keys for my preferred model providers so I can use their models. (See [API Key Management](api-key-management.md).)
 - As a user, I want to set a default model provider so all my generations use my preferred model without choosing it every time.
 - As a user, I want to pick a specific model for a particular generation when I want to override my default.
 - As a user, I want to see which model was used for each generation so I can compare results.
@@ -35,8 +35,7 @@ Regardless of which model is selected, the end result is the same: code changes 
 
 ## Settings
 
-- The Settings page has a section for each supported provider.
-- Each section has an API key field. Keys are saved securely and never displayed in full after saving.
+- The Settings page has a section for each supported provider with API key management. See [API Key Management](api-key-management.md) for details.
 - A separate field (or toggle) lets users pick their default provider.
 - Per-generation model selection appears in the generation form, not in Settings.
 
