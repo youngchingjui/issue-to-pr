@@ -7,9 +7,6 @@ import {
 } from "@/shared/entities/events/WorkflowEvent"
 import { llmProviderEnum } from "@/shared/lib/types"
 
-export { llmProviderEnum }
-export type { LLMProvider } from "@/shared/lib/types"
-
 // Tools
 export interface Tool<Schema extends ZodType, Output> {
   type: "function"

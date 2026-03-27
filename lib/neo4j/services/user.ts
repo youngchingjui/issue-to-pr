@@ -4,7 +4,8 @@ import { getGithubUser } from "@/lib/github/users"
 import { n4j } from "@/lib/neo4j/client"
 import { neo4jToJs } from "@/lib/neo4j/convert"
 import * as userRepo from "@/lib/neo4j/repositories/user"
-import { type LLMProvider, Settings, settingsSchema } from "@/lib/types"
+import { Settings, settingsSchema } from "@/lib/types"
+import type { LLMProvider } from "@/shared/lib/types"
 
 export async function getUserSettings(): Promise<Settings | null> {
   const user = await getGithubUser()
