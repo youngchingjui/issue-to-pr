@@ -83,6 +83,8 @@ We would likely not want to see any code examples in the specs. This should just
 - `docs/dev/claude-models.md` - Claude Agent SDK runtime (in-container agent pattern)
 - `docs/user/api-key-management.md` - How users add and manage provider API keys
 - `docs/user/multi-model-support.md` - User-facing requirements for choosing AI model providers
+- `docs/user/error-handling.md` - Error handling principles, categories, feedback channels, and pre-validation pattern
+- `docs/user/workflow-error-handling.md` - Workflow-specific error handling (pre-queue vs runtime, by trigger source)
 - `docs/user/sessions.md` - Open questions around live, interactive workflow runs
 - `docs/components/README.md` - React components and patch tool format
 - `docs/internal/README.md` - Internal planning and architecture docs

@@ -28,26 +28,31 @@ The resolved provider and model are recorded on every workflow run so they can b
 
 ### Routing flow
 
-The orchestrator resolves which provider to use before any agent work begins. This happens in the worker process after a job is dequeued.
+Provider resolution happens in two stages: **pre-queue validation** and **runtime resolution**.
 
-```mermaid
-flowchart TD
-    A[Job dequeued by worker] --> B[Resolve provider + model]
-    B --> C{API key available?}
-    C -- No --> D[Fail with clear error]
-    C -- Yes --> E{Which provider?}
-    E --> F[Provider-specific agent runtime]
-    F --> G[Code changes on branch + optional PR]
-```
+Pre-queue validation (in the API route or webhook handler) catches configuration errors that would definitely cause the job to fail — missing API keys, unsupported provider, no provider configured. If validation passes, the job is enqueued and the orchestrator handles runtime resolution: reading the provider preference and API key, selecting the agent runtime, and invoking it.
+
+When pre-queue validation fails, the error goes back through the same channel the user came from:
+
+| Stage | Purpose | Error feedback (web UI) | Error feedback (webhook) |
+|---|---|---|---|
+| **Pre-queue validation** | Reject jobs that will definitely fail (no key, unsupported provider) | Toast notification | GitHub issue/PR comment |
+| **Runtime resolution** | Resolve provider + key, route to agent runtime | Workflow timeline | Workflow timeline |
 
 ### Where routing happens
 
 ```mermaid
 flowchart LR
     subgraph NextJS["NextJS App"]
+        API[API route]
         WH[Webhook handler]
+        Val{Pre-queue<br/>validation}
         Settings[Settings UI]
         Events[Event API / SSE]
+    end
+
+    subgraph GitHub["GitHub"]
+        GH[Issue / PR comment]
     end
 
     subgraph Queue["Redis"]
@@ -65,7 +70,11 @@ flowchart LR
         C2[Container B<br/>Provider Y runtime]
     end
 
-    WH -->|enqueue job| BullMQ
+    API --> Val
+    WH --> Val
+    Val -->|config OK| BullMQ
+    Val -->|config error, web UI| Events
+    Val -->|config error, webhook| GH
     BullMQ -->|dequeue| Handler
     Handler --> Orchestrator
     Orchestrator --> Router
@@ -73,15 +82,19 @@ flowchart LR
     Router --> C2
     C1 --> Events
     C2 --> Events
-    Settings -->|store keys + preferences| Orchestrator
+    Settings -->|store keys + preferences| Val
 ```
 
-The routing decision is made in the **worker process** after the job is dequeued. The worker:
+**Pre-queue validation** catches errors that can be detected from settings alone — no need to start a workflow to know it will fail. The feedback goes back through the channel the user came from: toast for web UI, GitHub comment for webhooks.
+
+**Runtime resolution** (worker/orchestrator) resolves the provider and retrieves the API key after dequeue. The orchestrator:
 
 1. Reads the user's provider preference and API key from the database.
 2. Selects the appropriate agent runtime.
 3. Creates (or reuses) a Docker container configured for that runtime.
 4. Invokes the agent.
+
+The orchestrator's job is to resolve and retrieve — not to duplicate the pre-queue validation. If retrieval fails naturally (e.g., key was revoked between enqueue and dequeue), that surfaces as a runtime error in the workflow timeline.
 
 ## Agent runtime architecture
 

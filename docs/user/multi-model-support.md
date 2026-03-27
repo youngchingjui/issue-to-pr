@@ -31,7 +31,8 @@ Regardless of which model is selected, the end result is the same: code changes 
 - Users can change their default provider at any time in Settings.
 - The list of available models and providers should always be kept up to date, especially when new models or providers become available.
 - A per-generation selection overrides the default, but only for that generation.
-- If a selected provider's API key is missing or invalid, the generation fails with a clear message — it does not silently fall back to another provider.
+- If a selected provider's API key is missing or invalid, the user sees an immediate error when they try to start a generation — before any work begins. It does not silently fall back to another provider.
+- If a selected provider is not yet supported, the user sees the same immediate error with guidance on which providers are currently available.
 
 ## Settings
 
