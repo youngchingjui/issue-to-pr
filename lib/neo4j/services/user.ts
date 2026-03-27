@@ -4,7 +4,7 @@ import { getGithubUser } from "@/lib/github/users"
 import { n4j } from "@/lib/neo4j/client"
 import { neo4jToJs } from "@/lib/neo4j/convert"
 import * as userRepo from "@/lib/neo4j/repositories/user"
-import { Settings, settingsSchema } from "@/lib/types"
+import { type LLMProvider, Settings, settingsSchema } from "@/lib/types"
 
 export async function getUserSettings(): Promise<Settings | null> {
   const user = await getGithubUser()
@@ -47,16 +47,14 @@ export async function setUserAnthropicApiKey(apiKey: string): Promise<void> {
       userRepo.setUserSettings(tx, user.login, {
         type: "user",
         anthropicApiKey: apiKey,
-      } as unknown as Parameters<typeof userRepo.setUserSettings>[2]
-    ))
+      })
+    )
   } finally {
     await session.close()
   }
 }
 
-export async function setUserLLMProvider(
-  provider: "openai" | "anthropic"
-): Promise<void> {
+export async function setUserLLMProvider(provider: LLMProvider): Promise<void> {
   const user = await getGithubUser()
   if (!user) throw new Error("User not authenticated")
 
@@ -66,8 +64,8 @@ export async function setUserLLMProvider(
       userRepo.setUserSettings(tx, user.login, {
         type: "user",
         llmProvider: provider,
-      } as unknown as Parameters<typeof userRepo.setUserSettings>[2]
-    ))
+      })
+    )
   } finally {
     await session.close()
   }
@@ -107,9 +105,7 @@ export async function getUserAnthropicApiKey(): Promise<string | null> {
   return null
 }
 
-export async function getUserLLMProvider(): Promise<
-  "openai" | "anthropic" | null
-> {
+export async function getUserLLMProvider(): Promise<LLMProvider | null> {
   const settings = await getUserSettings()
   return settings?.llmProvider ?? null
 }
@@ -191,4 +187,3 @@ export async function getUserRoles(username: string): Promise<string[]> {
     await session.close()
   }
 }
-

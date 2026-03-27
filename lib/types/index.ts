@@ -5,6 +5,10 @@ import {
   WorkflowStateEventSchema,
   WorkflowStatusEventSchema,
 } from "@/shared/entities/events/WorkflowEvent"
+import { llmProviderEnum } from "@/shared/lib/types"
+
+export { llmProviderEnum }
+export type { LLMProvider } from "@/shared/lib/types"
 
 // Tools
 export interface Tool<Schema extends ZodType, Output> {
@@ -217,8 +221,7 @@ export const settingsSchema = z.object({
     .describe(
       "Anthropic API key used for Claude models (user-specific, optional)."
     ),
-  llmProvider: z
-    .enum(["openai", "anthropic"]) // Global default provider selection per user
+  llmProvider: llmProviderEnum
     .optional()
     .describe(
       "Preferred LLM provider for workflows. Can be overridden per feature in the future."
@@ -340,4 +343,3 @@ export type UserMessage = z.infer<typeof userMessageSchema>
 export type WorkflowRun = z.infer<typeof workflowRunSchema>
 export type WorkflowRunState = z.infer<typeof workflowRunStateSchema>
 export type WorkflowType = z.infer<typeof workflowTypeEnum>
-

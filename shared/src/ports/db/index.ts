@@ -5,6 +5,7 @@ import {
   type WorkflowRunActor,
   type WorkflowRunTypes,
 } from "@/shared/entities/WorkflowRun"
+import type { LLMProvider } from "@/shared/lib/types"
 
 export type Target = {
   issue?: { id?: string; number: number; repoFullName: string }
@@ -98,6 +99,12 @@ export interface DatabaseStorage {
       getOpenAIKey(
         userId: string
       ): Promise<Result<string | null, SettingsError>>
+      getAnthropicKey(
+        userId: string
+      ): Promise<Result<string | null, SettingsError>>
+      getLLMProvider(
+        userId: string
+      ): Promise<Result<LLMProvider | null, SettingsError>>
     }
   }
 }
