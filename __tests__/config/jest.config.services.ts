@@ -18,9 +18,8 @@ import path from "path"
 
 import baseConfig from "./jest.config.base"
 
-// Load environment variables for services
+// Load environment variables for services (test-specific only — NOT .env.local, which is for the NextJS app)
 dotenv.config({ path: path.resolve(__dirname, "../.env") })
-dotenv.config({ path: path.resolve(__dirname, "../../.env.local") })
 
 const createJestConfig = nextJest({
   dir: ".",

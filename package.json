@@ -26,6 +26,8 @@
     "lint:tsc:tests": "tsc --noEmit -p __tests__/tsconfig.json",
     "check:all": "next lint; prettier --check .; tsc --noEmit",
     "test": "jest",
+    "test:infra:up": "docker compose -f docker/docker-compose.e2e-test.yml up -d",
+    "test:infra:down": "docker compose -f docker/docker-compose.e2e-test.yml down -v",
     "test:services": "jest -c __tests__/config/jest.config.services.ts && vitest run -c __tests__/config/vitest.config.services.ts",
     "test:services:jest": "jest -c __tests__/config/jest.config.services.ts",
     "test:services:vitest": "vitest run -c __tests__/config/vitest.config.services.ts",

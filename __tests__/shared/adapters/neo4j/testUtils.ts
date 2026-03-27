@@ -12,7 +12,7 @@ import {
  */
 
 // Load test-specific environment variables from __tests__/.env.neo4j
-// This allows tests to use a separate test database
+// This allows tests to use a separate test database (port 17687)
 const testEnvPath = path.resolve(__dirname, "../../../.env.neo4j")
 dotenv.config({ path: testEnvPath })
 
@@ -41,7 +41,8 @@ export function createTestDataSource(): Neo4jDataSource {
 }
 
 /**
- * Verifies the Neo4j connection is working
+ * Verifies the Neo4j connection is working.
+ * Throws a clear error if Docker services aren't running.
  */
 export async function verifyConnection(ds: Neo4jDataSource): Promise<void> {
   const session = ds.getSession("READ")
@@ -51,6 +52,16 @@ export async function verifyConnection(ds: Neo4jDataSource): Promise<void> {
     if (value !== 1) {
       throw new Error("Connection test failed - unexpected result")
     }
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    if (msg.includes("Failed to connect") || msg.includes("ECONNREFUSED")) {
+      throw new Error(
+        "Could not connect to Neo4j. Service tests require the test Docker infrastructure.\n" +
+          "Run `pnpm test:infra:up` to start test Neo4j (port 17687) and Redis (port 16379), then retry.\n" +
+          "Stop with `pnpm test:infra:down` when done."
+      )
+    }
+    throw error
   } finally {
     await session.close()
   }
