@@ -244,6 +244,138 @@ describe("StorageAdapter - Read Operations", () => {
 
       // TODO: Probably need some additional tests for error cases.
     })
+
+    describe("getAnthropicKey", () => {
+      it("should return ok(null) for empty userId", async () => {
+        const result = await adapter.settings.user.getAnthropicKey("")
+        expect(result.ok).toBe(true)
+        if (result.ok) {
+          expect(result.value).toBeNull()
+        }
+      })
+
+      it("should return err(UserNotFound) for non-existent user", async () => {
+        const result = await adapter.settings.user.getAnthropicKey(
+          "non-existent-user-12345"
+        )
+        expect(result.ok).toBe(false)
+        if (!result.ok) {
+          expect(result.error).toBe("UserNotFound")
+        }
+      })
+
+      it("should return ok(null) when user exists but has no Anthropic key", async () => {
+        const session = dataSource.getSession("READ")
+        try {
+          const queryResult = await session.run(`
+            MATCH (u:User)-[:HAS_SETTINGS]->(s:Settings)
+            WHERE s.anthropicApiKey IS NULL OR s.anthropicApiKey = ''
+            RETURN u.username AS username
+            LIMIT 1
+          `)
+
+          if (queryResult.records.length === 0) {
+            console.log(
+              "⚠️  No users without Anthropic keys found. Skipping test."
+            )
+            return
+          }
+
+          const username = queryResult.records[0].get("username") as string
+          const result = await adapter.settings.user.getAnthropicKey(username)
+
+          expect(result.ok).toBe(true)
+          if (result.ok) {
+            expect(result.value).toBeNull()
+          }
+        } finally {
+          await session.close()
+        }
+      })
+
+      it("should retrieve Anthropic key if it exists in database", async () => {
+        const session = dataSource.getSession("READ")
+        try {
+          const queryResult = await session.run(`
+            MATCH (u:User)-[:HAS_SETTINGS]->(s:Settings)
+            WHERE s.anthropicApiKey IS NOT NULL AND s.anthropicApiKey <> ''
+            RETURN u.username AS username
+            LIMIT 1
+          `)
+
+          if (queryResult.records.length === 0) {
+            console.log(
+              "⚠️  No users with Anthropic keys found in database. Skipping test."
+            )
+            return
+          }
+
+          const existingUsername = queryResult.records[0].get(
+            "username"
+          ) as string
+          const result =
+            await adapter.settings.user.getAnthropicKey(existingUsername)
+
+          expect(result.ok).toBe(true)
+          if (result.ok) {
+            expect(result.value).toBeTruthy()
+            expect(typeof result.value).toBe("string")
+            expect(result.value!.length).toBeGreaterThan(0)
+          }
+        } finally {
+          await session.close()
+        }
+      })
+    })
+
+    describe("getLLMProvider", () => {
+      it("should return ok(null) for empty userId", async () => {
+        const result = await adapter.settings.user.getLLMProvider("")
+        expect(result.ok).toBe(true)
+        if (result.ok) {
+          expect(result.value).toBeNull()
+        }
+      })
+
+      it("should return err(UserNotFound) for non-existent user", async () => {
+        const result = await adapter.settings.user.getLLMProvider(
+          "non-existent-user-12345"
+        )
+        expect(result.ok).toBe(false)
+        if (!result.ok) {
+          expect(result.error).toBe("UserNotFound")
+        }
+      })
+
+      it("should return ok(null) or ok(provider) for existing user", async () => {
+        const session = dataSource.getSession("READ")
+        try {
+          const queryResult = await session.run(`
+            MATCH (u:User)-[:HAS_SETTINGS]->(s:Settings)
+            RETURN u.username AS username
+            LIMIT 1
+          `)
+
+          if (queryResult.records.length === 0) {
+            console.log("⚠️  No users with settings found. Skipping test.")
+            return
+          }
+
+          const username = queryResult.records[0].get("username") as string
+          const result = await adapter.settings.user.getLLMProvider(username)
+
+          expect(result.ok).toBe(true)
+          if (result.ok) {
+            // Should be null (no preference) or a valid provider
+            if (result.value !== null) {
+              expect(["openai", "anthropic"]).toContain(result.value)
+            }
+          }
+        } finally {
+          await session.close()
+        }
+      })
+    })
   })
 
   describe("Database Connectivity", () => {
