@@ -4,8 +4,11 @@ import { Octokit } from "@octokit/rest"
 import { EventBusAdapter } from "@/shared/adapters/ioredis/EventBusAdapter"
 import { StorageAdapter } from "@/shared/adapters/neo4j/StorageAdapter"
 import { setAccessToken } from "@/shared/auth"
-import type { LLMProvider } from "@/shared/lib/types"
 import { getPrivateKeyFromFile } from "@/shared/services/fs"
+import {
+  checkProviderSupported,
+  resolveApiKey,
+} from "@/shared/services/resolveApiKey"
 import { autoResolveIssue as autoResolveIssueWorkflow } from "@/shared/usecases/workflows/autoResolveIssue"
 
 import { getEnvVar, publishJobStatus } from "../helper"
@@ -46,39 +49,17 @@ export async function autoResolveIssue(
   const settings = storage.settings.user
 
   // Resolve which LLM provider to use.
-  // Priority: explicit user preference → infer from available keys → fail.
+  // Priority: explicit user preference → single available key → fail.
   // See docs/user/multi-model-support.md "Defaults and fallbacks".
-  const providerResult = await settings.getLLMProvider(githubLogin)
-  const explicitProvider =
-    providerResult.ok && providerResult.value ? providerResult.value : null
-
-  let provider: LLMProvider
-  if (explicitProvider) {
-    provider = explicitProvider
-  } else {
-    // No explicit preference — infer from which keys exist
-    const [openaiKey, anthropicKey] = await Promise.all([
-      settings.getOpenAIKey(githubLogin),
-      settings.getAnthropicKey(githubLogin),
-    ])
-    const hasOpenAI = openaiKey.ok && !!openaiKey.value
-    const hasAnthropic = anthropicKey.ok && !!anthropicKey.value
-
-    if (hasOpenAI) {
-      provider = "openai"
-    } else if (hasAnthropic) {
-      provider = "anthropic"
-    } else {
-      throw new Error(
-        "No API key configured. Please add an API key for at least one provider in Settings."
-      )
-    }
+  const resolved = await resolveApiKey(settings, githubLogin)
+  if (!resolved.ok) {
+    throw new Error(resolved.error)
   }
+  const { provider } = resolved
 
-  if (provider === "anthropic") {
-    throw new Error(
-      "Anthropic Claude support is coming soon. Please switch your provider to OpenAI in Settings to run workflows."
-    )
+  const unsupported = checkProviderSupported(provider)
+  if (unsupported) {
+    throw new Error(unsupported)
   }
 
   // TODO: Maybe we should move all data-loading functions (something akin to all `async` functions), anything that accesses

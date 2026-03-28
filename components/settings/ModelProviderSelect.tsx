@@ -18,7 +18,7 @@ interface Props {
 
 export default function ModelProviderSelect({ initialProvider }: Props) {
   const [provider, setProvider] = useState<"openai" | "anthropic" | "">(
-    initialProvider ?? "openai"
+    initialProvider ?? ""
   )
   const [isPending, startTransition] = useTransition()
 
@@ -31,7 +31,7 @@ export default function ModelProviderSelect({ initialProvider }: Props) {
         Model Provider
       </Label>
       <Select
-        value={provider || "openai"}
+        value={provider || ""}
         onValueChange={(v) => {
           const val = v as "openai" | "anthropic"
           setProvider(val)
@@ -46,10 +46,11 @@ export default function ModelProviderSelect({ initialProvider }: Props) {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="openai">OpenAI</SelectItem>
-          <SelectItem value="anthropic">Anthropic Claude</SelectItem>
+          <SelectItem value="anthropic" disabled>
+            Anthropic Claude (coming soon)
+          </SelectItem>
         </SelectContent>
       </Select>
     </div>
   )
 }
-

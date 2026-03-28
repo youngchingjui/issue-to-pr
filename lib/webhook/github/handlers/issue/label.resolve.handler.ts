@@ -1,21 +1,26 @@
 import { v4 as uuidv4 } from "uuid"
 
+import { getInstallationOctokit } from "@/lib/github"
 import { getRepoFromString } from "@/lib/github/content"
 import { getIssue } from "@/lib/github/issues"
 import { neo4jDs } from "@/lib/neo4j"
-import * as userRepo from "@/lib/neo4j/repositories/user"
 import { updateJobStatus } from "@/lib/redis-old"
 import { runWithInstallationId } from "@/lib/utils/utils-server"
 import type { IssuesPayload } from "@/lib/webhook/github/types"
 import { resolveIssue } from "@/lib/workflows/resolveIssue"
-import { makeSettingsReaderAdapter } from "@/shared/adapters/neo4j/repositories/SettingsReaderAdapter"
+import { StorageAdapter } from "@/shared/adapters/neo4j/StorageAdapter"
+import {
+  checkProviderSupported,
+  resolveApiKey,
+} from "@/shared/services/resolveApiKey"
 
 const POST_TO_GITHUB_SETTING = true // TODO: Set setting in database
 const CREATE_PR_SETTING = true // TODO: Set setting in database
 
 /**
  * Handler: Issue labeled with "resolve"
- * - Validates environment and user API key
+ * - Validates environment and user API key (provider-aware)
+ * - Posts GitHub comment on validation failure
  * - Uses installation id context to authenticate Octokit requests
  * - Launches resolveIssue workflow (fire-and-forget)
  */
@@ -29,7 +34,6 @@ export async function handleIssueLabelResolve({
   const repoFullName = payload.repository?.full_name
   const issueNumber = payload.issue?.number
   const labelerLogin = payload.sender?.login
-  const labelerId = payload.sender?.id
 
   if (!repoFullName || typeof issueNumber !== "number") {
     console.error(
@@ -43,19 +47,36 @@ export async function handleIssueLabelResolve({
     return
   }
 
-  const settingsReader = makeSettingsReaderAdapter({
-    getSession: () => neo4jDs.getSession("READ"),
-    userRepo: userRepo,
-  })
-
-  const apiKeyResult = await settingsReader.getOpenAIKey(labelerLogin)
-  if (!apiKeyResult.ok || !apiKeyResult.value) {
-    console.error(
-      `Missing OpenAI API key for user ${labelerLogin}. Skipping resolveIssue.`
-    )
+  const storage = new StorageAdapter(neo4jDs)
+  const resolved = await resolveApiKey(storage.settings.user, labelerLogin)
+  const unsupported = resolved.ok
+    ? checkProviderSupported(resolved.provider)
+    : null
+  if (!resolved.ok || unsupported) {
+    const errorMessage = resolved.ok ? unsupported! : resolved.error
+    // Post actionable feedback as a GitHub issue comment
+    try {
+      const octokit = await getInstallationOctokit(Number(installationId))
+      const [owner, repo] = repoFullName.split("/")
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || ""
+      const settingsUrl = baseUrl
+        ? `${baseUrl.replace(/\/$/, "")}/settings`
+        : null
+      const body =
+        errorMessage +
+        (settingsUrl ? `\n\nUpdate your settings here: ${settingsUrl}` : "")
+      await octokit.rest.issues.createComment({
+        owner,
+        repo,
+        issue_number: issueNumber,
+        body,
+      })
+    } catch (e) {
+      console.error("[Webhook] Failed to post API key error comment:", e)
+    }
     return
   }
-  const apiKey = apiKeyResult.value
+  const apiKey = resolved.apiKey
   const postToGithub = POST_TO_GITHUB_SETTING
   const createPR = CREATE_PR_SETTING
 

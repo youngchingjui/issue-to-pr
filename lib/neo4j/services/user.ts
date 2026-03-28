@@ -25,12 +25,17 @@ export async function setUserOpenAIApiKey(apiKey: string): Promise<void> {
   const user = await getGithubUser()
   if (!user) throw new Error("User not authenticated")
 
+  // If no default provider is set, make this the default
+  const currentProvider = await getUserLLMProvider()
+  const needsDefault = !currentProvider
+
   const session = await n4j.getSession()
   try {
     await session.executeWrite((tx) =>
       userRepo.setUserSettings(tx, user.login, {
         type: "user",
         openAIApiKey: apiKey,
+        ...(needsDefault && { llmProvider: "openai" as const }),
       })
     )
   } finally {
@@ -42,12 +47,17 @@ export async function setUserAnthropicApiKey(apiKey: string): Promise<void> {
   const user = await getGithubUser()
   if (!user) throw new Error("User not authenticated")
 
+  // If no default provider is set, make this the default
+  const currentProvider = await getUserLLMProvider()
+  const needsDefault = !currentProvider
+
   const session = await n4j.getSession()
   try {
     await session.executeWrite((tx) =>
       userRepo.setUserSettings(tx, user.login, {
         type: "user",
         anthropicApiKey: apiKey,
+        ...(needsDefault && { llmProvider: "anthropic" as const }),
       })
     )
   } finally {
@@ -109,6 +119,87 @@ export async function getUserAnthropicApiKey(): Promise<string | null> {
 export async function getUserLLMProvider(): Promise<LLMProvider | null> {
   const settings = await getUserSettings()
   return settings?.llmProvider ?? null
+}
+
+/**
+ * Resolve the user's API key based on their provider preference.
+ * See docs/user/multi-model-support.md "Defaults and fallbacks".
+ *
+ * Priority: explicit provider preference → single available key → error.
+ * No implicit provider preference — if multiple keys exist with no default set,
+ * the user must choose explicitly.
+ */
+export async function resolveUserApiKey(): Promise<
+  | { ok: true; apiKey: string; provider: LLMProvider }
+  | { ok: false; error: string }
+> {
+  const settings = await getUserSettings()
+  if (!settings) {
+    return {
+      ok: false,
+      error:
+        "No API key configured. Please add an API key for at least one provider in Settings.",
+    }
+  }
+
+  const explicitProvider = settings.llmProvider ?? null
+
+  const getKey = (provider: LLMProvider): string | null => {
+    if (provider === "openai") {
+      const key = settings.openAIApiKey?.trim()
+      if (key) return key
+      const hasDemoAccess = settings.roles?.includes("demo")
+      const demoKey = process.env.OPENAI_DEMO_API_KEY?.trim()
+      if (hasDemoAccess && demoKey) return demoKey
+      return null
+    }
+    if (provider === "anthropic") {
+      const key = settings.anthropicApiKey?.trim()
+      if (key) return key
+      const hasDemoAccess = settings.roles?.includes("demo")
+      const demoKey = process.env.ANTHROPIC_API_KEY?.trim()
+      if (hasDemoAccess && demoKey) return demoKey
+      return null
+    }
+    return null
+  }
+
+  // Explicit provider preference — check that provider's key
+  if (explicitProvider) {
+    const key = getKey(explicitProvider)
+    if (!key) {
+      const providerName =
+        explicitProvider === "openai" ? "OpenAI" : "Anthropic"
+      return {
+        ok: false,
+        error: `Your ${providerName} API key is missing. Please add it in Settings.`,
+      }
+    }
+    return { ok: true, apiKey: key, provider: explicitProvider }
+  }
+
+  // No explicit preference — check what keys are available
+  const hasOpenAI = !!getKey("openai")
+  const hasAnthropic = !!getKey("anthropic")
+
+  if (hasOpenAI && hasAnthropic) {
+    return {
+      ok: false,
+      error:
+        "You have API keys for multiple providers but no default selected. Please choose a default provider in Settings.",
+    }
+  }
+
+  if (hasOpenAI)
+    return { ok: true, apiKey: getKey("openai")!, provider: "openai" }
+  if (hasAnthropic)
+    return { ok: true, apiKey: getKey("anthropic")!, provider: "anthropic" }
+
+  return {
+    ok: false,
+    error:
+      "No API key configured. Please add an API key for at least one provider in Settings.",
+  }
 }
 
 /**

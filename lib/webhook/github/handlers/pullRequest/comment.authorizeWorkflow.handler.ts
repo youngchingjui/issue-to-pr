@@ -5,6 +5,10 @@ import { neo4jDs } from "@/lib/neo4j"
 import { StorageAdapter } from "@/shared/adapters/neo4j/StorageAdapter"
 import { WORKFLOW_JOBS_QUEUE } from "@/shared/entities/Queue"
 import { addJob } from "@/shared/services/job"
+import {
+  checkProviderSupported,
+  resolveApiKey,
+} from "@/shared/services/resolveApiKey"
 
 // Trigger keyword to activate the workflow
 const TRIGGER_KEYWORD = "@issuetopr"
@@ -103,47 +107,27 @@ export async function handlePullRequestComment({
     return { status: "rejected", reason: "not_owner" as const }
   }
 
-  // Verify the user has connected account and API key
+  // Verify the user has connected account and API key for their selected provider
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || ""
   const settingsUrl = baseUrl ? `${baseUrl.replace(/\/$/, "")}/settings` : null
 
-  let apiKeyResult:
-    | { ok: true; value: string | null }
-    | { ok: false; error: string }
+  let resolved: Awaited<ReturnType<typeof resolveApiKey>>
   try {
     const storage = new StorageAdapter(neo4jDs)
-    apiKeyResult = await storage.settings.user.getOpenAIKey(commenterLogin)
+    resolved = await resolveApiKey(storage.settings.user, commenterLogin)
   } catch (e) {
     console.error("[Webhook] Settings lookup failed:", e)
     return { status: "error", reason: "settings_lookup_failed" as const }
   }
 
-  // Handle user not found in database
-  if (!apiKeyResult.ok) {
+  const unsupported = resolved.ok
+    ? checkProviderSupported(resolved.provider)
+    : null
+  if (!resolved.ok || unsupported) {
+    const errorMessage = resolved.ok ? unsupported! : resolved.error
     const body =
-      `Thanks for the request! It looks like you don't have an IssueToPR account yet. ` +
-      `Please sign in to IssueToPR first to connect your GitHub account and add your LLM API key.` +
-      (settingsUrl ? `\n\nGet started here: ${settingsUrl}` : "")
-
-    try {
-      await octokit.rest.issues.createComment({
-        owner,
-        repo,
-        issue_number: issueNumber,
-        body,
-      })
-    } catch (e) {
-      console.error("[Webhook] Failed to post account setup guidance:", e)
-    }
-
-    return { status: "rejected", reason: "user_not_found" as const }
-  }
-
-  // Handle missing API key (user exists but hasn't configured it)
-  if (!apiKeyResult.value) {
-    const body =
-      `Thanks for the request! To use IssueToPR from GitHub comments, please add your LLM API key in settings.` +
-      (settingsUrl ? `\n\nAdd your key here: ${settingsUrl}` : "")
+      errorMessage +
+      (settingsUrl ? `\n\nUpdate your settings here: ${settingsUrl}` : "")
 
     try {
       await octokit.rest.issues.createComment({
