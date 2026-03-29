@@ -82,8 +82,12 @@ export async function resolveApiKey(
     settings.getAnthropicKey(userId),
   ])
 
-  const hasOpenAI = openaiResult.ok && !!openaiResult.value
-  const hasAnthropic = anthropicResult.ok && !!anthropicResult.value
+  if (!openaiResult.ok || !anthropicResult.ok) {
+    return { ok: false, error: "Failed to read settings. Please try again." }
+  }
+
+  const hasOpenAI = !!openaiResult.value
+  const hasAnthropic = !!anthropicResult.value
 
   if (hasOpenAI && hasAnthropic) {
     return {

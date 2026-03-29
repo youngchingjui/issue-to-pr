@@ -68,7 +68,8 @@ Everything else (file I/O, git, shell, search) is handled by the SDK's built-in 
 ## Docker image
 
 Requires a dedicated `claude-agent` image that extends `agent-base` with:
-- Claude Agent SDK (`@anthropic-ai/claude-code`) installed globally
+
+- Claude Agent SDK (`@anthropic-ai/claude-agent-sdk`) installed globally
 - Any SDK dependencies
 
 This image is built and published alongside the existing `agent-base` image.

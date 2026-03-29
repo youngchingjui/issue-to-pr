@@ -20,7 +20,7 @@ See [`docs/dev/api-key-management.md`](api-key-management.md) for storage, valid
 
 ### Selection priority
 
-```
+```text
 per-generation override  →  user default  →  system default
 ```
 

@@ -129,17 +129,10 @@ const AnthropicApiKeyInput = ({ initialKey = "", onVerified }: Props) => {
         void verifyKey(apiKey)
       }
     } catch (error) {
-      console.error("Failed to verify API key:", error)
-      try {
-        await setUserAnthropicApiKey(apiKey)
-        setLastSavedKey(apiKey)
-      } catch (saveErr) {
-        console.error("Failed to save API key:", saveErr)
-      }
-      setIsEditing(false)
+      console.error("Failed to save API key:", error)
       setVerificationState("error")
       setValidationMessage(
-        "We couldn't verify this API key due to a network issue. It has been saved, but features may not work until it's valid."
+        "We couldn't save this API key. Please try again."
       )
     } finally {
       setIsSaving(false)

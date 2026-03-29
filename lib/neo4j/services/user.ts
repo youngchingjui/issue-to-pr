@@ -109,10 +109,6 @@ export async function getUserAnthropicApiKey(): Promise<string | null> {
   const userKey = settings.anthropicApiKey?.trim()
   if (userKey) return userKey
 
-  const hasDemoAccess = settings.roles?.includes("demo")
-  const demoKey = process.env.ANTHROPIC_API_KEY?.trim()
-  if (hasDemoAccess && demoKey) return demoKey
-
   return null
 }
 

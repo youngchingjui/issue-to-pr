@@ -36,7 +36,7 @@ export interface SettingsReaderPort {
 
   /**
    * Fetch the user's preferred LLM provider.
-   * Returns ok(null) if the user has no preference set (defaults to "openai").
+   * Returns ok(null) if the user has no preference set; resolution happens elsewhere.
    */
   getLLMProvider(
     userId: string
