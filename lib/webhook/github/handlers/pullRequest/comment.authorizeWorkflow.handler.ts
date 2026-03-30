@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from "uuid"
 
 import { getInstallationOctokit } from "@/lib/github"
 import { neo4jDs } from "@/lib/neo4j"
+import { postApiKeyErrorComment } from "@/lib/webhook/github/postApiKeyErrorComment"
 import { StorageAdapter } from "@/shared/adapters/neo4j/StorageAdapter"
 import { WORKFLOW_JOBS_QUEUE } from "@/shared/entities/Queue"
 import { addJob } from "@/shared/services/job"
@@ -108,9 +109,6 @@ export async function handlePullRequestComment({
   }
 
   // Verify the user has connected account and API key for their selected provider
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || ""
-  const settingsUrl = baseUrl ? `${baseUrl.replace(/\/$/, "")}/settings` : null
-
   let resolved: Awaited<ReturnType<typeof resolveApiKey>>
   try {
     const storage = new StorageAdapter(neo4jDs)
@@ -125,21 +123,12 @@ export async function handlePullRequestComment({
     : null
   if (!resolved.ok || unsupported) {
     const errorMessage = resolved.ok ? unsupported! : resolved.error
-    const body =
-      errorMessage +
-      (settingsUrl ? `\n\nUpdate your settings here: ${settingsUrl}` : "")
-
-    try {
-      await octokit.rest.issues.createComment({
-        owner,
-        repo,
-        issue_number: issueNumber,
-        body,
-      })
-    } catch (e) {
-      console.error("[Webhook] Failed to post settings guidance:", e)
-    }
-
+    await postApiKeyErrorComment({
+      installationId,
+      repoFullName,
+      issueNumber,
+      errorMessage,
+    })
     return { status: "rejected", reason: "missing_api_key" as const }
   }
 

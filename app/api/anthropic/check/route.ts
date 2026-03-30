@@ -49,10 +49,12 @@ export const POST = async (req: NextRequest) => {
       )
     } else {
       const errorData: unknown = await response.json().catch(() => ({}))
-      const errorSchema = z.object({ error: z.string() })
+      const errorSchema = z.object({
+        error: z.object({ message: z.string() }),
+      })
       const errorParsed = errorSchema.safeParse(errorData)
       const errorMessage = errorParsed.success
-        ? errorParsed.data.error
+        ? errorParsed.data.error.message
         : "An error occurred"
       return NextResponse.json(
         { error: errorMessage },

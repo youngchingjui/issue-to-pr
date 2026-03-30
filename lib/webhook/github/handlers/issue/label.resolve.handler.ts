@@ -1,11 +1,11 @@
 import { v4 as uuidv4 } from "uuid"
 
-import { getInstallationOctokit } from "@/lib/github"
 import { getRepoFromString } from "@/lib/github/content"
 import { getIssue } from "@/lib/github/issues"
 import { neo4jDs } from "@/lib/neo4j"
 import { updateJobStatus } from "@/lib/redis-old"
 import { runWithInstallationId } from "@/lib/utils/utils-server"
+import { postApiKeyErrorComment } from "@/lib/webhook/github/postApiKeyErrorComment"
 import type { IssuesPayload } from "@/lib/webhook/github/types"
 import { resolveIssue } from "@/lib/workflows/resolveIssue"
 import { StorageAdapter } from "@/shared/adapters/neo4j/StorageAdapter"
@@ -54,26 +54,12 @@ export async function handleIssueLabelResolve({
     : null
   if (!resolved.ok || unsupported) {
     const errorMessage = resolved.ok ? unsupported! : resolved.error
-    // Post actionable feedback as a GitHub issue comment
-    try {
-      const octokit = await getInstallationOctokit(Number(installationId))
-      const [owner, repo] = repoFullName.split("/")
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || ""
-      const settingsUrl = baseUrl
-        ? `${baseUrl.replace(/\/$/, "")}/settings`
-        : null
-      const body =
-        errorMessage +
-        (settingsUrl ? `\n\nUpdate your settings here: ${settingsUrl}` : "")
-      await octokit.rest.issues.createComment({
-        owner,
-        repo,
-        issue_number: issueNumber,
-        body,
-      })
-    } catch (e) {
-      console.error("[Webhook] Failed to post API key error comment:", e)
-    }
+    await postApiKeyErrorComment({
+      installationId: Number(installationId),
+      repoFullName,
+      issueNumber,
+      errorMessage,
+    })
     return
   }
   const apiKey = resolved.apiKey

@@ -5,6 +5,7 @@ import type {
   QueryResult,
 } from "neo4j-driver"
 
+import { llmProviderEnum } from "@/shared/lib/types"
 import type { LLMProvider } from "@/shared/lib/types"
 
 // Minimal shape required by SettingsReaderAdapter
@@ -38,9 +39,10 @@ export async function getUserSettings(
     | UserSettingsNode
     | undefined
   if (!settings) return null
+  const providerParsed = llmProviderEnum.safeParse(settings.llmProvider)
   return {
     openAIApiKey: settings.openAIApiKey ?? null,
     anthropicApiKey: settings.anthropicApiKey ?? null,
-    llmProvider: settings.llmProvider ?? null,
+    llmProvider: providerParsed.success ? providerParsed.data : null,
   }
 }

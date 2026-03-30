@@ -42,6 +42,10 @@ export default async function SettingsPage() {
     getUserLLMProvider(),
   ])
 
+  // Only pass whether keys exist — never send plaintext keys to the client
+  const hasOpenAIKey = !!openAIKey
+  const hasAnthropicKey = !!anthropicKey
+
   return (
     <main className="container mx-auto p-4 space-y-6">
       <h1 className="text-2xl font-bold">Settings</h1>
@@ -100,7 +104,7 @@ export default async function SettingsPage() {
               </a>
               .
             </p>
-            <OpenAIKeyInput initialKey={openAIKey ?? ""} />
+            <OpenAIKeyInput hasExistingKey={hasOpenAIKey} />
           </div>
         </CardContent>
       </Card>
@@ -123,7 +127,7 @@ export default async function SettingsPage() {
               </a>
               .
             </p>
-            <AnthropicKeyInput initialKey={anthropicKey ?? ""} />
+            <AnthropicKeyInput hasExistingKey={hasAnthropicKey} />
           </div>
         </CardContent>
       </Card>

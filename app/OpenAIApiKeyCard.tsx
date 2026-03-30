@@ -7,7 +7,7 @@ import OpenAIApiKeyCardClient from "./OpenAIApiKeyCardClient"
 async function OpenAIApiKeyCardInner() {
   const existingKey = await getUserOpenAIApiKey()
   if (existingKey) return null
-  return <OpenAIApiKeyCardClient initialKey="" />
+  return <OpenAIApiKeyCardClient />
 }
 
 export default function OpenAIApiKeyCard() {

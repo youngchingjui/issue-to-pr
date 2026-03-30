@@ -16,19 +16,19 @@ import { setUserOpenAIApiKey } from "@/lib/neo4j/services/user"
 import { maskApiKey } from "@/lib/utils/client"
 
 interface Props {
-  initialKey?: string
+  hasExistingKey?: boolean
   onVerified?: () => void
 }
 
-const ApiKeyInput = ({ initialKey = "", onVerified }: Props) => {
-  const [apiKey, setApiKey] = useState(initialKey)
-  const [maskedKey, setMaskedKey] = useState(
-    initialKey ? maskApiKey(initialKey) : ""
-  )
-  // If there's no initial key, start in editing mode so the user can type immediately
-  const [isEditing, setIsEditing] = useState(!initialKey)
+const ApiKeyInput = ({ hasExistingKey = false, onVerified }: Props) => {
+  const [apiKey, setApiKey] = useState("")
+  const [maskedKey, setMaskedKey] = useState("")
+  // If there's no existing key, start in editing mode so the user can type immediately
+  const [isEditing, setIsEditing] = useState(!hasExistingKey)
   const [isSaving, setIsSaving] = useState(false)
-  const [lastSavedKey, setLastSavedKey] = useState(initialKey)
+  const [lastSavedKey, setLastSavedKey] = useState("")
+  // Track whether we know a key exists (from server or after local save)
+  const [keySaved, setKeySaved] = useState(hasExistingKey)
   const [validationMessage, setValidationMessage] = useState<string | null>(
     null
   )
@@ -85,18 +85,14 @@ const ApiKeyInput = ({ initialKey = "", onVerified }: Props) => {
 
   useEffect(() => {
     // Keep local state in sync with prop changes
-    setApiKey(initialKey)
-    setMaskedKey(initialKey ? maskApiKey(initialKey) : "")
-    setIsEditing(!initialKey)
-    setLastSavedKey(initialKey)
+    setKeySaved(hasExistingKey)
+    setIsEditing(!hasExistingKey)
+    setApiKey("")
+    setMaskedKey("")
+    setLastSavedKey("")
     setVerificationState("idle")
     setValidationMessage(null)
-    // Verify on load (and whenever initialKey changes) if a key exists
-    if (initialKey && initialKey.trim().length > 0) {
-      setVerificationState("verifying")
-      void verifyKey(initialKey)
-    }
-  }, [initialKey, verifyKey])
+  }, [hasExistingKey])
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newKey = event.target.value
@@ -123,6 +119,8 @@ const ApiKeyInput = ({ initialKey = "", onVerified }: Props) => {
       // A) Save to database (non-blocking UX returns after this)
       await setUserOpenAIApiKey(apiKey)
       setLastSavedKey(apiKey)
+      setMaskedKey(maskApiKey(apiKey))
+      setKeySaved(true)
       setIsEditing(false)
       if (apiKey.trim().length === 0) {
         // If the key is empty, treat as cleared and skip verification
@@ -189,7 +187,7 @@ const ApiKeyInput = ({ initialKey = "", onVerified }: Props) => {
           type={isEditing ? "text" : "password"}
           id="openai-api-key"
           placeholder={isEditing ? "sk-..." : ""}
-          value={isEditing ? apiKey : maskedKey}
+          value={isEditing ? apiKey : maskedKey || (keySaved ? "••••••••••••••••" : "")}
           onChange={handleInputChange}
           onPaste={handlePaste}
           onKeyDown={handleKeyDown}
@@ -250,7 +248,7 @@ const ApiKeyInput = ({ initialKey = "", onVerified }: Props) => {
             <Button onClick={handleSave} disabled={isSaveDisabled}>
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
             </Button>
-            {lastSavedKey ? (
+            {keySaved ? (
               <Button
                 type="button"
                 variant="secondary"

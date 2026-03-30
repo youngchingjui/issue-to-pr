@@ -47,17 +47,14 @@ export async function setUserAnthropicApiKey(apiKey: string): Promise<void> {
   const user = await getGithubUser()
   if (!user) throw new Error("User not authenticated")
 
-  // If no default provider is set, make this the default
-  const currentProvider = await getUserLLMProvider()
-  const needsDefault = !currentProvider
-
+  // Don't auto-default to Anthropic — workflows don't support it yet.
+  // Once the Claude runtime ships (Phase 2+), this can auto-default like OpenAI does.
   const session = await n4j.getSession()
   try {
     await session.executeWrite((tx) =>
       userRepo.setUserSettings(tx, user.login, {
         type: "user",
         anthropicApiKey: apiKey,
-        ...(needsDefault && { llmProvider: "anthropic" as const }),
       })
     )
   } finally {
@@ -143,19 +140,11 @@ export async function resolveUserApiKey(): Promise<
   const getKey = (provider: LLMProvider): string | null => {
     if (provider === "openai") {
       const key = settings.openAIApiKey?.trim()
-      if (key) return key
-      const hasDemoAccess = settings.roles?.includes("demo")
-      const demoKey = process.env.OPENAI_DEMO_API_KEY?.trim()
-      if (hasDemoAccess && demoKey) return demoKey
-      return null
+      return key && key.length > 0 ? key : null
     }
     if (provider === "anthropic") {
       const key = settings.anthropicApiKey?.trim()
-      if (key) return key
-      const hasDemoAccess = settings.roles?.includes("demo")
-      const demoKey = process.env.ANTHROPIC_API_KEY?.trim()
-      if (hasDemoAccess && demoKey) return demoKey
-      return null
+      return key && key.length > 0 ? key : null
     }
     return null
   }
