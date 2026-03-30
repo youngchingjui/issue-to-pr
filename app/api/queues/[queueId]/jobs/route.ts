@@ -64,6 +64,16 @@ export async function POST(
 
   if (job.name === "autoResolveIssue") {
     try {
+      // Authenticate first — before any settings lookups
+      const session = await auth()
+      if (!session) {
+        throw new Error("Authentication required")
+      }
+      const { profile } = session
+      if (!profile) {
+        throw new Error("Authentication failed, could not find profile")
+      }
+
       // Pre-queue validation: check the user has a valid API key for a supported provider
       // before enqueueing the job. This gives immediate feedback via toast.
       const resolved = await resolveUserApiKey()
@@ -80,15 +90,6 @@ export async function POST(
           { success: false, error: unsupported },
           { status: 422 }
         )
-      }
-
-      const session = await auth()
-      if (!session) {
-        throw new Error("Authentication required")
-      }
-      const { profile } = session
-      if (!profile) {
-        throw new Error("Authentication failed, could not find profile")
       }
 
       const full = job.data.repoFullName

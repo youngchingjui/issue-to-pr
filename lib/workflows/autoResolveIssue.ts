@@ -19,48 +19,27 @@ import {
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
 import { OpenAIAdapter } from "@/shared/adapters/llm/OpenAIAdapter"
-import { EventBusPort } from "@/shared/ports/events/eventBus"
-import { createWorkflowEventPublisher } from "@/shared/ports/events/publisher"
-import { SettingsReaderPort } from "@/shared/ports/repositories/settings.reader"
 import { generateNonConflictingBranchName } from "@/shared/usecases/git/generateBranchName"
 
 interface Params {
   issue: GitHubIssue
   repository: GitHubRepository
-  /** User GitHub login, in order to lookup their OpenAI API key */
+  /** User GitHub login */
   login: string
+  /** Pre-resolved API key from the caller */
+  apiKey: string
   jobId?: string
   /** Optional branch to run the workflow on. If omitted, a new feature branch is generated. */
   branch?: string
 }
 
-interface AutoResolveIssuePorts {
-  settings: SettingsReaderPort
-  eventBus?: EventBusPort
-}
-export const autoResolveIssue = async (
-  params: Params,
-  ports: AutoResolveIssuePorts
-) => {
-  const { issue, repository, login, jobId, branch } = params
-  const { settings, eventBus } = ports
+export const autoResolveIssue = async (params: Params) => {
+  const { issue, repository, apiKey, jobId, branch } = params
 
   // =================================================
   // Step 0: Setup workflow publisher
   // =================================================
   const workflowId = jobId ?? uuidv4()
-  const pub = createWorkflowEventPublisher(eventBus, workflowId)
-
-  // =================================================
-  // Step 1: Get API key
-  // =================================================
-
-  const apiKeyResult = await settings.getOpenAIKey(login)
-  if (!apiKeyResult.ok || !apiKeyResult.value) {
-    pub.workflow.error("No API key provided and no user settings found")
-    throw new Error("No API key provided and no user settings found")
-  }
-  const apiKey = apiKeyResult.value
 
   // =================================================
   // Step 2: Initialize workflow

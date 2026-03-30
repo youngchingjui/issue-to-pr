@@ -11,6 +11,10 @@ import * as userRepo from "@/lib/neo4j/repositories/user"
 import { autoResolveIssue } from "@/lib/workflows/autoResolveIssue"
 import { EventBusAdapter } from "@/shared/adapters/ioredis/EventBusAdapter"
 import { makeSettingsReaderAdapter } from "@/shared/adapters/neo4j/repositories/SettingsReaderAdapter"
+import {
+  checkProviderSupported,
+  resolveApiKey,
+} from "@/shared/services/resolveApiKey"
 
 import {
   type AutoResolveIssueRequest,
@@ -58,12 +62,21 @@ export async function autoResolveIssueAction(
 
     const login = session.profile?.login
     // =================================================
-    // Step 2: Prepare adapters
+    // Step 2: Prepare adapters & resolve API key
     // =================================================
     const settingsAdapter = makeSettingsReaderAdapter({
       getSession: () => neo4jDs.getSession(),
       userRepo: userRepo,
     })
+
+    const resolved = await resolveApiKey(settingsAdapter, login)
+    if (!resolved.ok) {
+      return { status: "error", code: "AUTH_REQUIRED", message: resolved.error }
+    }
+    const unsupported = checkProviderSupported(resolved.provider)
+    if (unsupported) {
+      return { status: "error", code: "INVALID_INPUT", message: unsupported }
+    }
 
     const eventBus = redisUrl ? new EventBusAdapter(redisUrl) : undefined
 
@@ -88,11 +101,11 @@ export async function autoResolveIssueAction(
             issue: issueResult.issue,
             repository: repo,
             login,
+            apiKey: resolved.apiKey,
             jobId: effectiveJobId,
             branch,
           },
           {
-            settings: settingsAdapter,
             eventBus: eventBus,
           }
         )

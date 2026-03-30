@@ -56,9 +56,7 @@ export async function autoResolveIssue(
     throw new Error(resolved.error)
   }
 
-  // Only destructure provider — the resolved apiKey is not passed directly;
-  // the workflow reads it from the settings port to avoid stale values.
-  const { provider } = resolved
+  const { provider, apiKey } = resolved
 
   const unsupported = checkProviderSupported(provider)
   if (unsupported) {
@@ -101,10 +99,10 @@ export async function autoResolveIssue(
       issueNumber,
       repoFullName,
       login: githubLogin,
+      apiKey,
       branch,
     },
     {
-      settings,
       eventBus: eventBusAdapter,
       storage,
     }

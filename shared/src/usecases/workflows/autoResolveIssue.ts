@@ -27,21 +27,21 @@ import {
 import { type DatabaseStorage } from "@/shared/ports/db"
 import { type EventBusPort } from "@/shared/ports/events/eventBus"
 import { createWorkflowEventPublisher } from "@/shared/ports/events/publisher"
-import { type SettingsReaderPort } from "@/shared/ports/repositories/settings.reader"
 import { generateNonConflictingBranchName } from "@/shared/usecases/git/generateBranchName"
 
 interface Params {
   issueNumber: number
   repoFullName: string
-  /** User GitHub login, in order to lookup their OpenAI API key */
+  /** User GitHub login */
   login: string
+  /** Pre-resolved API key from the orchestrator / caller */
+  apiKey: string
   jobId?: string
   /** Optional branch to run the workflow on. If omitted, a new feature branch is generated. */
   branch?: string
 }
 
 interface AutoResolveIssuePorts {
-  settings: SettingsReaderPort
   storage: DatabaseStorage
   eventBus?: EventBusPort
 }
@@ -49,25 +49,14 @@ export const autoResolveIssue = async (
   params: Params,
   ports: AutoResolveIssuePorts
 ) => {
-  const { issueNumber, repoFullName, login, jobId, branch } = params
-  const { settings, eventBus, storage } = ports
+  const { issueNumber, repoFullName, login, apiKey, jobId, branch } = params
+  const { eventBus, storage } = ports
 
   // =================================================
   // Step 0: Setup workflow publisher
   // =================================================
   const workflowId = jobId ?? uuidv4()
   const pub = createWorkflowEventPublisher(eventBus, workflowId)
-
-  // =================================================
-  // Step 1: Get API key
-  // =================================================
-
-  const apiKeyResult = await settings.getOpenAIKey(login)
-  if (!apiKeyResult.ok || !apiKeyResult.value) {
-    pub.workflow.error("No API key provided and no user settings found")
-    throw new Error("No API key provided and no user settings found")
-  }
-  const apiKey = apiKeyResult.value
 
   // =================================================
   // Step 2: Get issue and repository

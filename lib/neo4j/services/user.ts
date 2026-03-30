@@ -1,11 +1,17 @@
 "use server"
 
 import { getGithubUser } from "@/lib/github/users"
+import { neo4jDs } from "@/lib/neo4j"
 import { n4j } from "@/lib/neo4j/client"
 import { neo4jToJs } from "@/lib/neo4j/convert"
 import * as userRepo from "@/lib/neo4j/repositories/user"
 import { Settings, settingsSchema } from "@/lib/types"
+import { makeSettingsReaderAdapter } from "@/shared/adapters/neo4j/repositories/SettingsReaderAdapter"
 import type { LLMProvider } from "@/shared/lib/types"
+import {
+  resolveApiKey,
+  type ResolveApiKeyResult,
+} from "@/shared/services/resolveApiKey"
 
 export async function getUserSettings(): Promise<Settings | null> {
   const user = await getGithubUser()
@@ -116,18 +122,14 @@ export async function getUserLLMProvider(): Promise<LLMProvider | null> {
 
 /**
  * Resolve the user's API key based on their provider preference.
- * See docs/user/multi-model-support.md "Defaults and fallbacks".
+ * Delegates to the shared `resolveApiKey()` function.
  *
- * Priority: explicit provider preference → single available key → error.
- * No implicit provider preference — if multiple keys exist with no default set,
- * the user must choose explicitly.
+ * This is a convenience wrapper for Next.js API routes that resolves the
+ * current user from the session and builds a SettingsReaderPort automatically.
  */
-export async function resolveUserApiKey(): Promise<
-  | { ok: true; apiKey: string; provider: LLMProvider }
-  | { ok: false; error: string }
-> {
-  const settings = await getUserSettings()
-  if (!settings) {
+export async function resolveUserApiKey(): Promise<ResolveApiKeyResult> {
+  const user = await getGithubUser()
+  if (!user) {
     return {
       ok: false,
       error:
@@ -135,56 +137,12 @@ export async function resolveUserApiKey(): Promise<
     }
   }
 
-  const explicitProvider = settings.llmProvider ?? null
+  const settings = makeSettingsReaderAdapter({
+    getSession: () => neo4jDs.getSession(),
+    userRepo: userRepo,
+  })
 
-  const getKey = (provider: LLMProvider): string | null => {
-    if (provider === "openai") {
-      const key = settings.openAIApiKey?.trim()
-      return key && key.length > 0 ? key : null
-    }
-    if (provider === "anthropic") {
-      const key = settings.anthropicApiKey?.trim()
-      return key && key.length > 0 ? key : null
-    }
-    return null
-  }
-
-  // Explicit provider preference — check that provider's key
-  if (explicitProvider) {
-    const key = getKey(explicitProvider)
-    if (!key) {
-      const providerName =
-        explicitProvider === "openai" ? "OpenAI" : "Anthropic"
-      return {
-        ok: false,
-        error: `Your ${providerName} API key is missing. Please add it in Settings.`,
-      }
-    }
-    return { ok: true, apiKey: key, provider: explicitProvider }
-  }
-
-  // No explicit preference — check what keys are available
-  const hasOpenAI = !!getKey("openai")
-  const hasAnthropic = !!getKey("anthropic")
-
-  if (hasOpenAI && hasAnthropic) {
-    return {
-      ok: false,
-      error:
-        "You have API keys for multiple providers but no default selected. Please choose a default provider in Settings.",
-    }
-  }
-
-  if (hasOpenAI)
-    return { ok: true, apiKey: getKey("openai")!, provider: "openai" }
-  if (hasAnthropic)
-    return { ok: true, apiKey: getKey("anthropic")!, provider: "anthropic" }
-
-  return {
-    ok: false,
-    error:
-      "No API key configured. Please add an API key for at least one provider in Settings.",
-  }
+  return resolveApiKey(settings, user.login)
 }
 
 /**
