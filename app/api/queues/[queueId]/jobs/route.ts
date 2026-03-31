@@ -16,8 +16,10 @@ import { NextRequest, NextResponse } from "next/server"
 
 import { auth } from "@/auth"
 import { getInstallationFromRepo } from "@/lib/github/repos"
+import { resolveUserApiKey } from "@/lib/neo4j/services/user"
 import { QueueEnum } from "@/shared/entities/Queue"
 import { addJob } from "@/shared/services/job"
+import { checkProviderSupported } from "@/shared/services/resolveApiKey"
 
 import { enqueueJobsRequestSchema } from "./schemas"
 
@@ -62,9 +64,7 @@ export async function POST(
 
   if (job.name === "autoResolveIssue") {
     try {
-      // We need to get the authenticated user's login
-      // So that the use case can fetch their OpenAI API key
-
+      // Authenticate first — before any settings lookups
       const session = await auth()
       if (!session) {
         throw new Error("Authentication required")
@@ -73,6 +73,25 @@ export async function POST(
       if (!profile) {
         throw new Error("Authentication failed, could not find profile")
       }
+
+      // Pre-queue validation: check the user has a valid API key for a supported provider
+      // before enqueueing the job. This gives immediate feedback via toast.
+      const resolved = await resolveUserApiKey()
+      if (!resolved.ok) {
+        return NextResponse.json(
+          { success: false, error: resolved.error },
+          { status: 401 }
+        )
+      }
+
+      const unsupported = checkProviderSupported(resolved.provider)
+      if (unsupported) {
+        return NextResponse.json(
+          { success: false, error: unsupported },
+          { status: 422 }
+        )
+      }
+
       const full = job.data.repoFullName
       const [owner, repo] = (full || "").split("/")
       if (!owner || !repo) {

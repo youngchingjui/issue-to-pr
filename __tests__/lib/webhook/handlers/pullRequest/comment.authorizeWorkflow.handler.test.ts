@@ -28,6 +28,8 @@ const storageMockFactory = (result: StorageMockResult) => ({
   settings: {
     user: {
       getOpenAIKey: jest.fn().mockResolvedValue(result),
+      getAnthropicKey: jest.fn().mockResolvedValue({ ok: true, value: null }),
+      getLLMProvider: jest.fn().mockResolvedValue({ ok: true, value: null }),
     },
   },
 })
@@ -72,37 +74,49 @@ describe("handlePullRequestComment", () => {
   })
 
   it("ignores non-PR comments", async () => {
-    const res = await handlePullRequestComment({ ...baseParams, isPullRequest: false })
+    const res = await handlePullRequestComment({
+      ...baseParams,
+      isPullRequest: false,
+    })
     expect(res).toEqual({ status: "ignored", reason: "not_pr_comment" })
     expect(asMock(getInstallationOctokit)).not.toHaveBeenCalled()
   })
 
   it("ignores bot comments", async () => {
-    const res = await handlePullRequestComment({ ...baseParams, commentUserType: "Bot" })
+    const res = await handlePullRequestComment({
+      ...baseParams,
+      commentUserType: "Bot",
+    })
     expect(res).toEqual({ status: "ignored", reason: "not_human_user" })
   })
 
   it("ignores comments without the trigger keyword", async () => {
-    const res = await handlePullRequestComment({ ...baseParams, commentBody: "hello world" })
+    const res = await handlePullRequestComment({
+      ...baseParams,
+      commentBody: "hello world",
+    })
     expect(res).toEqual({ status: "ignored", reason: "no_command" })
   })
 
   it("rejects non-OWNER commenters and posts an explanation", async () => {
-    const res = await handlePullRequestComment({ ...baseParams, authorAssociation: "CONTRIBUTOR" })
+    const res = await handlePullRequestComment({
+      ...baseParams,
+      authorAssociation: "CONTRIBUTOR",
+    })
     expect(res).toEqual({ status: "rejected", reason: "not_owner" })
     const { rest } = await getInstallationOctokit(0 as never)
     expect(rest.issues.createComment).toHaveBeenCalled()
   })
 
-  it("posts account setup guidance when user not found in database", async () => {
-    // Make StorageAdapter return err("UserNotFound")
+  it("posts guidance when user not found in database", async () => {
+    // Make StorageAdapter return err("UserNotFound") for all settings reads
     asMock(StorageAdapter as unknown as jest.Mock).mockImplementation(() =>
       storageMockFactory({ ok: false, error: "UserNotFound" })
     )
 
     const res = await handlePullRequestComment(baseParams)
 
-    expect(res).toEqual({ status: "rejected", reason: "user_not_found" })
+    expect(res).toEqual({ status: "rejected", reason: "missing_api_key" })
     const { rest } = await getInstallationOctokit(0 as never)
     expect(rest.issues.createComment).toHaveBeenCalled()
     expect(asMock(addJob)).not.toHaveBeenCalled()
@@ -140,4 +154,3 @@ describe("handlePullRequestComment", () => {
     expect(rest.reactions.createForIssueComment).toHaveBeenCalled()
   })
 })
-

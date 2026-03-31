@@ -10,10 +10,10 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface Props {
-  initialKey?: string
+  hasExistingKey?: boolean
 }
 
-const OpenAIApiKeyCardClient = ({ initialKey = "" }: Props) => {
+const OpenAIApiKeyCardClient = ({ hasExistingKey = false }: Props) => {
   const [visible, setVisible] = useState(true)
   const [isSuccess, setIsSuccess] = useState(false)
 
@@ -47,7 +47,7 @@ const OpenAIApiKeyCardClient = ({ initialKey = "" }: Props) => {
                     , then paste it below.
                   </p>
                   <ApiKeyInput
-                    initialKey={initialKey}
+                    hasExistingKey={hasExistingKey}
                     onVerified={() => setIsSuccess(true)}
                   />
                 </div>

@@ -12,22 +12,25 @@ import { v4 as uuidv4 } from "uuid"
 import { z } from "zod"
 
 import { getRepoFromString } from "@/lib/github/content"
-import { getUserOpenAIApiKey } from "@/lib/neo4j/services/user"
+import { resolveUserApiKey } from "@/lib/neo4j/services/user"
 import { CommentRequestSchema } from "@/lib/schemas/api"
 import commentOnIssue from "@/lib/workflows/commentOnIssue"
+import { checkProviderSupported } from "@/shared/services/resolveApiKey"
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { issueNumber, repoFullName, postToGithub } =
       CommentRequestSchema.parse(body)
-    const apiKey = await getUserOpenAIApiKey()
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: "Missing OpenAI API key" },
-        { status: 401 }
-      )
+    const resolved = await resolveUserApiKey()
+    if (!resolved.ok) {
+      return NextResponse.json({ error: resolved.error }, { status: 401 })
     }
+    const unsupported = checkProviderSupported(resolved.provider)
+    if (unsupported) {
+      return NextResponse.json({ error: unsupported }, { status: 422 })
+    }
+    const apiKey = resolved.apiKey
 
     // Generate a unique job ID
     const jobId = uuidv4()

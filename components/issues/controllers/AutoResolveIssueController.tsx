@@ -4,6 +4,7 @@ import {
   type EnqueueJobsRequest,
   enqueueJobsResponseSchema,
 } from "@/app/api/queues/[queueId]/jobs/schemas"
+import { ToastAction } from "@/components/ui/toast"
 import { toast } from "@/lib/hooks/use-toast"
 import { WORKFLOW_JOBS_QUEUE } from "@/shared/entities/Queue"
 
@@ -43,9 +44,32 @@ export default function AutoResolveIssueController({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(job),
       })
-      const { success, data, error } = enqueueJobsResponseSchema.safeParse(
-        await res.json()
-      )
+      const json = await res.json()
+
+      if (!res.ok) {
+        // 401 (missing key) and 422 (unsupported provider) are settings-related
+        const isSettingsError = res.status === 401 || res.status === 422
+        toast({
+          title: "Failed to Launch Workflow",
+          description: json.error || "Something went wrong. Please try again.",
+          variant: "destructive",
+          ...(isSettingsError && {
+            duration: Infinity,
+            action: (
+              <ToastAction
+                altText="Go to Settings"
+                onClick={() => (window.location.href = "/settings")}
+              >
+                Settings
+              </ToastAction>
+            ),
+          }),
+        })
+        onError()
+        return
+      }
+
+      const { success, data, error } = enqueueJobsResponseSchema.safeParse(json)
       if (!success) {
         toast({
           title: "Failed to enqueue job",

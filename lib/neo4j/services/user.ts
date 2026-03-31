@@ -1,10 +1,17 @@
 "use server"
 
 import { getGithubUser } from "@/lib/github/users"
+import { neo4jDs } from "@/lib/neo4j"
 import { n4j } from "@/lib/neo4j/client"
 import { neo4jToJs } from "@/lib/neo4j/convert"
 import * as userRepo from "@/lib/neo4j/repositories/user"
 import { Settings, settingsSchema } from "@/lib/types"
+import { makeSettingsReaderAdapter } from "@/shared/adapters/neo4j/repositories/SettingsReaderAdapter"
+import type { LLMProvider } from "@/shared/lib/types"
+import {
+  resolveApiKey,
+  type ResolveApiKeyResult,
+} from "@/shared/services/resolveApiKey"
 
 export async function getUserSettings(): Promise<Settings | null> {
   const user = await getGithubUser()
@@ -24,12 +31,53 @@ export async function setUserOpenAIApiKey(apiKey: string): Promise<void> {
   const user = await getGithubUser()
   if (!user) throw new Error("User not authenticated")
 
+  // If no default provider is set, make this the default
+  const currentProvider = await getUserLLMProvider()
+  const needsDefault = !currentProvider
+
   const session = await n4j.getSession()
   try {
     await session.executeWrite((tx) =>
       userRepo.setUserSettings(tx, user.login, {
         type: "user",
         openAIApiKey: apiKey,
+        ...(needsDefault && { llmProvider: "openai" as const }),
+      })
+    )
+  } finally {
+    await session.close()
+  }
+}
+
+export async function setUserAnthropicApiKey(apiKey: string): Promise<void> {
+  const user = await getGithubUser()
+  if (!user) throw new Error("User not authenticated")
+
+  // Don't auto-default to Anthropic — workflows don't support it yet.
+  // Once the Claude runtime ships (Phase 2+), this can auto-default like OpenAI does.
+  const session = await n4j.getSession()
+  try {
+    await session.executeWrite((tx) =>
+      userRepo.setUserSettings(tx, user.login, {
+        type: "user",
+        anthropicApiKey: apiKey,
+      })
+    )
+  } finally {
+    await session.close()
+  }
+}
+
+export async function setUserLLMProvider(provider: LLMProvider): Promise<void> {
+  const user = await getGithubUser()
+  if (!user) throw new Error("User not authenticated")
+
+  const session = await n4j.getSession()
+  try {
+    await session.executeWrite((tx) =>
+      userRepo.setUserSettings(tx, user.login, {
+        type: "user",
+        llmProvider: provider,
       })
     )
   } finally {
@@ -55,6 +103,46 @@ export async function getUserOpenAIApiKey(): Promise<string | null> {
 
   // 3) Otherwise, no key available
   return null
+}
+
+export async function getUserAnthropicApiKey(): Promise<string | null> {
+  const settings = await getUserSettings()
+  if (!settings) return null
+
+  const userKey = settings.anthropicApiKey?.trim()
+  if (userKey) return userKey
+
+  return null
+}
+
+export async function getUserLLMProvider(): Promise<LLMProvider | null> {
+  const settings = await getUserSettings()
+  return settings?.llmProvider ?? null
+}
+
+/**
+ * Resolve the user's API key based on their provider preference.
+ * Delegates to the shared `resolveApiKey()` function.
+ *
+ * This is a convenience wrapper for Next.js API routes that resolves the
+ * current user from the session and builds a SettingsReaderPort automatically.
+ */
+export async function resolveUserApiKey(): Promise<ResolveApiKeyResult> {
+  const user = await getGithubUser()
+  if (!user) {
+    return {
+      ok: false,
+      error:
+        "No API key configured. Please add an API key for at least one provider in Settings.",
+    }
+  }
+
+  const settings = makeSettingsReaderAdapter({
+    getSession: () => neo4jDs.getSession(),
+    userRepo: userRepo,
+  })
+
+  return resolveApiKey(settings, user.login)
 }
 
 /**

@@ -12,7 +12,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { setUserOpenAIApiKey } from "@/lib/neo4j/services/user"
+import { setUserAnthropicApiKey } from "@/lib/neo4j/services/user"
 import { maskApiKey } from "@/lib/utils/client"
 
 interface Props {
@@ -20,10 +20,9 @@ interface Props {
   onVerified?: () => void
 }
 
-const ApiKeyInput = ({ hasExistingKey = false, onVerified }: Props) => {
+const AnthropicApiKeyInput = ({ hasExistingKey = false, onVerified }: Props) => {
   const [apiKey, setApiKey] = useState("")
   const [maskedKey, setMaskedKey] = useState("")
-  // If there's no existing key, start in editing mode so the user can type immediately
   const [isEditing, setIsEditing] = useState(!hasExistingKey)
   const [isSaving, setIsSaving] = useState(false)
   const [lastSavedKey, setLastSavedKey] = useState("")
@@ -46,7 +45,7 @@ const ApiKeyInput = ({ hasExistingKey = false, onVerified }: Props) => {
     async (keyToVerify: string) => {
       try {
         setVerificationState("verifying")
-        const response = await fetch("/api/openai/check", {
+        const response = await fetch("/api/anthropic/check", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -84,7 +83,6 @@ const ApiKeyInput = ({ hasExistingKey = false, onVerified }: Props) => {
   )
 
   useEffect(() => {
-    // Keep local state in sync with prop changes
     setKeySaved(hasExistingKey)
     setIsEditing(!hasExistingKey)
     setApiKey("")
@@ -116,36 +114,24 @@ const ApiKeyInput = ({ hasExistingKey = false, onVerified }: Props) => {
   const handleSave = async () => {
     try {
       setIsSaving(true)
-      // A) Save to database (non-blocking UX returns after this)
-      await setUserOpenAIApiKey(apiKey)
+      await setUserAnthropicApiKey(apiKey)
       setLastSavedKey(apiKey)
       setMaskedKey(maskApiKey(apiKey))
       setKeySaved(true)
       setIsEditing(false)
       if (apiKey.trim().length === 0) {
-        // If the key is empty, treat as cleared and skip verification
         setVerificationState("idle")
         setValidationMessage(null)
       } else {
-        // Show an inline "Saved" state and then verify in the background
         setVerificationState("verifying")
         setValidationMessage(null)
-        // B) Verify key in the background; don't block the button return
         void verifyKey(apiKey)
       }
     } catch (error) {
-      console.error("Failed to verify API key:", error)
-      // Try to still save so user doesn't lose edits
-      try {
-        await setUserOpenAIApiKey(apiKey)
-        setLastSavedKey(apiKey)
-      } catch (saveErr) {
-        console.error("Failed to save API key:", saveErr)
-      }
-      setIsEditing(false)
+      console.error("Failed to save API key:", error)
       setVerificationState("error")
       setValidationMessage(
-        "We couldn't verify this API key due to a network issue. It has been saved, but features may not work until it's valid."
+        "We couldn't save this API key. Please try again."
       )
     } finally {
       setIsSaving(false)
@@ -153,7 +139,6 @@ const ApiKeyInput = ({ hasExistingKey = false, onVerified }: Props) => {
   }
 
   const isSaveDisabled = useMemo(() => {
-    // Disable save while saving, or when there are no changes
     return isSaving || apiKey === lastSavedKey
   }, [isSaving, apiKey, lastSavedKey])
 
@@ -164,7 +149,6 @@ const ApiKeyInput = ({ hasExistingKey = false, onVerified }: Props) => {
       void handleSave()
     } else if (e.key === "Escape") {
       e.preventDefault()
-      // Revert edits
       setApiKey(lastSavedKey)
       setMaskedKey(lastSavedKey ? maskApiKey(lastSavedKey) : "")
       setIsEditing(false)
@@ -176,17 +160,17 @@ const ApiKeyInput = ({ hasExistingKey = false, onVerified }: Props) => {
   return (
     <div className="grid grid-cols-[1fr_max-content] grid-rows-[auto_auto_auto] items-start gap-x-3 gap-y-0">
       <Label
-        htmlFor="openai-api-key"
+        htmlFor="anthropic-api-key"
         className="text-xs text-muted-foreground font-light col-start-1 row-start-1"
       >
-        OpenAI API Key
+        Anthropic API Key
       </Label>
 
       <div className="relative col-start-1 row-start-2">
         <Input
           type={isEditing ? "text" : "password"}
-          id="openai-api-key"
-          placeholder={isEditing ? "sk-..." : ""}
+          id="anthropic-api-key"
+          placeholder={isEditing ? "sk-ant-..." : ""}
           value={isEditing ? apiKey : maskedKey || (keySaved ? "••••••••••••••••" : "")}
           onChange={handleInputChange}
           onPaste={handlePaste}
@@ -280,4 +264,5 @@ const ApiKeyInput = ({ hasExistingKey = false, onVerified }: Props) => {
   )
 }
 
-export default ApiKeyInput
+export default AnthropicApiKeyInput
+

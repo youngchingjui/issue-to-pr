@@ -213,6 +213,8 @@ export const anyEventSchema = z.discriminatedUnion("type", [
  */
 export const settingsTypeEnum = z.enum(["user", "repo"])
 
+export const llmProviderEnum = z.enum(["openai", "anthropic"])
+
 export const settingsSchema = z.object({
   type: settingsTypeEnum,
   openAIApiKey: z
@@ -220,6 +222,17 @@ export const settingsSchema = z.object({
     .optional()
     .describe(
       "OpenAI API key used throughout the application (user-specific, optional)."
+    ),
+  anthropicApiKey: z
+    .string()
+    .optional()
+    .describe(
+      "Anthropic API key used for Claude models (user-specific, optional)."
+    ),
+  llmProvider: llmProviderEnum
+    .optional()
+    .describe(
+      "Preferred LLM provider for workflows. Can be overridden per feature in the future."
     ),
   autoPostPlanToGitHubIssue: z
     .boolean()
@@ -326,6 +339,7 @@ export type Task = z.infer<typeof taskSchema>
 export type UserMessage = z.infer<typeof userMessageSchema>
 export type WorkflowRun = z.infer<typeof workflowRunSchema>
 export type WorkflowRunState = z.infer<typeof workflowRunStateSchema>
+export type LLMProvider = z.infer<typeof llmProviderEnum>
 export type WorkflowType = z.infer<typeof workflowTypeEnum>
 export type WorkflowStartedEvent = z.infer<typeof WorkflowStartedEventSchema>
 export type WorkflowCompletedEvent = z.infer<

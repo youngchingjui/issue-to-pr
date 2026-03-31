@@ -4,6 +4,7 @@ import {
   type WorkflowRun,
   type WorkflowRunActor,
 } from "@/shared/entities/WorkflowRun"
+import type { LLMProvider } from "@/shared/lib/types"
 import type {
   CommitAttachment,
   CreateWorkflowRunInput,
@@ -435,16 +436,57 @@ export class StorageAdapter implements DatabaseStorage {
             getUserSettings(tx, userId)
           )
 
-          // User not found - this is an error condition
-          if (settings === null) {
-            return err("UserNotFound")
-          }
+          if (settings === null) return err("UserNotFound")
 
-          // User exists - check if they have a key configured
           const key = settings.openAIApiKey?.trim()
           return ok(key && key.length > 0 ? key : null)
         } catch (e) {
           console.error("[StorageAdapter] Error fetching OpenAI key:", e)
+          return err("Unknown")
+        } finally {
+          await session.close()
+        }
+      },
+
+      getAnthropicKey: async (
+        userId: string
+      ): Promise<Result<string | null, SettingsError>> => {
+        if (!userId) return ok(null)
+
+        const session = this.ds.getSession("READ")
+        try {
+          const settings = await session.executeRead((tx) =>
+            getUserSettings(tx, userId)
+          )
+
+          if (settings === null) return err("UserNotFound")
+
+          const key = settings.anthropicApiKey?.trim()
+          return ok(key && key.length > 0 ? key : null)
+        } catch (e) {
+          console.error("[StorageAdapter] Error fetching Anthropic key:", e)
+          return err("Unknown")
+        } finally {
+          await session.close()
+        }
+      },
+
+      getLLMProvider: async (
+        userId: string
+      ): Promise<Result<LLMProvider | null, SettingsError>> => {
+        if (!userId) return ok(null)
+
+        const session = this.ds.getSession("READ")
+        try {
+          const settings = await session.executeRead((tx) =>
+            getUserSettings(tx, userId)
+          )
+
+          if (settings === null) return err("UserNotFound")
+
+          return ok(settings.llmProvider ?? null)
+        } catch (e) {
+          console.error("[StorageAdapter] Error fetching LLM provider:", e)
           return err("Unknown")
         } finally {
           await session.close()

@@ -1,9 +1,15 @@
 import type { Result } from "@/shared/entities/result"
+import type { LLMProvider } from "@/shared/lib/types"
 
-export type GetOpenAIKeyErrors = "UserNotFound" | "Unknown"
+export type SettingsReaderErrors = "UserNotFound" | "Unknown"
 
 /**
- * Abstraction for reading a user's OpenAI API key.
+ * @deprecated Use `SettingsReaderErrors` instead.
+ */
+export type GetOpenAIKeyErrors = SettingsReaderErrors
+
+/**
+ * Abstraction for reading user settings related to LLM providers.
  * Provider/storage-agnostic.
  */
 export interface SettingsReaderPort {
@@ -18,5 +24,21 @@ export interface SettingsReaderPort {
    */
   getOpenAIKey(
     userId: string
-  ): Promise<Result<string | null, GetOpenAIKeyErrors>>
+  ): Promise<Result<string | null, SettingsReaderErrors>>
+
+  /**
+   * Fetch the user's Anthropic API key by internal user id.
+   * Same semantics as getOpenAIKey.
+   */
+  getAnthropicKey(
+    userId: string
+  ): Promise<Result<string | null, SettingsReaderErrors>>
+
+  /**
+   * Fetch the user's preferred LLM provider.
+   * Returns ok(null) if the user has no preference set; resolution happens elsewhere.
+   */
+  getLLMProvider(
+    userId: string
+  ): Promise<Result<LLMProvider | null, SettingsReaderErrors>>
 }

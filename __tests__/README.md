@@ -18,6 +18,22 @@ pnpm test
 
 Examples: `markdown.test.ts`, `auth-performance.test.ts`
 
+**When to write unit tests (and when not to):** In a strongly-typed TypeScript codebase, the compiler already enforces data shapes, return types, and interface contracts. Don't write unit tests that just re-assert what the type system guarantees — that's low-value busywork.
+
+Skip unit tests for:
+
+- Adapter methods that follow an established pattern (e.g. `getAnthropicKey` mirrors `getOpenAIKey` — types enforce the contract)
+- Simple pass-through / delegation code
+- Anything where a type error would catch the bug at compile time
+
+Do write unit tests for:
+
+- **Conditional branching / routing logic** — types say `provider` is `"openai" | "anthropic"`, but can't prove the right branch executes
+- **Edge cases in data transforms** — empty strings, whitespace trimming, null coalescing (e.g. treating `""` as `null`)
+- **Regression-prone defaults** — someone accidentally changes a fallback value; types won't catch it
+
+Prefer integration tests (Category 2) over unit tests with mocked infrastructure. They test real queries against real databases and catch actual breakage. Unit tests with mocked DB calls mostly test your mocks.
+
 ### Category 2: Service Tests (Local Infrastructure)
 
 **Requires Docker services (Redis, Neo4j). Run manually or in special CI workflow.**
@@ -94,6 +110,7 @@ __tests__/
    ```
 
 2. Create test environment file (optional):
+
    ```bash
    cp __tests__/.env.example __tests__/.env
    ```

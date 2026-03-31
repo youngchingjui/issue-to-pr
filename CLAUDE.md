@@ -36,8 +36,22 @@ Before implementing fixes or features, follow this process:
 
 We maintain two types of documentation:
 
-- **User-facing docs**: Describe what users see and how they can use features (no code examples, readable by non-technical people)
-- **Technical architecture docs**: Describe implementation details that support user-facing features
+- **User-facing docs** (`docs/user/`): Describe what users see and how they can use features (no code examples, readable by non-technical people)
+- **Technical architecture docs** (`docs/dev/`): Describe the ideal architectural state — routing, environments, services, decision points. Avoid code-level details like function names or specific implementations that change frequently. Use mermaid diagrams to show how concepts connect. These should be durable and not need updating with every code change.
+
+### Feature development workflow
+
+When building a new feature or making significant changes, follow this order:
+
+1. **User specs** (`docs/user/`) — What does the user see and do?
+2. **Technical architecture** (`docs/dev/`) — What is the ideal system design to support the user spec?
+3. **Plan (gap analysis)** — Compare the current codebase to the ideal architecture. Identify what exists, what's missing, and what needs to change.
+
+If the plan covers something not mentioned in the user spec or tech architecture, either shrink the plan scope or update the specs — it highlights an area that hasn't been thought through.
+
+### Plans and task tracking
+
+Plans should live in **GitHub issues**, not as `.md` files in the codebase. Issues can reference specific commits and assessments of the codebase at that point in time. If the gap between current state and ideal architecture is large, upgrade the plan to an epic — create a parent issue with smaller child issues that represent incremental, mergeable chunks of work.
 
 ## Writing specs
 
@@ -63,8 +77,14 @@ We would likely not want to see any code examples in the specs. This should just
 - `docs/README.md` - Main documentation index
 - `docs/dev/deployment.md` - Production deployment guide
 - `docs/dev/infrastructure.md` - Infrastructure DX requirements and rationale
-- `docs/dev/multi-model-support.md` - Technical design for multi-model (OpenAI + Anthropic) support
+- `docs/dev/api-key-management.md` - API key storage, validation, retrieval, and security
+- `docs/dev/multi-model-support.md` - Technical architecture for multi-model provider support
+- `docs/dev/openai-models.md` - OpenAI agent runtime (external agent pattern)
+- `docs/dev/claude-models.md` - Claude Agent SDK runtime (in-container agent pattern)
+- `docs/user/api-key-management.md` - How users add and manage provider API keys
 - `docs/user/multi-model-support.md` - User-facing requirements for choosing AI model providers
+- `docs/user/error-handling.md` - Error handling principles, categories, feedback channels, and pre-validation pattern
+- `docs/user/workflow-error-handling.md` - Workflow-specific error handling (pre-queue vs runtime, by trigger source)
 - `docs/user/sessions.md` - Open questions around live, interactive workflow runs
 - `docs/components/README.md` - React components and patch tool format
 - `docs/internal/README.md` - Internal planning and architecture docs
