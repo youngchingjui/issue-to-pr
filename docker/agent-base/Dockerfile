@@ -34,8 +34,11 @@ RUN curl -sSL https://install.python-poetry.org | python3 - && \
 # Enable Corepack (bundled with Node 22) and activate latest stable pnpm version
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
+# Install Claude Agent SDK globally (pinned version for reproducible builds)
+# Enables the in-container agent pattern described in docs/dev/claude-models.md
+RUN npm install -g @anthropic-ai/claude-agent-sdk@0.2.87
+
 # Verify toolchain versions for transparency (for cache/debugging)
-# Now includes: Python, pip, and Poetry checks
 RUN rg --version \
  && git --version \
  && node --version \
@@ -43,7 +46,8 @@ RUN rg --version \
  && pnpm --version \
  && python3 --version \
  && pip3 --version \
- && poetry --version
+ && poetry --version \
+ && node -e "require('/usr/local/lib/node_modules/@anthropic-ai/claude-agent-sdk')"
 
 # Set working directory where the agent will later receive a repository to work on
 WORKDIR /workspace

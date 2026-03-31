@@ -276,6 +276,7 @@ We ship a custom base image for containerized agent workflows with pre-installed
   - Node.js v22 (with npm)
   - pnpm (via Corepack)
   - Python 3.11, pip3, Poetry
+  - Claude Agent SDK (`@anthropic-ai/claude-agent-sdk`, pinned version)
   - ripgrep, git, tree, curl
 
 Image name: `ghcr.io/youngchingjui/agent-base:latest`  
