@@ -9,7 +9,6 @@ import { getIssue } from "@/lib/github/issues"
 import { neo4jDs } from "@/lib/neo4j"
 import * as userRepo from "@/lib/neo4j/repositories/user"
 import { autoResolveIssue } from "@/lib/workflows/autoResolveIssue"
-import { EventBusAdapter } from "@/shared/adapters/ioredis/EventBusAdapter"
 import { makeSettingsReaderAdapter } from "@/shared/adapters/neo4j/repositories/SettingsReaderAdapter"
 import {
   checkProviderSupported,
@@ -49,8 +48,6 @@ export async function autoResolveIssueAction(
 
     const effectiveJobId = jobId || uuidv4()
 
-    const redisUrl = process.env.REDIS_URL
-
     const session = await auth()
     if (!session || !session.profile?.login) {
       return {
@@ -78,8 +75,6 @@ export async function autoResolveIssueAction(
       return { status: "error", code: "INVALID_INPUT", message: unsupported }
     }
 
-    const eventBus = redisUrl ? new EventBusAdapter(redisUrl) : undefined
-
     // =================================================
     // Step 3: Launch the background job (fire-and-forget)
     // =================================================
@@ -96,19 +91,14 @@ export async function autoResolveIssueAction(
           throw new Error(JSON.stringify(issueResult))
         }
 
-        await autoResolveIssue(
-          {
-            issue: issueResult.issue,
-            repository: repo,
-            login,
-            apiKey: resolved.apiKey,
-            jobId: effectiveJobId,
-            branch,
-          },
-          {
-            eventBus: eventBus,
-          }
-        )
+        await autoResolveIssue({
+          issue: issueResult.issue,
+          repository: repo,
+          login,
+          apiKey: resolved.apiKey,
+          jobId: effectiveJobId,
+          branch,
+        })
       } catch (error) {
         console.error("[autoResolveIssueAction] background run failed:", error)
       }
