@@ -81,11 +81,15 @@ We would likely not want to see any code examples in the specs. This should just
 - `docs/dev/multi-model-support.md` - Technical architecture for multi-model provider support
 - `docs/dev/openai-models.md` - OpenAI agent runtime (external agent pattern)
 - `docs/dev/claude-models.md` - Claude Agent SDK runtime (in-container agent pattern)
+- `docs/dev/observability.md` - Token tracking, cost tracking, Langfuse integration, error propagation, and runtime monitoring
+- `docs/dev/containers.md` - Container lifecycle, warm pool, session persistence, and sandbox philosophy
+- `docs/dev/tools.md` - Tool and permission architecture for AI agents (by runtime, GitHub guardrails, event tracking)
 - `docs/user/api-key-management.md` - How users add and manage provider API keys
 - `docs/user/multi-model-support.md` - User-facing requirements for choosing AI model providers
 - `docs/user/error-handling.md` - Error handling principles, categories, feedback channels, and pre-validation pattern
 - `docs/user/workflow-error-handling.md` - Workflow-specific error handling (pre-queue vs runtime, by trigger source)
 - `docs/user/sessions.md` - Open questions around live, interactive workflow runs
+- `docs/user/tools.md` - What the agent can and can't do, and what controls users have over its behavior
 - `docs/components/README.md` - React components and patch tool format
 - `docs/internal/README.md` - Internal planning and architecture docs
 - `docs/internal/auth-flow-diagrams.md` - Auth flow Mermaid diagrams and technical docs

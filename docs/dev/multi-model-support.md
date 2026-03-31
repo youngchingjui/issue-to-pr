@@ -100,6 +100,8 @@ The orchestrator's job is to resolve and retrieve — not to duplicate the pre-q
 
 Different providers have fundamentally different SDKs and execution models. Rather than forcing them behind a single interface, each provider has its own **agent runtime** — the code that manages the LLM conversation loop, tool execution, and interaction with the container.
 
+All runtimes share a single `agent-base` Docker image. See [`docs/dev/containers.md`](containers.md) for container lifecycle and the combined image rationale.
+
 ```mermaid
 flowchart TD
     Orchestrator[Orchestrator]
@@ -107,9 +109,9 @@ flowchart TD
     Orchestrator --> RuntimeB[Agent Runtime B]
     Orchestrator --> RuntimeN[Agent Runtime N...]
 
-    RuntimeA --> Container1[Container<br/>Image A]
-    RuntimeB --> Container2[Container<br/>Image B]
-    RuntimeN --> Container3[Container<br/>Image N]
+    RuntimeA --> Container1[Container<br/>agent-base]
+    RuntimeB --> Container2[Container<br/>agent-base]
+    RuntimeN --> Container3[Container<br/>agent-base]
 
     Container1 --> Result[Branch + PR]
     Container2 --> Result
@@ -125,18 +127,19 @@ Regardless of provider, every agent runtime:
 - Emits events to the same event schema (so the UI can display progress uniformly).
 - Runs inside a Docker container with the repo cloned and a working branch checked out.
 - Has access to GitHub operations (push branch, create PR) via custom tools or SDK configuration.
+- Uses the same tool permission policies for external actions. See [`docs/dev/tools.md`](tools.md).
 
 ### How runtimes differ
 
-The key architectural distinction is **where the agent logic runs** relative to the container:
+The key architectural distinction is **where the agent logic runs** and how it interacts with the container:
 
-| Aspect | External agent (e.g., OpenAI) | In-container agent (e.g., Claude Agent SDK) |
+| Aspect | External agent (e.g., OpenAI) | In-container SDK agent (e.g., Claude) |
 |---|---|---|
-| **Agent process** | Runs in the worker; calls tools via `docker exec` | Runs inside the container as a subprocess |
-| **Tool execution** | Worker invokes tools, which shell into the container | SDK invokes its own built-in tools on the local filesystem |
-| **Docker image** | Generic base image (git, node, python, ripgrep) | Base image + SDK installed |
+| **Agent process** | Runs in the worker; calls tools via `docker exec` | Runner script inside agent-base container imports SDK, calls `query()` |
+| **Tool execution** | Worker invokes tools, which shell into the container | SDK invokes its own built-in tools on the container filesystem |
+| **Docker image** | `agent-base` | `agent-base` (same image, SDK pre-installed) |
 | **Conversation loop** | Managed by our code in the worker | Managed by the SDK internally |
-| **Custom tools** | Defined as functions in our codebase | Provided to the SDK as MCP tools or tool definitions |
+| **Custom tools** | Defined as functions in our codebase | Provided to the SDK as MCP tools |
 
 ```mermaid
 flowchart LR
@@ -145,9 +148,10 @@ flowchart LR
         W1 -->|API call| LLM1[LLM API]
     end
 
-    subgraph InContainer["In-Container Agent Pattern"]
-        W2[Worker process<br/>invokes SDK] -->|start subprocess| C2[Container<br/>SDK + code + repo]
+    subgraph InContainer["In-Container SDK Pattern"]
+        W2[Worker process<br/>starts runner] -->|starts script| C2[Container<br/>SDK + code + repo]
         C2 -->|API call| LLM2[LLM API]
+        C2 -->|streams output| W2
     end
 ```
 
@@ -165,6 +169,8 @@ Both runtimes emit events to the same Neo4j event chain and Redis streams so the
 - Workflow lifecycle → `workflowStarted` / `workflowCompleted` events
 - Provider and model recorded on the workflow run node
 
+See [`docs/dev/tools.md`](tools.md) for how tool call events are tracked per runtime.
+
 ## Cost and token tracking
 
 Each workflow run records:
@@ -172,8 +178,11 @@ Each workflow run records:
 - Provider
 - Model
 - Token counts (prompt + completion)
+- Cost in USD
 
-Providers return token usage in different shapes. Each runtime normalizes usage to a common schema before persisting.
+Providers return token usage in different shapes. Each runtime normalizes usage to a common schema before persisting. All data is tagged by provider for cross-provider comparison.
+
+See [`docs/dev/observability.md`](observability.md) for the full observability architecture including Langfuse integration and runtime monitoring.
 
 ## Error handling
 

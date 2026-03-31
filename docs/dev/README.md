@@ -20,6 +20,12 @@ Docs are organized by DX use case — a developer should be able to find the rig
 - [Deployment Guide](./deployment.md) — How to deploy Issue To PR (local dev and production)
 - [Infrastructure Requirements](./infrastructure.md) — DX requirements for deployment, Docker, NGINX
 - [Multi-Model Support](./multi-model-support.md) — Technical design for adding Anthropic/Claude as a model provider alongside OpenAI
+- [Containers](./containers.md) — Container lifecycle, warm pool management, session persistence, and sandbox philosophy
+- [Tools](./tools.md) — Tool and permission architecture for AI agents (by runtime, GitHub guardrails, event tracking)
+- [Observability](./observability.md) — Token tracking, cost tracking, Langfuse integration, error propagation, and runtime monitoring
+- [API Key Management](./api-key-management.md) — API key storage, validation, retrieval, and security
+- [OpenAI Models](./openai-models.md) — OpenAI agent runtime (external agent pattern)
+- [Claude Models](./claude-models.md) — Claude Agent SDK runtime (in-process agent pattern)
 
 ## Planned
 
