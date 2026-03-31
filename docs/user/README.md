@@ -10,6 +10,7 @@ Each file represents a feature or capability from the user's perspective.
 
 - [Multi-Model Support](./multi-model-support.md) — How users add API keys and choose between OpenAI and Anthropic models
 - [Sessions](./sessions.md) — Open questions around live, interactive workflow runs
+- [Tools](./tools.md) — What the agent can and can't do, and what controls users have over its behavior
 
 ## Planned
 

@@ -9,7 +9,7 @@ show_help() {
   cat <<'EOF'
 Usage: build-agent-image.sh [TAG1 TAG2 ...]
 
-Build the custom agent base Docker image with ripgrep, git, curl, Node.js 22, npm and pnpm pre-installed.
+Build the custom agent base Docker image with ripgrep, git, curl, Node.js 22, npm, pnpm, and Claude Agent SDK pre-installed.
 
 Positional arguments:
   TAG   One or more tags to apply to the built image. Defaults to "latest" if none are supplied.
@@ -97,8 +97,9 @@ docker run --rm "${IMAGE_NAME}:${TEST_TAG}" bash -c "pnpm --version"
 docker run --rm "${IMAGE_NAME}:${TEST_TAG}" bash -c "python3 --version"
 docker run --rm "${IMAGE_NAME}:${TEST_TAG}" bash -c "pip3 --version"
 docker run --rm "${IMAGE_NAME}:${TEST_TAG}" bash -c "poetry --version"
+docker run --rm "${IMAGE_NAME}:${TEST_TAG}" node -e "require('/usr/local/lib/node_modules/@anthropic-ai/claude-agent-sdk')"
 
 echo "✅ Custom agent image is ready for use"
 echo "Image tags: ${TAGS[*]}"
 echo "Platforms: ${PLATFORMS}"
-echo "Includes: ripgrep, git, curl, nodejs (npm), pnpm, python3, pip3, poetry"
+echo "Includes: ripgrep, git, curl, nodejs (npm), pnpm, python3, pip3, poetry, claude-agent-sdk"
