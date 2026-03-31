@@ -47,7 +47,7 @@ RUN rg --version \
  && python3 --version \
  && pip3 --version \
  && poetry --version \
- && node -e "require('/usr/local/lib/node_modules/@anthropic-ai/claude-agent-sdk')"
+ && npm ls -g @anthropic-ai/claude-agent-sdk
 
 # Set working directory where the agent will later receive a repository to work on
 WORKDIR /workspace

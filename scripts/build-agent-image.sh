@@ -97,7 +97,7 @@ docker run --rm "${IMAGE_NAME}:${TEST_TAG}" bash -c "pnpm --version"
 docker run --rm "${IMAGE_NAME}:${TEST_TAG}" bash -c "python3 --version"
 docker run --rm "${IMAGE_NAME}:${TEST_TAG}" bash -c "pip3 --version"
 docker run --rm "${IMAGE_NAME}:${TEST_TAG}" bash -c "poetry --version"
-docker run --rm "${IMAGE_NAME}:${TEST_TAG}" node -e "require('/usr/local/lib/node_modules/@anthropic-ai/claude-agent-sdk')"
+docker run --rm "${IMAGE_NAME}:${TEST_TAG}" npm ls -g @anthropic-ai/claude-agent-sdk
 
 echo "✅ Custom agent image is ready for use"
 echo "Image tags: ${TAGS[*]}"
