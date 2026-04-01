@@ -24,6 +24,8 @@ export type GenerateBranchNameParams = {
   existingBranches?: string[]
   /** Max attempts to find a unique suffix if conflicts occur. Default: MAX_ATTEMPTS */
   maxAttempts?: number
+  /** LLM model to use for branch name generation. Defaults to the adapter's default. */
+  model?: string
 }
 
 /**
@@ -69,7 +71,7 @@ export async function generateNonConflictingBranchName(
 
   const rawResult = await ports.llm.createCompletion({
     system,
-    model: "gpt-4.1",
+    model: params.model,
     messages: [{ role: "user", content: user }],
   })
   if (!rawResult.ok) {

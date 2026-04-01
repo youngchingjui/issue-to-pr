@@ -7,8 +7,8 @@ import { Octokit } from "@octokit/rest"
 import { v4 as uuidv4 } from "uuid"
 
 import GitHubRefsAdapter from "@/shared/adapters/github/GitHubRefsAdapter"
-import { OpenAIAdapter } from "@/shared/adapters/llm/OpenAIAdapter"
 import { getAccessTokenOrThrow } from "@/shared/auth"
+import { runClaudeAgentInContainer } from "@/shared/lib/agents/claude/runClaudeAgentInContainer"
 import PlanAndCodeAgent from "@/shared/lib/agents/PlanAndCodeAgent"
 import { getInstallationTokenFromRepo } from "@/shared/lib/github/installation"
 import { getIssue, getIssueComments } from "@/shared/lib/github/issues"
@@ -19,7 +19,12 @@ import {
   createStatusEvent,
   createWorkflowStateEvent,
 } from "@/shared/lib/neo4j/services/event"
-import { type RepoEnvironment } from "@/shared/lib/types"
+import {
+  createLLMAdapter,
+  getBranchNameModel,
+  getContainerEnvForProvider,
+} from "@/shared/lib/providers/config"
+import { type LLMProvider, type RepoEnvironment } from "@/shared/lib/types"
 import {
   createContainerizedDirectoryTree,
   createContainerizedWorkspace,
@@ -36,6 +41,8 @@ interface Params {
   login: string
   /** Pre-resolved API key from the orchestrator / caller */
   apiKey: string
+  /** Which LLM provider to use for this workflow run */
+  provider: LLMProvider
   jobId?: string
   /** Optional branch to run the workflow on. If omitted, a new feature branch is generated. */
   branch?: string
@@ -49,7 +56,8 @@ export const autoResolveIssue = async (
   params: Params,
   ports: AutoResolveIssuePorts
 ) => {
-  const { issueNumber, repoFullName, login, apiKey, jobId, branch } = params
+  const { issueNumber, repoFullName, login, apiKey, provider, jobId, branch } =
+    params
   const { eventBus, storage } = ports
 
   // =================================================
@@ -136,12 +144,13 @@ export const autoResolveIssue = async (
       })
     } else {
       try {
-        const llm = new OpenAIAdapter(apiKey)
+        const llm = createLLMAdapter(provider, apiKey)
+        const branchModel = getBranchNameModel(provider)
         const refs = new GitHubRefsAdapter()
         const context = `GitHub issue title: ${issue.title}\n\n${issue.body ?? ""}`
         const generated = await generateNonConflictingBranchName(
           { llm, refs },
-          { owner, repo, context, prefix: "feature" }
+          { owner, repo, context, prefix: "feature", model: branchModel }
         )
         workingBranch = generated
         await createStatusEvent({
@@ -149,13 +158,13 @@ export const autoResolveIssue = async (
           content: `Using working branch: ${generated}`,
         })
       } catch (e) {
+        workingBranch = `issue-${issueNumber}`
         await createStatusEvent({
           workflowId,
-          content: `[WARNING]: Failed to generate non-conflicting branch name, falling back to default branch ${repository.data.default_branch}. Error: ${String(
+          content: `[WARNING]: Failed to generate non-conflicting branch name, falling back to ${workingBranch}. Error: ${String(
             e
           )}`,
         })
-        workingBranch = repository.data.default_branch
       }
     }
 
@@ -163,6 +172,7 @@ export const autoResolveIssue = async (
       repoFullName,
       branch: workingBranch,
       workflowId,
+      extraEnv: getContainerEnvForProvider(provider, apiKey),
     })
 
     const env: RepoEnvironment = { kind: "container", name: containerName }
@@ -172,6 +182,40 @@ export const autoResolveIssue = async (
       repo,
     })
 
+    const tree = await createContainerizedDirectoryTree(containerName)
+    const comments = await getIssueComments({
+      repoFullName,
+      issueNumber,
+    })
+
+    await createStatusEvent({ workflowId, content: "Running agent" })
+
+    if (provider === "anthropic") {
+      // ── Claude SDK path: run runner script inside the container ──
+      const result = await runClaudeAgentInContainer({
+        containerName,
+        workflowId,
+        input: {
+          issueTitle: issue.title,
+          issueBody: issue.body ?? "",
+          issueComments: (comments ?? []).map((c) => ({
+            user: c.user?.login ?? "unknown",
+            body: c.body ?? "",
+            createdAt: new Date(c.created_at).toLocaleString(),
+          })),
+          directoryTree: tree,
+          repoFullName,
+          defaultBranch: repository.data.default_branch,
+          workingBranch,
+          issueNumber,
+        },
+      })
+
+      await createWorkflowStateEvent({ workflowId, state: "completed" })
+      return result
+    }
+
+    // ── OpenAI path: existing PlanAndCodeAgent ──
     const trace = langfuse.trace({ name: "autoResolve" })
     const span = trace.span({ name: "PlanAndCodeAgent" })
 
@@ -185,12 +229,6 @@ export const autoResolveIssue = async (
       jobId: workflowId,
     })
     agent.addSpan({ span, generationName: "autoResolveIssue" })
-
-    const tree = await createContainerizedDirectoryTree(containerName)
-    const comments = await getIssueComments({
-      repoFullName,
-      issueNumber,
-    })
 
     await agent.addInput({
       role: "user",
@@ -220,8 +258,6 @@ export const autoResolveIssue = async (
         type: "message",
       })
     }
-
-    await createStatusEvent({ workflowId, content: "Running agent" })
 
     const result = await agent.runWithFunctions()
 

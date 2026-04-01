@@ -19,7 +19,6 @@ import { getInstallationFromRepo } from "@/lib/github/repos"
 import { resolveUserApiKey } from "@/lib/neo4j/services/user"
 import { QueueEnum } from "@/shared/entities/Queue"
 import { addJob } from "@/shared/services/job"
-import { checkProviderSupported } from "@/shared/services/resolveApiKey"
 
 import { enqueueJobsRequestSchema } from "./schemas"
 
@@ -81,14 +80,6 @@ export async function POST(
         return NextResponse.json(
           { success: false, error: resolved.error },
           { status: 401 }
-        )
-      }
-
-      const unsupported = checkProviderSupported(resolved.provider)
-      if (unsupported) {
-        return NextResponse.json(
-          { success: false, error: unsupported },
-          { status: 422 }
         )
       }
 

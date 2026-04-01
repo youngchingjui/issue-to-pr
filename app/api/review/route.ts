@@ -4,8 +4,6 @@ import { v4 as uuidv4 } from "uuid"
 import { createIssueComment } from "@/lib/github/issues"
 import { resolveUserApiKey } from "@/lib/neo4j/services/user"
 import { reviewPullRequest } from "@/lib/workflows/reviewPullRequest"
-import { checkProviderSupported } from "@/shared/services/resolveApiKey"
-
 // Type definition for the request body
 // Contains information about the pull request to review.
 type RequestBody = {
@@ -18,10 +16,6 @@ export async function POST(request: NextRequest) {
   const resolved = await resolveUserApiKey()
   if (!resolved.ok) {
     return NextResponse.json({ error: resolved.error }, { status: 401 })
-  }
-  const unsupported = checkProviderSupported(resolved.provider)
-  if (unsupported) {
-    return NextResponse.json({ error: unsupported }, { status: 422 })
   }
   const apiKey = resolved.apiKey
 

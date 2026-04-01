@@ -6,10 +6,7 @@ import { postApiKeyErrorComment } from "@/lib/webhook/github/postApiKeyErrorComm
 import { StorageAdapter } from "@/shared/adapters/neo4j/StorageAdapter"
 import { WORKFLOW_JOBS_QUEUE } from "@/shared/entities/Queue"
 import { addJob } from "@/shared/services/job"
-import {
-  checkProviderSupported,
-  resolveApiKey,
-} from "@/shared/services/resolveApiKey"
+import { resolveApiKey } from "@/shared/services/resolveApiKey"
 
 // Trigger keyword to activate the workflow
 const TRIGGER_KEYWORD = "@issuetopr"
@@ -118,16 +115,12 @@ export async function handlePullRequestComment({
     return { status: "error", reason: "settings_lookup_failed" as const }
   }
 
-  const unsupported = resolved.ok
-    ? checkProviderSupported(resolved.provider)
-    : null
-  if (!resolved.ok || unsupported) {
-    const errorMessage = resolved.ok ? unsupported! : resolved.error
+  if (!resolved.ok) {
     await postApiKeyErrorComment({
       installationId,
       repoFullName,
       issueNumber,
-      errorMessage,
+      errorMessage: resolved.error,
     })
     return { status: "rejected", reason: "missing_api_key" as const }
   }

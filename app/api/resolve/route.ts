@@ -7,8 +7,6 @@ import { getIssue } from "@/lib/github/issues"
 import { resolveUserApiKey } from "@/lib/neo4j/services/user"
 import { ResolveRequestSchema } from "@/lib/schemas/api"
 import { resolveIssue } from "@/lib/workflows/resolveIssue"
-import { checkProviderSupported } from "@/shared/services/resolveApiKey"
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -25,10 +23,6 @@ export async function POST(request: NextRequest) {
     const resolved = await resolveUserApiKey()
     if (!resolved.ok) {
       return NextResponse.json({ error: resolved.error }, { status: 401 })
-    }
-    const unsupported = checkProviderSupported(resolved.provider)
-    if (unsupported) {
-      return NextResponse.json({ error: unsupported }, { status: 422 })
     }
     const apiKey = resolved.apiKey
 

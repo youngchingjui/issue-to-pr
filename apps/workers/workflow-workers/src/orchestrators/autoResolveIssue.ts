@@ -5,10 +5,7 @@ import { EventBusAdapter } from "@/shared/adapters/ioredis/EventBusAdapter"
 import { StorageAdapter } from "@/shared/adapters/neo4j/StorageAdapter"
 import { setAccessToken } from "@/shared/auth"
 import { getPrivateKeyFromFile } from "@/shared/services/fs"
-import {
-  checkProviderSupported,
-  resolveApiKey,
-} from "@/shared/services/resolveApiKey"
+import { resolveApiKey } from "@/shared/services/resolveApiKey"
 import { autoResolveIssue as autoResolveIssueWorkflow } from "@/shared/usecases/workflows/autoResolveIssue"
 
 import { getEnvVar, publishJobStatus } from "../helper"
@@ -58,11 +55,6 @@ export async function autoResolveIssue(
 
   const { provider, apiKey } = resolved
 
-  const unsupported = checkProviderSupported(provider)
-  if (unsupported) {
-    throw new Error(unsupported)
-  }
-
   // TODO: Maybe we should move all data-loading functions (something akin to all `async` functions), anything that accesses
   // information from another source (database, file system, cache, etc.) into the workflow itself.
   const privateKey = await getPrivateKeyFromFile(GITHUB_APP_PRIVATE_KEY_PATH)
@@ -100,6 +92,7 @@ export async function autoResolveIssue(
       repoFullName,
       login: githubLogin,
       apiKey,
+      provider,
       branch,
     },
     {

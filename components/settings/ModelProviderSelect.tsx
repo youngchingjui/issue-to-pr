@@ -59,9 +59,7 @@ export default function ModelProviderSelect({ initialProvider }: Props) {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="openai">OpenAI</SelectItem>
-          <SelectItem value="anthropic" disabled>
-            Anthropic Claude (coming soon)
-          </SelectItem>
+          <SelectItem value="anthropic">Anthropic Claude</SelectItem>
         </SelectContent>
       </Select>
     </div>

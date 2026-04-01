@@ -10,10 +10,7 @@ import { neo4jDs } from "@/lib/neo4j"
 import * as userRepo from "@/lib/neo4j/repositories/user"
 import { autoResolveIssue } from "@/lib/workflows/autoResolveIssue"
 import { makeSettingsReaderAdapter } from "@/shared/adapters/neo4j/repositories/SettingsReaderAdapter"
-import {
-  checkProviderSupported,
-  resolveApiKey,
-} from "@/shared/services/resolveApiKey"
+import { resolveApiKey } from "@/shared/services/resolveApiKey"
 
 import {
   type AutoResolveIssueRequest,
@@ -70,10 +67,6 @@ export async function autoResolveIssueAction(
     if (!resolved.ok) {
       return { status: "error", code: "AUTH_REQUIRED", message: resolved.error }
     }
-    const unsupported = checkProviderSupported(resolved.provider)
-    if (unsupported) {
-      return { status: "error", code: "INVALID_INPUT", message: unsupported }
-    }
 
     // =================================================
     // Step 3: Launch the background job (fire-and-forget)
@@ -96,6 +89,7 @@ export async function autoResolveIssueAction(
           repository: repo,
           login,
           apiKey: resolved.apiKey,
+          provider: resolved.provider,
           jobId: effectiveJobId,
           branch,
         })

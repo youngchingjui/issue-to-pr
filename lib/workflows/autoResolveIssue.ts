@@ -18,7 +18,12 @@ import {
   createContainerizedDirectoryTree,
   createContainerizedWorkspace,
 } from "@/lib/utils/container"
-import { OpenAIAdapter } from "@/shared/adapters/llm/OpenAIAdapter"
+import {
+  createLLMAdapter,
+  getBranchNameModel,
+  getContainerEnvForProvider,
+} from "@/shared/lib/providers/config"
+import { type LLMProvider } from "@/shared/lib/types"
 import { generateNonConflictingBranchName } from "@/shared/usecases/git/generateBranchName"
 
 interface Params {
@@ -28,13 +33,15 @@ interface Params {
   login: string
   /** Pre-resolved API key from the caller */
   apiKey: string
+  /** Which LLM provider to use for this workflow run */
+  provider: LLMProvider
   jobId?: string
   /** Optional branch to run the workflow on. If omitted, a new feature branch is generated. */
   branch?: string
 }
 
 export const autoResolveIssue = async (params: Params) => {
-  const { issue, repository, apiKey, jobId, branch } = params
+  const { issue, repository, apiKey, provider, jobId, branch } = params
 
   // =================================================
   // Step 0: Setup workflow publisher
@@ -91,12 +98,13 @@ export const autoResolveIssue = async (params: Params) => {
         // This should not happen.
         // Either this use case needs to be called outside this use case independently
         // Or we combine in internals of generateNonConflictingBranchName into this use case
-        const llm = new OpenAIAdapter(apiKey)
+        const llm = createLLMAdapter(provider, apiKey)
+        const branchModel = getBranchNameModel(provider)
         const refs = new GitHubRefsAdapter()
         const context = `GitHub issue title: ${issue.title}\n\n${issue.body ?? ""}`
         const generated = await generateNonConflictingBranchName(
           { llm, refs },
-          { owner, repo, context, prefix: "feature" }
+          { owner, repo, context, prefix: "feature", model: branchModel }
         )
         workingBranch = generated
         await createStatusEvent({
@@ -104,13 +112,13 @@ export const autoResolveIssue = async (params: Params) => {
           content: `Using working branch: ${generated}`,
         })
       } catch (e) {
+        workingBranch = `issue-${issue.number}`
         await createStatusEvent({
           workflowId,
-          content: `[WARNING]: Failed to generate non-conflicting branch name, falling back to default branch ${repository.default_branch}. Error: ${String(
+          content: `[WARNING]: Failed to generate non-conflicting branch name, falling back to ${workingBranch}. Error: ${String(
             e
           )}`,
         })
-        workingBranch = repository.default_branch
       }
     }
 
@@ -118,6 +126,7 @@ export const autoResolveIssue = async (params: Params) => {
       repoFullName: repository.full_name,
       branch: workingBranch,
       workflowId,
+      extraEnv: getContainerEnvForProvider(provider, apiKey),
     })
 
     const env: RepoEnvironment = { kind: "container", name: containerName }

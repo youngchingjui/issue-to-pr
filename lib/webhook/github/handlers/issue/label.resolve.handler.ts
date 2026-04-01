@@ -9,10 +9,7 @@ import { postApiKeyErrorComment } from "@/lib/webhook/github/postApiKeyErrorComm
 import type { IssuesPayload } from "@/lib/webhook/github/types"
 import { resolveIssue } from "@/lib/workflows/resolveIssue"
 import { StorageAdapter } from "@/shared/adapters/neo4j/StorageAdapter"
-import {
-  checkProviderSupported,
-  resolveApiKey,
-} from "@/shared/services/resolveApiKey"
+import { resolveApiKey } from "@/shared/services/resolveApiKey"
 
 const POST_TO_GITHUB_SETTING = true // TODO: Set setting in database
 const CREATE_PR_SETTING = true // TODO: Set setting in database
@@ -49,16 +46,12 @@ export async function handleIssueLabelResolve({
 
   const storage = new StorageAdapter(neo4jDs)
   const resolved = await resolveApiKey(storage.settings.user, labelerLogin)
-  const unsupported = resolved.ok
-    ? checkProviderSupported(resolved.provider)
-    : null
-  if (!resolved.ok || unsupported) {
-    const errorMessage = resolved.ok ? unsupported! : resolved.error
+  if (!resolved.ok) {
     await postApiKeyErrorComment({
       installationId: Number(installationId),
       repoFullName,
       issueNumber,
-      errorMessage,
+      errorMessage: resolved.error,
     })
     return
   }

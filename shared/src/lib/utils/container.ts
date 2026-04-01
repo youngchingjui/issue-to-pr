@@ -41,6 +41,8 @@ interface ContainerizedWorktreeOptions {
   mountPath?: string
   /** Optional path to a local repository directory to copy into the container */
   hostRepoPath?: string
+  /** Additional environment variables to inject into the container */
+  extraEnv?: Record<string, string>
 }
 
 // ---- Git identity defaults ----
@@ -208,6 +210,7 @@ export async function createContainerizedWorkspace({
   image = AGENT_BASE_IMAGE,
   mountPath = "/workspace",
   hostRepoPath,
+  extraEnv,
 }: ContainerizedWorktreeOptions): Promise<ContainerizedWorktreeResult> {
   const [ownerRaw, repoRaw] = repoFullName.split("/")
   const owner = ownerRaw ?? ""
@@ -226,6 +229,7 @@ export async function createContainerizedWorkspace({
     user: "root",
     env: {
       GITHUB_TOKEN: token,
+      ...extraEnv,
     },
     workdir: mountPath,
     labels: {

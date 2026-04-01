@@ -3,8 +3,6 @@ import { NextRequest, NextResponse } from "next/server"
 import { resolveUserApiKey } from "@/lib/neo4j/services/user"
 import { ResolveMergeConflictsRequestSchema } from "@/lib/types/api/schemas"
 import { resolveMergeConflicts } from "@/lib/workflows/resolveMergeConflicts"
-import { checkProviderSupported } from "@/shared/services/resolveApiKey"
-
 export const dynamic = "force-dynamic"
 
 export async function POST(request: NextRequest) {
@@ -23,10 +21,6 @@ export async function POST(request: NextRequest) {
     const resolved = await resolveUserApiKey()
     if (!resolved.ok) {
       return NextResponse.json({ error: resolved.error }, { status: 401 })
-    }
-    const unsupported = checkProviderSupported(resolved.provider)
-    if (unsupported) {
-      return NextResponse.json({ error: unsupported }, { status: 422 })
     }
     const apiKey = resolved.apiKey
 

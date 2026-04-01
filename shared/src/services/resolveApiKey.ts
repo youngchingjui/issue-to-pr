@@ -1,32 +1,10 @@
+import { PROVIDER_CONFIG } from "@/shared/lib/providers/config"
 import type { LLMProvider } from "@/shared/lib/types"
 import type { SettingsReaderPort } from "@/shared/ports/repositories/settings.reader"
 
 export type ResolveApiKeyResult =
   | { ok: true; apiKey: string; provider: LLMProvider }
   | { ok: false; error: string }
-
-/**
- * Providers that currently support running workflows.
- * TODO: When a new provider runtime ships (e.g. Anthropic Claude via Phase 3,
- * see issue #1527), add it here and remove the corresponding
- * `checkProviderSupported` calls from API routes and webhook handlers.
- */
-const SUPPORTED_WORKFLOW_PROVIDERS: ReadonlySet<LLMProvider> = new Set([
-  "openai",
-])
-
-/**
- * Check whether a resolved provider is supported for running workflows.
- * Returns an error message string if unsupported, null if OK.
- *
- * TODO: Once all providers have runtime implementations, this function
- * and all its call sites can be removed.
- */
-export function checkProviderSupported(provider: LLMProvider): string | null {
-  if (SUPPORTED_WORKFLOW_PROVIDERS.has(provider)) return null
-  const name = provider === "anthropic" ? "Anthropic Claude" : provider
-  return `${name} is not yet available for running workflows. Please switch to a supported provider (e.g. OpenAI) in Settings.`
-}
 
 /**
  * Resolve the API key for a given user based on their provider preference.
@@ -65,8 +43,7 @@ export async function resolveApiKey(
     }
 
     if (!keyResult.value) {
-      const providerName =
-        explicitProvider === "openai" ? "OpenAI" : "Anthropic"
+      const providerName = PROVIDER_CONFIG[explicitProvider].displayName
       return {
         ok: false,
         error: `Your ${providerName} API key is missing. Please add it in Settings.`,
