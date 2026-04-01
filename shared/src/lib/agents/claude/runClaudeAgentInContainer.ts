@@ -34,7 +34,7 @@ interface RunClaudeAgentParams {
   input: RunnerInput
 }
 
-interface RunClaudeAgentResult {
+export interface RunClaudeAgentResult {
   messages: Array<{ role: string; content: string }>
 }
 
