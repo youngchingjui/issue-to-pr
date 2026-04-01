@@ -17,15 +17,14 @@ function mockPorts(): {
   llmSpy: jest.SpyInstance
 } {
   const llm: LLMPort = {
-    createCompletion: jest
-      .fn()
-      .mockResolvedValue({ ok: true, value: "test-branch" }),
+    createCompletion: async () => ({ ok: true as const, value: "test-branch" }),
   }
   const refs: GitHubRefsPort = {
-    listBranches: jest.fn().mockResolvedValue([]),
+    listBranches: async () => [],
   }
+  const llmSpy = jest.spyOn(llm, "createCompletion")
 
-  return { llm, refs, llmSpy: llm.createCompletion as jest.SpyInstance }
+  return { llm, refs, llmSpy }
 }
 
 describe("branch naming — model routing", () => {
