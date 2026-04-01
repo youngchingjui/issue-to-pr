@@ -49,6 +49,13 @@ RUN rg --version \
  && poetry --version \
  && npm ls -g @anthropic-ai/claude-agent-sdk
 
+# Copy the Claude Agent SDK runner script into the image.
+# This script is started by the workflow-workers orchestrator when the user
+# selects Anthropic as their provider. It imports the SDK (installed above),
+# calls query(), and streams structured NDJSON output to stdout.
+# Source: shared/src/lib/agents/claude/runner.mjs
+COPY shared/src/lib/agents/claude/runner.mjs /usr/local/lib/claude-runner/index.mjs
+
 # Set working directory where the agent will later receive a repository to work on
 WORKDIR /workspace
 

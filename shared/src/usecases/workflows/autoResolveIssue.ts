@@ -133,8 +133,11 @@ export const autoResolveIssue = async (
     }
 
     // Decide the working branch first so we can set labels and network aliases on the container
+    // NOTE: We intentionally do NOT initialize workingBranch to the default branch.
+    // The workflow must always use either a provided branch, a generated branch,
+    // or the `issue-{number}` fallback — never the repository's default branch.
 
-    let workingBranch = repository.data.default_branch
+    let workingBranch: string
 
     if (branch && branch.trim().length > 0) {
       workingBranch = branch.trim()

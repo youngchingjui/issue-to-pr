@@ -21,6 +21,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - We have a /shared folder where shared code between the NextJS application and the workers lives.
 - We want good, clean code
 - We want easy, clear code file organization. Any new joiner should be able to quickly understand where to find a file.
+- **Centralize over scatter** — When logic varies by a dimension (provider, environment, etc.), use a registry or config map, not if-else chains spread across files. Adding a new variant should be a one-line entry, not a multi-file scavenger hunt.
+- **Think about user context before picking defaults** — Don't assume what a value should be just because it compiles. Consider the actual situation: who's triggering this, what kind of issue is it, what happens on failure. Name things honestly.
+- **Tests reflect documented requirements** — Test descriptions should read like the user/dev docs. Use generic values in test data (e.g., `"any-model-id"`) rather than hardcoded vendor strings. Tests should survive refactors and remain meaningful after the implementing issue is closed.
+- **`lib/` is NextJS-only, `shared/` is for cross-app code** — `lib/` is the legacy NextJS application layer. New code that's used by multiple apps (workers, NextJS) belongs in `shared/`. Don't add new features to `lib/` if they'll be needed outside NextJS. Existing `lib/` code should be migrated to `shared/` over time.
 - We'll scatter additional specific guidance throughout the codebase. Look for README.md in nested folders, sitting close to any code they might be referencing.
 - When reviewing files or editing files, try to look for any relevant README.md files nearby that might give context about the direction of the code.
 
@@ -41,13 +45,13 @@ We maintain two types of documentation:
 
 ### Feature development workflow
 
-When building a new feature or making significant changes, follow this order:
-
-1. **User specs** (`docs/user/`) — What does the user see and do?
-2. **Technical architecture** (`docs/dev/`) — What is the ideal system design to support the user spec?
-3. **Plan (gap analysis)** — Compare the current codebase to the ideal architecture. Identify what exists, what's missing, and what needs to change.
+When building a new feature or making significant changes, use the `/implement` skill which enforces the docs-first sequence: user spec, tech architecture, gap analysis, then code.
 
 If the plan covers something not mentioned in the user spec or tech architecture, either shrink the plan scope or update the specs — it highlights an area that hasn't been thought through.
+
+### Post-implementation review
+
+After completing a feature or significant change, run the `code-review` agent to check for scattered logic, hardcoded values, and duplicated patterns. This should happen proactively — don't wait to be asked.
 
 ### Plans and task tracking
 
