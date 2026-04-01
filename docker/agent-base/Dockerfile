@@ -36,7 +36,7 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Install Claude Agent SDK globally (pinned version for reproducible builds)
 # Enables the in-container agent pattern described in docs/dev/claude-models.md
-RUN npm install -g @anthropic-ai/claude-agent-sdk@0.2.87
+RUN npm install -g @anthropic-ai/claude-agent-sdk@0.2.87 zod
 
 # Verify toolchain versions for transparency (for cache/debugging)
 RUN rg --version \
