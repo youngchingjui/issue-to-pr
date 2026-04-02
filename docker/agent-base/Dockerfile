@@ -36,7 +36,7 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Install Claude Agent SDK globally (pinned version for reproducible builds)
 # Enables the in-container agent pattern described in docs/dev/claude-models.md
-RUN npm install -g @anthropic-ai/claude-agent-sdk@0.2.87 zod
+RUN npm install -g @anthropic-ai/claude-agent-sdk@0.2.87
 
 # Verify toolchain versions for transparency (for cache/debugging)
 RUN rg --version \
@@ -55,6 +55,7 @@ RUN rg --version \
 # calls query(), and streams structured NDJSON output to stdout.
 # Source: shared/src/lib/agents/claude/runner.mjs
 COPY shared/src/lib/agents/claude/runner.mjs /usr/local/lib/claude-runner/index.mjs
+RUN cd /usr/local/lib/claude-runner && npm init -y && npm install zod
 
 # Set working directory where the agent will later receive a repository to work on
 WORKDIR /workspace
