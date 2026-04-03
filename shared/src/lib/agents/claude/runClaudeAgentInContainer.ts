@@ -53,17 +53,29 @@ export async function runClaudeAgentInContainer({
   const inputJson = JSON.stringify(input)
   // Use base64 encoding to avoid shell escaping issues with the JSON
   const inputBase64 = Buffer.from(inputJson).toString("base64")
-  await execInContainerWithDockerode({
+  const writeResult = await execInContainerWithDockerode({
     name: containerName,
     command: `echo '${inputBase64}' | base64 -d > /tmp/claude-input.json`,
   })
+  if (writeResult.exitCode !== 0) {
+    const errMsg =
+      writeResult.stderr || `Failed to write input JSON (exit ${writeResult.exitCode})`
+    await createErrorEvent({ workflowId, content: errMsg })
+    throw new Error(`Failed to write runner input: ${errMsg}`)
+  }
 
   // 2. Grant the non-root agent user ownership of /workspace so the SDK
   //    runner can read/write files. Setup commands run as root (default).
-  await execInContainerWithDockerode({
+  const chownResult = await execInContainerWithDockerode({
     name: containerName,
     command: "chown -R agent:agent /workspace",
   })
+  if (chownResult.exitCode !== 0) {
+    const errMsg =
+      chownResult.stderr || `Failed to chown /workspace (exit ${chownResult.exitCode})`
+    await createErrorEvent({ workflowId, content: errMsg })
+    throw new Error(`Failed to set workspace permissions: ${errMsg}`)
+  }
 
   // 3. Execute the runner script as the non-root agent user.
   //    The Claude Agent SDK CLI refuses --dangerously-skip-permissions
