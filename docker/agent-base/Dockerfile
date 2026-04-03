@@ -57,6 +57,12 @@ RUN rg --version \
 COPY shared/src/lib/agents/claude/runner.mjs /usr/local/lib/claude-runner/index.mjs
 RUN cd /usr/local/lib/claude-runner && npm init -y && npm install zod
 
+# Create a non-root user for running the Claude Agent SDK.
+# The SDK's CLI refuses --dangerously-skip-permissions when run as root.
+# Container setup (git clone, chown) still runs as root; only the SDK runner
+# switches to this user.
+RUN groupadd -g 1000 agent && useradd -m -u 1000 -g agent agent
+
 # Set working directory where the agent will later receive a repository to work on
 WORKDIR /workspace
 

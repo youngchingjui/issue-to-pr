@@ -156,10 +156,13 @@ export async function execInContainerWithDockerode({
   name,
   command,
   cwd,
+  user = "root:root",
 }: {
   name: string
   command: string | string[]
   cwd?: string
+  /** UID:GID or username to run the command as (default "root:root") */
+  user?: string
 }): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   if (!name || typeof name !== "string" || !name.trim()) {
     return {
@@ -203,7 +206,7 @@ export async function execInContainerWithDockerode({
       AttachStdout: true,
       AttachStderr: true,
       WorkingDir: cwd,
-      User: "root:root",
+      User: user,
     })
     const stream = await exec.start({})
     let stdout = ""

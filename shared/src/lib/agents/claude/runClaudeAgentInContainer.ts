@@ -17,6 +17,9 @@ import {
 /** Path to the runner script inside the agent-base Docker image. */
 const RUNNER_SCRIPT_PATH = "/usr/local/lib/claude-runner/index.mjs"
 
+/** Non-root user created in the agent-base Dockerfile for running the SDK. */
+const AGENT_USER = "agent:agent"
+
 interface RunnerInput {
   issueTitle: string
   issueBody: string
@@ -55,7 +58,16 @@ export async function runClaudeAgentInContainer({
     command: `echo '${inputBase64}' | base64 -d > /tmp/claude-input.json`,
   })
 
-  // 2. Execute the runner script (baked into the Docker image)
+  // 2. Grant the non-root agent user ownership of /workspace so the SDK
+  //    runner can read/write files. Setup commands run as root (default).
+  await execInContainerWithDockerode({
+    name: containerName,
+    command: "chown -R agent:agent /workspace",
+  })
+
+  // 3. Execute the runner script as the non-root agent user.
+  //    The Claude Agent SDK CLI refuses --dangerously-skip-permissions
+  //    when running as root, so we must switch to a non-root user.
   await createStatusEvent({
     workflowId,
     content: "Starting Claude Agent SDK runner",
@@ -64,6 +76,7 @@ export async function runClaudeAgentInContainer({
   const { stdout, stderr, exitCode } = await execInContainerWithDockerode({
     name: containerName,
     command: `node ${RUNNER_SCRIPT_PATH} < /tmp/claude-input.json`,
+    user: AGENT_USER,
   })
 
   // 3. Parse NDJSON output
