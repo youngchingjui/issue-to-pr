@@ -74,12 +74,20 @@ export async function runClaudeAgentInContainer({
 
   // 3. Set git identity for the agent user. The global config set during
   //    container setup lives under /root and is invisible to non-root users.
-  await execInContainerWithDockerode({
+  //    Use --file to avoid relying on $HOME being set in Docker exec.
+  const gitConfigResult = await execInContainerWithDockerode({
     name: containerName,
     command:
-      'git config --global user.name "Issue To PR agent" && git config --global user.email "agent@issuetopr.dev"',
+      'git config --file /home/agent/.gitconfig user.name "Issue To PR agent" && git config --file /home/agent/.gitconfig user.email "agent@issuetopr.dev"',
     user: AGENT_USER,
   })
+  if (gitConfigResult.exitCode !== 0) {
+    const errorMsg =
+      gitConfigResult.stderr ||
+      "Failed to configure git identity for the agent user"
+    await createErrorEvent({ workflowId, content: errorMsg })
+    throw new Error(`Claude agent setup failed: ${errorMsg}`)
+  }
 
   // 4. Execute the runner script as the non-root agent user.
   //    The Claude Agent SDK CLI refuses --dangerously-skip-permissions
