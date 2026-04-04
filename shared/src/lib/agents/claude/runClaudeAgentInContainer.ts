@@ -60,12 +60,28 @@ export async function runClaudeAgentInContainer({
 
   // 2. Grant the non-root agent user ownership of /workspace so the SDK
   //    runner can read/write files. Setup commands run as root (default).
+  const chownResult = await execInContainerWithDockerode({
+    name: containerName,
+    command: `chown -R ${AGENT_USER} /workspace`,
+  })
+  if (chownResult.exitCode !== 0) {
+    const errorMsg =
+      chownResult.stderr ||
+      "Failed to grant the agent user access to /workspace"
+    await createErrorEvent({ workflowId, content: errorMsg })
+    throw new Error(`Claude agent setup failed: ${errorMsg}`)
+  }
+
+  // 3. Set git identity for the agent user. The global config set during
+  //    container setup lives under /root and is invisible to non-root users.
   await execInContainerWithDockerode({
     name: containerName,
-    command: "chown -R agent:agent /workspace",
+    command:
+      'git config --global user.name "Issue To PR agent" && git config --global user.email "agent@issuetopr.dev"',
+    user: AGENT_USER,
   })
 
-  // 3. Execute the runner script as the non-root agent user.
+  // 4. Execute the runner script as the non-root agent user.
   //    The Claude Agent SDK CLI refuses --dangerously-skip-permissions
   //    when running as root, so we must switch to a non-root user.
   await createStatusEvent({
@@ -79,7 +95,7 @@ export async function runClaudeAgentInContainer({
     user: AGENT_USER,
   })
 
-  // 3. Parse NDJSON output
+  // 5. Parse NDJSON output
   const messages: Array<{ role: string; content: string }> = []
   const lines = stdout.split("\n").filter((line) => line.trim().length > 0)
 

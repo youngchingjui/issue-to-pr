@@ -46,7 +46,11 @@ const baseInput = {
 describe("Claude agent runner — output collection", () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    // First exec call writes the input JSON into the container
+    // Call 1: write input JSON into the container
+    mockExec.mockResolvedValueOnce({ stdout: "", stderr: "", exitCode: 0 })
+    // Call 2: chown /workspace for the non-root agent user
+    mockExec.mockResolvedValueOnce({ stdout: "", stderr: "", exitCode: 0 })
+    // Call 3: git config for the agent user
     mockExec.mockResolvedValueOnce({ stdout: "", stderr: "", exitCode: 0 })
   })
 
