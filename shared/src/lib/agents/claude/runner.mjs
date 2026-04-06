@@ -323,8 +323,51 @@ async function main() {
         maxTurns: 200,
       },
     })) {
-      if ("result" in message) {
-        emit({ type: "result", content: message.result })
+      if (message.type === "result") {
+        // Final result message — includes usage and cost data
+        const resultEvent = {
+          type: "result",
+          content: message.subtype === "success" ? message.result : undefined,
+          subtype: message.subtype,
+          usage: message.usage,
+          totalCostUsd: message.total_cost_usd,
+          numTurns: message.num_turns,
+          durationMs: message.duration_ms,
+          sessionId: message.session_id,
+          modelUsage: message.modelUsage,
+        }
+        if (message.subtype !== "success" && message.errors) {
+          resultEvent.errors = message.errors
+        }
+        emit(resultEvent)
+      } else if (message.type === "assistant") {
+        // Assistant message — contains text and tool_use content blocks
+        const contentBlocks = message.message?.content ?? []
+        for (const block of contentBlocks) {
+          if (block.type === "text" && block.text) {
+            emit({ type: "llmResponse", content: block.text })
+          } else if (block.type === "tool_use") {
+            emit({
+              type: "toolCall",
+              toolName: block.name,
+              toolCallId: block.id,
+              args: JSON.stringify(block.input),
+            })
+          }
+        }
+      } else if (message.type === "user" && message.tool_use_result != null) {
+        // Tool result message — emitted after a tool_use block is executed
+        const result = message.tool_use_result
+        const content =
+          typeof result === "string"
+            ? result
+            : JSON.stringify(result)
+        emit({
+          type: "toolCallResult",
+          toolCallId: message.parent_tool_use_id ?? "unknown",
+          toolName: "unknown",
+          content: content.slice(0, 10000),
+        })
       } else if (message.type === "system" && message.subtype === "init") {
         emit({
           type: "status",

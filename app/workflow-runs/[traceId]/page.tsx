@@ -85,6 +85,12 @@ export default async function WorkflowRunDetailPage({
                 : workflow.type}
             </p>
           )}
+          {(workflow.provider || workflow.model) && (
+            <p className="text-sm text-muted-foreground">
+              Model:{" "}
+              {[workflow.provider, workflow.model].filter(Boolean).join(" / ")}
+            </p>
+          )}
         </div>
 
         {/* Context Section - Only show if issue exists */}

@@ -68,6 +68,8 @@ function transformCreateWorkflowRunInput(input: CreateWorkflowRunInput): {
     runId,
     type: input.type,
     postToGithub: input.config?.postToGithub ?? false,
+    provider: input.provider,
+    model: input.model,
   }
 
   const attach: {

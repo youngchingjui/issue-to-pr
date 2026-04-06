@@ -11,7 +11,10 @@
 import { execInContainerWithDockerode } from "@/shared/lib/docker"
 import {
   createErrorEvent,
+  createLLMResponseEvent,
   createStatusEvent,
+  createToolCallEvent,
+  createToolCallResultEvent,
 } from "@/shared/lib/neo4j/services/event"
 
 /** Path to the runner script inside the agent-base Docker image. */
@@ -39,6 +42,15 @@ interface RunClaudeAgentParams {
 
 export interface RunClaudeAgentResult {
   messages: Array<{ role: string; content: string }>
+  usage?: {
+    promptTokens: number
+    completionTokens: number
+    totalCostUsd: number
+    numTurns: number
+    durationMs: number
+  }
+  /** Model names used during the run, derived from SDK modelUsage keys */
+  models?: string[]
 }
 
 /**
@@ -106,6 +118,8 @@ export async function runClaudeAgentInContainer({
   // 5. Parse NDJSON output
   const messages: Array<{ role: string; content: string }> = []
   const lines = stdout.split("\n").filter((line) => line.trim().length > 0)
+  let resultUsage: RunClaudeAgentResult["usage"]
+  let resultModels: string[] | undefined
 
   for (const line of lines) {
     try {
@@ -119,11 +133,56 @@ export async function runClaudeAgentInContainer({
           })
           break
 
-        case "result":
-          messages.push({ role: "assistant", content: event.content })
-          await createStatusEvent({
+        case "result": {
+          if (event.content) {
+            messages.push({ role: "assistant", content: event.content })
+          }
+
+          // Extract usage data from the result event
+          if (event.usage) {
+            resultUsage = {
+              promptTokens: event.usage.input_tokens ?? 0,
+              completionTokens: event.usage.output_tokens ?? 0,
+              totalCostUsd: event.totalCostUsd ?? 0,
+              numTurns: event.numTurns ?? 0,
+              durationMs: event.durationMs ?? 0,
+            }
+          }
+
+          // Extract model names from modelUsage keys
+          if (event.modelUsage) {
+            resultModels = Object.keys(event.modelUsage)
+          }
+
+          const summary = event.content
+            ? `Agent completed: ${event.content.slice(0, 200)}`
+            : `Agent finished (${event.subtype})`
+          await createStatusEvent({ workflowId, content: summary })
+          break
+        }
+
+        case "llmResponse":
+          await createLLMResponseEvent({
             workflowId,
-            content: `Agent completed: ${event.content.slice(0, 200)}`,
+            content: event.content,
+          })
+          break
+
+        case "toolCall":
+          await createToolCallEvent({
+            workflowId,
+            toolName: event.toolName,
+            toolCallId: event.toolCallId,
+            args: event.args ?? "",
+          })
+          break
+
+        case "toolCallResult":
+          await createToolCallResultEvent({
+            workflowId,
+            toolCallId: event.toolCallId,
+            toolName: event.toolName ?? "unknown",
+            content: event.content ?? "",
           })
           break
 
@@ -160,5 +219,5 @@ export async function runClaudeAgentInContainer({
     })
   }
 
-  return { messages }
+  return { messages, usage: resultUsage, models: resultModels }
 }

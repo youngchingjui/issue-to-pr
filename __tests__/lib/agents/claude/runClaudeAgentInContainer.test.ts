@@ -15,13 +15,19 @@ jest.mock("@/shared/lib/docker", () => ({
 jest.mock("@/shared/lib/neo4j/services/event", () => ({
   createStatusEvent: jest.fn().mockResolvedValue(undefined),
   createErrorEvent: jest.fn().mockResolvedValue(undefined),
+  createLLMResponseEvent: jest.fn().mockResolvedValue(undefined),
+  createToolCallEvent: jest.fn().mockResolvedValue(undefined),
+  createToolCallResultEvent: jest.fn().mockResolvedValue(undefined),
 }))
 
 import { runClaudeAgentInContainer } from "@/shared/lib/agents/claude/runClaudeAgentInContainer"
 import { execInContainerWithDockerode } from "@/shared/lib/docker"
 import {
   createErrorEvent,
+  createLLMResponseEvent,
   createStatusEvent,
+  createToolCallEvent,
+  createToolCallResultEvent,
 } from "@/shared/lib/neo4j/services/event"
 
 const mockExec = execInContainerWithDockerode as jest.MockedFunction<
@@ -127,5 +133,102 @@ describe("Claude agent runner — output collection", () => {
         content: "Starting Claude Agent SDK runner",
       })
     )
+  })
+
+  it("persists llmResponse events from runner output", async () => {
+    const output = [
+      JSON.stringify({ type: "llmResponse", content: "Here is my analysis" }),
+      JSON.stringify({ type: "done" }),
+    ].join("\n")
+
+    mockExec.mockResolvedValueOnce({ stdout: output, stderr: "", exitCode: 0 })
+
+    await runClaudeAgentInContainer(baseInput)
+
+    expect(createLLMResponseEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workflowId: "test-workflow-id",
+        content: "Here is my analysis",
+      })
+    )
+  })
+
+  it("persists toolCall events from runner output", async () => {
+    const output = [
+      JSON.stringify({
+        type: "toolCall",
+        toolName: "Read",
+        toolCallId: "call-123",
+        args: '{"file_path":"/src/index.ts"}',
+      }),
+      JSON.stringify({ type: "done" }),
+    ].join("\n")
+
+    mockExec.mockResolvedValueOnce({ stdout: output, stderr: "", exitCode: 0 })
+
+    await runClaudeAgentInContainer(baseInput)
+
+    expect(createToolCallEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workflowId: "test-workflow-id",
+        toolName: "Read",
+        toolCallId: "call-123",
+        args: '{"file_path":"/src/index.ts"}',
+      })
+    )
+  })
+
+  it("persists toolCallResult events from runner output", async () => {
+    const output = [
+      JSON.stringify({
+        type: "toolCallResult",
+        toolCallId: "call-123",
+        toolName: "Read",
+        content: "file contents here",
+      }),
+      JSON.stringify({ type: "done" }),
+    ].join("\n")
+
+    mockExec.mockResolvedValueOnce({ stdout: output, stderr: "", exitCode: 0 })
+
+    await runClaudeAgentInContainer(baseInput)
+
+    expect(createToolCallResultEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workflowId: "test-workflow-id",
+        toolCallId: "call-123",
+        toolName: "Read",
+        content: "file contents here",
+      })
+    )
+  })
+
+  it("extracts usage data from result events", async () => {
+    const output = [
+      JSON.stringify({
+        type: "result",
+        content: "Done",
+        subtype: "success",
+        usage: { input_tokens: 1000, output_tokens: 500 },
+        totalCostUsd: 0.05,
+        numTurns: 3,
+        durationMs: 12000,
+        modelUsage: { "claude-sonnet-4-20250514": { inputTokens: 1000, outputTokens: 500 } },
+      }),
+      JSON.stringify({ type: "done" }),
+    ].join("\n")
+
+    mockExec.mockResolvedValueOnce({ stdout: output, stderr: "", exitCode: 0 })
+
+    const result = await runClaudeAgentInContainer(baseInput)
+
+    expect(result.usage).toEqual({
+      promptTokens: 1000,
+      completionTokens: 500,
+      totalCostUsd: 0.05,
+      numTurns: 3,
+      durationMs: 12000,
+    })
+    expect(result.models).toEqual(["claude-sonnet-4-20250514"])
   })
 })
