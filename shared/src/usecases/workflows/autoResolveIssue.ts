@@ -114,6 +114,7 @@ export const autoResolveIssue = async (
       config: {
         postToGithub: true,
       },
+      provider,
     })
 
     await createWorkflowStateEvent({ workflowId, state: "running" })

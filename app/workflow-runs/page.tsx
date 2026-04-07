@@ -70,6 +70,9 @@ export default async function WorkflowRunsPage() {
                   <TableHead className="py-4 text-base font-medium">
                     Workflow Type
                   </TableHead>
+                  <TableHead className="py-4 text-base font-medium">
+                    Model
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               {/* Render immediately with stored titles; stream fetched titles via Suspense */}

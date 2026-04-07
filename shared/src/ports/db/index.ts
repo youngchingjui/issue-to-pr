@@ -33,6 +33,10 @@ export interface CreateWorkflowRunInput {
   actor?: WorkflowRunActor
   target?: Target
   config?: WorkflowRunConfig
+  /** LLM provider used for this run */
+  provider?: string
+  /** Model name used for this run */
+  model?: string
 }
 
 export interface WorkflowEventInput {

@@ -74,6 +74,8 @@ export function mapListByUser(
             },
           }
         : undefined,
+      provider: run.provider,
+      model: run.model,
     }
 
     return workflowRun
