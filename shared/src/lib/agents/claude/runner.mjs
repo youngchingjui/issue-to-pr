@@ -310,6 +310,9 @@ async function main() {
 
   emit({ type: "status", content: "Starting Claude agent" })
 
+  // Track tool call IDs to tool names so we can label results correctly
+  const toolCallNames = new Map()
+
   try {
     for await (const message of query({
       prompt: userMessage,
@@ -347,6 +350,7 @@ async function main() {
           if (block.type === "text" && block.text) {
             emit({ type: "llmResponse", content: block.text })
           } else if (block.type === "tool_use") {
+            toolCallNames.set(block.id, block.name)
             emit({
               type: "toolCall",
               toolName: block.name,
@@ -355,19 +359,29 @@ async function main() {
             })
           }
         }
-      } else if (message.type === "user" && message.tool_use_result != null) {
-        // Tool result message — emitted after a tool_use block is executed
-        const result = message.tool_use_result
-        const content =
-          typeof result === "string"
-            ? result
-            : JSON.stringify(result)
-        emit({
-          type: "toolCallResult",
-          toolCallId: message.parent_tool_use_id ?? "unknown",
-          toolName: "unknown",
-          content: content.slice(0, 10000),
-        })
+      } else if (message.type === "user") {
+        // User messages carry tool results — either via tool_use_result (SDK field)
+        // or via message.content blocks of type "tool_result" (Anthropic API format).
+        const contentBlocks = Array.isArray(message.message?.content)
+          ? message.message.content
+          : []
+
+        for (const block of contentBlocks) {
+          if (block.type === "tool_result") {
+            const callId = block.tool_use_id ?? message.parent_tool_use_id ?? "unknown"
+            const rawContent = Array.isArray(block.content)
+              ? block.content.map((c) => c.text ?? JSON.stringify(c)).join("")
+              : typeof block.content === "string"
+                ? block.content
+                : JSON.stringify(block.content ?? "")
+            emit({
+              type: "toolCallResult",
+              toolCallId: callId,
+              toolName: toolCallNames.get(callId) ?? "unknown",
+              content: rawContent.slice(0, 10000),
+            })
+          }
+        }
       } else if (message.type === "system" && message.subtype === "init") {
         emit({
           type: "status",
