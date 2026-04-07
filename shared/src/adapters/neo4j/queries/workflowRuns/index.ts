@@ -1,5 +1,6 @@
 export * from "./addEvent"
 export * from "./addEvent.mapper"
+export * from "./addWorkflowStateEvent"
 export * from "./attachActor"
 export * from "./attachCommit"
 export * from "./attachIssue"
@@ -16,3 +17,4 @@ export * from "./listForIssue"
 export * from "./listForIssue.mapper"
 export * from "./listForRepo"
 export * from "./listForRepo.mapper"
+
