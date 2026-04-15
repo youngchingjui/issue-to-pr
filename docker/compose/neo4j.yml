@@ -23,6 +23,8 @@ services:
       timeout: 10s
       retries: 20
       start_period: 10s
+    networks:
+      - issue-to-pr-network
 
 volumes:
   neo4j_data:
