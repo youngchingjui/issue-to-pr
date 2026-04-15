@@ -41,6 +41,7 @@ export async function createDependentPR(
 
   // Load environment
   const {
+    AGENT_BASE_IMAGE,
     GITHUB_APP_ID,
     GITHUB_APP_PRIVATE_KEY_PATH,
     WEB_APP_URL,
@@ -88,6 +89,7 @@ export async function createDependentPR(
           pullNumber,
           storage,
           userId: githubLogin,
+          agentBaseImage: AGENT_BASE_IMAGE,
           jobId: workflowId,
           initiator: { type: "api", actorLogin: githubLogin, label: "webhook" },
           authProvider,

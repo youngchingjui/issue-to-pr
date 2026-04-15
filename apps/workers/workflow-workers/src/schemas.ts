@@ -4,6 +4,7 @@ import { WORKFLOW_JOBS_QUEUE } from "@/shared/entities/Queue"
 
 // Should match .env.example
 export const envSchema = z.object({
+  AGENT_BASE_IMAGE: z.string().min(1),
   BULLMQ_QUEUE_NAME: z.string().min(1).default(WORKFLOW_JOBS_QUEUE),
   ENVIRONMENT_NAME: z.string().optional(),
   GITHUB_APP_ID: z.string(),

@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from "uuid"
 
 import { MergeConflictResolverAgent } from "@/lib/agents/MergeConflictResolverAgent"
+import { getEnv } from "@/lib/env"
 import { getRepoFromString } from "@/lib/github/content"
 import { getPullRequestConflictContext } from "@/lib/github/graphql/queries/getPullRequestConflictContext"
 import { getInstallationTokenFromRepo } from "@/lib/github/installation"
@@ -74,6 +75,7 @@ export async function resolveMergeConflicts({
       repoFullName,
       branch: pr.headRefName,
       workflowId,
+      image: getEnv().AGENT_BASE_IMAGE,
     })
     const env: RepoEnvironment = { kind: "container", name: containerName }
     containerCleanup = cleanup

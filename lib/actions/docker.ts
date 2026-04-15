@@ -8,17 +8,16 @@ import {
   startContainer,
   stopAndRemoveContainer,
 } from "@/lib/docker"
+import { getEnv } from "@/lib/env"
 import { getBuildDeploymentSettings } from "@/lib/neo4j/services/repository"
-import { AGENT_BASE_IMAGE, RunningContainer } from "@/lib/types/docker"
+import { RunningContainer } from "@/lib/types/docker"
 import { repoFullNameSchema } from "@/lib/types/github"
 
-// Use shared constant for the agent base image prefix
-const AGENT_BASE_IMAGE_PREFIX = AGENT_BASE_IMAGE
-
 export async function getRunningContainers(): Promise<RunningContainer[]> {
+  const { AGENT_BASE_IMAGE } = getEnv()
   const containers = await listRunningContainers()
   const agentContainers = containers.filter((c) =>
-    c.image.startsWith(AGENT_BASE_IMAGE_PREFIX)
+    c.image.startsWith(AGENT_BASE_IMAGE)
   )
 
   // Enrich with install/dev command availability from repo settings
@@ -46,10 +45,11 @@ export async function getRunningContainers(): Promise<RunningContainer[]> {
 }
 
 export async function launchAgentBaseContainer() {
+  const { AGENT_BASE_IMAGE } = getEnv()
   const name = `agent-${Date.now()}`
   const ttlHours = Number.parseInt(process.env.CONTAINER_TTL_HOURS ?? "24", 10)
   await startContainer({
-    image: AGENT_BASE_IMAGE_PREFIX,
+    image: AGENT_BASE_IMAGE,
     name,
     labels: {
       preview: "true",

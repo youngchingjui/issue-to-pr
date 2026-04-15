@@ -12,7 +12,6 @@ import {
 } from "@/shared/lib/docker"
 import { addWorktree, removeWorktree } from "@/shared/lib/git"
 import { getInstallationTokenFromRepo } from "@/shared/lib/github/installation"
-import { AGENT_BASE_IMAGE } from "@/shared/lib/types/docker"
 import { containerNameForTrace } from "@/shared/lib/utils/utils-common"
 import { setupLocalRepository } from "@/shared/lib/utils/utils-server"
 
@@ -35,8 +34,10 @@ interface ContainerizedWorktreeOptions {
   branch?: string
   /** optional externally-supplied workflow run id */
   workflowId?: string
-  /** Docker image to use (default "ghcr.io/youngchingjui/agent-base") */
-  image?: string
+  /** Docker image to use. Provided by the caller (worker or NextJS), which
+   *  is responsible for reading AGENT_BASE_IMAGE from its env. Shared code
+   *  must not read env directly. */
+  image: string
   /** Mount path inside container (default "/workspace") */
   mountPath?: string
   /** Optional path to a local repository directory to copy into the container */
@@ -116,7 +117,7 @@ export async function createContainerizedWorktree({
   repoFullName,
   branch = "main",
   workflowId = uuidv4(),
-  image = AGENT_BASE_IMAGE,
+  image,
   mountPath = "/workspace",
 }: ContainerizedWorktreeOptions): Promise<ContainerizedWorktreeResult> {
   // 1. Ensure we have a clean local clone
@@ -207,7 +208,7 @@ export async function createContainerizedWorkspace({
   repoFullName,
   branch = "main",
   workflowId = uuidv4(),
-  image = AGENT_BASE_IMAGE,
+  image,
   mountPath = "/workspace",
   hostRepoPath,
   extraEnv,

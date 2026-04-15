@@ -120,8 +120,6 @@ export async function runClaudeAgentInContainer({
   const lines = stdout.split("\n").filter((line) => line.trim().length > 0)
   let resultUsage: RunClaudeAgentResult["usage"]
   let resultModels: string[] | undefined
-  // Track toolCallId → toolName so we can label results if the runner didn't
-  const toolCallNames = new Map<string, string>()
 
   for (const line of lines) {
     try {
@@ -171,7 +169,6 @@ export async function runClaudeAgentInContainer({
           break
 
         case "toolCall":
-          toolCallNames.set(event.toolCallId, event.toolName)
           await createToolCallEvent({
             workflowId,
             toolName: event.toolName,
@@ -180,19 +177,14 @@ export async function runClaudeAgentInContainer({
           })
           break
 
-        case "toolCallResult": {
-          const resolvedToolName =
-            event.toolName && event.toolName !== "unknown"
-              ? event.toolName
-              : toolCallNames.get(event.toolCallId) ?? "unknown"
+        case "toolCallResult":
           await createToolCallResultEvent({
             workflowId,
             toolCallId: event.toolCallId,
-            toolName: resolvedToolName,
+            toolName: event.toolName ?? "unknown",
             content: event.content ?? "",
           })
           break
-        }
 
         case "error":
           await createErrorEvent({

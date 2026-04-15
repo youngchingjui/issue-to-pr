@@ -39,7 +39,12 @@ export async function autoResolveIssue(
   )
 
   // Load environment
-  const { GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY_PATH, REDIS_URL } = getEnvVar()
+  const {
+    AGENT_BASE_IMAGE,
+    GITHUB_APP_ID,
+    GITHUB_APP_PRIVATE_KEY_PATH,
+    REDIS_URL,
+  } = getEnvVar()
 
   // Single storage adapter for all Neo4j access (settings + workflow runs)
   const storage = new StorageAdapter(neo4jDs)
@@ -93,6 +98,7 @@ export async function autoResolveIssue(
       login: githubLogin,
       apiKey,
       provider,
+      agentBaseImage: AGENT_BASE_IMAGE,
       branch,
     },
     {

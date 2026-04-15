@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from "uuid"
 
 import { DependentPRAgent } from "@/lib/agents/DependentPRAgent"
 import { execInContainerWithDockerode } from "@/lib/docker"
+import { getEnv } from "@/lib/env"
 import { getRepoFromString } from "@/lib/github/content"
 import { getInstallationTokenFromRepo } from "@/lib/github/installation"
 import { getPullRequestDiff } from "@/lib/github/pullRequests"
@@ -94,6 +95,7 @@ export async function createDependentPRWorkflow({
       repoFullName,
       branch: repo.default_branch,
       workflowId,
+      image: getEnv().AGENT_BASE_IMAGE,
     })
     const env: RepoEnvironment = { kind: "container", name: containerName }
     containerCleanup = cleanup

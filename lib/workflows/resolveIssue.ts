@@ -4,6 +4,7 @@
 // They can also all access the same data, such as the issue, the codebase, etc.
 
 import { CoderAgent } from "@/lib/agents/coder"
+import { getEnv } from "@/lib/env"
 import { getInstallationTokenFromRepo } from "@/lib/github/installation"
 import { getIssueComments } from "@/lib/github/issues"
 import { checkRepoPermissions } from "@/lib/github/users"
@@ -113,6 +114,7 @@ export const resolveIssue = async ({
       repoFullName: repository.full_name,
       branch: repository.default_branch,
       workflowId,
+      image: getEnv().AGENT_BASE_IMAGE,
     })
     const env: RepoEnvironment = { kind: "container", name: containerName }
     containerCleanup = cleanup

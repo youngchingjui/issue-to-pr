@@ -10,10 +10,6 @@
  * - Attach "handler" to the worker
 
  */
-// Must be first — loads .env files into process.env before any module that
-// reads env at import time (e.g. shared/src/lib/types/docker.ts).
-import "./loadEnv"
-
 import { QueueEvents, Worker } from "bullmq"
 
 import { getRedisConnection } from "@/shared/adapters/ioredis/client"
