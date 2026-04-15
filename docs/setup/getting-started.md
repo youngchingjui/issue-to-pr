@@ -45,12 +45,12 @@ pnpm install
 
 1. Prepare Docker Compose environment variables used for local databases:
 
-```bash
-# Ensure docker/.env exists and has values
-cp docker/.env docker/.env  # if not present already
-# then edit docker/.env as needed:
-# NEO4J_USER=neo4j
-# NEO4J_PASSWORD=letmein
+Ensure `docker/.env` exists and has values. If the file doesn't exist, create it with at least:
+
+```env
+# docker/.env
+NEO4J_USER=neo4j
+NEO4J_PASSWORD=letmein
 ```
 
 2. Create `.env.local` for app secrets used by Next.js (if applicable):
