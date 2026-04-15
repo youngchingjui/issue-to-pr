@@ -18,11 +18,10 @@ services:
       - neo4j_import:/var/lib/neo4j/import
       - neo4j_plugins:/plugins
     healthcheck:
-      test: ["CMD-SHELL", "cypher-shell -a bolt://localhost:7687 -u ${NEO4J_USER} -p ${NEO4J_PASSWORD} 'RETURN 1' || exit 1"]
+      test: ["CMD", "wget", "--spider", "http://localhost:7474"]
       interval: 5s
-      timeout: 10s
+      timeout: 5s
       retries: 20
-      start_period: 10s
     networks:
       - issue-to-pr-network
 
