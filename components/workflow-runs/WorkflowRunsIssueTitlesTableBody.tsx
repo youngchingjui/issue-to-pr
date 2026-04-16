@@ -16,6 +16,8 @@ export type WorkflowRunItem = {
     number: number
     title?: string | null
   } | null
+  provider?: string | null
+  model?: string | null
 }
 
 export function TableBodyFallback({
@@ -66,6 +68,11 @@ export function TableBodyFallback({
             )}
           </TableCell>
           <TableCell className="py-4">{workflow.type}</TableCell>
+          <TableCell className="py-4 text-muted-foreground">
+            {workflow.provider || workflow.model
+              ? [workflow.provider, workflow.model].filter(Boolean).join(" / ")
+              : null}
+          </TableCell>
         </TableRow>
       ))}
     </TableBody>
@@ -153,6 +160,11 @@ export async function IssueTitlesTableBody({
             )}
           </TableCell>
           <TableCell className="py-4">{workflow.type}</TableCell>
+          <TableCell className="py-4 text-muted-foreground">
+            {workflow.provider || workflow.model
+              ? [workflow.provider, workflow.model].filter(Boolean).join(" / ")
+              : null}
+          </TableCell>
         </TableRow>
       ))}
     </TableBody>

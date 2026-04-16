@@ -25,6 +25,8 @@ interface CreateDependentPRParams {
   pullNumber: number
   storage: DatabaseStorage
   userId: string
+  /** Docker image used for the agent container. Read from env by the caller. */
+  agentBaseImage: string
   jobId?: string
   initiator?: {
     type: "ui_button" | "webhook_label" | "api"
@@ -41,6 +43,7 @@ export async function createDependentPRWorkflow({
   pullNumber,
   storage,
   userId,
+  agentBaseImage,
   jobId,
   initiator,
   authProvider,
@@ -128,6 +131,7 @@ export async function createDependentPRWorkflow({
       repoFullName,
       branch: baseRef,
       workflowId,
+      image: agentBaseImage,
     })
     const env: RepoEnvironment = { kind: "container", name: containerName }
     containerCleanup = cleanup

@@ -43,6 +43,8 @@ interface Params {
   apiKey: string
   /** Which LLM provider to use for this workflow run */
   provider: LLMProvider
+  /** Docker image used for the agent container. Read from env by the caller. */
+  agentBaseImage: string
   jobId?: string
   /** Optional branch to run the workflow on. If omitted, a new feature branch is generated. */
   branch?: string
@@ -56,8 +58,16 @@ export const autoResolveIssue = async (
   params: Params,
   ports: AutoResolveIssuePorts
 ) => {
-  const { issueNumber, repoFullName, login, apiKey, provider, jobId, branch } =
-    params
+  const {
+    issueNumber,
+    repoFullName,
+    login,
+    apiKey,
+    provider,
+    agentBaseImage,
+    jobId,
+    branch,
+  } = params
   const { eventBus, storage } = ports
 
   // =================================================
@@ -114,6 +124,7 @@ export const autoResolveIssue = async (
       config: {
         postToGithub: true,
       },
+      provider,
     })
 
     await createWorkflowStateEvent({ workflowId, state: "running" })
@@ -175,6 +186,7 @@ export const autoResolveIssue = async (
       repoFullName,
       branch: workingBranch,
       workflowId,
+      image: agentBaseImage,
       extraEnv: getContainerEnvForProvider(provider, apiKey),
     })
 

@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from "uuid"
 
 import { ReviewerAgent } from "@/lib/agents/reviewer"
+import { getEnv } from "@/lib/env"
 import { getRepoFromString } from "@/lib/github/content"
 import {
   getPullRequest,
@@ -145,6 +146,7 @@ export async function reviewPullRequest({
       repoFullName,
       branch,
       workflowId,
+      image: getEnv().AGENT_BASE_IMAGE,
     })
     containerCleanup = cleanup
     const env: RepoEnvironment = { kind: "container", name: containerName }

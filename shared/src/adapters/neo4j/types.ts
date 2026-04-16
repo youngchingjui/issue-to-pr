@@ -56,6 +56,8 @@ export const workflowRunSchema = z.object({
   createdAt: neo4jDateTime,
   postToGithub: z.boolean().optional(),
   state: workflowRunStateSchema.optional(),
+  provider: z.string().optional(),
+  model: z.string().optional(),
 })
 
 // User node (app user)

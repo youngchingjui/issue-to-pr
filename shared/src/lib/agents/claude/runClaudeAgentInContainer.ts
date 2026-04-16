@@ -11,7 +11,10 @@
 import { execInContainerWithDockerode } from "@/shared/lib/docker"
 import {
   createErrorEvent,
+  createLLMResponseEvent,
   createStatusEvent,
+  createToolCallEvent,
+  createToolCallResultEvent,
 } from "@/shared/lib/neo4j/services/event"
 
 /** Path to the runner script inside the agent-base Docker image. */
@@ -39,6 +42,15 @@ interface RunClaudeAgentParams {
 
 export interface RunClaudeAgentResult {
   messages: Array<{ role: string; content: string }>
+  usage?: {
+    promptTokens: number
+    completionTokens: number
+    totalCostUsd: number
+    numTurns: number
+    durationMs: number
+  }
+  /** Model names used during the run, derived from SDK modelUsage keys */
+  models?: string[]
 }
 
 /**
@@ -106,43 +118,98 @@ export async function runClaudeAgentInContainer({
   // 5. Parse NDJSON output
   const messages: Array<{ role: string; content: string }> = []
   const lines = stdout.split("\n").filter((line) => line.trim().length > 0)
+  let resultUsage: RunClaudeAgentResult["usage"]
+  let resultModels: string[] | undefined
 
   for (const line of lines) {
+    let event: Record<string, unknown>
     try {
-      const event = JSON.parse(line)
-
-      switch (event.type) {
-        case "status":
-          await createStatusEvent({
-            workflowId,
-            content: event.content,
-          })
-          break
-
-        case "result":
-          messages.push({ role: "assistant", content: event.content })
-          await createStatusEvent({
-            workflowId,
-            content: `Agent completed: ${event.content.slice(0, 200)}`,
-          })
-          break
-
-        case "error":
-          await createErrorEvent({
-            workflowId,
-            content: event.content,
-          })
-          break
-
-        case "done":
-          await createStatusEvent({
-            workflowId,
-            content: "Claude agent finished successfully",
-          })
-          break
-      }
+      event = JSON.parse(line)
     } catch {
       // Non-JSON line — could be SDK debug output, skip it
+      continue
+    }
+
+    switch (event.type) {
+      case "status":
+        await createStatusEvent({
+          workflowId,
+          content: event.content as string,
+        })
+        break
+
+      case "result": {
+        if (event.content) {
+          messages.push({
+            role: "assistant",
+            content: event.content as string,
+          })
+        }
+
+        // Extract usage data from the result event
+        if (event.usage) {
+          const usage = event.usage as Record<string, number>
+          resultUsage = {
+            promptTokens: usage.input_tokens ?? 0,
+            completionTokens: usage.output_tokens ?? 0,
+            totalCostUsd: (event.totalCostUsd as number) ?? 0,
+            numTurns: (event.numTurns as number) ?? 0,
+            durationMs: (event.durationMs as number) ?? 0,
+          }
+        }
+
+        // Extract model names from modelUsage keys
+        if (event.modelUsage) {
+          resultModels = Object.keys(
+            event.modelUsage as Record<string, unknown>
+          )
+        }
+
+        const summary = event.content
+          ? `Agent completed: ${(event.content as string).slice(0, 200)}`
+          : `Agent finished (${event.subtype})`
+        await createStatusEvent({ workflowId, content: summary })
+        break
+      }
+
+      case "llmResponse":
+        await createLLMResponseEvent({
+          workflowId,
+          content: event.content as string,
+        })
+        break
+
+      case "toolCall":
+        await createToolCallEvent({
+          workflowId,
+          toolName: event.toolName as string,
+          toolCallId: event.toolCallId as string,
+          args: (event.args as string) ?? "",
+        })
+        break
+
+      case "toolCallResult":
+        await createToolCallResultEvent({
+          workflowId,
+          toolCallId: event.toolCallId as string,
+          toolName: (event.toolName as string) ?? "unknown",
+          content: (event.content as string) ?? "",
+        })
+        break
+
+      case "error":
+        await createErrorEvent({
+          workflowId,
+          content: event.content as string,
+        })
+        break
+
+      case "done":
+        await createStatusEvent({
+          workflowId,
+          content: "Claude agent finished successfully",
+        })
+        break
     }
   }
 
@@ -160,5 +227,5 @@ export async function runClaudeAgentInContainer({
     })
   }
 
-  return { messages }
+  return { messages, usage: resultUsage, models: resultModels }
 }

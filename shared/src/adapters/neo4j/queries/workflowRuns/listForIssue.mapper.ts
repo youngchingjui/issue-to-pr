@@ -51,6 +51,8 @@ export function mapListForIssue(
             },
           }
         : undefined,
+      provider: run.provider,
+      model: run.model,
     }
 
     return workflowRun

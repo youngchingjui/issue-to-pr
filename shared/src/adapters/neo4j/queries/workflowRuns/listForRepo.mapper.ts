@@ -126,6 +126,8 @@ export function mapListForRepoResult(
             },
           }
         : undefined,
+      provider: run.provider,
+      model: run.model,
     }
 
     return workflowRun

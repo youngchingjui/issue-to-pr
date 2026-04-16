@@ -26,5 +26,7 @@ export function mapCreateWorkflowRunResult(
     createdAt: wr.createdAt.toStandardDate(),
     postToGithub: wr.postToGithub ?? false,
     state: wr.state ?? "pending",
+    provider: wr.provider,
+    model: wr.model,
   }
 }

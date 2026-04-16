@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowDownLeft, XCircle } from "lucide-react"
+import { ArrowDownLeft, Bot, XCircle } from "lucide-react"
 
 import CreatedPullRequestCard from "@/components/pull-requests/CreatedPullRequestCard"
 import { CollapsibleContent } from "@/components/ui/collapsible-content"
@@ -11,7 +11,50 @@ export interface Props {
   event: ToolCallResult
 }
 
+function parseSubAgentResult(content: string): string | null {
+  try {
+    const parsed = JSON.parse(content)
+    // The Agent tool returns a result string directly or an object with a result field
+    if (typeof parsed === "string") return parsed
+    if (parsed.result && typeof parsed.result === "string") return parsed.result
+    if (parsed.content && typeof parsed.content === "string")
+      return parsed.content
+    return null
+  } catch {
+    return null
+  }
+}
+
 export function ToolCallResultEvent({ event }: Props) {
+  const isSubAgent = event.toolName === "Agent"
+
+  if (isSubAgent) {
+    const readableContent = parseSubAgentResult(event.content ?? "") ?? event.content ?? ""
+
+    const headerContent = (
+      <div className="flex items-center justify-between w-full">
+        <div className="flex items-center gap-2">
+          <Bot className="h-3.5 w-3.5 text-purple-500" />
+          <div className="flex items-center gap-1.5 text-xs">
+            <span className="font-medium text-purple-500">
+              Sub-Agent Result
+            </span>
+          </div>
+        </div>
+        <EventTime timestamp={event.createdAt} />
+      </div>
+    )
+
+    return (
+      <CollapsibleContent
+        headerContent={headerContent}
+        className="border-l-2 border-purple-500 dark:border-purple-400 hover:bg-muted/50"
+      >
+        <div className="text-sm whitespace-pre-wrap">{readableContent}</div>
+      </CollapsibleContent>
+    )
+  }
+
   const headerContent = (
     <div className="flex items-center justify-between w-full">
       <div className="flex items-center gap-2">

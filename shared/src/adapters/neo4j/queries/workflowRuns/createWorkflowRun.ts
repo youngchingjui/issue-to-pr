@@ -17,6 +17,8 @@ const QUERY = `
     id: $runId,
     type: $type,
     postToGithub: $postToGithub,
+    provider: $provider,
+    model: $model,
     createdAt: datetime()
   })
   RETURN wr
@@ -33,6 +35,8 @@ export interface CreateWorkflowRunParams {
   runId: string
   type: string
   postToGithub: boolean
+  provider?: string
+  model?: string
 }
 
 export interface CreateWorkflowRunResult {
@@ -51,5 +55,7 @@ export async function createWorkflowRun(
     runId: params.runId,
     type: params.type,
     postToGithub: params.postToGithub,
+    provider: params.provider ?? null,
+    model: params.model ?? null,
   })
 }

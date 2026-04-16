@@ -17,6 +17,14 @@ import { createContainerizedWorkspace } from "@/shared/lib/utils/container"
 const TEST_REPO = process.env.TEST_REPO_FULL_NAME || "youngchingjui/test-repo"
 const TEST_BRANCH = "main"
 
+// Required env: tests must point at a real agent base image.
+const TEST_AGENT_IMAGE = process.env.AGENT_BASE_IMAGE
+if (!TEST_AGENT_IMAGE) {
+  throw new Error(
+    "AGENT_BASE_IMAGE env var must be set to run container integration tests"
+  )
+}
+
 // Ensure the Docker `preview` network exists before tests run.
 // createContainerizedWorkspace attaches containers to this network.
 async function ensurePreviewNetwork() {
@@ -53,6 +61,7 @@ describe("createContainerizedWorkspace (no hostRepoPath)", () => {
     const result = await createContainerizedWorkspace({
       repoFullName: TEST_REPO,
       branch: TEST_BRANCH,
+      image: TEST_AGENT_IMAGE,
     })
     containersToCleanup.push(result)
 
@@ -89,14 +98,17 @@ describe("createContainerizedWorkspace (no hostRepoPath)", () => {
       createContainerizedWorkspace({
         repoFullName: TEST_REPO,
         branch: TEST_BRANCH,
+        image: TEST_AGENT_IMAGE,
       }),
       createContainerizedWorkspace({
         repoFullName: TEST_REPO,
         branch: TEST_BRANCH,
+        image: TEST_AGENT_IMAGE,
       }),
       createContainerizedWorkspace({
         repoFullName: TEST_REPO,
         branch: TEST_BRANCH,
+        image: TEST_AGENT_IMAGE,
       }),
     ])
 
@@ -169,6 +181,7 @@ describe("createContainerizedWorkspace (no hostRepoPath)", () => {
     const result = await createContainerizedWorkspace({
       repoFullName: TEST_REPO,
       branch: TEST_BRANCH,
+      image: TEST_AGENT_IMAGE,
     })
     containersToCleanup.push(result)
 

@@ -310,6 +310,9 @@ async function main() {
 
   emit({ type: "status", content: "Starting Claude agent" })
 
+  // Track tool call IDs to tool names so we can label results correctly
+  const toolCallNames = new Map()
+
   try {
     for await (const message of query({
       prompt: userMessage,
@@ -323,8 +326,62 @@ async function main() {
         maxTurns: 200,
       },
     })) {
-      if ("result" in message) {
-        emit({ type: "result", content: message.result })
+      if (message.type === "result") {
+        // Final result message — includes usage and cost data
+        const resultEvent = {
+          type: "result",
+          content: message.subtype === "success" ? message.result : undefined,
+          subtype: message.subtype,
+          usage: message.usage,
+          totalCostUsd: message.total_cost_usd,
+          numTurns: message.num_turns,
+          durationMs: message.duration_ms,
+          sessionId: message.session_id,
+          modelUsage: message.modelUsage,
+        }
+        if (message.subtype !== "success" && message.errors) {
+          resultEvent.errors = message.errors
+        }
+        emit(resultEvent)
+      } else if (message.type === "assistant") {
+        // Assistant message — contains text and tool_use content blocks
+        const contentBlocks = message.message?.content ?? []
+        for (const block of contentBlocks) {
+          if (block.type === "text" && block.text) {
+            emit({ type: "llmResponse", content: block.text })
+          } else if (block.type === "tool_use") {
+            toolCallNames.set(block.id, block.name)
+            emit({
+              type: "toolCall",
+              toolName: block.name,
+              toolCallId: block.id,
+              args: JSON.stringify(block.input),
+            })
+          }
+        }
+      } else if (message.type === "user") {
+        // User messages carry tool results — either via tool_use_result (SDK field)
+        // or via message.content blocks of type "tool_result" (Anthropic API format).
+        const contentBlocks = Array.isArray(message.message?.content)
+          ? message.message.content
+          : []
+
+        for (const block of contentBlocks) {
+          if (block.type === "tool_result") {
+            const callId = block.tool_use_id ?? message.parent_tool_use_id ?? "unknown"
+            const rawContent = Array.isArray(block.content)
+              ? block.content.map((c) => c.text ?? JSON.stringify(c)).join("")
+              : typeof block.content === "string"
+                ? block.content
+                : JSON.stringify(block.content ?? "")
+            emit({
+              type: "toolCallResult",
+              toolCallId: callId,
+              toolName: toolCallNames.get(callId) ?? "unknown",
+              content: rawContent.slice(0, 10000),
+            })
+          }
+        }
       } else if (message.type === "system" && message.subtype === "init") {
         emit({
           type: "status",

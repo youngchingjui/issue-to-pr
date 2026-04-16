@@ -1,5 +1,6 @@
 import { ThinkerAgent } from "@/lib/agents/thinker"
 import { isContainerRunning } from "@/lib/docker"
+import { getEnv } from "@/lib/env"
 import {
   createIssueComment,
   getIssue,
@@ -16,7 +17,6 @@ import { createContainerExecTool } from "@/lib/tools/ContainerExecTool"
 import { createGetFileContentTool } from "@/lib/tools/GetFileContent"
 import { createRipgrepSearchTool } from "@/lib/tools/RipgrepSearchTool"
 import { BaseEvent as appBaseEvent, RepoEnvironment } from "@/lib/types"
-import { AGENT_BASE_IMAGE } from "@/lib/types/docker"
 import { GitHubRepository } from "@/lib/types/github"
 import {
   createContainerizedDirectoryTree,
@@ -150,7 +150,7 @@ export default async function commentOnIssue(
       repoFullName: repo.full_name,
       branch: repo.default_branch,
       workflowId: jobId,
-      image: AGENT_BASE_IMAGE,
+      image: getEnv().AGENT_BASE_IMAGE,
     }).catch((error) => {
       console.error("Failed to setup containerized environment:", {
         error,

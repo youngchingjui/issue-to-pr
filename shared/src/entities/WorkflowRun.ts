@@ -39,4 +39,8 @@ export interface WorkflowRun {
   actor?: WorkflowRunActor
   repository?: { fullName: string }
   commit?: Commit
+  /** LLM provider used for this run (e.g. "openai", "anthropic") */
+  provider?: string
+  /** Model name used for this run (e.g. "claude-sonnet-4-20250514") */
+  model?: string
 }

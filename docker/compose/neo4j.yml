@@ -12,10 +12,11 @@ services:
       - neo4j_import:/var/lib/neo4j/import
       - neo4j_plugins:/plugins
     healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:7474"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:7474"]
       interval: 5s
-      timeout: 3s
-      retries: 10
+      timeout: 5s
+      retries: 20
+      start_period: 10s
     networks:
       - issue-to-pr-network
 

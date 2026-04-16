@@ -9,7 +9,6 @@ import {
   stopAndRemoveContainer,
 } from "@/lib/docker"
 import { getInstallationTokenFromRepo } from "@/lib/github/installation"
-import { AGENT_BASE_IMAGE } from "@/lib/types/docker"
 import { containerNameForTrace } from "@/lib/utils/utils-common"
 import { buildPreviewSubdomainSlug } from "@/shared/entities/previewSlug"
 
@@ -35,8 +34,9 @@ interface ContainerizedWorktreeOptions {
   branch?: string
   /** optional externally-supplied workflow run id */
   workflowId?: string
-  /** Docker image to use (default "ghcr.io/youngchingjui/agent-base") */
-  image?: string
+  /** Docker image to use. Provided by the caller, which is responsible for
+   *  reading AGENT_BASE_IMAGE from its env. */
+  image: string
   /** Mount path inside container (default "/workspace") */
   mountPath?: string
   /** Additional environment variables to inject into the container */
@@ -115,7 +115,7 @@ export async function createContainerizedWorkspace({
   repoFullName,
   branch = "main",
   workflowId = uuidv4(),
-  image = AGENT_BASE_IMAGE,
+  image,
   mountPath = "/workspace",
   extraEnv,
 }: ContainerizedWorktreeOptions): Promise<ContainerizedWorktreeResult> {

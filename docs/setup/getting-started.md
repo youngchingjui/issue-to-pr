@@ -5,10 +5,6 @@
 - [Getting Started](#getting-started)
   - [Table of Contents](#table-of-contents)
   - [Prerequisites](#prerequisites)
-    - [Redis Installation](#redis-installation)
-      - [macOS](#macos)
-      - [Ubuntu](#ubuntu)
-      - [Windows](#windows)
   - [Installation](#installation)
   - [Configuration](#configuration)
   - [Development](#development)
@@ -18,31 +14,11 @@
 
 Before you begin, ensure you have:
 
-- Node.js (version 14 or later)
+- Node.js (version 18 or later)
 - pnpm (required)
-- Redis server
+- Docker and Docker Compose (required for local databases)
 - GitHub account
-- OpenAI API key
-
-### Redis Installation
-
-#### macOS
-
-```bash
-brew update
-brew install redis
-```
-
-#### Ubuntu
-
-```bash
-sudo apt update
-sudo apt install redis-server
-```
-
-#### Windows
-
-Use WSL or download from [Microsoft's Redis](https://github.com/microsoftarchive/redis/releases)
+- OpenAI API key (optional for development)
 
 ## Installation
 
@@ -67,32 +43,50 @@ pnpm install
 
 ## Configuration
 
-1. Create `.env.local` file. We manage our NextJS secrets on the Vercel platform.
+1. Prepare Docker Compose environment variables used for local databases:
 
-1. Configure GitHub App:
+Ensure `docker/.env` exists and has values. If the file doesn't exist, create it with at least:
 
-- Create new GitHub App
-- Set permissions
-- Generate private key
-- Install app in your repositories
+```env
+# docker/.env
+NEO4J_USER=neo4j
+NEO4J_PASSWORD=letmein
+```
+
+2. Create `.env.local` for app secrets used by Next.js (if applicable):
+
+```env
+# Example (fill with your own values where needed)
+# GitHub OAuth (optional for local dev)
+GITHUB_OAUTH_ID=your_oauth_client_id
+GITHUB_OAUTH_SECRET=your_oauth_client_secret
+
+# OpenAI (optional for development)
+OPENAI_API_KEY=your_openai_key
+
+# Redis URL for local dev (Docker exposes Redis on host:6379 by default)
+REDIS_URL=redis://localhost:6379
+```
 
 ## Development
 
-1. Start Redis server:
+1. Start required services (Neo4j, Redis) using Docker Compose from the repository root:
 
 ```bash
-redis-server
+docker compose -f docker/docker-compose.yml up -d
 ```
 
-2. Start development server:
+This launches all required services and uses healthchecks so they only report "healthy" when ready.
+
+2. Start the development server:
 
 ```bash
 pnpm dev
 ```
 
-3. Open application:
+3. Open the application:
 
-- Navigate to [http://localhost:3000](http://localhost:3000)
+- Navigate to http://localhost:3000
 - Sign in with GitHub
 - Start using the application
 

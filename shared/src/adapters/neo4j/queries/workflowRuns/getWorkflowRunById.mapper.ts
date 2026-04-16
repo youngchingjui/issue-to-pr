@@ -140,5 +140,7 @@ export function mapGetWorkflowRunById(
     repository,
     issue,
     commit,
+    provider: wr.provider,
+    model: wr.model,
   }
 }
