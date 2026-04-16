@@ -25,9 +25,19 @@ function parseAgentArgs(argsStr: string): {
   }
 }
 
+function safeParseJson(str?: string): Record<string, unknown> {
+  if (!str) return {}
+  try {
+    const parsed = JSON.parse(str)
+    return parsed && typeof parsed === "object" ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
 export function ToolCallEvent({ event }: Props) {
   const isSubAgent = event.toolName === "Agent"
-  const args = event.args ? JSON.parse(event.args) : {}
+  const args = safeParseJson(event.args)
 
   if (isSubAgent) {
     const { subagentType, prompt } = parseAgentArgs(event.args ?? "{}")

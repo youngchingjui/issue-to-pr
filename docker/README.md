@@ -27,8 +27,8 @@ NEO4J_PASSWORD=letmein
 
 The main `docker-compose.yml` file includes all service-specific configurations from the `compose/` directory. To start or stop all services from the repository root:
 
-```
-docker compose -f docker/docker-compose.yml up -d
+```bash
+docker compose -f docker/docker-compose.yml up -d --wait
 # ... do your work ...
 docker compose -f docker/docker-compose.yml down
 ```
@@ -38,7 +38,7 @@ You no longer use the `start-services.sh` script—simply run Compose directly.
 This workflow will:
 
 1. Start all database services (including Redis and Neo4j) in the background
-2. Wait until each service is healthy before considering them "up" (thanks to healthchecks in the Compose files)
+2. Block until each service passes its healthcheck (the `--wait` flag tells Compose to wait for healthy status)
 
 ## Services
 

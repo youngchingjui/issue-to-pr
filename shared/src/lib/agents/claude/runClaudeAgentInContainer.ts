@@ -122,86 +122,94 @@ export async function runClaudeAgentInContainer({
   let resultModels: string[] | undefined
 
   for (const line of lines) {
+    let event: Record<string, unknown>
     try {
-      const event = JSON.parse(line)
-
-      switch (event.type) {
-        case "status":
-          await createStatusEvent({
-            workflowId,
-            content: event.content,
-          })
-          break
-
-        case "result": {
-          if (event.content) {
-            messages.push({ role: "assistant", content: event.content })
-          }
-
-          // Extract usage data from the result event
-          if (event.usage) {
-            resultUsage = {
-              promptTokens: event.usage.input_tokens ?? 0,
-              completionTokens: event.usage.output_tokens ?? 0,
-              totalCostUsd: event.totalCostUsd ?? 0,
-              numTurns: event.numTurns ?? 0,
-              durationMs: event.durationMs ?? 0,
-            }
-          }
-
-          // Extract model names from modelUsage keys
-          if (event.modelUsage) {
-            resultModels = Object.keys(event.modelUsage)
-          }
-
-          const summary = event.content
-            ? `Agent completed: ${event.content.slice(0, 200)}`
-            : `Agent finished (${event.subtype})`
-          await createStatusEvent({ workflowId, content: summary })
-          break
-        }
-
-        case "llmResponse":
-          await createLLMResponseEvent({
-            workflowId,
-            content: event.content,
-          })
-          break
-
-        case "toolCall":
-          await createToolCallEvent({
-            workflowId,
-            toolName: event.toolName,
-            toolCallId: event.toolCallId,
-            args: event.args ?? "",
-          })
-          break
-
-        case "toolCallResult":
-          await createToolCallResultEvent({
-            workflowId,
-            toolCallId: event.toolCallId,
-            toolName: event.toolName ?? "unknown",
-            content: event.content ?? "",
-          })
-          break
-
-        case "error":
-          await createErrorEvent({
-            workflowId,
-            content: event.content,
-          })
-          break
-
-        case "done":
-          await createStatusEvent({
-            workflowId,
-            content: "Claude agent finished successfully",
-          })
-          break
-      }
+      event = JSON.parse(line)
     } catch {
       // Non-JSON line — could be SDK debug output, skip it
+      continue
+    }
+
+    switch (event.type) {
+      case "status":
+        await createStatusEvent({
+          workflowId,
+          content: event.content as string,
+        })
+        break
+
+      case "result": {
+        if (event.content) {
+          messages.push({
+            role: "assistant",
+            content: event.content as string,
+          })
+        }
+
+        // Extract usage data from the result event
+        if (event.usage) {
+          const usage = event.usage as Record<string, number>
+          resultUsage = {
+            promptTokens: usage.input_tokens ?? 0,
+            completionTokens: usage.output_tokens ?? 0,
+            totalCostUsd: (event.totalCostUsd as number) ?? 0,
+            numTurns: (event.numTurns as number) ?? 0,
+            durationMs: (event.durationMs as number) ?? 0,
+          }
+        }
+
+        // Extract model names from modelUsage keys
+        if (event.modelUsage) {
+          resultModels = Object.keys(
+            event.modelUsage as Record<string, unknown>
+          )
+        }
+
+        const summary = event.content
+          ? `Agent completed: ${(event.content as string).slice(0, 200)}`
+          : `Agent finished (${event.subtype})`
+        await createStatusEvent({ workflowId, content: summary })
+        break
+      }
+
+      case "llmResponse":
+        await createLLMResponseEvent({
+          workflowId,
+          content: event.content as string,
+        })
+        break
+
+      case "toolCall":
+        await createToolCallEvent({
+          workflowId,
+          toolName: event.toolName as string,
+          toolCallId: event.toolCallId as string,
+          args: (event.args as string) ?? "",
+        })
+        break
+
+      case "toolCallResult":
+        await createToolCallResultEvent({
+          workflowId,
+          toolCallId: event.toolCallId as string,
+          toolName: (event.toolName as string) ?? "unknown",
+          content: (event.content as string) ?? "",
+        })
+        break
+
+      case "error":
+        await createErrorEvent({
+          workflowId,
+          content: event.content as string,
+        })
+        break
+
+      case "done":
+        await createStatusEvent({
+          workflowId,
+          content: "Claude agent finished successfully",
+        })
+        break
     }
   }
 

@@ -140,6 +140,8 @@ export async function createContainerizedWorktree({
   const owner = ownerRaw ?? ""
   const repo = repoRaw ?? ""
   const subdomain = buildPreviewSubdomainSlug({ branch, owner, repo })
+  // TODO: CONTAINER_TTL_HOURS should be passed from the app boundary (worker/NextJS),
+  // not read from process.env in shared code. See shared/src/lib/README.md for env rules.
   const ttlHours = Number.parseInt(process.env.CONTAINER_TTL_HOURS ?? "24", 10)
 
   // 4. Start detached container mounting both the *clone* (read-only) and the *worktree* (rw)
@@ -222,6 +224,8 @@ export async function createContainerizedWorkspace({
   const containerName = containerNameForTrace(workflowId)
 
   const subdomain = buildPreviewSubdomainSlug({ branch, owner, repo })
+  // TODO: CONTAINER_TTL_HOURS should be passed from the app boundary (worker/NextJS),
+  // not read from process.env in shared code. See shared/src/lib/README.md for env rules.
   const ttlHours = Number.parseInt(process.env.CONTAINER_TTL_HOURS ?? "24", 10)
 
   await startContainer({

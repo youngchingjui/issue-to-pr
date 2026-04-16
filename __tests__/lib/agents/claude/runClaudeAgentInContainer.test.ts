@@ -213,7 +213,7 @@ describe("Claude agent runner — output collection", () => {
         totalCostUsd: 0.05,
         numTurns: 3,
         durationMs: 12000,
-        modelUsage: { "claude-sonnet-4-20250514": { inputTokens: 1000, outputTokens: 500 } },
+        modelUsage: { "any-model-id": { inputTokens: 1000, outputTokens: 500 } },
       }),
       JSON.stringify({ type: "done" }),
     ].join("\n")
@@ -229,6 +229,6 @@ describe("Claude agent runner — output collection", () => {
       numTurns: 3,
       durationMs: 12000,
     })
-    expect(result.models).toEqual(["claude-sonnet-4-20250514"])
+    expect(result.models).toEqual(["any-model-id"])
   })
 })

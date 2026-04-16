@@ -16,8 +16,11 @@ import { repoFullNameSchema } from "@/lib/types/github"
 export async function getRunningContainers(): Promise<RunningContainer[]> {
   const { AGENT_BASE_IMAGE } = getEnv()
   const containers = await listRunningContainers()
-  const agentContainers = containers.filter((c) =>
-    c.image.startsWith(AGENT_BASE_IMAGE)
+  const agentContainers = containers.filter(
+    (c) =>
+      c.image === AGENT_BASE_IMAGE ||
+      c.image.startsWith(`${AGENT_BASE_IMAGE}:`) ||
+      c.image.startsWith(`${AGENT_BASE_IMAGE}@`)
   )
 
   // Enrich with install/dev command availability from repo settings
