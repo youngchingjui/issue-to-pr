@@ -1,31 +1,46 @@
 "use client"
 
-import { Bot, Code, GitBranch, GitPullRequest } from "lucide-react"
+import { Bot, Code, GitBranch, GitPullRequest, ClipboardList, CheckSquare, FileText } from "lucide-react"
 import * as motion from "motion/react-client"
 
 const features = [
   {
-    icon: <Bot size={24} />,
+    icon: <Bot size={24} />, 
     title: "Multiple AI Agents",
     description:
       "Coordinates multiple agents to review and understand your issues.",
   },
   {
-    icon: <Code size={24} />,
+    icon: <Code size={24} />, 
     title: "Codebase Analysis",
     description: "Explores solutions based on your specific codebase.",
   },
   {
-    icon: <GitPullRequest size={24} />,
+    icon: <GitPullRequest size={24} />, 
     title: "Automatic PRs",
     description: "Creates pull requests with generated solutions.",
   },
   {
-    icon: <GitBranch size={24} />,
+    icon: <GitBranch size={24} />, 
     title: "Safe Changes",
     description:
       "Creates a new branch for changes, keeping your production branch safe.",
   },
+  {
+    icon: <ClipboardList size={24} />, 
+    title: "AI-Driven Plan Generation",
+    description: "Generates a plan to resolve your GitHub issues quickly and efficiently.",
+  },
+  {
+    icon: <CheckSquare size={24} />, 
+    title: "Automated Issue Resolution",
+    description: "Coordinates multiple agents to edit code and resolve issues in your repository.",
+  },
+  {
+    icon: <FileText size={24} />, 
+    title: "Comprehensive PR Reviews",
+    description: "Conducts in-depth reviews of your pull requests based on guidelines.",
+  }
 ]
 
 export default function Details() {
