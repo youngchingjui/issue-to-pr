@@ -1,3 +1,5 @@
+# Neo4j Data Model
+
 ## Current data model
 
 ```mermaid
