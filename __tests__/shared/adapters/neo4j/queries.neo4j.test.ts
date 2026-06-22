@@ -1,19 +1,25 @@
 /**
- * Read-only integration tests for Neo4j query helpers
+ * Integration tests for Neo4j query helpers (read operations)
  *
- * These tests verify that the query helper functions work correctly
- * against a real Neo4j database with existing data.
+ * This suite verifies the query helper functions using ONLY our wrapper
+ * functions to set up and read data. We avoid writing raw Cypher in tests
+ * to ensure we validate the same queries our app uses in production.
  *
  * Setup:
  * 1. Ensure Neo4j test database is running
  * 2. Copy __tests__/.env.example to __tests__/.env and configure test database credentials
  *    IMPORTANT: Use a separate test database, not production!
- * 3. Ensure your test database has workflow runs with relationships
  *
  * Run with: pnpm test:neo4j
  */
 
 import {
+  createWorkflowRun,
+  attachActor,
+  attachIssue,
+  attachRepository,
+  addEvent,
+  addWorkflowStateEvent,
   listByUser,
   listEventsForWorkflowRun,
   listForIssue,
@@ -23,107 +29,162 @@ import {
   mapListForIssue,
 } from "@/shared/adapters/neo4j/queries/workflowRuns"
 
-import { createTestDataSource, verifyConnection } from "./testUtils"
+import { cleanupTestData, createTestDataSource, verifyConnection } from "./testUtils"
 
 describe("Neo4j Query Helpers - Read Operations", () => {
   let dataSource: ReturnType<typeof createTestDataSource>
 
+  // Hardcoded test fixtures (idempotent)
+  const FIXTURE = {
+    userId: "test-queries-user-1",
+    repo: { id: "test-queries-repo-1", owner: "test", name: "queries-repo" },
+    issue: { number: 123, repoFullName: "test/queries-repo" },
+    runs: {
+      byUser: "test-queries-run-by-user",
+      byIssue: "test-queries-run-by-issue",
+      byRepo: "test-queries-run-by-repo",
+      withEvents: "test-queries-run-with-events",
+    },
+  }
+
   beforeAll(async () => {
     dataSource = createTestDataSource()
     await verifyConnection(dataSource)
+
+    // Create deterministic test data using wrapper functions only
+    const session = dataSource.getSession("WRITE")
+    try {
+      await session.executeWrite(async (tx) => {
+        // 1) Run for listByUser
+        await createWorkflowRun(tx, {
+          runId: FIXTURE.runs.byUser,
+          type: "resolveIssue",
+          postToGithub: false,
+        })
+        await attachActor(tx, {
+          runId: FIXTURE.runs.byUser,
+          actor: { actorType: "user", actorUserId: FIXTURE.userId },
+        })
+        // add state so mappers have a value
+        await addWorkflowStateEvent(tx, {
+          runId: FIXTURE.runs.byUser,
+          eventId: `${FIXTURE.runs.byUser}-state`,
+          state: "running",
+          createdAt: new Date().toISOString(),
+          content: "state: running",
+        })
+
+        // 2) Run for listForIssue
+        await createWorkflowRun(tx, {
+          runId: FIXTURE.runs.byIssue,
+          type: "resolveIssue",
+          postToGithub: false,
+        })
+        await attachIssue(tx, {
+          runId: FIXTURE.runs.byIssue,
+          issueNumber: FIXTURE.issue.number,
+          repoFullName: FIXTURE.issue.repoFullName,
+        })
+        await addWorkflowStateEvent(tx, {
+          runId: FIXTURE.runs.byIssue,
+          eventId: `${FIXTURE.runs.byIssue}-state`,
+          state: "completed",
+          createdAt: new Date().toISOString(),
+          content: "state: completed",
+        })
+
+        // 3) Run for listForRepo
+        await createWorkflowRun(tx, {
+          runId: FIXTURE.runs.byRepo,
+          type: "resolveIssue",
+          postToGithub: true,
+        })
+        await attachRepository(tx, {
+          runId: FIXTURE.runs.byRepo,
+          repoId: FIXTURE.repo.id,
+          repoOwner: FIXTURE.repo.owner,
+          repoName: FIXTURE.repo.name,
+        })
+        await addWorkflowStateEvent(tx, {
+          runId: FIXTURE.runs.byRepo,
+          eventId: `${FIXTURE.runs.byRepo}-state`,
+          state: "pending",
+          createdAt: new Date().toISOString(),
+          content: "state: pending",
+        })
+
+        // 4) Run with events chain
+        await createWorkflowRun(tx, {
+          runId: FIXTURE.runs.withEvents,
+          type: "resolveIssue",
+          postToGithub: false,
+        })
+        // seed events with increasing timestamps
+        const t0 = Date.now() - 10000
+        await addWorkflowStateEvent(tx, {
+          runId: FIXTURE.runs.withEvents,
+          eventId: `${FIXTURE.runs.withEvents}-state-1`,
+          state: "running",
+          createdAt: new Date(t0).toISOString(),
+        })
+        await addEvent(tx, {
+          runId: FIXTURE.runs.withEvents,
+          eventId: `${FIXTURE.runs.withEvents}-status-1`,
+          eventType: "status",
+          content: "Event 1",
+          createdAt: new Date(t0 + 1000).toISOString(),
+        })
+        await addEvent(tx, {
+          runId: FIXTURE.runs.withEvents,
+          eventId: `${FIXTURE.runs.withEvents}-status-2`,
+          eventType: "status",
+          content: "Event 2",
+          createdAt: new Date(t0 + 2000).toISOString(),
+        })
+      })
+    } finally {
+      await session.close()
+    }
   })
 
   afterAll(async () => {
+    // Delete only the workflow runs created above (and related orphan nodes)
+    await cleanupTestData(dataSource, Object.values(FIXTURE.runs))
     await dataSource.getDriver().close()
   })
 
   describe("listByUser", () => {
-    it("should execute query without errors for non-existent user", async () => {
+    it("should return workflow runs for a known user", async () => {
       const session = dataSource.getSession("READ")
       try {
-        const result = await session.executeRead((tx) => {
-          return listByUser(tx, {
-            user: { id: "non-existent-user-123" },
-          })
-        })
-
-        expect(result.records).toEqual([])
-      } finally {
-        await session.close()
-      }
-    })
-
-    it("should retrieve workflow runs if user exists", async () => {
-      const session = dataSource.getSession("READ")
-      try {
-        // First, find a user who has initiated workflow runs
-        const userQuery = await session.run(`
-          MATCH (wr:WorkflowRun)-[:INITIATED_BY]->(u:User)
-          RETURN u.id AS userId
-          LIMIT 1
-        `)
-
-        if (userQuery.records.length === 0) {
-          console.log(
-            "⚠️  No workflow runs initiated by users found. Skipping test."
-          )
-          return
-        }
-
-        const userId = userQuery.records[0].get("userId") as string
-
-        // Now test the listByUser query
-        const result = await session.executeRead((tx) => {
-          return listByUser(tx, {
-            user: { id: userId },
-          })
-        })
-
-        expect(result).toBeDefined()
-
-        // Test mapper
+        const result = await session.executeRead((tx) =>
+          listByUser(tx, { user: { id: FIXTURE.userId } })
+        )
         const mapped = mapListByUser(result)
         expect(mapped.length).toBeGreaterThan(0)
-        expect(mapped[0]).toMatchObject({
-          id: expect.any(String),
+        const item = mapped.find((r) => r.id === FIXTURE.runs.byUser)
+        expect(item).toBeDefined()
+        expect(item).toMatchObject({
+          id: FIXTURE.runs.byUser,
           type: expect.any(String),
           createdAt: expect.any(Date),
-          postToGithub: expect.any(Boolean),
-          state: expect.stringMatching(
-            /^(pending|running|completed|error|timedOut)$/
-          ),
-          actor: { type: "user" },
+          state: expect.stringMatching(/^(pending|running|completed|error|timedOut)$/),
+          actor: { type: "user", userId: FIXTURE.userId },
         })
-
-        // Check commit field if present
-        if (mapped[0].commit) {
-          expect(mapped[0].commit).toMatchObject({
-            sha: expect.any(String),
-            message: expect.any(String),
-            repository: {
-              fullName: expect.any(String),
-            },
-          })
-        }
-
-        console.log(`✓ Found ${mapped.length} workflow runs for user ${userId}`)
       } finally {
         await session.close()
       }
     })
 
-    it("should handle mapper with various record shapes", async () => {
+    it("should handle mapper with empty results", async () => {
       const session = dataSource.getSession("READ")
       try {
-        const result = await session.executeRead(async (tx) => {
-          return await listByUser(tx, {
-            user: { id: "any-user" },
-          })
-        })
-
-        // Mapper should handle empty results
+        const result = await session.executeRead((tx) =>
+          listByUser(tx, { user: { id: "non-existent-user-123" } })
+        )
         const mapped = mapListByUser(result)
         expect(Array.isArray(mapped)).toBe(true)
+        expect(mapped.length).toBe(0)
       } finally {
         await session.close()
       }
@@ -131,76 +192,34 @@ describe("Neo4j Query Helpers - Read Operations", () => {
   })
 
   describe("listForIssue", () => {
-    it("should execute query without errors for non-existent issue", async () => {
+    it("should return workflow runs for a known issue", async () => {
       const session = dataSource.getSession("READ")
       try {
-        const result = await session.executeRead(async (tx) => {
-          return await listForIssue(tx, {
-            issue: { number: 99999, repoFullName: "owner/repo" },
-          })
+        const result = await session.executeRead((tx) =>
+          listForIssue(tx, { issue: FIXTURE.issue })
+        )
+        const mapped = mapListForIssue(result)
+        expect(mapped.length).toBeGreaterThan(0)
+        const item = mapped.find((r) => r.id === FIXTURE.runs.byIssue)
+        expect(item).toBeDefined()
+        expect(item).toMatchObject({
+          id: FIXTURE.runs.byIssue,
+          type: expect.any(String),
+          createdAt: expect.any(Date),
+          state: expect.stringMatching(/^(pending|running|completed|error|timedOut)$/),
         })
-
-        expect(result.records).toEqual([])
       } finally {
         await session.close()
       }
     })
 
-    it("should retrieve workflow runs if issue exists", async () => {
+    it("should return empty for non-existent issue", async () => {
       const session = dataSource.getSession("READ")
       try {
-        // First, find an issue that has workflow runs
-        const issueQuery = await session.run(`
-          MATCH (wr:WorkflowRun)-[:BASED_ON_ISSUE]->(i:Issue)
-          RETURN i.number AS number, i.repoFullName AS repoFullName
-          LIMIT 1
-        `)
-
-        if (issueQuery.records.length === 0) {
-          console.log(
-            "⚠️  No workflow runs based on issues found. Skipping test."
-          )
-          return
-        }
-
-        const issueNumber = issueQuery.records[0].get("number").toNumber()
-        const repoFullName = issueQuery.records[0].get("repoFullName") as string
-
-        // Now test the listForIssue query
-        const result = await session.executeRead(async (tx) => {
-          return await listForIssue(tx, {
-            issue: { number: issueNumber, repoFullName },
-          })
-        })
-
-        expect(result.records.length).toBeGreaterThan(0)
-
-        // Test mapper
-        const mapped = mapListForIssue(result)
-        expect(mapped.length).toBeGreaterThan(0)
-        expect(mapped[0]).toMatchObject({
-          id: expect.any(String),
-          type: expect.any(String),
-          createdAt: expect.any(Date),
-          state: expect.stringMatching(
-            /^(pending|running|completed|error|timedOut)$/
-          ),
-        })
-
-        // Check commit field if present
-        if (mapped[0].commit) {
-          expect(mapped[0].commit).toMatchObject({
-            sha: expect.any(String),
-            message: expect.any(String),
-            repository: {
-              fullName: expect.any(String),
-            },
-          })
-        }
-
-        console.log(
-          `✓ Found ${mapped.length} workflow runs for issue #${issueNumber}`
+        const result = await session.executeRead((tx) =>
+          listForIssue(tx, { issue: { number: 99999, repoFullName: "owner/repo" } })
         )
+        expect(result.records).toEqual([])
       } finally {
         await session.close()
       }
@@ -208,57 +227,25 @@ describe("Neo4j Query Helpers - Read Operations", () => {
   })
 
   describe("listForRepo", () => {
-    it("should execute query without errors for non-existent repo", async () => {
+    it("should return workflow runs for a known repository", async () => {
       const session = dataSource.getSession("READ")
       try {
-        const result = await session.executeRead(async (tx) => {
-          return await listForRepo(tx, {
-            repo: { fullName: "owner/non-existent-repo" },
-          })
-        })
-
-        expect(result.records).toEqual([])
+        const result = await session.executeRead((tx) =>
+          listForRepo(tx, { repo: { fullName: `${FIXTURE.repo.owner}/${FIXTURE.repo.name}` } })
+        )
+        expect(result.records.length).toBeGreaterThan(0)
       } finally {
         await session.close()
       }
     })
 
-    it("should retrieve workflow runs if repository exists", async () => {
+    it("should return empty for a non-existent repository", async () => {
       const session = dataSource.getSession("READ")
       try {
-        // First, find a repository that has workflow runs
-        // Note: The query uses BASED_ON_REPOSITORY relationship
-        const repoQuery = await session.run(`
-          MATCH (wr:WorkflowRun)-[:BASED_ON_REPOSITORY]->(r:Repository)
-          RETURN r.fullName AS fullName
-          LIMIT 1
-        `)
-
-        if (repoQuery.records.length === 0) {
-          console.log(
-            "⚠️  No workflow runs with BASED_ON_REPOSITORY relationship found."
-          )
-          console.log(
-            "   Note: This relationship may not exist yet in the current schema."
-          )
-          console.log("   The current PR uses TARGETS relationship instead.")
-          return
-        }
-
-        const repoFullName = repoQuery.records[0].get("fullName") as string
-
-        // Now test the listForRepo query
-        const result = await session.executeRead(async (tx) => {
-          return await listForRepo(tx, {
-            repo: { fullName: repoFullName },
-          })
-        })
-
-        expect(result.records.length).toBeGreaterThan(0)
-
-        console.log(
-          `✓ Found ${result.records.length} workflow runs for repo ${repoFullName}`
+        const result = await session.executeRead((tx) =>
+          listForRepo(tx, { repo: { fullName: "owner/non-existent-repo" } })
         )
+        expect(result.records).toEqual([])
       } finally {
         await session.close()
       }
@@ -266,97 +253,16 @@ describe("Neo4j Query Helpers - Read Operations", () => {
   })
 
   describe("listEventsForWorkflowRun", () => {
-    it("should execute query without errors for non-existent workflow run", async () => {
+    it("should return events for a known workflow run in chronological order", async () => {
       const session = dataSource.getSession("READ")
       try {
-        const result = await session.executeRead(async (tx) => {
-          return await listEventsForWorkflowRun(tx, {
-            workflowRunId: "non-existent-run-123",
-          })
-        })
-
-        expect(result.records).toEqual([])
-      } finally {
-        await session.close()
-      }
-    })
-
-    it("should retrieve events if workflow run exists with events", async () => {
-      const session = dataSource.getSession("READ")
-      try {
-        // First, find a workflow run that has events
-        const runQuery = await session.run(`
-          MATCH (wr:WorkflowRun)-[:STARTS_WITH|NEXT*]->(e:Event)
-          RETURN wr.id AS runId, count(e) AS eventCount
-          ORDER BY eventCount DESC
-          LIMIT 1
-        `)
-
-        if (runQuery.records.length === 0) {
-          console.log("⚠️  No workflow runs with events found. Skipping test.")
-          return
-        }
-
-        const runId = runQuery.records[0].get("runId") as string
-        const expectedCount = runQuery.records[0].get("eventCount").toNumber()
-
-        // Now test the listEventsForWorkflowRun query
-        const result = await session.executeRead(async (tx) => {
-          return await listEventsForWorkflowRun(tx, {
-            workflowRunId: runId,
-          })
-        })
-
-        expect(result.records.length).toBeGreaterThan(0)
-
-        // Test mapper
-        const mapped = mapListEvents(result)
-        expect(mapped.length).toBeGreaterThan(0)
-
-        // Events have different timestamp types (Date for WorkflowEvent, string for MessageEvent)
-        const firstEvent = mapped[0]
-        expect(firstEvent).toHaveProperty("type")
-        expect(firstEvent).toHaveProperty("timestamp")
-
-        console.log(
-          `✓ Found ${mapped.length} events for workflow run ${runId} (expected: ${expectedCount})`
+        const result = await session.executeRead((tx) =>
+          listEventsForWorkflowRun(tx, { workflowRunId: FIXTURE.runs.withEvents })
         )
-      } finally {
-        await session.close()
-      }
-    })
-
-    it("should return events in chronological order", async () => {
-      const session = dataSource.getSession("READ")
-      try {
-        // Find a workflow run with multiple events
-        const runQuery = await session.run(`
-          MATCH (wr:WorkflowRun)-[:STARTS_WITH|NEXT*]->(e:Event)
-          WITH wr, count(e) AS eventCount
-          WHERE eventCount > 1
-          RETURN wr.id AS runId
-          LIMIT 1
-        `)
-
-        if (runQuery.records.length === 0) {
-          console.log(
-            "⚠️  No workflow runs with multiple events found. Skipping test."
-          )
-          return
-        }
-
-        const runId = runQuery.records[0].get("runId") as string
-
-        const result = await session.executeRead(async (tx) => {
-          return await listEventsForWorkflowRun(tx, {
-            workflowRunId: runId,
-          })
-        })
-
         const mapped = mapListEvents(result)
+        expect(mapped.length).toBeGreaterThanOrEqual(2)
 
-        // Verify events are in chronological order (ascending)
-        // Note: AllEvents has mixed timestamp types (Date | string), so we normalize to milliseconds
+        // Verify chronological order
         for (let i = 1; i < mapped.length; i++) {
           const prevTime =
             typeof mapped[i - 1].timestamp === "string"
@@ -370,10 +276,18 @@ describe("Neo4j Query Helpers - Read Operations", () => {
 
           expect(currTime).toBeGreaterThanOrEqual(prevTime)
         }
+      } finally {
+        await session.close()
+      }
+    })
 
-        console.log(
-          `✓ Verified ${mapped.length} events are in chronological order`
+    it("should return empty for a non-existent workflow run", async () => {
+      const session = dataSource.getSession("READ")
+      try {
+        const result = await session.executeRead((tx) =>
+          listEventsForWorkflowRun(tx, { workflowRunId: "non-existent-run-123" })
         )
+        expect(result.records).toEqual([])
       } finally {
         await session.close()
       }
@@ -381,21 +295,20 @@ describe("Neo4j Query Helpers - Read Operations", () => {
   })
 
   describe("Query Performance", () => {
-    it("should execute queries with reasonable performance", async () => {
+    it("should execute helper queries with reasonable performance", async () => {
       const session = dataSource.getSession("READ")
       try {
         const start = Date.now()
-
-        // Run a sample query
-        await session.run("MATCH (wr:WorkflowRun) RETURN count(wr) AS count")
-
+        // Run a sample helper query (non-existent user)
+        await session.executeRead((tx) =>
+          listByUser(tx, { user: { id: "non-existent-user-perf" } })
+        )
         const duration = Date.now() - start
-
         expect(duration).toBeLessThan(5000) // Should complete within 5 seconds
-        console.log(`✓ Query completed in ${duration}ms`)
       } finally {
         await session.close()
       }
     })
   })
 })
+
