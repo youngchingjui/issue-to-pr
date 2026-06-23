@@ -22,7 +22,7 @@ import {
   createUserResponseEvent,
   deleteEvent,
 } from "@/lib/neo4j/services/event"
-import { AgentConstructorParams, AnyEvent, Tool } from "@/lib/types"
+import { AgentConstructorParams, AnyEvent, RepoEnvironment, Tool } from "@/lib/types"
 import { EnhancedMessage } from "@/lib/types/chat"
 import { convertToolToFunctionTool } from "@/lib/utils/chat"
 
@@ -41,8 +41,10 @@ export class Agent {
   llm: OpenAI | null = null
   model: ChatModel = "gpt-5"
   jobId?: string
+  /** Optional execution environment (host or container) associated with this agent */
+  env?: RepoEnvironment
 
-  constructor({ model, systemPrompt, apiKey }: AgentConstructorParams) {
+  constructor({ model, systemPrompt, apiKey, env }: AgentConstructorParams) {
     if (model) {
       this.model = model
     }
@@ -52,6 +54,19 @@ export class Agent {
     if (systemPrompt) {
       this.setSystemPrompt(systemPrompt)
     }
+    if (env) {
+      this.attachEnvironment(env)
+    }
+  }
+
+  /** Attach a single execution environment to this agent */
+  attachEnvironment(env: RepoEnvironment) {
+    this.env = env
+  }
+
+  /** Detach any currently associated execution environment */
+  detachEnvironment() {
+    this.env = undefined
   }
 
   private async trackMessage(
@@ -661,3 +676,4 @@ export class ResponsesAPIAgent extends Agent {
     }
   }
 }
+
